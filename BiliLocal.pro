@@ -11,19 +11,19 @@ TEMPLATE = app
 CONFIG += c++11
 
 SOURCES += \
-    Interface.cpp \
-    Local.cpp \
-    Danmaku.cpp \
-    VPlayer.cpp \
-    Menu.cpp \
-    State.cpp
+    src/Interface.cpp \
+    src/Local.cpp \
+    src/Danmaku.cpp \
+    src/VPlayer.cpp \
+    src/Menu.cpp \
+    src/State.cpp
 
 HEADERS  += \
-    Interface.h \
-    Danmaku.h \
-    VPlayer.h \
-    Menu.h \
-    State.h
+    src/Interface.h \
+    src/Danmaku.h \
+    src/VPlayer.h \
+    src/Menu.h \
+    src/State.h
 
 LIBS += -L./\
     -lvlc \
@@ -31,11 +31,19 @@ LIBS += -L./\
     -lavutil \
     -lswscale
 
+INCLUDEPATH += include/
+
+
 RESOURCES += \
-    Res.qrc
+    res/res.qrc \
+    trans/trans.qrc
 
 TRANSLATIONS = \
-    zh_CN.ts
+    trans/zh_CN.ts
+
+win32 {
 
 RC_FILE = \
     Icon.rc
+
+}
