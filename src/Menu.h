@@ -5,6 +5,7 @@
 *   Filename:    Menu.h
 *   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -46,6 +47,7 @@ private:
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QPushButton *fileB;
+	QPushButton *searchB;
 	QPushButton *danmB;
 	QLabel *alphaT;
 	QSlider *alphaS;

@@ -5,6 +5,7 @@
 *   Filename:    Menu.cpp
 *   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -45,17 +46,20 @@ Menu::Menu(QWidget *parent) :
 	fileL->setReadOnly(true);
 	danmL->setText("av");
 	fileL->setGeometry(QRect(10,25,120,25));
-	danmL->setGeometry(QRect(10,65,120,25));
+	danmL->setGeometry(QRect(10,65,80,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)(#)?([0-9]+)?");
 		regex.indexIn(text);
 		danmL->setText("av"+regex.cap());
 	});
 	fileB=new QPushButton(this);
+	searchB=new QPushButton(this);
 	danmB=new QPushButton(this);
 	fileB->setGeometry(QRect(135,25,55,25));
-	danmB->setGeometry(QRect(135,65,55,25));
+	searchB->setGeometry(QRect(95,65,45,25));
+	danmB->setGeometry(QRect(145,65,45,25));
 	fileB->setText(tr("Open"));
+	searchB->setText(tr("Search"));
 	danmB->setText(tr("Load"));
 	connect(fileB,&QPushButton::clicked,[this](){
 		QWidget *p=dynamic_cast<QWidget *>(this->parent());
@@ -64,6 +68,7 @@ Menu::Menu(QWidget *parent) :
 			setFile(_file);
 		}
 	});
+	connect(searchB,&QPushButton::clicked,[this](){});
 	connect(danmB,&QPushButton::clicked,[this](){
 		if(isLocal){
 			QWidget *p=dynamic_cast<QWidget *>(this->parent());
