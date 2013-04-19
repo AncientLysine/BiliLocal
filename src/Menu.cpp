@@ -26,6 +26,7 @@
 =========================================================================*/
 
 #include "Menu.h"
+#include "Search.h"
 
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)
@@ -68,7 +69,10 @@ Menu::Menu(QWidget *parent) :
 			setFile(_file);
 		}
 	});
-	connect(searchB,&QPushButton::clicked,[this](){});
+	connect(searchB,&QPushButton::clicked,[this](){
+		Search searchBox;
+		searchBox.exec();
+	});
 	connect(danmB,&QPushButton::clicked,[this](){
 		if(isLocal){
 			QWidget *p=dynamic_cast<QWidget *>(this->parent());
