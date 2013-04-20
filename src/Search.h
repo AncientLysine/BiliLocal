@@ -37,10 +37,19 @@ class Search : public QDialog
 public:
 	explicit Search(QWidget *parent=0);
 	~Search();
+	QString keyword();
+	QString selectedId();
+					 
+public slots:
+	void setKeyword(const QString & key);
+	void startSearch();
+	void getData(int pagenum);
+	void clearSearch();
+	
 private:
 	QLineEdit *keywordE;
 	QPushButton *searchB;
-	QListWidget *resultW;
+	QTreeWidget *resultW;
 	QLabel *pageL;
 	QLineEdit *pageE;
 	QPushButton *pagegotoB;
@@ -48,6 +57,15 @@ private:
 	QPushButton *pagedownB;
 	QPushButton *okB;
 	QPushButton *cancelB;
+
+	int pageCount = -1;
+	int pageNum = -1;
+	QString key;
+	QString id;
+	
+	QNetworkAccessManager *manager;
+private slots:
+	void dataProcessor(QNetworkReply *reply);
 };
 
 #endif /* _SEARCH_H_ */

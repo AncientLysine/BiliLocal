@@ -26,6 +26,10 @@
 
 #include "Search.h"
 
+namespace {
+	const QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
+}
+
 Search::Search(QWidget *parent) : QDialog(parent)
 {
 	auto outerLayout=new QVBoxLayout;
@@ -36,7 +40,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	keywordLayout->addWidget(keywordE);
 	keywordLayout->addWidget(searchB);
 	outerLayout->addLayout(keywordLayout);
-	resultW=new QListWidget;
+	resultW=new QTreeWidget;
 	outerLayout->addWidget(resultW);
 	auto pageLayout=new QHBoxLayout;
 	pageL=new QLabel;
@@ -56,7 +60,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	outerLayout->addLayout(pageLayout);
 	auto responseLayout=new QHBoxLayout;
 	okB=new QPushButton;
-	okB->setText(tr("OK"));
+	okB->setText(tr("Confirm and load"));
 	cancelB=new QPushButton;
 	cancelB->setText(tr("Cancel"));
 	responseLayout->addWidget(okB);
@@ -66,11 +70,97 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	this->setLayout(outerLayout);
 	this->setWindowTitle(tr("Search"));
 	
+	QStringList labels = {tr("AID"),tr("Title"),tr("Typename"),tr("Author")};
+	resultW->setHeaderLabels(labels);
+	
+	connect(keywordE,&QLineEdit::textChanged,this,&Search::clearSearch);
+	
+	connect(searchB,&QPushButton::clicked,this,&Search::startSearch);
+
+	connect(pagegotoB,&QPushButton::clicked,this,[this](){
+			if(this->pageCount==-1) {
+				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+			}
+	});
+
+	connect(pageupB,&QPushButton::clicked,this,[this](){
+			if(this->pageCount==-1) {
+				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+			}
+	});
+
+	connect(pagedownB,&QPushButton::clicked,this,[this](){
+			if(this->pageCount==-1) {
+				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+			}
+	});
+
 	connect(okB,&QPushButton::clicked,this,&QDialog::accept);
 	connect(cancelB,&QPushButton::clicked,this,&QDialog::reject);
+
+	manager=new QNetworkAccessManager(this);
+	connect(manager,&QNetWorkAccessManager::finished,this,&Search::dataProcessor);
 }
 
 Search::~Search()
 {
 	
+}
+
+QString Search::keyword()
+{
+	return key;
+}
+
+
+void Search::setKeyword(const QString & key)
+{
+	this->key=key;
+	keywordE->setText(key);
+}
+
+void Search::startSearch()
+{
+	key=keywordE->text();
+	pageNum=1;
+	pageE->setText("1");
+	this->getData(1);
+}
+
+void Search::getData(int pagenum)
+{
+	QNetworkRequest request;
+	request.setUrl(QUrl(apiUrl
+						.arg(key)
+						.arg(QString::number(pagenum))));
+	manager->get(request);
+}
+
+void Search::clearSearch()
+{
+	resultW->clear();
+	pageCount=-1;
+	pageNum=-1;
+	pageE->setText("");
+}
+
+void Search::dataProcessor(QNetworkReply *reply)
+{
+	QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+	if (pageCount==-1)
+		pageCount=json["page"].toInt();
+
+	QJsonObject results=json["result"].toObject();
+	for(auto &i : results) {
+		QJsonObject item=i.toObject();
+		if (item["type"].toString()==QString("video")) {
+			QStringList content={
+				item["aid"].toString(),
+				item["title"].toString(),
+				item["typename"].toString(),
+				item["author"].toString()
+			};
+			auto widgetItem=new QTreeWidgetItem(resultW,content);
+		}
+	}
 }
