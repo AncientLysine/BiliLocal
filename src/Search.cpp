@@ -87,6 +87,8 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	resultW->setColumnWidth(2,100);
 
 	connect(keywordE,&QLineEdit::textChanged,this,&Search::clearSearch);
+
+	connect(keywordE,&QLineEdit::returnPressed,searchB,&QPushButton::clicked);
 	
 	connect(searchB,&QPushButton::clicked,[this](){
 			if(this->isRequesting) {
@@ -162,6 +164,8 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	});
 	connect(cancelB,&QPushButton::clicked,this,&QDialog::reject);
 
+	connect(resultW,&QTreeWidget::itemActivated,okB,&QPushButton::clicked);
+	
 	manager=new QNetworkAccessManager(this);
 	connect(manager,&QNetworkAccessManager::finished,this,&Search::dataProcessor);
 	
