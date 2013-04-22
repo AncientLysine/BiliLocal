@@ -5,6 +5,7 @@
 *   Filename:    Local.cpp
 *   Time:        2013/03/18
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -23,9 +24,20 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 =========================================================================*/
-
 #include "Interface.h"
 #include <QApplication>
+
+class DoubleClickStyle : public QProxyStyle
+{
+public:
+	DoubleClickStyle(QStyle *proxy = 0) : QProxyStyle(proxy){}
+	int styleHint(StyleHint hint, const QStyleOption *option = 0,
+				  const QWidget *widget = 0, QStyleHintReturn *returnData = 0) const {
+		if (hint == QStyle:: SH_ItemView_ActivateItemOnSingleClick)
+			return 0;
+		return QProxyStyle::styleHint(hint, option, widget, returnData);
+	}
+};
 
 int main(int argc, char *argv[])
 {
@@ -34,7 +46,7 @@ int main(int argc, char *argv[])
 	QTranslator qtTrans;
 	qtTrans.load("zh_CN.qt.qm",":/Trans/");
 #ifdef Q_OS_LINUX
-	QApplication::setStyle("Fusion");
+	QApplication::setStyle(new DoubleClickStyle(QStyleFactory::create("Fusion")));
 #endif
 	QApplication a(argc, argv);
 	a.installTranslator(&myTrans);
