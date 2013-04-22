@@ -226,6 +226,18 @@ Menu::Menu(QWidget *parent) :
 		}
 		option.close();
 	});
+
+	auto fileSC=new QShortcut(this);
+	fileSC->setKey(QString("Ctrl+O"));
+	connect(fileSC,SIGNAL(activated()),fileB,SIGNAL(clicked()));
+
+	auto danmSC=new QShortcut(this);
+	danmSC->setKey(QString("Ctrl+L"));
+	connect(danmSC,SIGNAL(activated()),danmB,SIGNAL(clicked()));
+
+	auto searchSC=new QShortcut(this);
+	searchSC->setKey(QString("Ctrl+S"));
+	connect(searchSC,SIGNAL(activated()),searchB,SIGNAL(clicked()));
 }
 
 Menu::~Menu()
