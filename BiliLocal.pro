@@ -35,10 +35,9 @@ LIBS += -L./\
 
 INCLUDEPATH += include/
 
-
 RESOURCES += \
-    res/res.qrc \
-    trans/trans.qrc
+    res/Res.qrc \
+    trans/Trans.qrc
 
 TRANSLATIONS = \
     trans/zh_CN.ts

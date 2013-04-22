@@ -83,10 +83,6 @@ State::State(QWidget *parent):
 	durT->setText("00:00/00:00");
 }
 
-State::~State()
-{
-}
-
 void State::pop()
 {
 	if(!isPop&&animation->state()==QAbstractAnimation::Stopped){

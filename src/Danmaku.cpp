@@ -194,24 +194,17 @@ void Danmaku::setDm(QString dm)
 	danmaku.clear();
 	reset();
 	if(dm.startsWith("av")){
-		QUrl pageUrl;
 		int sharp=dm.indexOf("#");
-		if(sharp>=0){
-			pageUrl.setUrl("http://www.bilibili.tv/video/"+dm.mid(0,sharp)+"/index_"+dm.mid(sharp+1)+".html");
-		}
-		else{
-			pageUrl.setUrl("http://www.bilibili.tv/video/"+dm+"/");
-		}
+		QString api="http://api.bilibili.tv/view?type=xml&appkey=0&id=%1&page=%2";
+		QUrl apiUrl(api.arg(dm.mid(2,sharp-2)).arg(sharp>0?dm.mid(sharp+1):QString("1")));
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
-		manager->get(QNetworkRequest(pageUrl));
-		connect(manager,&QNetworkAccessManager::finished,[this,manager,load](QNetworkReply *reply){
-			QString url=reply->url().url();
-			if(url.endsWith('/')||url.endsWith(".html")){
-				QString page=QString(reply->readAll());
-				int sta=page.indexOf("cid")+4;
-				int len=page.indexOf("&",sta)-sta;
-				QString cid=page.mid(sta,len);
-				QUrl xmlUrl("http://comment.bilibili.tv/"+cid+".xml");
+		manager->get(QNetworkRequest(apiUrl));
+		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
+			if(reply->url().url().indexOf("api")!=-1){
+				QString page(reply->readAll());
+				QRegExp regexp("(?!\\<cid\\>)[0-9]*(?=\\</cid\\>)");
+				regexp.indexIn(page);
+				QUrl xmlUrl("http://comment.bilibili.tv/"+regexp.cap()+".xml");
 				manager->get(QNetworkRequest(xmlUrl));
 			}
 			else{
@@ -266,36 +259,15 @@ void Danmaku::setTime(qint64 time)
 		font.setPixelSize(comment.font);
 		QStaticText text(comment.content);
 		text.prepare(QTransform(),font);
-		QImage temp(text.size().toSize()+=QSize(2,2),QImage::Format_ARGB32);
-		temp.fill(Qt::transparent);
-		QPainter painter;
-		painter.begin(&temp);
-		painter.setFont(font);
-		auto draw=[&](QColor c,QPoint p){
-			painter.setPen(c);
-			painter.drawStaticText(p+=QPoint(1,1),text);
-		};
-		QColor edge=qGray(comment.color.rgb())<50?Qt::white:Qt::black;
-		draw(edge,QPoint(+1,0));
-		draw(edge,QPoint(-1,0));
-		draw(edge,QPoint(0,+1));
-		draw(edge,QPoint(0,-1));
-		draw(comment.color,QPoint(0,0));
-		painter.end();
-		quint32 alpha_255=(0xFFFFFFFF>>8)|(((quint32)(255*alpha))<<24);
-		for(int y=0;y<temp.height();++y){
-			for(int x=0;x<temp.width();++x){
-				temp.setPixel(x,y,temp.pixel(x,y)&alpha_255);
-			}
-		}
-		render.text=QPixmap::fromImage(temp);
+		QSize textSize=text.size().toSize()+QSize(2,2);
+		bool flag=false;
 		switch(comment.mode-1){
 		case 0:
-			render.speed=100+render.text.width()/5.0+qrand()%50;
-			render.rect=QRectF(QPointF(0,0),render.text.size());
+			render.speed=100+textSize.width()/5.0+qrand()%50;
+			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
 			for(int height=5;height<size.height()-(sub?80:0);height+=10){
-				bool flag=true;
+				flag=true;
 				render.rect.moveTop(height);
 				for(Static &iter:current[0]){
 					if(intersects(iter,render)){
@@ -304,17 +276,16 @@ void Danmaku::setTime(qint64 time)
 					}
 				}
 				if(flag){
-					current[0].append(render);
 					break;
 				}
 			}
 			break;
 		case 3:
 			render.life=5;
-			render.rect=QRectF(QPointF(0,0),render.text.size());
+			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			for(int height=size.height()-(sub?size.height()/10:5);height>0;height-=10){
-				bool flag=true;
+				flag=true;
 				render.rect.moveBottom(height);
 				for(Static &iter:current[3]){
 					if(iter.rect.intersects(render.rect)){
@@ -323,17 +294,16 @@ void Danmaku::setTime(qint64 time)
 					}
 				}
 				if(flag){
-					current[3].append(render);
 					break;
 				}
 			}
 			break;
 		case 4:
 			render.life=5;
-			render.rect=QRectF(QPointF(0,0),render.text.size());
+			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			for(int height=5;height<size.height()-(sub?80:0);height+=10){
-				bool flag=true;
+				flag=true;
 				render.rect.moveTop(height);
 				for(Static &iter:current[4]){
 					if(iter.rect.intersects(render.rect)){
@@ -342,11 +312,39 @@ void Danmaku::setTime(qint64 time)
 					}
 				}
 				if(flag){
-					current[4].append(render);
 					break;
 				}
 			}
 			break;
+		}
+		if(flag){
+			QImage temp(text.size().toSize()+=QSize(2,2),QImage::Format_ARGB32);
+			temp.fill(Qt::transparent);
+			QPainter painter;
+			painter.begin(&temp);
+			painter.setFont(font);
+			auto draw=[&](QColor c,QPoint p){
+				painter.setPen(c);
+				painter.drawStaticText(p+=QPoint(1,1),text);
+			};
+			QColor edge=qGray(comment.color.rgb())<50?Qt::white:Qt::black;
+			draw(edge,QPoint(+1,0));
+			draw(edge,QPoint(-1,0));
+			draw(edge,QPoint(0,+1));
+			draw(edge,QPoint(0,-1));
+			draw(comment.color,QPoint(0,0));
+			painter.end();
+			if(alpha<1){
+				quint32 alpha_255=(0xFFFFFFFF>>8)|(((quint32)(255*alpha))<<24);
+				for(int y=0;y<temp.height();++y){
+					for(int x=0;x<temp.width();++x){
+						temp.setPixel(x,y,temp.pixel(x,y)&alpha_255);
+					}
+				}
+			}
+			render.text=QPixmap::fromImage(temp);
+			current[comment.mode-1].append(render);
+			QCoreApplication::processEvents();
 		}
 	}
 }

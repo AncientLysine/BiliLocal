@@ -40,7 +40,6 @@ class Interface:public QWidget
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	~Interface();
 
 private:
 	QLabel *tv;
