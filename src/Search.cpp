@@ -46,14 +46,19 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	pageL=new QLabel;
 	pageL->setText(tr("Page"));
 	pageE=new QLineEdit;
+	pageE->setFixedWidth(40);
+	pageNumL=new QLabel;
+	pageNumL->setFixedWidth(40);
 	pagegotoB=new QPushButton;
 	pagegotoB->setText(tr("Goto"));
 	pageupB=new QPushButton;
 	pageupB->setText(tr("Page up"));
 	pagedownB=new QPushButton;
 	pagedownB->setText(tr("Page down"));
+	pageLayout->addStretch();
 	pageLayout->addWidget(pageL);
 	pageLayout->addWidget(pageE);
+	pageLayout->addWidget(pageNumL);
 	pageLayout->addWidget(pagegotoB);
 	pageLayout->addWidget(pageupB);
 	pageLayout->addWidget(pagedownB);
@@ -64,46 +69,99 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	cancelB=new QPushButton;
 	cancelB->setText(tr("Cancel"));
 	responseLayout->addWidget(okB);
+	responseLayout->addStretch();
 	responseLayout->addWidget(cancelB);
 	outerLayout->addLayout(responseLayout);
 
 	this->setLayout(outerLayout);
 	this->setWindowTitle(tr("Search"));
+	this->resize(750,450);
 	
 	QStringList labels = {tr("AID"),tr("Title"),tr("Typename"),tr("Author")};
 	resultW->setHeaderLabels(labels);
-	
+	resultW->setSelectionMode(QAbstractItemView::SingleSelection);
+	resultW->setColumnWidth(0,100);
+	resultW->setColumnWidth(1,400);
+	resultW->setColumnWidth(2,100);
+
 	connect(keywordE,&QLineEdit::textChanged,this,&Search::clearSearch);
 	
-	connect(searchB,&QPushButton::clicked,this,&Search::startSearch);
-
-	connect(pagegotoB,&QPushButton::clicked,this,[this](){
-			if(this->pageCount==-1) {
-				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+	connect(searchB,&QPushButton::clicked,[this](){
+			if(this->isRequesting) {
+				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+				return;
 			}
+			this->startSearch();
 	});
 
-	connect(pageupB,&QPushButton::clicked,this,[this](){
+	connect(pagegotoB,&QPushButton::clicked,[this](){
 			if(this->pageCount==-1) {
 				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+				return;
 			}
+			if(this->isRequesting) {
+				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+				return;
+			}
+			int page=this->pageE->text().toInt();
+			if(page < 1 || page > this->pageCount) {
+				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
+				return;
+			}
+			pageNum=page;
+			this->getData(page);
 	});
 
-	connect(pagedownB,&QPushButton::clicked,this,[this](){
+	connect(pageupB,&QPushButton::clicked,[this](){
 			if(this->pageCount==-1) {
 				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+				return;
 			}
+			if(this->isRequesting) {
+				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+				return;
+			}
+			if(pageNum == 1) {
+				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
+				return;
+			}
+			this->pageE->setText(QString::number(--pageNum));
+			this->getData(pageNum);
 	});
 
-	connect(okB,&QPushButton::clicked,this,&QDialog::accept);
+	connect(pagedownB,&QPushButton::clicked,[this](){
+			if(this->pageCount==-1) {
+				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+				return;
+			}
+			if(this->isRequesting) {
+				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+				return;
+			}
+			if(pageNum == pageCount) {
+				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
+				return;
+			}
+			this->pageE->setText(QString::number(++pageNum));
+			this->getData(pageNum);
+	});
+
+	connect(okB,&QPushButton::clicked,[this](){
+			if(this->pageCount==-1) {
+				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+				return;
+			}
+			if(this->isRequesting) {
+				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+				return;
+			}
+			this->id=this->resultW->currentItem()->text(0);
+			this->accept();
+	});
 	connect(cancelB,&QPushButton::clicked,this,&QDialog::reject);
 
 	manager=new QNetworkAccessManager(this);
-	connect(manager,&QNetWorkAccessManager::finished,this,&Search::dataProcessor);
-}
-
-Search::~Search()
-{
+	connect(manager,&QNetworkAccessManager::finished,this,&Search::dataProcessor);
 	
 }
 
@@ -112,6 +170,10 @@ QString Search::keyword()
 	return key;
 }
 
+QString Search::selectedId()
+{
+	return id;
+}
 
 void Search::setKeyword(const QString & key)
 {
@@ -129,6 +191,8 @@ void Search::startSearch()
 
 void Search::getData(int pagenum)
 {
+	resultW->clear();
+	isRequesting = true;
 	QNetworkRequest request;
 	request.setUrl(QUrl(apiUrl
 						.arg(key)
@@ -142,25 +206,38 @@ void Search::clearSearch()
 	pageCount=-1;
 	pageNum=-1;
 	pageE->setText("");
+	pageNumL->setText("");
 }
 
 void Search::dataProcessor(QNetworkReply *reply)
 {
-	QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-	if (pageCount==-1)
-		pageCount=json["page"].toInt();
-
-	QJsonObject results=json["result"].toObject();
-	for(auto &i : results) {
-		QJsonObject item=i.toObject();
-		if (item["type"].toString()==QString("video")) {
-			QStringList content={
-				item["aid"].toString(),
-				item["title"].toString(),
-				item["typename"].toString(),
-				item["author"].toString()
-			};
-			auto widgetItem=new QTreeWidgetItem(resultW,content);
+	if (reply->error()==QNetworkReply::NoError) {
+		QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+		if (pageCount==-1) {
+			pageCount=static_cast<int>(json["page"].toDouble());
+			pageNumL->setText(QString("/%1").arg(pageCount));
+		}
+		
+		QJsonObject results=json["result"].toObject();
+		for(auto i : results) {
+			QJsonObject item=i.toObject();
+			if (item["type"].toString()==QString("video")) {
+				QStringList content={
+					item["aid"].toString(),
+					item["title"].toString(),
+					item["typename"].toString(),
+					item["author"].toString()
+				};
+				new QTreeWidgetItem(resultW,content);
+			}
 		}
 	}
+	else {
+		QMessageBox::warning(this, tr("Network Error"),
+							 tr("Network error occurred, error code: %1")
+							 .arg(static_cast<int>(reply->error())));
+		this->clearSearch();
+	}
+	isRequesting = false;
+	reply->deleteLater();
 }

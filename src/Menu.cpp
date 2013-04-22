@@ -71,7 +71,11 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(searchB,&QPushButton::clicked,[this](){
 		Search searchBox;
-		searchBox.exec();
+		if(searchBox.exec()) {
+			QString aid("av"+searchBox.selectedId());
+			danmL->setText(aid);
+			emit load(aid);
+		}
 	});
 	connect(danmB,&QPushButton::clicked,[this](){
 		if(isLocal){
@@ -143,12 +147,14 @@ Menu::Menu(QWidget *parent) :
 			danmL->setText("");
 			danmL->setReadOnly(true);
 			danmB->setText(tr("Open"));
+			searchB->setEnabled(false);
 			isLocal=true;
 		}
 		else{
 			danmL->setText("av");
 			danmL->setReadOnly(false);
 			danmB->setText(tr("Load"));
+			searchB->setEnabled(true);
 			isLocal=false;
 		}
 	});
@@ -206,13 +212,13 @@ Menu::Menu(QWidget *parent) :
 			if(line.indexOf("[Local] =")!=-1){
 				localC->setChecked(argument!="0");
 			}
-			if(line.indexOf("[Sub]   =")!=-1){
+			if(line.indexOf("[Sub]	 =")!=-1){
 				subC->setChecked(argument!="0");
 			}
-			if(line.indexOf("[Font]  =")!=-1){
+			if(line.indexOf("[Font]	 =")!=-1){
 				fontC->setCurrentText(argument);
 			}
-			if(line.indexOf("[Path]  =")!=-1){
+			if(line.indexOf("[Path]	 =")!=-1){
 				if(!argument.isEmpty()){
 					lastPath=argument;
 				}
@@ -230,9 +236,9 @@ Menu::~Menu()
 	stream<<"[Alpha] = "<<alphaS->value()<<endl<<
 			"[Power] = "<<powerL->text().toInt()<<endl<<
 			"[Local] = "<<(localC->checkState()==Qt::Checked)<<endl<<
-			"[Sub]   = "<<(subC->checkState()==Qt::Checked)<<endl<<
-			"[Font]  = "<<fontC->currentText()<<endl<<
-			"[Path]  = "<<lastPath<<endl;
+			"[Sub]	 = "<<(subC->checkState()==Qt::Checked)<<endl<<
+			"[Font]	 = "<<fontC->currentText()<<endl<<
+			"[Path]	 = "<<lastPath<<endl;
 	option.close();
 }
 
