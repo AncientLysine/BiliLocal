@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Menu.h
-*   Time:        2013/04/05
-*   Author:      Lysine
-*   Contributor: Chaserhkj
+*   Filename:    Search.h
+*   Time:        2013/04/18
+*   Author:      Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,59 +24,50 @@
 *
 =========================================================================*/
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef _SEARCH_H_
+#define _SEARCH_H_
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
-class Menu:public QWidget
+class Search : public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Menu(QWidget *parent=0);
-	~Menu();
-	bool isPopped(){return isPop;}
-
-private:
-	bool isPop;
-	bool isTurn;
-	bool isLocal;
-	QString lastPath;
-	QLineEdit *fileL;
-	QLineEdit *danmL;
-	QPushButton *fileB;
-	QPushButton *searchB;
-	QPushButton *danmB;
-	QLabel *alphaT;
-	QSlider *alphaS;
-	QLabel *delayT;
-	QLineEdit *delayL;
-	QLabel *powerT;
-	QLineEdit *powerL;
-	QLabel *localT;
-	QCheckBox *localC;
-	QLabel *subT;
-	QCheckBox *subC;
-	QLabel *fontT;
-	QComboBox *fontC;
-	QPropertyAnimation *animation;
-
-signals:
-	void open(QString file);
-	void load(QString danm);
-	void power(qint16 _power);
-	void alpha(double _alpha);
-	void delay(qint64 _delay);
-	void dfont(QString _font);
-	void protect(bool _protect);
+	explicit Search(QWidget *parent=0);
+	QString keyword();
+	QString selectedId();
 
 public slots:
-	void pop();
-	void push();
-	void setDm(QString _file);
-	void setFile(QString _file);
+	void setKeyword(const QString & key);
+	void startSearch();
+	void getData(int pagenum);
+	void clearSearch();
 	
+private:
+	QLineEdit *keywordE;
+	QPushButton *searchB;
+	QTreeWidget *resultW;
+	QLabel *statusL;
+	QLabel *pageL;
+	QLineEdit *pageE;
+	QLabel *pageNumL;
+	QPushButton *pagegotoB;
+	QPushButton *pageupB;
+	QPushButton *pagedownB;
+	QPushButton *okB;
+	QPushButton *cancelB;
+
+	int pageCount = -1;
+	int pageNum = -1;
+	QString key;
+	QString id;
+	bool isRequesting = false;
+	
+	QNetworkAccessManager *manager;
+private slots:
+	void dataProcessor(QNetworkReply *reply);
 };
 
-#endif // MENU_H
+#endif /* _SEARCH_H_ */
