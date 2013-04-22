@@ -142,6 +142,17 @@ Interface::Interface(QWidget *parent)
 	auto quitSC=new QShortcut(this);
 	quitSC->setKey(QString("Ctrl+Q"));
 	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
+
+	auto fullScreenSC=new QShortcut(this);
+	fullScreenSC->setKey(QString("F"));
+	connect(fullScreenSC,&QShortcut::activated,[this](){
+			if(isFullScreen()){
+				showNormal();
+			}
+			else{
+				showFullScreen();
+			}
+	});
 }
 
 void Interface::dropEvent(QDropEvent *e)
