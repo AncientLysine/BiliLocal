@@ -49,6 +49,7 @@ private:
 	QLineEdit *keywordE;
 	QPushButton *searchB;
 	QTreeWidget *resultW;
+	QLabel *statusL;
 	QLabel *pageL;
 	QLineEdit *pageE;
 	QLabel *pageNumL;

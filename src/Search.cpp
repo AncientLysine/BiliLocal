@@ -43,6 +43,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	resultW=new QTreeWidget;
 	outerLayout->addWidget(resultW);
 	auto pageLayout=new QHBoxLayout;
+	statusL=new QLabel(tr("Ready"));
 	pageL=new QLabel;
 	pageL->setText(tr("Page"));
 	pageE=new QLineEdit;
@@ -55,6 +56,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	pageupB->setText(tr("Page up"));
 	pagedownB=new QPushButton;
 	pagedownB->setText(tr("Page down"));
+	pageLayout->addWidget(statusL);
 	pageLayout->addStretch();
 	pageLayout->addWidget(pageL);
 	pageLayout->addWidget(pageE);
@@ -193,6 +195,7 @@ void Search::getData(int pagenum)
 {
 	resultW->clear();
 	isRequesting = true;
+	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
 	request.setUrl(QUrl(apiUrl
 						.arg(key)
@@ -207,6 +210,7 @@ void Search::clearSearch()
 	pageNum=-1;
 	pageE->setText("");
 	pageNumL->setText("");
+	statusL->setText(tr("Ready"));
 }
 
 void Search::dataProcessor(QNetworkReply *reply)
@@ -231,6 +235,7 @@ void Search::dataProcessor(QNetworkReply *reply)
 				new QTreeWidgetItem(resultW,content);
 			}
 		}
+		statusL->setText(tr("Finished"));
 	}
 	else {
 		QMessageBox::warning(this, tr("Network Error"),
