@@ -88,8 +88,6 @@ Search::Search(QWidget *parent) : QDialog(parent)
 
 	connect(keywordE,&QLineEdit::textChanged,this,&Search::clearSearch);
 
-	connect(keywordE,&QLineEdit::returnPressed,searchB,&QPushButton::clicked);
-	
 	connect(searchB,&QPushButton::clicked,[this](){
 			if(this->isRequesting) {
 				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
