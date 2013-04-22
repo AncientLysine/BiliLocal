@@ -65,7 +65,6 @@ private:
 	bool isRequesting = false;
 	
 	QNetworkAccessManager *manager;
-	QNetworkReply *reply;
 private slots:
 	void dataProcessor(QNetworkReply *reply);
 };
