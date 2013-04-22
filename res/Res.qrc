@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/Interface">
+        <file>tv.gif</file>
+        <file>pause.png</file>
+        <file>play.png</file>
+        <file>stop.png</file>
+        <file>version.png</file>
+        <file>icon.png</file>
+    </qresource>
+</RCC>

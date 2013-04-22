@@ -72,7 +72,6 @@ private:
 
 signals:
 	void loaded();
-	void rendered(QPixmap frame);
 
 public slots:
 	void reset();
