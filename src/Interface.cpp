@@ -116,9 +116,10 @@ Interface::Interface(QWidget *parent)
 		danmaku->reset();
 		state->setDuration(-1);
 	});
-	connect(vplayer,&VPlayer::decoded,[this](){update();});
+	connect(vplayer,SIGNAL(decoded()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
+	connect(danmaku,&Danmaku::loaded,[this](){danmaku->jumpToTime(vplayer->getTime());});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::dfont,danmaku,&Danmaku::setFont);
@@ -136,10 +137,6 @@ Interface::Interface(QWidget *parent)
 	connect(state,&State::stop,vplayer,&VPlayer::stop);
 	connect(state,&State::volume,vplayer,&VPlayer::setVolume);
 	setFocus();
-}
-
-Interface::~Interface()
-{
 }
 
 void Interface::dropEvent(QDropEvent *e)

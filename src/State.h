@@ -35,7 +35,6 @@ class State:public QWidget
 	Q_OBJECT
 public:
 	explicit State(QWidget *parent=0);
-	~State();
 	bool isPopped(){return isPop;}
 	
 private:
