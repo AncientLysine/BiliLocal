@@ -24,9 +24,11 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 =========================================================================*/
+
 #include "Interface.h"
 #include <QApplication>
 
+#ifdef Q_OS_LINUX
 class DoubleClickStyle : public QProxyStyle
 {
 public:
@@ -38,6 +40,7 @@ public:
 		return QProxyStyle::styleHint(hint, option, widget, returnData);
 	}
 };
+#endif /* Q_OS_LINUX */
 
 int main(int argc, char *argv[])
 {
