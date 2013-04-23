@@ -166,7 +166,11 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	
 	manager=new QNetworkAccessManager(this);
 	connect(manager,&QNetworkAccessManager::finished,this,&Search::dataProcessor);
-	
+
+	auto quitSC=new QShortcut(this);
+	quitSC->setKey(QString("Ctrl+Q"));
+	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
+
 }
 
 QString Search::keyword()
