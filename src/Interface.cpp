@@ -5,6 +5,7 @@
 *   Filename:    Interface.cpp
 *   Time:        2013/03/18
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -137,6 +138,21 @@ Interface::Interface(QWidget *parent)
 	connect(state,&State::stop,vplayer,&VPlayer::stop);
 	connect(state,&State::volume,vplayer,&VPlayer::setVolume);
 	setFocus();
+
+	auto quitSC=new QShortcut(this);
+	quitSC->setKey(QString("Ctrl+Q"));
+	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
+
+	auto fullScreenSC=new QShortcut(this);
+	fullScreenSC->setKey(QString("F"));
+	connect(fullScreenSC,&QShortcut::activated,[this](){
+			if(isFullScreen()){
+				showNormal();
+			}
+			else{
+				showFullScreen();
+			}
+	});
 }
 
 void Interface::dropEvent(QDropEvent *e)
