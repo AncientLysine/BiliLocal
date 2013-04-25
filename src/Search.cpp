@@ -5,6 +5,7 @@
 *   Filename:    Search.cpp
 *   Time:        2013/04/18
 *   Author:      Chaserhkj
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -27,145 +28,159 @@
 #include "Search.h"
 
 namespace {
-	const QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
+const QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
 }
 
-Search::Search(QWidget *parent) : QDialog(parent)
+Search::Search(QWidget *parent):QDialog(parent)
 {
 	auto outerLayout=new QVBoxLayout;
-	auto keywordLayout=new QHBoxLayout;
-	keywordE=new QLineEdit;
-	searchB=new QPushButton;
-	searchB->setText(tr("Search"));
-	keywordLayout->addWidget(keywordE);
-	keywordLayout->addWidget(searchB);
-	outerLayout->addLayout(keywordLayout);
-	resultW=new QTreeWidget;
-	outerLayout->addWidget(resultW);
-	auto pageLayout=new QHBoxLayout;
-	statusL=new QLabel(tr("Ready"));
-	pageL=new QLabel;
-	pageL->setText(tr("Page"));
-	pageE=new QLineEdit;
+	auto keywdLayout=new QHBoxLayout;
+	statusL=new QLabel(tr("Ready"),this);
+	pageTxL=new QLabel(tr("Page"),this);
+	pageNuL=new QLabel(this);
+	pageNuL->setFixedWidth(40);
+	keywE=new QLineEdit(this);
+	pageE=new QLineEdit(this);
 	pageE->setFixedWidth(40);
-	pageNumL=new QLabel;
-	pageNumL->setFixedWidth(40);
-	pagegotoB=new QPushButton;
-	pagegotoB->setText(tr("Goto"));
-	pageupB=new QPushButton;
-	pageupB->setText(tr("Page up"));
-	pagedownB=new QPushButton;
-	pagedownB->setText(tr("Page down"));
+	searchB=new QPushButton(this);
+	searchB->setText(tr("Search"));
+	keywdLayout->addWidget(keywE);
+	keywdLayout->addWidget(searchB);
+	outerLayout->addLayout(keywdLayout);
+
+	pageGoB=new QPushButton(tr("Goto"),this);
+	pageUpB=new QPushButton(tr("PgUp"),this);
+	pageDnB=new QPushButton(tr("PgDn"),this);
+
+	resultW=new QTreeWidget(this);
+	resultW->setIconSize(QSize(120,90));
+	outerLayout->addWidget(resultW);
+
+	auto pageLayout=new QHBoxLayout;
 	pageLayout->addWidget(statusL);
 	pageLayout->addStretch();
-	pageLayout->addWidget(pageL);
+	pageLayout->addWidget(pageTxL);
 	pageLayout->addWidget(pageE);
-	pageLayout->addWidget(pageNumL);
-	pageLayout->addWidget(pagegotoB);
-	pageLayout->addWidget(pageupB);
-	pageLayout->addWidget(pagedownB);
+	pageLayout->addWidget(pageNuL);
+	pageLayout->addWidget(pageGoB);
+	pageLayout->addWidget(pageUpB);
+	pageLayout->addWidget(pageDnB);
 	outerLayout->addLayout(pageLayout);
+
 	auto responseLayout=new QHBoxLayout;
-	okB=new QPushButton;
-	okB->setText(tr("Confirm and load"));
-	cancelB=new QPushButton;
-	cancelB->setText(tr("Cancel"));
+	okB=new QPushButton(tr("Confirm"),this);
+	ccB=new QPushButton(tr("Cancel"), this);
 	responseLayout->addWidget(okB);
 	responseLayout->addStretch();
-	responseLayout->addWidget(cancelB);
+	responseLayout->addWidget(ccB);
 	outerLayout->addLayout(responseLayout);
 
-	this->setLayout(outerLayout);
-	this->setWindowTitle(tr("Search"));
-	this->resize(750,450);
+	setLayout(outerLayout);
+	setWindowTitle(tr("Search"));
+	resize(820,520);
 	
-	QStringList labels = {tr("AID"),tr("Title"),tr("Typename"),tr("Author")};
+	QStringList labels={tr("Cover"),tr("Play"),tr("Title"),tr("Typename"),tr("Author")};
 	resultW->setHeaderLabels(labels);
 	resultW->setSelectionMode(QAbstractItemView::SingleSelection);
-	resultW->setColumnWidth(0,100);
-	resultW->setColumnWidth(1,400);
-	resultW->setColumnWidth(2,100);
+	resultW->setColumnWidth(0,165);
+	resultW->setColumnWidth(1,60);
+	resultW->setColumnWidth(2,350);
+	resultW->setColumnWidth(3,100);
 
-	connect(keywordE,&QLineEdit::textChanged,this,&Search::clearSearch);
+	connect(keywE,&QLineEdit::textChanged,this,&Search::clearSearch);
 
 	connect(searchB,&QPushButton::clicked,[this](){
-			if(this->isRequesting) {
-				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
-				return;
-			}
-			this->startSearch();
+		if(isWaiting){
+			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+		}
+		else{
+			startSearch();
+		}
 	});
 
-	connect(pagegotoB,&QPushButton::clicked,[this](){
-			if(this->pageCount==-1) {
-				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
-				return;
-			}
-			if(this->isRequesting) {
-				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
-				return;
-			}
-			int page=this->pageE->text().toInt();
-			if(page < 1 || page > this->pageCount) {
-				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
-				return;
-			}
-			pageNum=page;
-			this->getData(page);
-	});
+	auto jump=[this](int page){
+		if(pageNum==-1) {
+			QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
+		}
+		else if(isWaiting) {
+			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
+		}
+		else if(page<1||page>pageNum) {
+			QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
+		}
+		else{
+			pageCur=page;
+			getData(page);
+			pageE->setText(QString::number(pageCur));
+		}
+	};
 
-	connect(pageupB,&QPushButton::clicked,[this](){
-			if(this->pageCount==-1) {
-				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
-				return;
-			}
-			if(this->isRequesting) {
-				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
-				return;
-			}
-			if(pageNum == 1) {
-				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
-				return;
-			}
-			this->pageE->setText(QString::number(--pageNum));
-			this->getData(pageNum);
-	});
-
-	connect(pagedownB,&QPushButton::clicked,[this](){
-			if(this->pageCount==-1) {
-				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
-				return;
-			}
-			if(this->isRequesting) {
-				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
-				return;
-			}
-			if(pageNum == pageCount) {
-				QMessageBox::warning(this,tr("Warning"),tr("Page num out of range."));
-				return;
-			}
-			this->pageE->setText(QString::number(++pageNum));
-			this->getData(pageNum);
-	});
+	connect(pageGoB,&QPushButton::clicked,[jump,this](){jump(pageE->text().toInt());});
+	connect(pageUpB,&QPushButton::clicked,[jump,this](){jump(pageCur-1);});
+	connect(pageDnB,&QPushButton::clicked,[jump,this](){jump(pageCur+1);});
 
 	connect(okB,&QPushButton::clicked,[this](){
-			if(this->pageCount==-1) {
-				QMessageBox::warning(this,tr("Warning"),tr("No search in progress."));
-				return;
-			}
-			if(this->isRequesting) {
-				QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
-				return;
-			}
-			this->id=this->resultW->currentItem()->text(0);
-			this->accept();
+		if(resultW->currentIndex().isValid()){
+			aid=temp[resultW->currentIndex().row()];
+			accept();
+		}
+		else{
+			QMessageBox::warning(this,tr("Warning"),tr("No video has been chosen."));
+		}
 	});
-	connect(cancelB,&QPushButton::clicked,this,&QDialog::reject);
+
+	connect(ccB,&QPushButton::clicked,this,&QDialog::reject);
 
 	connect(resultW,&QTreeWidget::itemActivated,okB,&QPushButton::clicked);
-	
+
 	manager=new QNetworkAccessManager(this);
-	connect(manager,&QNetworkAccessManager::finished,this,&Search::dataProcessor);
+	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		if (reply->error()==QNetworkReply::NoError) {
+			QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+			if (pageNum==-1) {
+				pageNum=static_cast<int>(json["page"].toDouble());
+				pageNuL->setText(QString("/%1").arg(pageNum));
+			}
+			QJsonObject results=json["result"].toObject();
+			for(auto record:results) {
+				QJsonObject item=record.toObject();
+				if (item["type"].toString()==QString("video")) {
+					QStringList content={
+						"",
+						item["play"].toString(),
+						item["title"].toString(),
+						item["typename"].toString(),
+						item["author"].toString()
+					};
+					auto count=[this](){return resultW->invisibleRootItem()->childCount();};
+					int index=count();
+					auto getPic=new QNetworkAccessManager(this);
+					temp.append(item["aid"].toString());
+					connect(getPic,&QNetworkAccessManager::finished,[this,index,count](QNetworkReply *reply){
+						QPixmap pixmap;
+						pixmap.loadFromData(reply->readAll());
+						pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+						auto line=resultW->topLevelItem(index);
+						if(index<count()&&line->icon(0).isNull()){
+							line->setIcon(0,QIcon(pixmap));
+						}
+					});
+					QNetworkRequest request;
+					request.setUrl(QUrl(item["pic"].toString()));
+					getPic->get(request);
+					new QTreeWidgetItem(resultW,content);
+				}
+			}
+			statusL->setText(tr("Finished"));
+		}
+		else {
+			QString info=tr("Network error occurred, error code: %1");
+			info.arg(static_cast<int>(reply->error()));
+			QMessageBox::warning(this,tr("Network Error"),info);
+			clearSearch();
+		}
+		isWaiting=false;
+	});
 
 	auto quitSC=new QShortcut(this);
 	quitSC->setKey(QString("Ctrl+Q"));
@@ -173,82 +188,37 @@ Search::Search(QWidget *parent) : QDialog(parent)
 
 }
 
-QString Search::keyword()
+void Search::setKey(QString _key)
 {
-	return key;
-}
-
-QString Search::selectedId()
-{
-	return id;
-}
-
-void Search::setKeyword(const QString & key)
-{
-	this->key=key;
-	keywordE->setText(key);
+	key=_key;
+	keywE->setText(key);
 }
 
 void Search::startSearch()
 {
-	key=keywordE->text();
-	pageNum=1;
+	key=keywE->text();
+	pageCur=1;
 	pageE->setText("1");
-	this->getData(1);
+	getData(1);
 }
 
-void Search::getData(int pagenum)
+void Search::getData(int pageNum)
 {
+	temp.clear();
 	resultW->clear();
-	isRequesting = true;
+	isWaiting=true;
 	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
-	request.setUrl(QUrl(apiUrl
-						.arg(key)
-						.arg(QString::number(pagenum))));
+	request.setUrl(QUrl(apiUrl.arg(key).arg(pageNum)));
 	manager->get(request);
 }
 
 void Search::clearSearch()
 {
 	resultW->clear();
-	pageCount=-1;
 	pageNum=-1;
+	pageCur=-1;
 	pageE->setText("");
-	pageNumL->setText("");
+	pageNuL->setText("");
 	statusL->setText(tr("Ready"));
-}
-
-void Search::dataProcessor(QNetworkReply *reply)
-{
-	if (reply->error()==QNetworkReply::NoError) {
-		QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-		if (pageCount==-1) {
-			pageCount=static_cast<int>(json["page"].toDouble());
-			pageNumL->setText(QString("/%1").arg(pageCount));
-		}
-		
-		QJsonObject results=json["result"].toObject();
-		for(auto i : results) {
-			QJsonObject item=i.toObject();
-			if (item["type"].toString()==QString("video")) {
-				QStringList content={
-					item["aid"].toString(),
-					item["title"].toString(),
-					item["typename"].toString(),
-					item["author"].toString()
-				};
-				new QTreeWidgetItem(resultW,content);
-			}
-		}
-		statusL->setText(tr("Finished"));
-	}
-	else {
-		QMessageBox::warning(this, tr("Network Error"),
-							 tr("Network error occurred, error code: %1")
-							 .arg(static_cast<int>(reply->error())));
-		this->clearSearch();
-	}
-	isRequesting = false;
-	reply->deleteLater();
 }

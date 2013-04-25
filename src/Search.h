@@ -5,6 +5,7 @@
 *   Filename:    Search.h
 *   Time:        2013/04/18
 *   Author:      Chaserhkj
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -31,43 +32,43 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
-class Search : public QDialog
+class Search:public QDialog
 {
 	Q_OBJECT
 public:
 	explicit Search(QWidget *parent=0);
-	QString keyword();
-	QString selectedId();
+	inline QString getKey(){return key;}
+	inline QString getAid(){return aid;}
+
+private:
+	QLabel *statusL;
+	QLabel *pageTxL;
+	QLabel *pageNuL;
+	QLineEdit *keywE;
+	QLineEdit *pageE;
+	QPushButton *okB;
+	QPushButton *ccB;
+	QPushButton *searchB;
+	QPushButton *pageUpB;
+	QPushButton *pageDnB;
+	QPushButton *pageGoB;
+	QTreeWidget *resultW;
+	QNetworkAccessManager *manager;
+
+	QString key;
+	QString aid;
+	int pageNum=-1;
+	int pageCur=-1;
+	bool isWaiting=false;
+	QList<QString> temp;
+
+	void getData(int pageNum);
 
 public slots:
-	void setKeyword(const QString & key);
+	void setKey(QString _key);
 	void startSearch();
-	void getData(int pagenum);
 	void clearSearch();
-	
-private:
-	QLineEdit *keywordE;
-	QPushButton *searchB;
-	QTreeWidget *resultW;
-	QLabel *statusL;
-	QLabel *pageL;
-	QLineEdit *pageE;
-	QLabel *pageNumL;
-	QPushButton *pagegotoB;
-	QPushButton *pageupB;
-	QPushButton *pagedownB;
-	QPushButton *okB;
-	QPushButton *cancelB;
 
-	int pageCount = -1;
-	int pageNum = -1;
-	QString key;
-	QString id;
-	bool isRequesting = false;
-	
-	QNetworkAccessManager *manager;
-private slots:
-	void dataProcessor(QNetworkReply *reply);
 };
 
 #endif /* _SEARCH_H_ */

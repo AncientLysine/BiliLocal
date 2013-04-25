@@ -72,7 +72,7 @@ Menu::Menu(QWidget *parent) :
 	connect(searchB,&QPushButton::clicked,[this](){
 		Search searchBox;
 		if(searchBox.exec()) {
-			QString aid("av"+searchBox.selectedId());
+			QString aid("av"+searchBox.getAid());
 			danmL->setText(aid);
 			emit load(aid);
 		}
