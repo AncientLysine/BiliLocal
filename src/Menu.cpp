@@ -26,7 +26,6 @@
 =========================================================================*/
 
 #include "Menu.h"
-#include "Search.h"
 
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)
@@ -44,37 +43,31 @@ Menu::Menu(QWidget *parent) :
 	animation->setEasingCurve(QEasingCurve::OutCubic);
 	fileL=new QLineEdit(this);
 	danmL=new QLineEdit(this);
+	sechL=new QLineEdit(this);
 	fileL->setReadOnly(true);
 	danmL->setText("av");
-	fileL->setGeometry(QRect(10,25,120,25));
-	danmL->setGeometry(QRect(10,65,80,25));
+	fileL->setGeometry(QRect(10,25, 120,25));
+	danmL->setGeometry(QRect(10,65, 120,25));
+	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)(#)?([0-9]+)?");
 		regex.indexIn(text);
 		danmL->setText("av"+regex.cap());
 	});
 	fileB=new QPushButton(this);
-	searchB=new QPushButton(this);
+	sechB=new QPushButton(this);
 	danmB=new QPushButton(this);
-	fileB->setGeometry(QRect(135,25,55,25));
-	searchB->setGeometry(QRect(95,65,45,25));
-	danmB->setGeometry(QRect(145,65,45,25));
+	fileB->setGeometry(QRect(135,25, 55,25));
+	danmB->setGeometry(QRect(135,65, 55,25));
+	sechB->setGeometry(QRect(135,105,55,25));
 	fileB->setText(tr("Open"));
-	searchB->setText(tr("Search"));
 	danmB->setText(tr("Load"));
+	sechB->setText(tr("Search"));
 	connect(fileB,&QPushButton::clicked,[this](){
 		QWidget *p=dynamic_cast<QWidget *>(this->parent());
 		QString _file=QFileDialog::getOpenFileName(p,tr("Open File"),lastPath);
 		if(!_file.isEmpty()){
 			setFile(_file);
-		}
-	});
-	connect(searchB,&QPushButton::clicked,[this](){
-		Search searchBox;
-		if(searchBox.exec()) {
-			QString aid("av"+searchBox.getAid());
-			danmL->setText(aid);
-			emit load(aid);
 		}
 	});
 	connect(danmB,&QPushButton::clicked,[this](){
@@ -90,20 +83,32 @@ Menu::Menu(QWidget *parent) :
 			emit load(_danm);
 		}
 	});
+	connect(sechB,&QPushButton::clicked,[this](){
+		Search searchBox;
+		if(!sechL->text().isEmpty()){
+			searchBox.setKey(sechL->text());
+		}
+		if(searchBox.exec()) {
+			QString aid("av"+searchBox.getAid());
+			danmL->setText(aid);
+			sechL->setText(searchBox.getKey());
+			emit load(aid);
+		}
+	});
 	alphaT=new QLabel(this);
-	alphaT->setGeometry(QRect(10,100,100,25));
+	alphaT->setGeometry(QRect(10,140,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));
 	alphaS=new QSlider(this);
 	alphaS->setOrientation(Qt::Horizontal);
-	alphaS->setGeometry(QRect(10,125,180,15));
+	alphaS->setGeometry(QRect(10,165,180,15));
 	alphaS->setRange(0,100);
 	alphaS->setValue(100);
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){emit alpha(_alpha/100.0);});
 	delayT=new QLabel(this);
-	delayT->setGeometry(QRect(10,160,100,20));
+	delayT->setGeometry(QRect(10,200,100,20));
 	delayT->setText(tr("Danmaku Delay"));
 	delayL=new QLineEdit(this);
-	delayL->setGeometry(QRect(160,160,30,20));
+	delayL->setGeometry(QRect(160,200,30,20));
 	connect(delayL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -113,10 +118,10 @@ Menu::Menu(QWidget *parent) :
 		emit delay(delayL->text().toInt()*1000);
 	});
 	powerT=new QLabel(this);
-	powerT->setGeometry(QRect(10,195,100,20));
+	powerT->setGeometry(QRect(10,235,100,20));
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
-	powerL->setGeometry(QRect(160,195,30,20));
+	powerL->setGeometry(QRect(160,235,30,20));
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -138,31 +143,31 @@ Menu::Menu(QWidget *parent) :
 		emit power(fps==0?-1:1000/fps);
 	});
 	localT=new QLabel(this);
-	localT->setGeometry(QRect(10,230,100,25));
+	localT->setGeometry(QRect(10,270,100,25));
 	localT->setText(tr("Local XML File"));
 	localC=new QCheckBox(this);
-	localC->setGeometry(QRect(168,230,25,25));
+	localC->setGeometry(QRect(168,270,25,25));
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
 			danmL->setText("");
 			danmL->setReadOnly(true);
 			danmB->setText(tr("Open"));
-			searchB->setEnabled(false);
+			sechB->setEnabled(false);
 			isLocal=true;
 		}
 		else{
 			danmL->setText("av");
 			danmL->setReadOnly(false);
 			danmB->setText(tr("Load"));
-			searchB->setEnabled(true);
+			sechB->setEnabled(true);
 			isLocal=false;
 		}
 	});
 	subT=new QLabel(this);
-	subT->setGeometry(QRect(10,265,100,25));
+	subT->setGeometry(QRect(10,305,100,25));
 	subT->setText(tr("Protect Sub"));
 	subC=new QCheckBox(this);
-	subC->setGeometry(QRect(168,265,25,25));
+	subC->setGeometry(QRect(168,305,25,25));
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
 			emit protect(true);
@@ -173,9 +178,9 @@ Menu::Menu(QWidget *parent) :
 	});
 	fontT=new QLabel(this);
 	fontT->setText(tr("Font"));
-	fontT->setGeometry(QRect(10,300,50,25));
+	fontT->setGeometry(QRect(10,340,50,25));
 	fontC=new QComboBox(this);
-	fontC->setGeometry(QRect(100,300,90,25));
+	fontC->setGeometry(QRect(100,340,90,25));
 	fontC->addItems(QFontDatabase().families());
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
 		emit dfont(_font);
@@ -235,9 +240,9 @@ Menu::Menu(QWidget *parent) :
 	danmSC->setKey(QString("Ctrl+L"));
 	connect(danmSC,SIGNAL(activated()),danmB,SIGNAL(clicked()));
 
-	auto searchSC=new QShortcut(this);
-	searchSC->setKey(QString("Ctrl+S"));
-	connect(searchSC,SIGNAL(activated()),searchB,SIGNAL(clicked()));
+	auto sechSC=new QShortcut(this);
+	sechSC->setKey(QString("Ctrl+S"));
+	connect(sechSC,SIGNAL(activated()),sechB,SIGNAL(clicked()));
 }
 
 Menu::~Menu()

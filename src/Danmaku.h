@@ -29,6 +29,7 @@
 
 #include <QtGui>
 #include <QtCore>
+#include <QtWidgets>
 #include <QtNetwork>
 
 struct Comment

@@ -31,6 +31,7 @@ Interface::Interface(QWidget *parent)
 	:QWidget(parent)
 {
 	setAcceptDrops(true);
+	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Interfacce/icon.png"));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
@@ -43,13 +44,12 @@ Interface::Interface(QWidget *parent)
 		setGeometry(rect);
 	};
 	setCenter(QSize(960,540));
-	setMinimumSize(480,360);
 	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
 	tv->setMovie(movie);
 	tv->setFixedSize(QSize(94,82));
 	me=new QLabel(this);
-	me->setFixedSize(QSize(94,40));
+	me->setFixedSize(QSize(200,40));
 	me->setPixmap(QPixmap(":Interface/version.png"));
 	movie->start();
 	setMouseTracking(true);
@@ -143,9 +143,9 @@ Interface::Interface(QWidget *parent)
 	quitSC->setKey(QString("Ctrl+Q"));
 	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
 
-	auto fullScreenSC=new QShortcut(this);
-	fullScreenSC->setKey(QString("F"));
-	connect(fullScreenSC,&QShortcut::activated,[this](){
+	auto fullSC=new QShortcut(this);
+	fullSC->setKey(QString("F"));
+	connect(fullSC,&QShortcut::activated,[this](){
 			if(isFullScreen()){
 				showNormal();
 			}
@@ -189,8 +189,8 @@ void Interface::resizeEvent(QResizeEvent *e)
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();
-	tv->move((w-94)/2,(h-82)/2-60);
-	me->move((w-94)/2,(h-82)/2+60);
+	tv->move((w-94)/2, (h-82)/2-60);
+	me->move((w-200)/2,(h-82)/2+60);
 	menu-> setGeometry(QRect(menu-> isPopped()?0:0-200,0,200,h));
 	state->setGeometry(QRect(state->isPopped()?w-200:w,0,200,h));
 	QWidget::resizeEvent(e);

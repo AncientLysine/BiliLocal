@@ -27,10 +27,6 @@
 
 #include "Search.h"
 
-namespace {
-const QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
-}
-
 Search::Search(QWidget *parent):QDialog(parent)
 {
 	auto outerLayout=new QVBoxLayout;
@@ -137,49 +133,59 @@ Search::Search(QWidget *parent):QDialog(parent)
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		if (reply->error()==QNetworkReply::NoError) {
 			QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-			if (pageNum==-1) {
-				pageNum=static_cast<int>(json["page"].toDouble());
-				pageNuL->setText(QString("/%1").arg(pageNum));
-			}
-			QJsonObject results=json["result"].toObject();
-			for(auto record:results) {
-				QJsonObject item=record.toObject();
-				if (item["type"].toString()==QString("video")) {
-					QStringList content={
-						"",
-						item["play"].toString(),
-						item["title"].toString(),
-						item["typename"].toString(),
-						item["author"].toString()
-					};
-					auto count=[this](){return resultW->invisibleRootItem()->childCount();};
-					int index=count();
-					auto getPic=new QNetworkAccessManager(this);
-					temp.append(item["aid"].toString());
-					connect(getPic,&QNetworkAccessManager::finished,[this,index,count](QNetworkReply *reply){
-						QPixmap pixmap;
-						pixmap.loadFromData(reply->readAll());
-						pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
-						auto line=resultW->topLevelItem(index);
-						if(index<count()&&line->icon(0).isNull()){
-							line->setIcon(0,QIcon(pixmap));
-						}
-					});
-					QNetworkRequest request;
-					request.setUrl(QUrl(item["pic"].toString()));
-					getPic->get(request);
-					new QTreeWidgetItem(resultW,content);
+			if(static_cast<int>(json["code"].toDouble())==0){
+				if (pageNum==-1) {
+					pageNum=json["page"].toDouble();
+					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
+				QJsonObject results=json["result"].toObject();
+				for(auto record:results) {
+					QJsonObject item=record.toObject();
+					if (item["type"].toString()==QString("video")) {
+						QStringList content={
+							"",
+							item["play"].toString(),
+							item["title"].toString(),
+							item["typename"].toString(),
+							item["author"].toString()
+						};
+						auto count=[this](){return resultW->invisibleRootItem()->childCount();};
+						int index=count();
+						auto getPic=new QNetworkAccessManager(this);
+						temp.append(item["aid"].toString());
+						connect(getPic,&QNetworkAccessManager::finished,[this,index,count](QNetworkReply *reply){
+							QPixmap pixmap;
+							pixmap.loadFromData(reply->readAll());
+							pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+							auto line=resultW->topLevelItem(index);
+							if(index<count()&&line->icon(0).isNull()){
+								line->setIcon(0,QIcon(pixmap));
+							}
+						});
+						QNetworkRequest request;
+						request.setUrl(QUrl(item["pic"].toString()));
+						getPic->get(request);
+						new QTreeWidgetItem(resultW,content);
+					}
+				}
+				statusL->setText(tr("Finished"));
+				isWaiting=false;
 			}
-			statusL->setText(tr("Finished"));
+			else{
+				auto timer=new QTimer(this);
+				timer->setSingleShot(true);
+				connect(timer,&QTimer::timeout,[this](){getData(pageCur);});
+				timer->start(2000);
+				isWaiting=true;
+			}
 		}
 		else {
 			QString info=tr("Network error occurred, error code: %1");
-			info.arg(static_cast<int>(reply->error()));
+			info.arg(reply->error());
 			QMessageBox::warning(this,tr("Network Error"),info);
 			clearSearch();
+			isWaiting=false;
 		}
-		isWaiting=false;
 	});
 
 	auto quitSC=new QShortcut(this);
@@ -192,6 +198,7 @@ void Search::setKey(QString _key)
 {
 	key=_key;
 	keywE->setText(key);
+	searchB->click();
 }
 
 void Search::startSearch()
@@ -209,6 +216,7 @@ void Search::getData(int pageNum)
 	isWaiting=true;
 	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
+	QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
 	request.setUrl(QUrl(apiUrl.arg(key).arg(pageNum)));
 	manager->get(request);
 }

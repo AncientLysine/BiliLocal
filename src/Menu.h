@@ -30,6 +30,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include "Search.h"
 
 class Menu:public QWidget
 {
@@ -46,9 +47,10 @@ private:
 	QString lastPath;
 	QLineEdit *fileL;
 	QLineEdit *danmL;
+	QLineEdit *sechL;
 	QPushButton *fileB;
-	QPushButton *searchB;
 	QPushButton *danmB;
+	QPushButton *sechB;
 	QLabel *alphaT;
 	QSlider *alphaS;
 	QLabel *delayT;

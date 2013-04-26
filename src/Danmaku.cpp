@@ -200,7 +200,13 @@ void Danmaku::setDm(QString dm)
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 		manager->get(QNetworkRequest(apiUrl));
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
-			if(reply->url().url().indexOf("api")!=-1){
+			if(reply->error()!=QNetworkReply::NoError){
+				QString info=tr("Network error occurred, error code: %1");
+				info.arg(reply->error());
+				QWidget *p=dynamic_cast<QWidget *>(this->parent());
+				QMessageBox::warning(p,tr("Network Error"),info);
+			}
+			else if(reply->url().url().indexOf("api")!=-1){
 				QString page(reply->readAll());
 				QRegExp regexp("(?!\\<cid\\>)[0-9]*(?=\\</cid\\>)");
 				regexp.indexIn(page);
