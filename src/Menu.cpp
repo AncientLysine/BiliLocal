@@ -96,19 +96,19 @@ Menu::Menu(QWidget *parent) :
 		sechL->setText(searchBox.getKey());
 	});
 	alphaT=new QLabel(this);
-	alphaT->setGeometry(QRect(10,140,100,25));
+	alphaT->setGeometry(QRect(10,145,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));
 	alphaS=new QSlider(this);
 	alphaS->setOrientation(Qt::Horizontal);
-	alphaS->setGeometry(QRect(10,165,180,15));
+	alphaS->setGeometry(QRect(10,170,180,15));
 	alphaS->setRange(0,100);
 	alphaS->setValue(100);
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){emit alpha(_alpha/100.0);});
 	delayT=new QLabel(this);
-	delayT->setGeometry(QRect(10,200,100,20));
+	delayT->setGeometry(QRect(10,205,100,20));
 	delayT->setText(tr("Danmaku Delay"));
 	delayL=new QLineEdit(this);
-	delayL->setGeometry(QRect(160,200,30,20));
+	delayL->setGeometry(QRect(160,205,30,20));
 	connect(delayL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -118,40 +118,45 @@ Menu::Menu(QWidget *parent) :
 		emit delay(delayL->text().toInt()*1000);
 	});
 	powerT=new QLabel(this);
-	powerT->setGeometry(QRect(10,235,100,20));
+	powerT->setGeometry(QRect(10,240,100,20));
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
-	powerL->setGeometry(QRect(160,235,30,20));
+	powerL->setGeometry(QRect(160,240,30,20));
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
 		powerL->setText(regex.cap());
 	});
 	connect(powerL,&QLineEdit::editingFinished,[this](){
-		quint8 fps=powerL->text().toInt();
+		int fps=powerL->text().toInt();
 		if(fps==0){
 			powerL->setText("");
 		}
-		else if(fps>200){
-			fps=200;
-			powerL->setText(QString::number(fps));
-		}
-		else if(fps<40){
-			fps=40;
+		else{
+			if(fps>200){
+				fps=200;
+				powerL->setText(QString::number(fps));
+			}
+			if(fps<40){
+				fps=40;
+				powerL->setText(QString::number(fps));
+			}
 			powerL->setText(QString::number(fps));
 		}
 		emit power(fps==0?-1:1000/fps);
 	});
 	localT=new QLabel(this);
-	localT->setGeometry(QRect(10,270,100,25));
+	localT->setGeometry(QRect(10,275,100,25));
 	localT->setText(tr("Local XML File"));
 	localC=new QCheckBox(this);
-	localC->setGeometry(QRect(168,270,25,25));
+	localC->setGeometry(QRect(168,275,25,25));
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
 			danmL->setText("");
 			danmL->setReadOnly(true);
 			danmB->setText(tr("Open"));
+			sechL->setText("");
+			sechL->setEnabled(false);
 			sechB->setEnabled(false);
 			isLocal=true;
 		}
@@ -159,15 +164,16 @@ Menu::Menu(QWidget *parent) :
 			danmL->setText("av");
 			danmL->setReadOnly(false);
 			danmB->setText(tr("Load"));
+			sechL->setEnabled(true);
 			sechB->setEnabled(true);
 			isLocal=false;
 		}
 	});
 	subT=new QLabel(this);
-	subT->setGeometry(QRect(10,305,100,25));
+	subT->setGeometry(QRect(10,310,100,25));
 	subT->setText(tr("Protect Sub"));
 	subC=new QCheckBox(this);
-	subC->setGeometry(QRect(168,305,25,25));
+	subC->setGeometry(QRect(168,310,25,25));
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
 			emit protect(true);
@@ -178,9 +184,9 @@ Menu::Menu(QWidget *parent) :
 	});
 	fontT=new QLabel(this);
 	fontT->setText(tr("Font"));
-	fontT->setGeometry(QRect(10,340,50,25));
+	fontT->setGeometry(QRect(10,345,50,25));
 	fontC=new QComboBox(this);
-	fontC->setGeometry(QRect(100,340,90,25));
+	fontC->setGeometry(QRect(100,345,90,25));
 	fontC->addItems(QFontDatabase().families());
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
 		emit dfont(_font);

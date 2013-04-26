@@ -234,14 +234,14 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	if(x<50){
 		menu->pop();
 	}
-	if(x>220){
+	if(x>250){
 		menu->push();
 		setFocus();
 	}
 	if(x>width()-50){
 		state->pop();
 	}
-	if(x<width()-220){
+	if(x<width()-250){
 		state->push();
 		setFocus();
 	}

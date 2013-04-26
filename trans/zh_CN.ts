@@ -47,7 +47,7 @@
     <message>
         <location filename="../src/Menu.cpp" line="100"/>
         <source>Danmaku Alpha</source>
-        <translation>透明度</translation>
+        <translation>不透明度</translation>
     </message>
     <message>
         <location filename="../src/Menu.cpp" line="109"/>

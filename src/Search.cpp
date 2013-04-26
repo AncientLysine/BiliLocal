@@ -83,13 +83,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 	resultW->setColumnWidth(2,350);
 	resultW->setColumnWidth(3,100);
 
-	connect(keywE,&QLineEdit::textChanged,this,&Search::clearSearch);
-
 	connect(searchB,&QPushButton::clicked,[this](){
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
 		else{
+			clearSearch();
 			startSearch();
 		}
 	});
@@ -154,12 +153,14 @@ Search::Search(QWidget *parent):QDialog(parent)
 						auto getPic=new QNetworkAccessManager(this);
 						temp.append(item["aid"].toString());
 						connect(getPic,&QNetworkAccessManager::finished,[this,index,count](QNetworkReply *reply){
-							QPixmap pixmap;
-							pixmap.loadFromData(reply->readAll());
-							pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
-							auto line=resultW->topLevelItem(index);
-							if(index<count()&&line->icon(0).isNull()){
-								line->setIcon(0,QIcon(pixmap));
+							if (reply->error()==QNetworkReply::NoError){
+								QPixmap pixmap;
+								pixmap.loadFromData(reply->readAll());
+								pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+								auto line=resultW->topLevelItem(index);
+								if(index<count()&&line->icon(0).isNull()){
+									line->setIcon(0,QIcon(pixmap));
+								}
 							}
 						});
 						QNetworkRequest request;
@@ -181,8 +182,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		}
 		else {
 			QString info=tr("Network error occurred, error code: %1");
-			info.arg(reply->error());
-			QMessageBox::warning(this,tr("Network Error"),info);
+			QMessageBox::warning(this,tr("Network Error"),info.arg(reply->error()));
 			clearSearch();
 			isWaiting=false;
 		}

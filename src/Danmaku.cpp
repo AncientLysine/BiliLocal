@@ -202,9 +202,8 @@ void Danmaku::setDm(QString dm)
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
 			if(reply->error()!=QNetworkReply::NoError){
 				QString info=tr("Network error occurred, error code: %1");
-				info.arg(reply->error());
 				QWidget *p=dynamic_cast<QWidget *>(this->parent());
-				QMessageBox::warning(p,tr("Network Error"),info);
+				QMessageBox::warning(p,tr("Network Error"),info.arg(reply->error()));
 			}
 			else if(reply->url().url().indexOf("api")!=-1){
 				QString page(reply->readAll());
