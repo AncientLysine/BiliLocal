@@ -91,9 +91,9 @@ Menu::Menu(QWidget *parent) :
 		if(searchBox.exec()) {
 			QString aid("av"+searchBox.getAid());
 			danmL->setText(aid);
-			sechL->setText(searchBox.getKey());
 			emit load(aid);
 		}
+		sechL->setText(searchBox.getKey());
 	});
 	alphaT=new QLabel(this);
 	alphaT->setGeometry(QRect(10,140,100,25));
@@ -217,13 +217,13 @@ Menu::Menu(QWidget *parent) :
 			if(line.indexOf("[Local] =")!=-1){
 				localC->setChecked(argument!="0");
 			}
-			if(line.indexOf("[Sub]	 =")!=-1){
+			if(line.indexOf("[Sub]   =")!=-1){
 				subC->setChecked(argument!="0");
 			}
-			if(line.indexOf("[Font]	 =")!=-1){
+			if(line.indexOf("[Font]  =")!=-1){
 				fontC->setCurrentText(argument);
 			}
-			if(line.indexOf("[Path]	 =")!=-1){
+			if(line.indexOf("[Path]  =")!=-1){
 				if(!argument.isEmpty()){
 					lastPath=argument;
 				}
@@ -253,9 +253,9 @@ Menu::~Menu()
 	stream<<"[Alpha] = "<<alphaS->value()<<endl<<
 			"[Power] = "<<powerL->text().toInt()<<endl<<
 			"[Local] = "<<(localC->checkState()==Qt::Checked)<<endl<<
-			"[Sub]	 = "<<(subC->checkState()==Qt::Checked)<<endl<<
-			"[Font]	 = "<<fontC->currentText()<<endl<<
-			"[Path]	 = "<<lastPath<<endl;
+			"[Sub]   = "<<(subC->checkState()==Qt::Checked)<<endl<<
+			"[Font]  = "<<fontC->currentText()<<endl<<
+			"[Path]  = "<<lastPath<<endl;
 	option.close();
 }
 
