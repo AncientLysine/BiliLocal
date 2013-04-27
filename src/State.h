@@ -5,6 +5,7 @@
 *   Filename:    State.h
 *   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -53,7 +54,9 @@ private:
 	QPushButton *playB;
 	QPushButton *stopB;
 	QPropertyAnimation *animation;
-
+	QAction *playA;
+	QAction *stopA;
+	
 signals:
 	void play();
 	void stop();
