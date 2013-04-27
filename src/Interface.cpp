@@ -139,20 +139,28 @@ Interface::Interface(QWidget *parent)
 	connect(state,&State::volume,vplayer,&VPlayer::setVolume);
 	setFocus();
 
-	auto quitSC=new QShortcut(this);
-	quitSC->setKey(QString("Ctrl+Q"));
-	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
+	quitA=new QAction(tr("Quit"),this);
+	quitA->setShortcut(QKeySequence("Ctrl+Q"));
+	connect(quitA,&QAction::triggered,this,&QWidget::close);
 
-	auto fullSC=new QShortcut(this);
-	fullSC->setKey(QString("F"));
-	connect(fullSC,&QShortcut::activated,[this](){
-			if(isFullScreen()){
+	fullA=new QAction(tr("Full Screen"),this);
+	fullA->setCheckable(true);
+	fullA->setChecked(false);
+	fullA->setShortcut(QKeySequence("F"));
+	connect(fullA,&QAction::toggled,[this](bool b){
+			if(!b){
 				showNormal();
 			}
 			else{
 				showFullScreen();
 			}
 	});
+
+	this->addActions(state->actions());
+	this->addAction(fullA);
+	this->addActions(menu->actions());
+	this->addAction(quitA);
+	this->setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
 void Interface::dropEvent(QDropEvent *e)
@@ -200,11 +208,7 @@ void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
 	if(key==Qt::Key_Escape&&isFullScreen()){
-		showNormal();
-	}
-	if(key==Qt::Key_Space){
-		vplayer->play();
-		state->setPlaying(vplayer->getState()==VPlayer::Play);
+		this->fullA->toggle();
 	}
 	if(key==Qt::Key_Left){
 		if(vplayer->getState()==VPlayer::Play){
@@ -253,15 +257,4 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		e->acceptProposedAction();
 	}
-}
-
-void Interface::mouseDoubleClickEvent(QMouseEvent *e)
-{
-	if(isFullScreen()){
-		showNormal();
-	}
-	else{
-		showFullScreen();
-	}
-	QWidget::mouseDoubleClickEvent(e);
 }

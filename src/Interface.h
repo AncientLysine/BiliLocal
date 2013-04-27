@@ -5,6 +5,7 @@
 *   Filename:    Interface.h
 *   Time:        2013/03/18
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -47,7 +48,9 @@ private:
 	QTimer *timer;
 	QTimer *power;
 	QTimer *delay;
-
+	QAction *quitA;
+	QAction *fullA;
+	
 	Menu *menu;
 	State *state;
 	VPlayer *vplayer;
@@ -59,7 +62,6 @@ private:
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
 
 };
 
