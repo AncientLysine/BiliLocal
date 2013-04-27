@@ -51,6 +51,9 @@ private:
 	QPushButton *fileB;
 	QPushButton *danmB;
 	QPushButton *sechB;
+	QAction *fileA;
+	QAction *danmA;
+	QAction *sechA;
 	QLabel *alphaT;
 	QSlider *alphaS;
 	QLabel *delayT;

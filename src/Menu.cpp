@@ -63,14 +63,17 @@ Menu::Menu(QWidget *parent) :
 	fileB->setText(tr("Open"));
 	danmB->setText(tr("Load"));
 	sechB->setText(tr("Search"));
-	connect(fileB,&QPushButton::clicked,[this](){
+	fileA=new QAction(tr("Open File"),this);
+	danmA=new QAction(tr("Load Danmaku"),this);
+	sechA=new QAction(tr("Search Danmaku"),this);
+	connect(fileA,&QAction::triggered,[this](){
 		QWidget *p=dynamic_cast<QWidget *>(this->parent());
 		QString _file=QFileDialog::getOpenFileName(p,tr("Open File"),lastPath);
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
-	connect(danmB,&QPushButton::clicked,[this](){
+	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
 			QWidget *p=dynamic_cast<QWidget *>(this->parent());
 			QString _file=QFileDialog::getOpenFileName(p,tr("Open File"),lastPath,tr("XML files (*.xml)"));
@@ -83,7 +86,7 @@ Menu::Menu(QWidget *parent) :
 			emit load(_danm);
 		}
 	});
-	connect(sechB,&QPushButton::clicked,[this](){
+	connect(sechA,&QAction::triggered,[this](){
 		Search searchBox;
 		if(!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
@@ -95,6 +98,15 @@ Menu::Menu(QWidget *parent) :
 		}
 		sechL->setText(searchBox.getKey());
 	});
+	fileA->setShortcut(QKeySequence("Ctrl+O"));
+	danmA->setShortcut(QKeySequence("Ctrl+L"));
+	sechA->setShortcut(QKeySequence("Ctrl+S"));
+	this->addAction(fileA);
+	this->addAction(danmA);
+	this->addAction(sechA);
+	connect(fileB,&QPushButton::clicked,fileA,&QAction::trigger);
+	connect(danmB,&QPushButton::clicked,danmA,&QAction::trigger);
+	connect(sechB,&QPushButton::clicked,sechA,&QAction::trigger);
 	alphaT=new QLabel(this);
 	alphaT->setGeometry(QRect(10,145,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));
@@ -237,18 +249,6 @@ Menu::Menu(QWidget *parent) :
 		}
 		option.close();
 	});
-
-	auto fileSC=new QShortcut(this);
-	fileSC->setKey(QString("Ctrl+O"));
-	connect(fileSC,SIGNAL(activated()),fileB,SIGNAL(clicked()));
-
-	auto danmSC=new QShortcut(this);
-	danmSC->setKey(QString("Ctrl+L"));
-	connect(danmSC,SIGNAL(activated()),danmB,SIGNAL(clicked()));
-
-	auto sechSC=new QShortcut(this);
-	sechSC->setKey(QString("Ctrl+S"));
-	connect(sechSC,SIGNAL(activated()),sechB,SIGNAL(clicked()));
 }
 
 Menu::~Menu()

@@ -5,6 +5,7 @@
 *   Filename:    State.cpp
 *   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -70,13 +71,20 @@ State::State(QWidget *parent):
 	stopB->setGeometry(QRect(40,15,25,25));
 	playB->setIcon(QIcon(":/Interface/play.png"));
 	stopB->setIcon(QIcon(":/Interface/stop.png"));
-	connect(playB,&QPushButton::clicked,[this](){
+	playA=new QAction(QIcon(":/Interface/play.png"),tr("Play"),this);
+	stopA=new QAction(QIcon(":/Interface/stop.png"),tr("Stop"),this);
+	connect(playA,&QAction::triggered,[this](){
 		if(opened){
 			setPlaying(!playing);
 		}
 		emit play();
 	});
-	connect(stopB,&QPushButton::clicked,[this](){emit stop();});
+	connect(stopA,&QAction::triggered,[this](){emit stop();});
+	this->addAction(playA);
+	this->addAction(stopA);
+	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
+	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
+	playA->setShortcut(QKeySequence(Qt::Key_Space));
 	durT=new QLabel(this);
 	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	durT->setGeometry(QRect(70,15,120,25));
@@ -129,12 +137,16 @@ void State::setOpened(bool _opened)
 	opened=_opened;
 	playing=opened;
 	playB->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
+	playA->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
+	playA->setText(playing?tr("Pause"):tr("Play"));
 }
 
 void State::setPlaying(bool _playing)
 {
 	playing=_playing;
 	playB->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
+	playA->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
+	playA->setText(playing?tr("Pause"):tr("Play"));
 }
 
 void State::setDuration(qint64 _duration)
