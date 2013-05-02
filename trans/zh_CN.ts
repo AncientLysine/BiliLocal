@@ -4,7 +4,7 @@
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="204"/>
+        <location filename="../src/Danmaku.cpp" line="205"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
@@ -17,12 +17,12 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="142"/>
+        <location filename="../src/Interface.cpp" line="144"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="146"/>
+        <location filename="../src/Interface.cpp" line="148"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
