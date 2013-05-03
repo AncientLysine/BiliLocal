@@ -31,9 +31,9 @@ int main(int argc, char *argv[])
 {
 	auto locale=QLocale::system().name();
 	QTranslator myTrans;
-	myTrans.load(locale+".qm","./");
+	myTrans.load(locale+".qm","./translations");
 	QTranslator qtTrans;
-	qtTrans.load(locale+".qt.qm","./");
+	qtTrans.load(locale+".qt.qm","./translations");
 #ifdef Q_OS_LINUX
 	QApplication::setStyle("Fusion");
 #endif
