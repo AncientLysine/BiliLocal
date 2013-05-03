@@ -97,7 +97,6 @@ void Danmaku::draw(QPainter *painter,bool move)
 		else{
 			etime=last.restart();
 		}
-		qDebug()<<etime;
 	}
 	else{
 		etime=0;

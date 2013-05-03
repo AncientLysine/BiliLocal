@@ -76,7 +76,6 @@ signals:
 	void paused();
 	void ended();
 	void decoded();
-	void buffered();
 	void jumped(qint64 _time);
 
 public slots:

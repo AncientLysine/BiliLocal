@@ -36,15 +36,12 @@ LIBS += -L./\
 INCLUDEPATH += include/
 
 RESOURCES += \
-    res/Res.qrc \
-    trans/Trans.qrc
+    res/Res.qrc
 
 TRANSLATIONS = \
     trans/zh_CN.ts
 
 win32 {
-
 RC_FILE = \
     Icon.rc
-
 }

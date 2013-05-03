@@ -65,7 +65,6 @@ VPlayer::VPlayer(QObject *parent) :
 	dstFrame=NULL;
 	state=Stop;
 	open=false;
-	connect(this,SIGNAL(buffered()),this,SLOT(emitFrame()),Qt::QueuedConnection);
 }
 
 VPlayer::~VPlayer()
@@ -115,7 +114,7 @@ qint64 VPlayer::getDuration()
 
 void VPlayer::bufferFrame()
 {
-	emit buffered();
+	QTimer::singleShot(0,this,SLOT(emitFrame()));
 }
 
 void VPlayer::draw(QPainter *painter,QRect rect)
