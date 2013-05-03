@@ -56,7 +56,6 @@ public:
 
 private:
 	int state;
-	bool open;
 
 	QSize srcSize;
 	QSize dstSize;
@@ -70,6 +69,15 @@ private:
 	SwsContext *swsctx;
 	AVPicture *srcFrame;
 	AVPicture *dstFrame;
+
+	template<class Func>
+	void delayExec(int time,Func func)
+	{
+		QTimer *delay=new QTimer(this);
+		delay->setSingleShot(true);
+		delay->start(time);
+		connect(delay,&QTimer::timeout,func);
+	}
 
 signals:
 	void opened();
