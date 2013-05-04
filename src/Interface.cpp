@@ -51,6 +51,10 @@ Interface::Interface(QWidget *parent)
 	me=new QLabel(this);
 	me->setFixedSize(QSize(200,40));
 	me->setPixmap(QPixmap(":Interface/version.png"));
+	tv->lower();
+	me->lower();
+	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
+	me->setAttribute(Qt::WA_TransparentForMouseEvents);
 	movie->start();
 	setMouseTracking(true);
 	timer=new QTimer(this);
@@ -117,7 +121,7 @@ Interface::Interface(QWidget *parent)
 		danmaku->reset();
 		state->setDuration(-1);
 	});
-	connect(vplayer,SIGNAL(decoded()),this,SLOT(update()));
+	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){danmaku->jumpToTime(vplayer->getTime());});
@@ -148,19 +152,19 @@ Interface::Interface(QWidget *parent)
 	fullA->setChecked(false);
 	fullA->setShortcut(QKeySequence("F"));
 	connect(fullA,&QAction::toggled,[this](bool b){
-			if(!b){
-				showNormal();
-			}
-			else{
-				showFullScreen();
-			}
+		if(!b){
+			showNormal();
+		}
+		else{
+			showFullScreen();
+		}
 	});
 
-	this->addActions(state->actions());
-	this->addAction(fullA);
-	this->addActions(menu->actions());
-	this->addAction(quitA);
-	this->setContextMenuPolicy(Qt::ActionsContextMenu);
+	addActions(state->actions());
+	addAction(fullA);
+	addActions(menu->actions());
+	addAction(quitA);
+	setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
 void Interface::dropEvent(QDropEvent *e)
@@ -257,4 +261,12 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		e->acceptProposedAction();
 	}
+}
+
+void Interface::mouseDoubleClickEvent(QMouseEvent *e)
+{
+	if(!menu->isPopped()&&!state->isPopped()){
+		fullA->toggle();
+	}
+	QWidget::mouseDoubleClickEvent(e);
 }

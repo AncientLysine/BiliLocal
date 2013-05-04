@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/Trans">
-        <file>zh_CN.qm</file>
-        <file>zh_CN.qt.qm</file>
-    </qresource>
-</RCC>

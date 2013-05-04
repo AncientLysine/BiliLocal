@@ -200,17 +200,26 @@ void Danmaku::setDm(QString dm)
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 		manager->get(QNetworkRequest(apiUrl));
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
-			if(reply->error()!=QNetworkReply::NoError){
-				QString info=tr("Network error occurred, error code: %1");
+			auto error=[this](int code){
 				QWidget *p=dynamic_cast<QWidget *>(this->parent());
-				QMessageBox::warning(p,tr("Network Error"),info.arg(reply->error()));
+				QString info=tr("Network error occurred, error code: %1");
+				QMessageBox::warning(p,tr("Network Error"),info.arg(code));
+			};
+			if(reply->error()!=QNetworkReply::NoError){
+				error(reply->error());
 			}
 			else if(reply->url().url().indexOf("api")!=-1){
 				QString page(reply->readAll());
 				QRegExp regexp("(?!\\<cid\\>)[0-9]*(?=\\</cid\\>)");
-				regexp.indexIn(page);
-				QUrl xmlUrl("http://comment.bilibili.tv/"+regexp.cap()+".xml");
-				manager->get(QNetworkRequest(xmlUrl));
+				if(regexp.indexIn(page)>=0){
+					QUrl xmlUrl("http://comment.bilibili.tv/"+regexp.cap()+".xml");
+					manager->get(QNetworkRequest(xmlUrl));
+				}
+				else{
+					regexp.setPattern("(?!\\<code\\>.*)[0-9]*(?=\\</code\\>)");
+					regexp.indexIn(page);
+					error(regexp.cap().toInt());
+				}
 			}
 			else{
 				load(QString(reply->readAll()).simplified());
@@ -268,10 +277,12 @@ void Danmaku::setTime(qint64 time)
 		bool flag=false;
 		switch(comment.mode-1){
 		case 0:
+		{
 			render.speed=100+textSize.width()/5.0+qrand()%50;
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
-			for(int height=5;height<size.height()-(sub?80:0);height+=10){
+			int limit=size.height()-(sub?80:0)-render.rect.height();
+			for(int height=5;height<limit;height+=10){
 				flag=true;
 				render.rect.moveTop(height);
 				for(Static &iter:current[0]){
@@ -285,11 +296,14 @@ void Danmaku::setTime(qint64 time)
 				}
 			}
 			break;
+		}
 		case 3:
+		{
 			render.life=5;
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
-			for(int height=size.height()-(sub?size.height()/10:5);height>0;height-=10){
+			int limit=render.rect.height();
+			for(int height=size.height()-(sub?size.height()/10:5);height>limit;height-=10){
 				flag=true;
 				render.rect.moveBottom(height);
 				for(Static &iter:current[3]){
@@ -303,11 +317,14 @@ void Danmaku::setTime(qint64 time)
 				}
 			}
 			break;
+		}
 		case 4:
+		{
 			render.life=5;
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
-			for(int height=5;height<size.height()-(sub?80:0);height+=10){
+			int limit=size.height()-(sub?80:0)-render.rect.height();
+			for(int height=5;height<limit;height+=10){
 				flag=true;
 				render.rect.moveTop(height);
 				for(Static &iter:current[4]){
@@ -321,6 +338,7 @@ void Danmaku::setTime(qint64 time)
 				}
 			}
 			break;
+		}
 		}
 		if(flag){
 			QImage temp(text.size().toSize()+=QSize(2,2),QImage::Format_ARGB32);
