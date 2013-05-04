@@ -50,7 +50,7 @@ private:
 	QTimer *delay;
 	QAction *quitA;
 	QAction *fullA;
-	
+
 	Menu *menu;
 	State *state;
 	VPlayer *vplayer;
@@ -62,6 +62,7 @@ private:
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
+	void mouseDoubleClickEvent(QMouseEvent *e);
 
 };
 

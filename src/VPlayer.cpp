@@ -64,8 +64,6 @@ VPlayer::VPlayer(QObject *parent) :
 	srcFrame=NULL;
 	dstFrame=NULL;
 	state=Stop;
-	open=false;
-	connect(this,SIGNAL(buffered()),this,SLOT(emitFrame()),Qt::QueuedConnection);
 }
 
 VPlayer::~VPlayer()
@@ -115,7 +113,7 @@ qint64 VPlayer::getDuration()
 
 void VPlayer::bufferFrame()
 {
-	emit buffered();
+	QTimer::singleShot(0,this,SLOT(emitFrame()));
 }
 
 void VPlayer::draw(QPainter *painter,QRect rect)
@@ -137,7 +135,6 @@ void VPlayer::play()
 				}
 			}
 			free(info);
-			open=true;
 			dstSize=srcSize;
 			srcFrame=new AVPicture;
 			dstFrame=new AVPicture;
@@ -145,12 +142,7 @@ void VPlayer::play()
 			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			QTimer *delay=new QTimer(this);
-			delay->setSingleShot(true);
-			delay->start(50);
-			connect(delay,&QTimer::timeout,[this](){
-				libvlc_media_player_play(mp);
-			});
+			delayExec(50,[this](){libvlc_media_player_play(mp);});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -170,15 +162,7 @@ void VPlayer::stop()
 	if(mp){
 		if(state!=Stop){
 			libvlc_media_player_stop(mp);
-			QTimer *delay=new QTimer(this);
-			delay->setSingleShot(true);
-			delay->start(50);
-			connect(delay,&QTimer::timeout,[this](){
-				state=Stop;
-				open=false;
-				buffer=QPixmap();
-				emit ended();
-			});
+			delayExec(50,[this](){state=Stop;buffer=QPixmap();emit ended();});
 		}
 	}
 }
@@ -188,7 +172,7 @@ void VPlayer::setSize(QSize _size)
 	dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
 	dstSize/=4;
 	dstSize*=4;
-	if(open){
+	if(state!=Stop){
 		avpicture_free(dstFrame);
 		avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 		if(state==Pause){

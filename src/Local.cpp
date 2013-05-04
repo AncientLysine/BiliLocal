@@ -29,10 +29,11 @@
 
 int main(int argc, char *argv[])
 {
+	auto locale=QLocale::system().name();
 	QTranslator myTrans;
-	myTrans.load("zh_CN.qm",":/Trans/");
+	myTrans.load(locale+".qm","./translations");
 	QTranslator qtTrans;
-	qtTrans.load("zh_CN.qt.qm",":/Trans/");
+	qtTrans.load(locale+".qt.qm","./translations");
 #ifdef Q_OS_LINUX
 	QApplication::setStyle("Fusion");
 #endif
