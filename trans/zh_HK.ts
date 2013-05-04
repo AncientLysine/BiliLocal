@@ -24,7 +24,7 @@
     <message>
         <location filename="../src/Interface.cpp" line="148"/>
         <source>Full Screen</source>
-        <translation>全屏</translation>
+        <translation>全熒幕</translation>
     </message>
 </context>
 <context>
@@ -38,7 +38,7 @@
     <message>
         <location filename="../src/Menu.cpp" line="65"/>
         <source>Search</source>
-        <translation>搜索</translation>
+        <translation>搜尋</translation>
     </message>
     <message>
         <location filename="../src/Menu.cpp" line="64"/>
@@ -61,7 +61,7 @@
     <message>
         <location filename="../src/Menu.cpp" line="68"/>
         <source>Search Danmaku</source>
-        <translation>搜索彈幕</translation>
+        <translation>搜尋彈幕</translation>
     </message>
     <message>
         <location filename="../src/Menu.cpp" line="79"/>
@@ -105,7 +105,7 @@
         <location filename="../src/Search.cpp" line="42"/>
         <location filename="../src/Search.cpp" line="75"/>
         <source>Search</source>
-        <translation>搜索</translation>
+        <translation>搜尋</translation>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="34"/>
@@ -166,7 +166,7 @@
     <message>
         <location filename="../src/Search.cpp" line="98"/>
         <source>No search in progress.</source>
-        <translation>沒有正在進行中的搜索。</translation>
+        <translation>沒有正在進行中的搜尋。</translation>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="104"/>
