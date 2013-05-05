@@ -46,7 +46,8 @@ public:
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
-	uchar *getBit();
+	uchar *getSrc();
+	uchar *getDst();
 	qint64 getTime();
 	int getState();
 	QSize getSize();
@@ -66,6 +67,7 @@ private:
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
 
+	QMutex mutex;
 	SwsContext *swsctx;
 	AVPicture *srcFrame;
 	AVPicture *dstFrame;
@@ -85,6 +87,7 @@ signals:
 	void ended();
 	void decoded();
 	void jumped(qint64 _time);
+	void rendered(QImage _frame);
 
 public slots:
 	void play();
@@ -93,7 +96,7 @@ public slots:
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setVolume(int _volume);
-	void emitFrame();
+	void emitFrame(QImage frame);
 
 };
 
