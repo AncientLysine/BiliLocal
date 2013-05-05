@@ -44,7 +44,7 @@ void avpicture_free(AVPicture *picture)
 static void *lock(void *opaque,void **planes)
 {
 	VPlayer *player=static_cast<VPlayer *>(opaque);
-	*planes=player->getBit();
+	*planes=player->getSrc();
 	return NULL;
 }
 
@@ -64,6 +64,7 @@ VPlayer::VPlayer(QObject *parent) :
 	srcFrame=NULL;
 	dstFrame=NULL;
 	state=Stop;
+	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
 }
 
 VPlayer::~VPlayer()
@@ -86,9 +87,14 @@ VPlayer::~VPlayer()
 	}
 }
 
-uchar *VPlayer::getBit()
+uchar *VPlayer::getSrc()
 {
 	return (uchar *)*srcFrame->data;
+}
+
+uchar *VPlayer::getDst()
+{
+	return (uchar *)*dstFrame->data;
 }
 
 QSize VPlayer::getSize()
@@ -113,7 +119,15 @@ qint64 VPlayer::getDuration()
 
 void VPlayer::bufferFrame()
 {
-	QTimer::singleShot(0,this,SLOT(emitFrame()));
+	mutex.lock();
+	swsctx=sws_getCachedContext(swsctx,
+								srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
+								dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
+								SWS_FAST_BILINEAR,NULL,NULL,NULL);
+	sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
+	QImage frame=QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy();
+	mutex.unlock();
+	emit rendered(frame);
 }
 
 void VPlayer::draw(QPainter *painter,QRect rect)
@@ -169,17 +183,23 @@ void VPlayer::stop()
 
 void VPlayer::setSize(QSize _size)
 {
+	mutex.lock();
+	auto _dstSize=dstSize;
 	dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
 	dstSize/=4;
 	dstSize*=4;
-	if(state!=Stop){
+	if(state!=Stop&&_dstSize!=dstSize){
 		avpicture_free(dstFrame);
 		avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+		mutex.unlock();
 		if(state==Pause){
 			state=Play;
-			emitFrame();
+			bufferFrame();
 			state=Pause;
 		}
+	}
+	else{
+		mutex.unlock();
 	}
 }
 
@@ -214,20 +234,14 @@ void VPlayer::setVolume(int _volume)
 	}
 }
 
-void VPlayer::emitFrame()
+void VPlayer::emitFrame(QImage frame)
 {
 	if(state==Stop){
 		state=Play;
 		emit opened();
 	}
 	if(state==Play){
-		swsctx=sws_getCachedContext(swsctx,
-									srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
-									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
-									SWS_FAST_BILINEAR,NULL,NULL,NULL);
-		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
-		QImage frame((uchar *)*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
-		buffer=QPixmap::fromImage(frame.copy());
+		buffer=QPixmap::fromImage(frame);
 		emit decoded();
 	}
 	if(getDuration()-getTime()<500){
