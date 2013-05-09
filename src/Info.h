@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Interface.h
-*   Time:        2013/03/18
+*   Filename:    Info.h
+*   Time:        2013/04/05
 *   Author:      Lysine
 *   Contributor: Chaserhkj
 *
@@ -25,59 +25,52 @@
 *
 =========================================================================*/
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#ifndef INFO_H
+#define INFO_H
 
-#include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Menu.h"
-#include "Info.h"
-#include "VPlayer.h"
-#include "Danmaku.h"
 
-class Render:public QWidget
+class Info:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Render(QWidget *parent=0);
-	void setVplayer(VPlayer *_vplayer){vplayer=_vplayer;}
-	void setDanmaku(Danmaku *_danmaku){danmaku=_danmaku;}
-
+	explicit Info(QWidget *parent=0);
+	bool isPopped(){return isPop;}
+	
 private:
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-	void paintEvent(QPaintEvent *e);
-
+	bool isPop;
+	bool isTurn;
+	bool opened;
+	bool playing;
+	bool sliding;
+	bool updating;
+	qint64 duration;
+	QLabel *durT;
+	QLabel *timeT;
+	QLabel *volmT;
+	QSlider *timeS;
+	QSlider *volmS;
+	QPushButton *playB;
+	QPushButton *stopB;
+	QPropertyAnimation *animation;
+	QAction *playA;
+	QAction *stopA;
+	
+signals:
+	void play();
+	void stop();
+	void time(qint64);
+	void volume(int);
+	
+public slots:
+	void pop();
+	void push();
+	void setTime(qint64 _time);
+	void setOpened(bool _opened);
+	void setPlaying(bool _playing);
+	void setDuration(qint64 _duration);
+	
 };
 
-class Interface:public QWidget
-{
-	Q_OBJECT
-public:
-	explicit Interface(QWidget *parent=0);
-
-private:
-	QLabel *tv;
-	QLabel *me;
-	QTimer *timer;
-	QTimer *power;
-	QTimer *delay;
-	QAction *quitA;
-	QAction *fullA;
-
-	Menu *menu;
-	Info *info;
-	Render *render;
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-
-	void dropEvent(QDropEvent *e);
-	void resizeEvent(QResizeEvent *e);
-	void keyPressEvent(QKeyEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-
-};
-
-#endif // INTERFACE_H
+#endif // INFO_H
