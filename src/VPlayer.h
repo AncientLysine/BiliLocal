@@ -29,6 +29,7 @@
 
 #include <QtGui>
 #include <QtCore>
+#include "Utils.h"
 
 extern "C"
 {
@@ -52,34 +53,26 @@ public:
 	int getState();
 	QSize getSize();
 	qint64 getDuration();
-	void bufferFrame();
+	void setFrame();
 	void draw(QPainter *painter,QRect rect);
 
 private:
 	int state;
+	int valid;
 
+	QMutex mutex;
 	QSize srcSize;
 	QSize dstSize;
 	QString file;
-	QPixmap buffer;
+	QPixmap frame;
 
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
 
-	QMutex mutex;
 	SwsContext *swsctx;
-	AVPicture *srcFrame;
-	AVPicture *dstFrame;
-
-	template<class Func>
-	void delayExec(int time,Func func)
-	{
-		QTimer *delay=new QTimer(this);
-		delay->setSingleShot(true);
-		delay->start(time);
-		connect(delay,&QTimer::timeout,func);
-	}
+	AVPicture srcFrame;
+	AVPicture dstFrame;
 
 signals:
 	void opened();
@@ -96,8 +89,9 @@ public slots:
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setVolume(int _volume);
-	void emitFrame(QImage frame);
+	void emitFrame(QImage _frame);
 
 };
 
 #endif // VPLAYER_H
+

@@ -51,7 +51,7 @@ static void *lock(void *opaque,void **planes)
 static void display(void *opaque,void *)
 {
 	VPlayer *player=static_cast<VPlayer *>(opaque);
-	player->bufferFrame();
+	player->setFrame();
 }
 
 VPlayer::VPlayer(QObject *parent) :
@@ -61,9 +61,8 @@ VPlayer::VPlayer(QObject *parent) :
 	m=NULL;
 	mp=NULL;
 	swsctx=NULL;
-	srcFrame=NULL;
-	dstFrame=NULL;
 	state=Stop;
+	valid=false;
 	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
 }
 
@@ -79,22 +78,16 @@ VPlayer::~VPlayer()
 	if(swsctx){
 		sws_freeContext(swsctx);
 	}
-	if(srcFrame){
-		avpicture_free(srcFrame);
-	}
-	if(dstFrame){
-		avpicture_free(dstFrame);
-	}
 }
 
 uchar *VPlayer::getSrc()
 {
-	return (uchar *)*srcFrame->data;
+	return (uchar *)*srcFrame.data;
 }
 
 uchar *VPlayer::getDst()
 {
-	return (uchar *)*dstFrame->data;
+	return (uchar *)*dstFrame.data;
 }
 
 QSize VPlayer::getSize()
@@ -117,22 +110,29 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-void VPlayer::bufferFrame()
+void VPlayer::setFrame()
 {
-	mutex.lock();
-	swsctx=sws_getCachedContext(swsctx,
-								srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
-								dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
-								SWS_FAST_BILINEAR,NULL,NULL,NULL);
-	sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
-	QImage frame=QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy();
-	mutex.unlock();
-	emit rendered(frame);
+	if(state!=Pause){
+		mutex.lock();
+		swsctx=sws_getCachedContext(swsctx,
+									srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
+									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
+									SWS_FAST_BILINEAR,NULL,NULL,NULL);
+		if(!valid){
+			avpicture_free (&dstFrame);
+			avpicture_alloc(&dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+			valid=true;
+		}
+		sws_scale(swsctx,srcFrame.data,srcFrame.linesize,0,srcSize.height(),dstFrame.data,dstFrame.linesize);
+		QImage frame=QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy();
+		mutex.unlock();
+		emit rendered(frame);
+	}
 }
 
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
-	painter->drawPixmap(rect.center()-QRect(QPoint(0,0),buffer.size()).center(),buffer);
+	painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
 }
 
 void VPlayer::play()
@@ -150,13 +150,12 @@ void VPlayer::play()
 			}
 			free(info);
 			dstSize=srcSize;
-			srcFrame=new AVPicture;
-			dstFrame=new AVPicture;
-			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
-			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+			avpicture_alloc(&srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
+			avpicture_alloc(&dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+			valid=true;
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			delayExec(50,[this](){libvlc_media_player_play(mp);});
+			Utils::delayExec(this,50,[this](){libvlc_media_player_play(mp);});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -176,7 +175,7 @@ void VPlayer::stop()
 	if(mp){
 		if(state!=Stop){
 			libvlc_media_player_stop(mp);
-			delayExec(50,[this](){state=Stop;buffer=QPixmap();emit ended();});
+			Utils::delayExec(this,50,[this](){state=Stop;frame=QPixmap();emit ended();});
 		}
 	}
 }
@@ -188,13 +187,12 @@ void VPlayer::setSize(QSize _size)
 	dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
 	dstSize/=4;
 	dstSize*=4;
-	if(state!=Stop&&_dstSize!=dstSize){
-		avpicture_free(dstFrame);
-		avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+	if(_dstSize!=dstSize){
+		valid=false;
 		mutex.unlock();
 		if(state==Pause){
 			state=Play;
-			bufferFrame();
+			setFrame();
 			state=Pause;
 		}
 	}
@@ -234,14 +232,14 @@ void VPlayer::setVolume(int _volume)
 	}
 }
 
-void VPlayer::emitFrame(QImage frame)
+void VPlayer::emitFrame(QImage _frame)
 {
 	if(state==Stop){
 		state=Play;
 		emit opened();
 	}
 	if(state==Play){
-		buffer=QPixmap::fromImage(frame);
+		frame=QPixmap::fromImage(_frame);
 		emit decoded();
 	}
 	if(getDuration()-getTime()<500){
