@@ -16,7 +16,7 @@ SOURCES += \
     src/Danmaku.cpp \
     src/VPlayer.cpp \
     src/Menu.cpp \
-    src/State.cpp \
+    src/Info.cpp \
     src/Search.cpp
 
 HEADERS  += \
@@ -24,7 +24,7 @@ HEADERS  += \
     src/Danmaku.h \
     src/VPlayer.h \
     src/Menu.h \
-    src/State.h \
+    src/Info.h \
     src/Search.h
 
 LIBS += -L./\

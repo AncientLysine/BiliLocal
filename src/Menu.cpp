@@ -149,8 +149,8 @@ Menu::Menu(QWidget *parent) :
 				fps=200;
 				powerL->setText(QString::number(fps));
 			}
-			if(fps<40){
-				fps=40;
+			if(fps<30){
+				fps=30;
 				powerL->setText(QString::number(fps));
 			}
 			powerL->setText(QString::number(fps));
@@ -209,10 +209,7 @@ Menu::Menu(QWidget *parent) :
 #ifdef Q_OS_WIN
 	fontC->setCurrentText("黑体");
 #endif
-	QTimer *delay=new QTimer(this);
-	delay->setSingleShot(true);
-	delay->start(0);
-	connect(delay,&QTimer::timeout,[this](){
+	Utils::delayExec(this,0,[this](){
 		QFile option("./Option.txt");
 		if(!option.exists()){
 			return;
@@ -282,6 +279,7 @@ void Menu::push()
 		animation->setEndValue(pos()-QPoint(200,0));
 		animation->start();
 		isPop=false;
+		parentWidget()->setFocus();
 	}
 }
 
