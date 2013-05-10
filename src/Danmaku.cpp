@@ -359,10 +359,12 @@ void Danmaku::setTime(qint64 time)
 			draw(comment.color,QPoint(0,0));
 			painter.end();
 			if(alpha!=1){
-				quint32 alpha_255=(0xFFFFFFFF>>8)|(((quint32)(255*alpha))<<24);
-				for(int y=0;y<temp.height();++y){
-					for(int x=0;x<temp.width();++x){
-						temp.setPixel(x,y,temp.pixel(x,y)&alpha_255);
+				int w=temp.width();
+				int h=temp.height();
+				uchar *bits=temp.bits();
+				for(int y=0;y<h;++y){
+					for(int x=0;x<w;++x){
+						bits[(y*w+x)*4+3]*=alpha;
 					}
 				}
 			}
