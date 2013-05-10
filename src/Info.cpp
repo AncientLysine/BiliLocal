@@ -36,17 +36,13 @@ Info::Info(QWidget *parent):
 	sliding=false;
 	updating=false;
 	setAutoFillBackground(true);
-	QPalette options;
-	options.setColor(QPalette::Background,Qt::white);
-	setPalette(options);
+	Utils::setBack(this,Qt::white);
 	duration=100;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
 	animation->setEasingCurve(QEasingCurve::OutCubic);
-	timeT=new QLabel(this);
-	volmT=new QLabel(this);
-	timeT->setText(tr("Time"));
-	volmT->setText(tr("Volume"));
+	timeT=new QLabel(tr("Time"),this);
+	volmT=new QLabel(tr("Volume"),this);
 	timeT->setGeometry(QRect(10,50,100,25));
 	volmT->setGeometry(QRect(10,100,100,25));
 	timeS=new QSlider(this);
@@ -89,6 +85,11 @@ Info::Info(QWidget *parent):
 	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	durT->setGeometry(QRect(70,15,120,25));
 	durT->setText("00:00/00:00");
+	plfmT=new QLabel(tr("System"),this);
+	plfmT->setGeometry(QRect(10,150,100,25));
+	plfmL=new QLineEdit(Utils::platform,this);
+	plfmL->setReadOnly(true);
+	plfmL->setGeometry(QRect(10,175,180,25));
 }
 
 void Info::pop()
