@@ -7,4 +7,4 @@ Add danmaku to local videos
 
 ![L](res/01.jpg)
 
-![S](res/02.jpg)
+![W](res/02.jpg)
