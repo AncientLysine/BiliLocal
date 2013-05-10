@@ -15,14 +15,45 @@
     </message>
 </context>
 <context>
+    <name>Info</name>
+    <message>
+        <location filename="../src/Info.cpp" line="48"/>
+        <source>Time</source>
+        <translation>时间</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="49"/>
+        <source>Volume</source>
+        <translation>音量</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="74"/>
+        <location filename="../src/Info.cpp" line="142"/>
+        <location filename="../src/Info.cpp" line="150"/>
+        <source>Play</source>
+        <translation>播放</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="75"/>
+        <source>Stop</source>
+        <translation>停止</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="142"/>
+        <location filename="../src/Info.cpp" line="150"/>
+        <source>Pause</source>
+        <translation>暂停</translation>
+    </message>
+</context>
+<context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="144"/>
+        <location filename="../src/Interface.cpp" line="172"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="148"/>
+        <location filename="../src/Interface.cpp" line="176"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
@@ -217,37 +248,6 @@
         <location filename="../src/Search.cpp" line="68"/>
         <source>Cancel</source>
         <translation>取消</translation>
-    </message>
-</context>
-<context>
-    <name>State</name>
-    <message>
-        <location filename="../src/State.cpp" line="48"/>
-        <source>Time</source>
-        <translation>时间</translation>
-    </message>
-    <message>
-        <location filename="../src/State.cpp" line="49"/>
-        <source>Volume</source>
-        <translation>音量</translation>
-    </message>
-    <message>
-        <location filename="../src/State.cpp" line="74"/>
-        <location filename="../src/State.cpp" line="141"/>
-        <location filename="../src/State.cpp" line="149"/>
-        <source>Play</source>
-        <translation>播放</translation>
-    </message>
-    <message>
-        <location filename="../src/State.cpp" line="75"/>
-        <source>Stop</source>
-        <translation>停止</translation>
-    </message>
-    <message>
-        <location filename="../src/State.cpp" line="141"/>
-        <location filename="../src/State.cpp" line="149"/>
-        <source>Pause</source>
-        <translation>暂停</translation>
     </message>
 </context>
 </TS>
