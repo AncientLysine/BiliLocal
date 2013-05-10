@@ -86,21 +86,23 @@ Interface::Interface(QWidget *parent):
 			delay->stop();
 		}
 
-		if(x>250||x<-50){
-			menu->push();
-		}
-		else if(x<50){
-			menu->pop();
-		}
-		if(x<width()-250||x>width()+50){
-			info->push();
-		}
-		else if(x>width()-50){
-			info->pop();
-		}
 		if(y<-50||y>width()+50){
 			menu->push();
 			info->push();
+		}
+		else{
+			if(x>250||x<-50){
+				menu->push();
+			}
+			else if(x<50){
+				menu->pop();
+			}
+			if(x<width()-250||x>width()+50){
+				info->push();
+			}
+			else if(x>width()-50){
+				info->pop();
+			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
