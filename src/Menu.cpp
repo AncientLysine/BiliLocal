@@ -244,6 +244,11 @@ Menu::Menu(QWidget *parent) :
 		}
 		option.close();
 	});
+	if(QApplication::arguments().count()>=2){
+		Utils::delayExec(this,0,[this](){
+			setFile(QApplication::arguments()[1]);
+		});
+	}
 }
 
 Menu::~Menu()

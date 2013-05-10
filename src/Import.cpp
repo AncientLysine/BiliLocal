@@ -4,6 +4,8 @@
 
 int main(int argc,char *argv[])
 {
+	QCoreApplication(argc, argv);
+	QDir::setCurrent(QCoreApplication::applicationDirPath());
 	QFile shield("./Shield.txt");
 	int cur=-1;
 	QList<QString> list[3];
