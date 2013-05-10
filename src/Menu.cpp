@@ -35,9 +35,7 @@ Menu::Menu(QWidget *parent) :
 	isLocal=false;
 	lastPath=QDir::homePath();
 	setAutoFillBackground(true);
-	QPalette options;
-	options.setColor(QPalette::Background,Qt::white);
-	setPalette(options);
+	Utils::setBack(this,Qt::white);
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
 	animation->setEasingCurve(QEasingCurve::OutCubic);
