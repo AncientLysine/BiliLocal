@@ -33,6 +33,7 @@
 #include <QtWidgets>
 #include "Menu.h"
 #include "Info.h"
+#include "Utils.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 

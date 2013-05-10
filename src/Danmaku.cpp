@@ -162,10 +162,6 @@ void Danmaku::setDm(QString dm)
 					break;
 				}
 			}
-			comment.time=args[0].toDouble()*1000;
-			comment.mode=args[1].toInt();
-			comment.font=args[2].toInt();
-			comment.color.setRgb(args[3].toInt());
 			sta=item.indexOf(">")+1;
 			len=item.indexOf("<",sta)-sta;
 			comment.content=item.mid(sta,len);
@@ -182,6 +178,10 @@ void Danmaku::setDm(QString dm)
 				}
 			}
 			if(flag){
+				comment.time=args[0].toDouble()*1000;
+				comment.mode=args[1].toInt();
+				comment.font=args[2].toInt();
+				comment.color.setRgb(args[3].toInt());
 				danmaku.append(comment);
 			}
 		}

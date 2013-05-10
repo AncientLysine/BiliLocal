@@ -25,7 +25,8 @@ HEADERS  += \
     src/VPlayer.h \
     src/Menu.h \
     src/Info.h \
-    src/Search.h
+    src/Search.h \
+    src/Utils.h
 
 LIBS += -L./\
     -lvlc \
@@ -38,8 +39,10 @@ INCLUDEPATH += include/
 RESOURCES += \
     res/Res.qrc
 
-TRANSLATIONS = \
-    trans/zh_CN.ts
+TRANSLATIONS += \
+    trans/zh_CN.ts \
+    trans/zh_HK.ts \
+    trans/zh_TW.ts
 
 win32 {
 RC_FILE = \
