@@ -30,6 +30,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include "Utils.h"
 
 class Info:public QWidget
 {
@@ -49,8 +50,10 @@ private:
 	QLabel *durT;
 	QLabel *timeT;
 	QLabel *volmT;
+	QLabel *plfmT;
 	QSlider *timeS;
 	QSlider *volmS;
+	QLineEdit *plfmL;
 	QPushButton *playB;
 	QPushButton *stopB;
 	QPropertyAnimation *animation;
