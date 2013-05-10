@@ -34,11 +34,6 @@ QString Utils::platform=QString();
 
 int main(int argc, char *argv[])
 {
-	auto locale=QLocale::system().name();
-	QTranslator myTrans;
-	myTrans.load(locale+".qm","./translations");
-	QTranslator qtTrans;
-	qtTrans.load(locale+".qt.qm","./translations");
 	QString &platform=Utils::platform;
 #ifdef Q_OS_LINUX
 	platform="Linux";
@@ -107,6 +102,12 @@ int main(int argc, char *argv[])
 		QApplication::setStyle("Fusion");
 	}
 	QApplication a(argc, argv);
+	QDir::setCurrent(QApplication::applicationDirPath());
+	auto locale=QLocale::system().name();
+	QTranslator myTrans;
+	myTrans.load(locale+".qm","./translations");
+	QTranslator qtTrans;
+	qtTrans.load(locale+".qt.qm","./translations");
 	a.installTranslator(&myTrans);
 	a.installTranslator(&qtTrans);
 	Interface w;
