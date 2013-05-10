@@ -30,6 +30,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include "Utils.h"
 #include "Search.h"
 
 class Menu:public QWidget
