@@ -55,13 +55,7 @@ Interface::Interface(QWidget *parent):
 	render->setDanmaku(danmaku);
 	menu=new Menu(this);
 	info=new Info(this);
-	auto setCenter=[](QWidget *widget,QSize _size){
-		QRect rect;
-		rect.setSize(_size);
-		rect.moveCenter(QApplication::desktop()->screenGeometry().center());
-		widget->setGeometry(rect);
-	};
-	setCenter(this,QSize(960,540));
+	Utils::setCenter(this,QSize(960,540));
 	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
 	tv->setMovie(movie);
@@ -124,11 +118,9 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
-	connect(vplayer,&VPlayer::opened,[this,setCenter](){
+	connect(vplayer,&VPlayer::opened,[this](){
+		Utils::setBack(this,Qt::black);
 		info->setDuration(vplayer->getDuration());
-		QPalette options;
-		options.setColor(QPalette::Background,Qt::black);
-		setPalette(options);
 		info->setOpened(true);
 		tv->hide();
 		me->hide();
@@ -136,7 +128,7 @@ Interface::Interface(QWidget *parent):
 			vplayer->setSize(size());
 		}
 		else{
-			setCenter(this,vplayer->getSize());
+			Utils::setCenter(this,vplayer->getSize());
 		}
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
