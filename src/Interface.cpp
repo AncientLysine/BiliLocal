@@ -86,7 +86,7 @@ Interface::Interface(QWidget *parent):
 			delay->stop();
 		}
 
-		if(y<-50||y>width()+50){
+		if(y<-50||y>height()+50){
 			menu->push();
 			info->push();
 		}
