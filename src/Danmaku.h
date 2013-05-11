@@ -31,6 +31,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
+#include "Utils.h"
 
 struct Comment
 {
@@ -54,6 +55,7 @@ class Danmaku:public QObject
 	Q_OBJECT
 public:
 	explicit Danmaku(QObject *parent=0);
+	~Danmaku();
 	void draw(QPainter *painter,bool move=true);
 	
 private:
@@ -67,7 +69,6 @@ private:
 	QTime last;
 	QList<QString> shieldU;
 	QList<QRegExp> shieldR;
-	QList<QString> shieldS;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 
