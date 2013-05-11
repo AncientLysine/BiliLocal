@@ -26,6 +26,9 @@
 
 #include "Interface.h"
 #include <QApplication>
+#ifdef Q_OS_LINUX
+#include <sys/utsname.h>
+#endif
 #ifdef Q_OS_WIN
 #include "windows.h"
 #endif
@@ -36,7 +39,11 @@ int main(int argc, char *argv[])
 {
 	QString &platform=Utils::platform;
 #ifdef Q_OS_LINUX
-	platform="Linux";
+	struct utsname v;
+	if(uname(&v)>=0){
+		platform="%1 %2 %3";
+		platform=platform.arg(v.sysname,v.release,v.machine);
+	}
 #endif
 #ifdef Q_OS_MAC
 	platform="Mac OS";
