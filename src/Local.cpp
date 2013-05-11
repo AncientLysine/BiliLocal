@@ -26,90 +26,16 @@
 
 #include "Interface.h"
 #include <QApplication>
-#ifdef Q_OS_LINUX
-#include <sys/utsname.h>
-#endif
-#ifdef Q_OS_WIN
-#include "windows.h"
-#endif
-
-QString Utils::platform=QString();
 
 int main(int argc, char *argv[])
 {
-	QString &platform=Utils::platform;
-#ifdef Q_OS_LINUX
-	struct utsname v;
-	if(uname(&v)>=0){
-		platform="%1 %2 %3";
-		platform=platform.arg(v.sysname,v.release,v.machine);
-	}
-#endif
-#ifdef Q_OS_MAC
-	platform="Mac OS";
-#endif
-#ifdef Q_OS_WIN
-	SYSTEM_INFO info;
-	GetSystemInfo(&info);
-	OSVERSIONINFOEX os;
-	os.dwOSVersionInfoSize=sizeof(OSVERSIONINFOEX);
-	if(GetVersionEx((OSVERSIONINFO *)&os))
-	{
-		switch(os.dwMajorVersion){
-		case 5:
-			switch(os.dwMinorVersion){
-			case 0:
-				platform="Windows 2000";
-				break;
-			case 1:
-				platform="Windows XP";
-				break;
-			case 2:
-				if(GetSystemMetrics(SM_SERVERR2)==0){
-					platform="Windows Server 2003";
-				}
-				else{
-					platform="Windows Server 2003 R2";
-				}
-				break;
-			}
-			break;
-		case 6:
-			switch(os.dwMinorVersion){
-			case 0:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows Vista";
-				}
-				else{
-					platform="Windows Server 2008";
-				}
-				break;
-			case 1:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows 7";
-				}
-				else{
-					platform="Windows Server 2008 R2";
-				}
-				break;
-			case 2:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows 8";
-				}
-				else{
-					platform="Windows Server 2012";
-				}
-				break;
-			}
-			break;
-		}
-	}
-#endif
-	if(platform!="Windows 8"){
+	QJsonObject info=Utils::getConfig("Info");
+	if(info.value("Platform").toString()!="Windows 8"){
 		QApplication::setStyle("Fusion");
 	}
 	QApplication a(argc, argv);
 	QDir::setCurrent(QApplication::applicationDirPath());
+	Utils::loadConfig();
 	auto locale=QLocale::system().name();
 	QTranslator myTrans;
 	myTrans.load(locale+".qm","./translations");

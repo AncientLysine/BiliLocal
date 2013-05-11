@@ -87,7 +87,8 @@ Info::Info(QWidget *parent):
 	durT->setText("00:00/00:00");
 	plfmT=new QLabel(tr("System"),this);
 	plfmT->setGeometry(QRect(10,150,100,25));
-	plfmL=new QLineEdit(Utils::platform,this);
+	QJsonValue platform=Utils::getConfig("Info").value("Platform");
+	plfmL=new QLineEdit(platform.toString(),this);
 	plfmL->setReadOnly(true);
 	plfmL->setGeometry(QRect(10,175,180,25));
 }

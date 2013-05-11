@@ -208,41 +208,29 @@ Menu::Menu(QWidget *parent) :
 	fontC->setCurrentText("黑体");
 #endif
 	Utils::delayExec(this,0,[this](){
-		QFile option("./Option.txt");
-		if(!option.exists()){
-			return;
-		}
-		option.open(QIODevice::ReadOnly|QIODevice::Text);
-		QTextStream stream(&option);
-		QString line;
-		while(!stream.atEnd()){
-			line=stream.readLine();
-			QString argument=line.mid(10).simplified();
-			if(line.indexOf("[Alpha] =")!=-1){
-				int _alpha=argument.toInt();
-				alphaS->setValue(_alpha);
+		QJsonObject menu=Utils::getConfig("Menu");
+		if(!menu.isEmpty()){
+			if(menu.contains("Alpha")){
+				alphaS->setValue(menu["Alpha"].toDouble());
 			}
-			if(line.indexOf("[Power] =")!=-1){
-				int _power=argument.toInt();
-				powerL->setText(_power==0?"":argument);
+			if(menu.contains("Power")){
+				int _power=menu["Power"].toDouble();
+				powerL->setText(_power==0?"":QString::number(_power));
 				emit power(_power==0?-1:1000/_power);
 			}
-			if(line.indexOf("[Local] =")!=-1){
-				localC->setChecked(argument!="0");
+			if(menu.contains("Local")){
+				localC->setChecked(menu["Local"].toBool());
 			}
-			if(line.indexOf("[Sub]   =")!=-1){
-				subC->setChecked(argument!="0");
+			if(menu.contains("Sub")){
+				subC->setChecked(menu["Sub"].toBool());
 			}
-			if(line.indexOf("[Font]  =")!=-1){
-				fontC->setCurrentText(argument);
+			if(menu.contains("Font")){
+				fontC->setCurrentText(menu["Font"].toString());
 			}
-			if(line.indexOf("[Path]  =")!=-1){
-				if(!argument.isEmpty()){
-					lastPath=argument;
-				}
+			if(menu.contains("Path")){
+				lastPath=menu["Path"].toString();
 			}
 		}
-		option.close();
 	});
 	if(QApplication::arguments().count()>=2){
 		Utils::delayExec(this,0,[this](){
@@ -253,16 +241,14 @@ Menu::Menu(QWidget *parent) :
 
 Menu::~Menu()
 {
-	QFile option("./Option.txt");
-	option.open(QIODevice::WriteOnly|QIODevice::Text);
-	QTextStream stream(&option);
-	stream<<"[Alpha] = "<<alphaS->value()<<endl<<
-			"[Power] = "<<powerL->text().toInt()<<endl<<
-			"[Local] = "<<(localC->checkState()==Qt::Checked)<<endl<<
-			"[Sub]   = "<<(subC->checkState()==Qt::Checked)<<endl<<
-			"[Font]  = "<<fontC->currentText()<<endl<<
-			"[Path]  = "<<lastPath<<endl;
-	option.close();
+	QJsonObject menu;
+	menu["Alpha"]=alphaS->value();
+	menu["Power"]=powerL->text().toInt();
+	menu["Local"]=localC->checkState()==Qt::Checked;
+	menu["Sub"]=subC->checkState()==Qt::Checked;
+	menu["Font"]=fontC->currentText();
+	menu["Path"]=lastPath;
+	Utils::setConfig(menu,"Menu");
 }
 
 void Menu::pop()

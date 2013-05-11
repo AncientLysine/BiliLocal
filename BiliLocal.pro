@@ -17,7 +17,8 @@ SOURCES += \
     src/VPlayer.cpp \
     src/Menu.cpp \
     src/Info.cpp \
-    src/Search.cpp
+    src/Search.cpp \
+    src/Utils.cpp
 
 HEADERS  += \
     src/Interface.h \

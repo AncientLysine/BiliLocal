@@ -30,11 +30,17 @@
 #include <QtCore>
 #include <QtWidgets>
 
+class Config:public QJsonObject
+{
+public:
+	Config();
+	~Config();
+
+};
+
 class Utils
 {
 public:
-	static QString platform;
-
 	template<class Func>
 	static void delayExec(QObject *parent,int time,Func func)
 	{
@@ -58,6 +64,13 @@ public:
 		rect.moveCenter(QApplication::desktop()->screenGeometry().center());
 		widget->setGeometry(rect);
 	}
+
+	static QJsonObject getConfig(QString area=QString());
+	static void setConfig(QJsonObject _config,QString area=QString());
+	static void loadConfig();
+
+private:
+	static Config config;
 
 };
 
