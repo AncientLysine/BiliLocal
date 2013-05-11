@@ -40,50 +40,28 @@ Danmaku::Danmaku(QObject *parent) :
 	font.setFamily("黑体");
 #endif
 	sub=false;
-	QFile shield("./Shield.txt");
-	int cur=-1;
-	if(shield.exists()){
-		shield.open(QIODevice::ReadOnly|QIODevice::Text);
-		QTextStream stream(&shield);
-		QString line;
-		while(!stream.atEnd()){
-			line=stream.readLine();
-			if(line=="[User]"){
-				cur=0;
-				continue;
-			}
-			if(line=="[Regex]"){
-				cur=1;
-				continue;
-			}
-			if(line=="[String]"){
-				cur=2;
-				continue;
-			}
-			if(!line.isEmpty()){
-				switch(cur){
-				case 0:
-					shieldU.append(line);
-					break;
-				case 1:
-					shieldR.append(QRegExp(line));
-					break;
-				case 2:
-					shieldS.append(line);
-					break;
-				}
-			}
-		}
-		shield.close();
+	QJsonObject shield=Utils::getConfig("Shield");
+	for(const auto &item:shield["User"].toArray()){
+		shieldU.append(item.toString());
 	}
-	else{
-		shield.open(QIODevice::WriteOnly|QIODevice::Text);
-		QTextStream stream(&shield);
-		stream<<"[User]"<<endl<<endl<<
-				"[Regex]"<<endl<<endl<<
-				"[String]"<<endl;
-		shield.close();
+	for(const auto &item:shield["Regex"].toArray()){
+		shieldR.append(QRegExp(item.toString()));
 	}
+}
+
+Danmaku::~Danmaku()
+{
+	QJsonObject shield;
+	QJsonArray u,r;
+	for(auto &item:shieldU){
+		u.append(item);
+	}
+	for(auto &item:shieldR){
+		r.append(item.pattern());
+	}
+	shield.insert("User",u);
+	shield.insert("Regex",r);
+	Utils::setConfig(shield,"Shield");
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
@@ -165,12 +143,6 @@ void Danmaku::setDm(QString dm)
 			sta=item.indexOf(">")+1;
 			len=item.indexOf("<",sta)-sta;
 			comment.content=item.mid(sta,len);
-			for(QString &text:shieldS){
-				if(comment.content.indexOf(text,Qt::CaseInsensitive)!=-1){
-					flag=false;
-					break;
-				}
-			}
 			for(QRegExp &reg:shieldR){
 				if(reg.indexIn(comment.content)!=-1){
 					flag=false;
