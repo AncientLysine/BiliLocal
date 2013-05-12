@@ -29,15 +29,9 @@
 
 Search::Search(QWidget *parent):QDialog(parent)
 {
-	bool exists=QFile::exists("Cache.db");
 	data=QSqlDatabase::database();
-	data.setDatabaseName("Cache.db");
 	data.open();
 	QSqlQuery query;
-	if(!exists){
-		query.exec("PRAGMA auto_vacuum = 1;");
-		query.exec("CREATE TABLE Cache ( Url VARCHAR(128), Time INTEGER, Pixmap BLOB, PRIMARY KEY(Url) );");
-	}
 	query.exec("PRAGMA synchronous = OFF;");
 	auto outerLayout=new QVBoxLayout;
 	auto keywdLayout=new QHBoxLayout;
@@ -277,7 +271,16 @@ void Search::getData(int pageNum)
 
 void Search::initDataBase()
 {
-	QSqlDatabase::addDatabase("QSQLITE");
+	QSqlDatabase data=QSqlDatabase::addDatabase("QSQLITE");
+	bool exists=QFile::exists("Cache.db");
+	data.setDatabaseName("Cache.db");
+	data.open();
+	QSqlQuery query;
+	if(!exists){
+		query.exec("PRAGMA auto_vacuum = 1;");
+		query.exec("CREATE TABLE Cache ( Url VARCHAR(128), Time INTEGER, Pixmap BLOB, PRIMARY KEY(Url) );");
+	}
+	data.close();
 }
 
 void Search::clearSearch()

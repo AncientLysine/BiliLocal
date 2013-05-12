@@ -144,19 +144,22 @@ Interface::Interface(QWidget *parent):
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){danmaku->jumpToTime(vplayer->getTime());});
+	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::dfont,danmaku,&Danmaku::setFont);
 	connect(menu,&Menu::alpha,danmaku,&Danmaku::setAlpha);
-	connect(menu,&Menu::delay,danmaku,&Danmaku::setDelay);
-	connect(menu,&Menu::protect,danmaku,&Danmaku::setProtect);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
 			power->start(_power);
 		else
 			power->stop();
 	});
+	connect(menu,&Menu::delay,[this](qint64 _delay){
+		danmaku->setDelay(_delay);
+		danmaku->jumpToTime(vplayer->getTime());
+	});
+	connect(menu,&Menu::protect,danmaku,&Danmaku::setProtect);
 	connect(info,&Info::time,vplayer,&VPlayer::setTime);
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
