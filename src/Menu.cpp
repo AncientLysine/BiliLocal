@@ -126,6 +126,9 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(delayL,&QLineEdit::editingFinished,[this](){
 		emit delay(delayL->text().toInt()*1000);
+		if(delayL->text()=="0"){
+			delayL->setText("");
+		}
 	});
 	powerT=new QLabel(this);
 	powerT->setGeometry(QRect(10,240,100,20));
@@ -288,4 +291,11 @@ void Menu::setFile(QString _file)
 #endif
 	fileL->setText(_file);
 	emit open(_file);
+}
+
+void Menu::setDelay(qint64 _delay)
+{
+	_delay=_delay<=0?0:_delay;
+	delayL->setText(_delay/1000==0?QString():QString::number(_delay/1000));
+	emit delay(_delay);
 }
