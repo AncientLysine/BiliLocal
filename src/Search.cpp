@@ -27,11 +27,10 @@
 
 #include "Search.h"
 
-QSqlDatabase Search::data;
-
 Search::Search(QWidget *parent):QDialog(parent)
 {
 	bool exists=QFile::exists("Cache.db");
+	data=QSqlDatabase::database();
 	data.setDatabaseName("Cache.db");
 	data.open();
 	QSqlQuery query;
@@ -99,7 +98,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
-		else if(!key.isEmpty()){
+		else if(!keywE->text().isEmpty()){
 			clearSearch();
 			startSearch();
 		}
@@ -249,11 +248,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
 }
 
-Search::~Search()
-{
-	data.close();
-}
-
 void Search::setKey(QString _key)
 {
 	key=_key;
@@ -283,7 +277,7 @@ void Search::getData(int pageNum)
 
 void Search::initDataBase()
 {
-	data=QSqlDatabase::addDatabase("QSQLITE");
+	QSqlDatabase::addDatabase("QSQLITE");
 }
 
 void Search::clearSearch()
