@@ -28,6 +28,7 @@
 #ifndef _SEARCH_H_
 #define _SEARCH_H_
 
+#include <QtSql>
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
@@ -37,8 +38,10 @@ class Search:public QDialog
 	Q_OBJECT
 public:
 	explicit Search(QWidget *parent=0);
+	~Search();
 	inline QString getKey(){return key;}
 	inline QString getAid(){return aid;}
+	static void initDataBase();
 
 private:
 	QLabel *statusL;
@@ -61,6 +64,7 @@ private:
 	int pageCur=-1;
 	bool isWaiting=false;
 	QList<QString> temp;
+	static QSqlDatabase data;
 
 	void getData(int pageNum);
 
