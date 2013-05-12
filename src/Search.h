@@ -38,7 +38,6 @@ class Search:public QDialog
 	Q_OBJECT
 public:
 	explicit Search(QWidget *parent=0);
-	~Search();
 	inline QString getKey(){return key;}
 	inline QString getAid(){return aid;}
 	static void initDataBase();
@@ -63,8 +62,8 @@ private:
 	int pageNum=-1;
 	int pageCur=-1;
 	bool isWaiting=false;
+	QSqlDatabase data;
 	QList<QString> temp;
-	static QSqlDatabase data;
 
 	void getData(int pageNum);
 
