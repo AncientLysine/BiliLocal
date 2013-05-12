@@ -179,12 +179,12 @@ Interface::Interface(QWidget *parent):
 			showFullScreen();
 		}
 	});
-
 	addActions(info->actions());
 	addAction(fullA);
 	addActions(menu->actions());
 	addAction(quitA);
 	setContextMenuPolicy(Qt::ActionsContextMenu);
+	Search::initDataBase();
 }
 
 void Interface::dropEvent(QDropEvent *e)

@@ -65,6 +65,19 @@ public:
 		widget->setGeometry(rect);
 	}
 
+	static QString getAppPath(char **argv)
+	{
+		QString path=QString::fromLocal8Bit(argv[0]);
+		int length=path.lastIndexOf(QDir::separator());
+		if(length==-1){
+			path=QDir::currentPath();
+		}
+		else{
+			path.resize(length);
+		}
+		return path;
+	}
+
 	static QJsonObject getConfig(QString area=QString());
 	static void setConfig(QJsonObject _config,QString area=QString());
 	static void loadConfig();
