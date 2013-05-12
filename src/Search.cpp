@@ -84,21 +84,22 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	setLayout(outerLayout);
 	setWindowTitle(tr("Search"));
-	resize(820,520);
+	resize(900,520);
 	
-	QStringList labels={tr("Cover"),tr("Play"),tr("Title"),tr("Typename"),tr("Author")};
+	QStringList labels={tr("Cover"),tr("Play"),tr("Danmaku"),tr("Title"),tr("Typename"),tr("Author")};
 	resultW->setHeaderLabels(labels);
 	resultW->setSelectionMode(QAbstractItemView::SingleSelection);
 	resultW->setColumnWidth(0,165);
 	resultW->setColumnWidth(1,60);
-	resultW->setColumnWidth(2,350);
-	resultW->setColumnWidth(3,100);
+	resultW->setColumnWidth(2,60);
+	resultW->setColumnWidth(3,370);
+	resultW->setColumnWidth(4,100);
 
 	connect(searchB,&QPushButton::clicked,[this](){
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
-		else{
+		else if(!key.isEmpty()){
 			clearSearch();
 			startSearch();
 		}
@@ -155,6 +156,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QStringList content={
 							"",
 							item["play"].toString(),
+							item["video_review"].toString(),
 							item["title"].toString(),
 							item["typename"].toString(),
 							item["author"].toString()

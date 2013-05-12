@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
 	if(info.value("Platform").toString()!="Windows 8"){
 		QApplication::setStyle("Fusion");
 	}
-	QApplication::addLibraryPath(Utils::getAppPath(argv));
 	QApplication a(argc, argv);
 	QDir::setCurrent(QApplication::applicationDirPath());
 	Utils::loadConfig();
