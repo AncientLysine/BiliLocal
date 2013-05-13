@@ -180,6 +180,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 							query.prepare("UPDATE Cache SET Time=? WHERE Url=?");
 							query.addBindValue(time());
 							query.addBindValue(item["pic"].toString());
+							query.exec();
 						}
 						else{
 							int index=resultW->invisibleRootItem()->childCount()-1;
@@ -193,14 +194,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 									query.addBindValue(time());
 									query.addBindValue(byte);
 									query.exec();
-									auto size=[](){
-										QFile file("Cache.db");
-										file.open(QIODevice::ReadOnly);
-										qint64 _size=file.size();
-										file.close();
-										return _size;
-									};
-									while(size()>2*1024*1024){
+									while(QFileInfo("Cache.db").size()>2*1024*1024){
 										query.prepare("DELETE FROM Cache "
 													  "WHERE Cache.Time=("
 													  "SELECT MIN(Time) FROM Cache);");
