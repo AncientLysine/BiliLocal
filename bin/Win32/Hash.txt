@@ -7,7 +7,7 @@
     "Qt5Gui.dll": "87af46b62fddaa8fb8d77752c5c04bcc",
     "Qt5Network.dll": "6c6e5711e43314f214286bf431094948",
     "Qt5Widgets.dll": "085a43de57684d87fc39d8726c28bd97",
-    "Update.exe": "194aa11c07a0692e7393caa1cbae9ca0",
+    "Upgrade.exe": "cde05870ce294b76250f14385f74b03d",
     "avutil-52.dll": "ded186002f2a35ca27a0cf7a1509e8b6",
     "icudt49.dll": "9ac53a0501b0e4022cf7e2c4aab8180a",
     "icuin49.dll": "ff62e089bd1aeeca8e0f593c307a04e0",
@@ -19,6 +19,7 @@
     },
     "libEGL.dll": "3e8ffe17aedd5e5ae6c7d4c809ffa2c7",
     "libGLESv2.dll": "449d44855c2a3b095d480e1b91fc5325",
+    "libeay32.dll": "cc18863864d708ac6934c62a3f29b9f8",
     "libgcc_s_sjlj-1.dll": "fc13e78186507c8226fdb9ba132c15b7",
     "libstdc++-6.dll": "225750fa390b3babac0b0014c84a00ab",
     "libvlc.dll": "e42e4e1b9dca079afc06a427c76f2a69",
@@ -255,5 +256,6 @@
             "libvmem_plugin.dll": "7ad5b40a93cf751abf999858e8870f7a"
         }
     },
+    "ssleay32.dll": "2e9a8bf29f097e80f41a6260807752cc",
     "swscale-2.dll": "d5796816c45fea9e4ee7e4e02c295587"
 }

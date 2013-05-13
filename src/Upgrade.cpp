@@ -3,6 +3,15 @@
 #include <QtCore>
 #include <QtNetwork>
 
+static QString calcHash(QString path)
+{
+	QFile file(path);
+	file.open(QIODevice::ReadOnly);
+	QString md5=QCryptographicHash::hash(file.readAll(),QCryptographicHash::Md5).toHex();
+	file.close();
+	return md5;
+}
+
 static QJsonObject getFileHash(QDir dir)
 {
 	QJsonObject hash;
@@ -12,11 +21,7 @@ static QJsonObject getFileHash(QDir dir)
 		}
 		QString path=dir.filePath(name);
 		if(QFileInfo(path).isFile()){
-			QFile file(path);
-			file.open(QIODevice::ReadOnly);
-			QString md5=QCryptographicHash::hash(file.readAll(),QCryptographicHash::Md5).toHex();
-			hash.insert(name,md5);
-			file.close();
+			hash.insert(name,calcHash(path));
 		}
 		else{
 			hash.insert(name,getFileHash(path));
@@ -28,6 +33,9 @@ static QJsonObject getFileHash(QDir dir)
 static void loadFile(QJsonObject obj,QDir dir,QString root,QNetworkAccessManager *manager)
 {
 	for(QString item:obj.keys()){
+		if(item.indexOf("Hash")!=-1||item.indexOf("Upgrade")!=-1){
+			continue;
+		}
 		if(obj[item].isObject()){
 			if(!dir.exists(item)){
 				dir.mkdir(item);
@@ -36,8 +44,11 @@ static void loadFile(QJsonObject obj,QDir dir,QString root,QNetworkAccessManager
 		}
 		else{
 			QString load=root;
-			QDir::current().relativeFilePath(dir.filePath(item));
-			manager->get(QNetworkRequest(QUrl(load)));
+			QString path=dir.filePath(item);
+			if(calcHash(path)!=obj[item].toString()){
+				load+=QDir::current().relativeFilePath(path);
+				manager->get(QNetworkRequest(QUrl(load)));
+			}
 		}
 	}
 }
@@ -47,6 +58,11 @@ int main(int argc,char *argv[])
 	QCoreApplication a(argc,argv);
 	QDir::setCurrent(a.applicationDirPath());
 	QStringList args=QCoreApplication::arguments();
+	QTextStream stream(stdout);
+	auto out=[&stream](QString info){
+		stream<<info<<endl;
+		stream.flush();
+	};
 	if(args.size()>=2&&args[1].startsWith("-g")){
 		QFile conf("./Hash.txt");
 		conf.open(QIODevice::WriteOnly|QIODevice::Text);
@@ -58,31 +74,38 @@ int main(int argc,char *argv[])
 		QFile conf("./Config.txt");
 		conf.open(QIODevice::ReadOnly|QIODevice::Text);
 		QJsonObject config=QJsonDocument::fromJson(conf.readAll()).object();
-		QString arch;
+		QString arch,branch="master";
 		if(config.contains("Info")){
 			config=config["Info"].toObject();
 			if(config.contains("Architecture")){
 				arch=config["Architecture"].toString();
 			}
+			if(config.contains("Branch")){
+				branch=config["Branch"].toString();
+			}
 		}
 		QNetworkAccessManager manager;
 		if(!arch.isEmpty()){
-			QString root("https://github.com/AncientLysine/BiliLocal/raw/master/bin/%1/");
-			root.arg(arch);
-			manager.connect(&manager,&QNetworkAccessManager::finished,[root,arch](QNetworkReply *reply){
+			QString root("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/");
+			root=root.arg(branch).arg(arch);
+			manager.connect(&manager,&QNetworkAccessManager::finished,[root,arch,&out](QNetworkReply *reply){
+				QString path=reply->url().url();
+				out(path);
 				if (reply->error()==QNetworkReply::NoError) {
-					if(reply->url().url().endsWith("Hash.txt")){
+					if(path.endsWith("Hash.txt")){
 						QJsonObject hash=QJsonDocument::fromJson(reply->readAll()).object();
 						loadFile(hash,QDir::current(),root,reply->manager());
 					}
 					else{
-						QString path=reply->url().url();
 						path="."+path.mid(path.indexOf(arch)+arch.length());
 						QFile file(path);
 						file.open(QIODevice::WriteOnly);
 						file.write(reply->readAll());
 						file.close();
 					}
+				}
+				else{
+					out(QString("NetworkError %1").arg(reply->error()));
 				}
 			});
 			manager.get(QNetworkRequest(QUrl(root+"Hash.txt")));
