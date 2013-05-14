@@ -1,5 +1,5 @@
 {
-    "BiliLocal.exe": "4b546a5e1d1132d69fcacd4fb8cb43d9",
+    "BiliLocal.exe": "8770731a325487023904bc9a8163836c",
     "D3DCompiler_43.dll": "1c9b45e87528b8bb8cfa884ea0099a85",
     "Import.exe": "beb328d34a9f9195b242fa347a2a2dc6",
     "Qt5Core.dll": "d774ebe5e0714bebf0d1bb9a486c7a68",

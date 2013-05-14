@@ -46,6 +46,7 @@ Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
 	setAcceptDrops(true);
+	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Interfacce/icon.png"));
 	render =new Render(this);
@@ -66,6 +67,9 @@ Interface::Interface(QWidget *parent):
 	tv->lower();
 	me->lower();
 	render->lower();
+	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
+	me->setAttribute(Qt::WA_TransparentForMouseEvents);
+	render->setAttribute(Qt::WA_TransparentForMouseEvents);
 	movie->start();
 	timer=new QTimer(this);
 	power=new QTimer(this);
@@ -74,39 +78,22 @@ Interface::Interface(QWidget *parent):
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint pos=this->mapFromGlobal(QCursor::pos());
-		int x=pos.x(),y=pos.y();
-
-		if(x>250&&x<width()-250&&y>50&&y<height()-50){
-			if(cursor().shape()==Qt::BlankCursor){
-				unsetCursor();
-			}
-			delay->start(2000);
+		if(pos.x()<-100){
+			menu->push();
+			setFocus();
 		}
-		else{
-			delay->stop();
+		if(pos.x()>width()+100){
+			info->push();
+			setFocus();
 		}
-
-		if(y<-50||y>height()+50){
+		if(pos.y()<-50||pos.y()>width()+50){
 			menu->push();
 			info->push();
-		}
-		else{
-			if(x>250||x<-50){
-				menu->push();
-			}
-			else if(x<50){
-				menu->pop();
-			}
-			if(x<width()-250||x>width()+50){
-				info->push();
-			}
-			else if(x>width()-50){
-				info->pop();
-			}
+			setFocus();
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
-			info   ->setTime(time);
+			info->setTime(time);
 			danmaku->setTime(time);
 		}
 	});
@@ -239,6 +226,35 @@ void Interface::keyPressEvent(QKeyEvent *e)
 		}
 	}
 	QWidget::keyPressEvent(e);
+}
+
+void Interface::mouseMoveEvent(QMouseEvent *e)
+{
+	int x=e->pos().x(),y=e->pos().y();
+	if(x<50){
+		menu->pop();
+	}
+	if(x>250){
+		menu->push();
+		setFocus();
+	}
+	if(x>width()-50){
+		info->pop();
+	}
+	if(x<width()-250){
+		info->push();
+		setFocus();
+	}
+	if(x>220&&x<width()-220&&y>50&&y<height()-50){
+		if(cursor().shape()==Qt::BlankCursor){
+			unsetCursor();
+		}
+		delay->start(2000);
+	}
+	else{
+		delay->stop();
+	}
+	QWidget::mouseMoveEvent(e);
 }
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)
