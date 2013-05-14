@@ -1,5 +1,5 @@
-{
-    "FAQ_By_云娘_PAPA本命.pdf": "e7600df1927ea8417e5de3ecb10b43cf",
+﻿{
+    "FAQ.pdf": "e7600df1927ea8417e5de3ecb10b43cf",
     "Readme.txt": "67a6d5d07b5a419c1bec2d44752fb48e",
     "translations": {
         "zh_CN.qm": "736d0f39f707e867629cea06a474b9d7",

@@ -1,10 +1,11 @@
 {
-    "BiliLocal.exe": "5578fb33980536c22b2636dfe7b24811",
+    "BiliLocal.exe": "4b546a5e1d1132d69fcacd4fb8cb43d9",
     "D3DCompiler_43.dll": "1c9b45e87528b8bb8cfa884ea0099a85",
-    "Import.exe": "a0fd5b04fbd51772be7986f8e072f0ed",
+    "Import.exe": "beb328d34a9f9195b242fa347a2a2dc6",
     "Qt5Core.dll": "d774ebe5e0714bebf0d1bb9a486c7a68",
     "Qt5Gui.dll": "87af46b62fddaa8fb8d77752c5c04bcc",
     "Qt5Network.dll": "6c6e5711e43314f214286bf431094948",
+    "Qt5Sql.dll": "0a30e67dead7c4e5af4586702d9b072a",
     "Qt5Widgets.dll": "085a43de57684d87fc39d8726c28bd97",
     "avutil-52.dll": "ded186002f2a35ca27a0cf7a1509e8b6",
     "icudt49.dll": "9ac53a0501b0e4022cf7e2c4aab8180a",
@@ -178,7 +179,7 @@
         "notify": {
             "libmsn_plugin.dll": "6d349dffee651202419a6978bc827b2f"
         },
-        "plugins.dat": "41fb3214b3233990c53b0c6b37f38dce",
+        "plugins.dat": "0a920963d96fc6538477b3c5dece6aac",
         "sse2": {
             "libi420_rgb_sse2_plugin.dll": "89a205dfcb7bc19143ad3d45f091a269",
             "libi420_yuy2_sse2_plugin.dll": "f7f5b0faedd67e111fa094217d4c0726",
@@ -253,6 +254,9 @@
         "video_output": {
             "libvmem_plugin.dll": "7ad5b40a93cf751abf999858e8870f7a"
         }
+    },
+    "sqldrivers": {
+        "qsqlite.dll": "d5637b5045c156c5170ba3e403b5e700"
     },
     "ssleay32.dll": "2e9a8bf29f097e80f41a6260807752cc",
     "swscale-2.dll": "d5796816c45fea9e4ee7e4e02c295587"
