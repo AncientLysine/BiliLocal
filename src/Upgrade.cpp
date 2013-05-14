@@ -120,7 +120,10 @@ int main(int argc,char *argv[])
 				else{
 					out<<QString("NetworkError %1").arg(reply->error())<<endl;
 				}
-				if((!archn||flag)&&--count<=0){
+				if(flag){
+					--count;
+				}
+				if(!archn&&count<=0){
 					out<<"Upgrade Finished"<<endl;
 					qApp->quit();
 				}
