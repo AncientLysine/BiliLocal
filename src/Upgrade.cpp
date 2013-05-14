@@ -74,30 +74,35 @@ int main(int argc,char *argv[])
 		QFile conf("./Config.txt");
 		conf.open(QIODevice::ReadOnly|QIODevice::Text);
 		QJsonObject config=QJsonDocument::fromJson(conf.readAll()).object();
-		QString arch,branch="master";
+		QString archi,branch="master";
 		if(config.contains("Info")){
 			config=config["Info"].toObject();
 			if(config.contains("Architecture")){
-				arch=config["Architecture"].toString();
+				archi=config["Architecture"].toString();
 			}
 			if(config.contains("Branch")){
 				branch=config["Branch"].toString();
 			}
 		}
 		QNetworkAccessManager manager;
-		if(!arch.isEmpty()){
-			QString root("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/");
-			root=root.arg(branch).arg(arch);
-			manager.connect(&manager,&QNetworkAccessManager::finished,[root,arch,&out](QNetworkReply *reply){
+		if(!archi.isEmpty()){
+			manager.connect(&manager,&QNetworkAccessManager::finished,[out](QNetworkReply *reply){
 				QString path=reply->url().url();
 				out(path);
 				if (reply->error()==QNetworkReply::NoError) {
 					if(path.endsWith("Hash.txt")){
 						QJsonObject hash=QJsonDocument::fromJson(reply->readAll()).object();
-						loadFile(hash,QDir::current(),root,reply->manager());
+						if(!hash.isEmpty()){
+							QString root=path.mid(0,path.lastIndexOf("Hash.txt"));
+							loadFile(hash,QDir::current(),root,reply->manager());
+						}
+						else{
+							out("Hash File is EMPTY");
+						}
 					}
 					else{
-						path="."+path.mid(path.indexOf(arch)+arch.length());
+						path="."+path.mid(path.indexOf('/',path.indexOf("bin")+4));
+						out("=> "+path);
 						QFile file(path);
 						file.open(QIODevice::WriteOnly);
 						file.write(reply->readAll());
@@ -108,7 +113,9 @@ int main(int argc,char *argv[])
 					out(QString("NetworkError %1").arg(reply->error()));
 				}
 			});
-			manager.get(QNetworkRequest(QUrl(root+"Hash.txt")));
+			QString url("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/");
+			manager.get(QNetworkRequest(QUrl(url.arg(branch).arg("Any")+"Hash.txt")));
+			manager.get(QNetworkRequest(QUrl(url.arg(branch).arg(archi)+"Hash.txt")));
 		}
 		return a.exec();
 	}
