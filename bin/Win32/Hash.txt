@@ -1,13 +1,11 @@
 {
     "BiliLocal.exe": "5578fb33980536c22b2636dfe7b24811",
     "D3DCompiler_43.dll": "1c9b45e87528b8bb8cfa884ea0099a85",
-    "Hash.txt": "d41d8cd98f00b204e9800998ecf8427e",
     "Import.exe": "a0fd5b04fbd51772be7986f8e072f0ed",
     "Qt5Core.dll": "d774ebe5e0714bebf0d1bb9a486c7a68",
     "Qt5Gui.dll": "87af46b62fddaa8fb8d77752c5c04bcc",
     "Qt5Network.dll": "6c6e5711e43314f214286bf431094948",
     "Qt5Widgets.dll": "085a43de57684d87fc39d8726c28bd97",
-    "Upgrade.exe": "cde05870ce294b76250f14385f74b03d",
     "avutil-52.dll": "ded186002f2a35ca27a0cf7a1509e8b6",
     "icudt49.dll": "9ac53a0501b0e4022cf7e2c4aab8180a",
     "icuin49.dll": "ff62e089bd1aeeca8e0f593c307a04e0",

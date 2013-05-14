@@ -1,0 +1,12 @@
+{
+    "FAQ_By_云娘_PAPA本命.pdf": "e7600df1927ea8417e5de3ecb10b43cf",
+    "Readme.txt": "67a6d5d07b5a419c1bec2d44752fb48e",
+    "translations": {
+        "zh_CN.qm": "736d0f39f707e867629cea06a474b9d7",
+        "zh_CN.qt.qm": "b229ee4a58b9c9e604431a43ca95a78a",
+        "zh_HK.qm": "1f37d84310529913e53bd917ca3f7390",
+        "zh_HK.qt.qm": "309c19a23ae0a868be6adf0890010ab1",
+        "zh_TW.qm": "1f37d84310529913e53bd917ca3f7390",
+        "zh_TW.qt.qm": "309c19a23ae0a868be6adf0890010ab1"
+    }
+}
