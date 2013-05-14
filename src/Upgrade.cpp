@@ -3,6 +3,11 @@
 #include <QtCore>
 #include <QtNetwork>
 
+int count=0;
+int archn=2;
+QTextStream out(stdout);
+QNetworkAccessManager *manager=NULL;
+
 static QString calcHash(QString path)
 {
 	QFile file(path);
@@ -30,7 +35,7 @@ static QJsonObject getFileHash(QDir dir)
 	return hash;
 }
 
-static void loadFile(QJsonObject obj,QDir dir,QString root,QNetworkAccessManager *manager)
+static void loadFile(QJsonObject obj,QDir dir,QString root)
 {
 	for(QString item:obj.keys()){
 		if(item.indexOf("Hash")!=-1||item.indexOf("Upgrade")!=-1){
@@ -40,14 +45,18 @@ static void loadFile(QJsonObject obj,QDir dir,QString root,QNetworkAccessManager
 			if(!dir.exists(item)){
 				dir.mkdir(item);
 			}
-			loadFile(obj[item].toObject(),QDir(dir.filePath(item)),root,manager);
+			loadFile(obj[item].toObject(),QDir(dir.filePath(item)),root);
 		}
 		else{
 			QString load=root;
-			QString path=dir.filePath(item);
+			QString path=QDir::current().relativeFilePath(dir.filePath(item));
 			if(calcHash(path)!=obj[item].toString()){
-				load+=QDir::current().relativeFilePath(path);
+				load+=path;
 				manager->get(QNetworkRequest(QUrl(load)));
+				++count;
+			}
+			else{
+				out<<"=> "<<path<<endl;
 			}
 		}
 	}
@@ -58,11 +67,6 @@ int main(int argc,char *argv[])
 	QCoreApplication a(argc,argv);
 	QDir::setCurrent(a.applicationDirPath());
 	QStringList args=QCoreApplication::arguments();
-	QTextStream stream(stdout);
-	auto out=[&stream](QString info){
-		stream<<info<<endl;
-		stream.flush();
-	};
 	if(args.size()>=2&&args[1].startsWith("-g")){
 		QFile conf("./Hash.txt");
 		conf.open(QIODevice::WriteOnly|QIODevice::Text);
@@ -84,25 +88,29 @@ int main(int argc,char *argv[])
 				branch=config["Branch"].toString();
 			}
 		}
-		QNetworkAccessManager manager;
+		QNetworkAccessManager man;
+		manager=&man;
 		if(!archi.isEmpty()){
-			manager.connect(&manager,&QNetworkAccessManager::finished,[out](QNetworkReply *reply){
+			out<<archi<<endl<<"Branch \""<<branch<<"\""<<endl;
+			man.connect(manager,&QNetworkAccessManager::finished,[](QNetworkReply *reply){
 				QString path=reply->url().url();
-				out(path);
+				bool flag=true;
 				if (reply->error()==QNetworkReply::NoError) {
 					if(path.endsWith("Hash.txt")){
+						flag=false;
+						--archn;
 						QJsonObject hash=QJsonDocument::fromJson(reply->readAll()).object();
 						if(!hash.isEmpty()){
 							QString root=path.mid(0,path.lastIndexOf("Hash.txt"));
-							loadFile(hash,QDir::current(),root,reply->manager());
+							loadFile(hash,QDir::current(),root);
 						}
 						else{
-							out("Hash File is EMPTY");
+							out<<"Hash File is EMPTY"<<endl;
 						}
 					}
 					else{
-						path="."+path.mid(path.indexOf('/',path.indexOf("bin")+4));
-						out("=> "+path);
+						path=path.mid(path.indexOf('/',path.indexOf("bin")+4)+1);
+						out<<"=> "+path<<endl;
 						QFile file(path);
 						file.open(QIODevice::WriteOnly);
 						file.write(reply->readAll());
@@ -110,12 +118,16 @@ int main(int argc,char *argv[])
 					}
 				}
 				else{
-					out(QString("NetworkError %1").arg(reply->error()));
+					out<<QString("NetworkError %1").arg(reply->error())<<endl;
+				}
+				if((!archn||flag)&&--count<=0){
+					out<<"Upgrade Finished"<<endl;
+					qApp->quit();
 				}
 			});
 			QString url("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/");
-			manager.get(QNetworkRequest(QUrl(url.arg(branch).arg("Any")+"Hash.txt")));
-			manager.get(QNetworkRequest(QUrl(url.arg(branch).arg(archi)+"Hash.txt")));
+			man.get(QNetworkRequest(QUrl(url.arg(branch).arg("Any")+"Hash.txt")));
+			man.get(QNetworkRequest(QUrl(url.arg(branch).arg(archi)+"Hash.txt")));
 		}
 		return a.exec();
 	}
