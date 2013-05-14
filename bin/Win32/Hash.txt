@@ -18,7 +18,7 @@
     },
     "libEGL.dll": "3e8ffe17aedd5e5ae6c7d4c809ffa2c7",
     "libGLESv2.dll": "449d44855c2a3b095d480e1b91fc5325",
-    "libeay32.dll": "cc18863864d708ac6934c62a3f29b9f8",
+    "libeay32.dll": "d5405dd640e870b1dd4f5b4bd08865bb",
     "libgcc_s_sjlj-1.dll": "fc13e78186507c8226fdb9ba132c15b7",
     "libstdc++-6.dll": "225750fa390b3babac0b0014c84a00ab",
     "libvlc.dll": "e42e4e1b9dca079afc06a427c76f2a69",
@@ -258,6 +258,6 @@
     "sqldrivers": {
         "qsqlite.dll": "d5637b5045c156c5170ba3e403b5e700"
     },
-    "ssleay32.dll": "2e9a8bf29f097e80f41a6260807752cc",
+    "ssleay32.dll": "8eae03a0f0bf13af27702e29460d7b47",
     "swscale-2.dll": "d5796816c45fea9e4ee7e4e02c295587"
 }
