@@ -21,7 +21,7 @@ static QJsonObject getFileHash(QDir dir)
 {
 	QJsonObject hash;
 	for(QString name:dir.entryList()){
-		if(name=="."||name==".."){
+		if(name=="."||name==".."||name.indexOf("Config")!=-1||name.indexOf("Upgrade")!=-1){
 			continue;
 		}
 		QString path=dir.filePath(name);
@@ -38,7 +38,7 @@ static QJsonObject getFileHash(QDir dir)
 static void loadFile(QJsonObject obj,QDir dir,QString root)
 {
 	for(QString item:obj.keys()){
-		if(item.indexOf("Hash")!=-1||item.indexOf("Upgrade")!=-1){
+		if(item.indexOf("Config")!=-1||item.indexOf("Upgrade")!=-1){
 			continue;
 		}
 		if(obj[item].isObject()){
@@ -67,17 +67,18 @@ int main(int argc,char *argv[])
 	QCoreApplication a(argc,argv);
 	QDir::setCurrent(a.applicationDirPath());
 	QStringList args=QCoreApplication::arguments();
+	QFile conf("./Config.txt");
+	conf.open(QIODevice::ReadOnly|QIODevice::Text);
+	QJsonObject config=QJsonDocument::fromJson(conf.readAll()).object();
+	conf.close();
 	if(args.size()>=2&&args[1].startsWith("-g")){
-		QFile conf("./Hash.txt");
 		conf.open(QIODevice::WriteOnly|QIODevice::Text);
-		conf.write(QJsonDocument(getFileHash(QDir::current())).toJson());
+		config["Hash"]=getFileHash(QDir::current());
+		conf.write(QJsonDocument(config).toJson());
 		conf.close();
 		return 0;
 	}
 	else{
-		QFile conf("./Config.txt");
-		conf.open(QIODevice::ReadOnly|QIODevice::Text);
-		QJsonObject config=QJsonDocument::fromJson(conf.readAll()).object();
 		QString archi,branch="master";
 		if(config.contains("Info")){
 			config=config["Info"].toObject();
@@ -91,17 +92,18 @@ int main(int argc,char *argv[])
 		QNetworkAccessManager man;
 		manager=&man;
 		if(!archi.isEmpty()){
-			out<<archi<<endl<<"Branch \""<<branch<<"\""<<endl;
+			out<<"Bulid  \""<<archi<<"\""<<endl<<"Branch \""<<branch<<"\""<<endl;
 			man.connect(manager,&QNetworkAccessManager::finished,[](QNetworkReply *reply){
 				QString path=reply->url().url();
 				bool flag=true;
-				if (reply->error()==QNetworkReply::NoError) {
-					if(path.endsWith("Hash.txt")){
+				if(reply->error()==QNetworkReply::NoError){
+					if(path.endsWith("Config.txt")){
 						flag=false;
 						--archn;
 						QJsonObject hash=QJsonDocument::fromJson(reply->readAll()).object();
+						hash=hash["Hash"].toObject();
 						if(!hash.isEmpty()){
-							QString root=path.mid(0,path.lastIndexOf("Hash.txt"));
+							QString root=path.mid(0,path.lastIndexOf("Config.txt"));
 							loadFile(hash,QDir::current(),root);
 						}
 						else{
@@ -128,9 +130,9 @@ int main(int argc,char *argv[])
 					qApp->quit();
 				}
 			});
-			QString url("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/");
-			man.get(QNetworkRequest(QUrl(url.arg(branch).arg("Any")+"Hash.txt")));
-			man.get(QNetworkRequest(QUrl(url.arg(branch).arg(archi)+"Hash.txt")));
+			QString url("https://raw.github.com/AncientLysine/BiliLocal/%1/bin/%2/Config.txt");
+			man.get(QNetworkRequest(QUrl(url.arg(branch).arg("Any"))));
+			man.get(QNetworkRequest(QUrl(url.arg(branch).arg(archi))));
 		}
 		return a.exec();
 	}

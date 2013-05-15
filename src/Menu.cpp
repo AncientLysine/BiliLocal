@@ -65,16 +65,14 @@ Menu::Menu(QWidget *parent) :
 	danmA=new QAction(tr("Load Danmaku"),this);
 	sechA=new QAction(tr("Search Danmaku"),this);
 	connect(fileA,&QAction::triggered,[this](){
-		QWidget *p=dynamic_cast<QWidget *>(this->parent());
-		QString _file=QFileDialog::getOpenFileName(p,tr("Open File"),lastPath);
+		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath);
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
-			QWidget *p=dynamic_cast<QWidget *>(this->parent());
-			QString _file=QFileDialog::getOpenFileName(p,tr("Open File"),lastPath,tr("XML files (*.xml)"));
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,tr("XML files (*.xml)"));
 			if(!_file.isEmpty()){
 				setDm(_file);
 			}
@@ -251,7 +249,7 @@ Menu::~Menu()
 	menu["Sub"]=subC->checkState()==Qt::Checked;
 	menu["Font"]=fontC->currentText();
 	menu["Path"]=lastPath;
-	Utils::setConfig(menu,"Menu");
+	Utils::setConfig(menu,"Menu",true);
 }
 
 void Menu::pop()
