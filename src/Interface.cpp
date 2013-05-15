@@ -113,6 +113,7 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(true);
 		tv->hide();
 		me->hide();
+		vplayer->setVolume(info->getVolume());
 		if(isFullScreen()){
 			vplayer->setSize(size());
 		}
@@ -127,6 +128,7 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
+		Utils::setCenter(this,QSize(960,540));
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
@@ -185,7 +187,7 @@ void Interface::dropEvent(QDropEvent *e)
 		for(QString &item:list){
 			QString file=QUrl(item).toLocalFile().simplified();
 			if(QFile::exists(file)){
-				if(file.endsWith(".xml")){
+				if(file.endsWith(".xml")||file.endsWith(".json")){
 					menu->setDm(file);
 				}
 				else{

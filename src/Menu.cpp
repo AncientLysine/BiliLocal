@@ -43,14 +43,14 @@ Menu::Menu(QWidget *parent) :
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
 	fileL->setReadOnly(true);
-	danmL->setText("av");
+	danmL->setPlaceholderText(tr("av/ac number"));
 	fileL->setGeometry(QRect(10,25, 120,25));
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("([0-9]+)(#)?([0-9]+)?");
+		QRegExp regex("a([cv](([0-9]+)(#)?([0-9]+)?)?)?");
 		regex.indexIn(text);
-		danmL->setText("av"+regex.cap());
+		danmL->setText(regex.cap());
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
@@ -72,7 +72,8 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,tr("XML files (*.xml)"));
+			QString filter=tr("XML files (*.xml)")+";;"+tr("Json files (*.json)");
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
 			if(!_file.isEmpty()){
 				setDm(_file);
 			}
@@ -139,22 +140,7 @@ Menu::Menu(QWidget *parent) :
 		powerL->setText(regex.cap());
 	});
 	connect(powerL,&QLineEdit::editingFinished,[this](){
-		int fps=powerL->text().toInt();
-		if(fps==0){
-			powerL->setText("");
-		}
-		else{
-			if(fps>200){
-				fps=200;
-				powerL->setText(QString::number(fps));
-			}
-			if(fps<30){
-				fps=30;
-				powerL->setText(QString::number(fps));
-			}
-			powerL->setText(QString::number(fps));
-		}
-		emit power(fps==0?-1:1000/fps);
+		setPower(powerL->text().toInt());
 	});
 	localT=new QLabel(this);
 	localT->setGeometry(QRect(10,275,100,25));
@@ -165,6 +151,7 @@ Menu::Menu(QWidget *parent) :
 		if(state==Qt::Checked){
 			danmL->setText("");
 			danmL->setReadOnly(true);
+			danmL->setPlaceholderText("");
 			danmB->setText(tr("Open"));
 			sechL->setText("");
 			sechL->setEnabled(false);
@@ -172,8 +159,8 @@ Menu::Menu(QWidget *parent) :
 			isLocal=true;
 		}
 		else{
-			danmL->setText("av");
 			danmL->setReadOnly(false);
+			danmL->setPlaceholderText(tr("av/ac number"));
 			danmB->setText(tr("Load"));
 			sechL->setEnabled(true);
 			sechB->setEnabled(true);
@@ -211,26 +198,12 @@ Menu::Menu(QWidget *parent) :
 	Utils::delayExec(this,0,[this](){
 		QJsonObject menu=Utils::getConfig("Menu");
 		if(!menu.isEmpty()){
-			if(menu.contains("Alpha")){
-				alphaS->setValue(menu["Alpha"].toDouble());
-			}
-			if(menu.contains("Power")){
-				int _power=menu["Power"].toDouble();
-				powerL->setText(_power==0?"":QString::number(_power));
-				emit power(_power==0?-1:1000/_power);
-			}
-			if(menu.contains("Local")){
-				localC->setChecked(menu["Local"].toBool());
-			}
-			if(menu.contains("Sub")){
-				subC->setChecked(menu["Sub"].toBool());
-			}
-			if(menu.contains("Font")){
-				fontC->setCurrentText(menu["Font"].toString());
-			}
-			if(menu.contains("Path")){
-				lastPath=menu["Path"].toString();
-			}
+			alphaS->setValue(menu["Alpha"].toDouble());
+			localC->setChecked(menu["Local"].toBool());
+			subC->setChecked(menu["Sub"].toBool());
+			fontC->setCurrentText(menu["Font"].toString());
+			lastPath=menu["Path"].toString();
+			setPower(menu["Power"].toDouble());
 		}
 	});
 	if(QApplication::arguments().count()>=2){
@@ -284,11 +257,22 @@ void Menu::setDm(QString _file)
 void Menu::setFile(QString _file)
 {
 	lastPath=_file.mid(0,_file.lastIndexOf("/"));
-#ifdef Q_OS_WIN
-	_file.replace('/','\\');
-#endif
+	_file=QDir::toNativeSeparators(_file);
 	fileL->setText(_file);
 	emit open(_file);
+}
+
+void Menu::setPower(qint16 fps)
+{
+	if(fps==0){
+		powerL->setText("");
+	}
+	else{
+		fps=fps>200?200:fps;
+		fps=fps<30 ?30 :fps;
+		powerL->setText(QString::number(fps));
+	}
+	emit power(fps==0?-1:1000/fps);
 }
 
 void Menu::setDelay(qint64 _delay)
