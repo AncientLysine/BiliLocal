@@ -83,6 +83,7 @@ public slots:
 	void push();
 	void setDm(QString _file);
 	void setFile(QString _file);
+	void setPower(qint16 fps);
 	void setDelay(qint64 _delay);
 	
 };

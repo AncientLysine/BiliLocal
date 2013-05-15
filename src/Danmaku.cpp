@@ -124,7 +124,8 @@ void Danmaku::setLast()
 
 void Danmaku::setDm(QString dm)
 {
-	auto load=[this](QString xml){
+	auto bi=[this](QByteArray data){
+		QString xml=QString(data).simplified();
 		QStringList list=xml.split("<d p=\"");
 		list.removeFirst();
 		for(QString &item:list){
@@ -157,18 +158,55 @@ void Danmaku::setDm(QString dm)
 				danmaku.append(comment);
 			}
 		}
+	};
+
+	auto ac=[this](QByteArray data){
+		QJsonArray array=QJsonDocument::fromJson(data).array();
+		for(QJsonValue _item:array){
+			QJsonObject item=_item.toObject();
+			Comment comment;
+			bool flag=true;
+			comment.content=item["m"].toString();
+			for(QRegExp &reg:shieldR){
+				if(reg.indexIn(comment.content)!=-1){
+					flag=false;
+					break;
+				}
+			}
+			QStringList args=item["c"].toString().split(',');
+			if(flag){
+				comment.time=args[0].toDouble()*1000;
+				comment.color.setRgb(args[1].toInt());
+				comment.mode=args[2].toInt();
+				comment.font=args[3].toInt();
+				danmaku.append(comment);
+			}
+		}
+	};
+
+	auto sort=[this](){
 		qSort(danmaku.begin(),danmaku.end(),[](const Comment &first,const Comment &second){
 			return first.time<second.time;
 		});
 		currentIndex=0;
 		emit loaded();
 	};
+
 	danmaku.clear();
 	reset();
-	if(dm.startsWith("av")){
-		int sharp=dm.indexOf("#");
-		QString api="http://api.bilibili.tv/view?type=xml&appkey=0&id=%1&page=%2";
-		QUrl apiUrl(api.arg(dm.mid(2,sharp-2)).arg(sharp>0?dm.mid(sharp+1):QString("1")));
+	int sharp=dm.indexOf("#");
+	QString s=dm.mid(0,2);
+	QString i=dm.mid(2,sharp-2);
+	QString p=sharp==-1?QString():dm.mid(sharp+1);
+	if(s=="av"||s=="ac"){
+		QString api;
+		if(s=="av"){
+			api="http://api.bilibili.tv/view?type=json&appkey=0&id=%1&page=%2";
+		}
+		if(s=="ac"){
+			api="http://www.acfun.tv/v/ac%1_%2";
+		}
+		QUrl apiUrl(api.arg(i).arg(p.isEmpty()?"1":p));
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 		manager->get(QNetworkRequest(apiUrl));
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
@@ -177,24 +215,53 @@ void Danmaku::setDm(QString dm)
 				QString info=tr("Network error occurred, error code: %1");
 				QMessageBox::warning(p,tr("Network Error"),info.arg(code));
 			};
-			if(reply->error()!=QNetworkReply::NoError){
-				error(reply->error());
-			}
-			else if(reply->url().url().indexOf("api")!=-1){
-				QString page(reply->readAll());
-				QRegExp regexp("(?!\\<cid\\>)[0-9]*(?=\\</cid\\>)");
-				if(regexp.indexIn(page)>=0){
-					QUrl xmlUrl("http://comment.bilibili.tv/"+regexp.cap()+".xml");
-					manager->get(QNetworkRequest(xmlUrl));
+			qDebug()<<reply->url().url();
+			if(reply->error()==QNetworkReply::NoError){
+				QString url=reply->url().url();
+				if(url.startsWith("http://api.bilibili.tv/")){
+					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+					if(json.contains("cid")){
+						QString api="http://comment.bilibili.tv/%1.xml";
+						QUrl xmlUrl(api.arg(json["cid"].toDouble()));
+						reply->manager()->get(QNetworkRequest(xmlUrl));
+					}
+					else{
+						error(-json["code"].toDouble());
+					}
+				}
+				else if(url.startsWith("http://www.acfun.tv/")){
+					if(url.endsWith(".aspx")){
+						QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+						if(json.contains("cid")){
+							QString api="http://comment.acfun.tv/%1.json";
+							QUrl jsonUrl(api.arg(json["cid"].toString().toInt()));
+							reply->manager()->get(QNetworkRequest(jsonUrl));
+						}
+						else{
+							error(404);
+						}
+					}
+					else{
+						QRegExp regex("(?!\\[video\\])[0-9]+(?=\\[/video\\])");
+						QString page=QString::fromUtf8(reply->readAll()).simplified();
+						regex.indexIn(page);
+						QString api="http://www.acfun.tv/api/player/vids/%1.aspx";
+						reply->manager()->get(QNetworkRequest(QUrl(api.arg(regex.cap()))));
+					}
+
 				}
 				else{
-					regexp.setPattern("(?!\\<code\\>.*)[0-9]*(?=\\</code\\>)");
-					regexp.indexIn(page);
-					error(regexp.cap().toInt());
+					if(s=="av"){
+						bi(reply->readAll());
+					}
+					if(s=="ac"){
+						ac(reply->readAll());
+					}
+					sort();
 				}
 			}
 			else{
-				load(QString(reply->readAll()).simplified());
+				error(reply->error());
 			}
 		});
 	}
@@ -202,7 +269,13 @@ void Danmaku::setDm(QString dm)
 		QFile file(dm);
 		if(file.exists()){
 			file.open(QIODevice::ReadOnly);
-			load(QString(file.readAll()).simplified());
+			if(dm.endsWith("xml")){
+				bi(file.readAll());
+			}
+			if(dm.endsWith("json")){
+				ac(file.readAll());
+			}
+			sort();
 		}
 	}
 }
