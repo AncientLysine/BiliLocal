@@ -46,6 +46,7 @@ Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
 	setAcceptDrops(true);
+	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Interfacce/icon.png"));
 	render =new Render(this);
@@ -66,6 +67,9 @@ Interface::Interface(QWidget *parent):
 	tv->lower();
 	me->lower();
 	render->lower();
+	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
+	me->setAttribute(Qt::WA_TransparentForMouseEvents);
+	render->setAttribute(Qt::WA_TransparentForMouseEvents);
 	movie->start();
 	timer=new QTimer(this);
 	power=new QTimer(this);
@@ -74,39 +78,22 @@ Interface::Interface(QWidget *parent):
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint pos=this->mapFromGlobal(QCursor::pos());
-		int x=pos.x(),y=pos.y();
-
-		if(x>250&&x<width()-250&&y>50&&y<height()-50){
-			if(cursor().shape()==Qt::BlankCursor){
-				unsetCursor();
-			}
-			delay->start(2000);
+		if(pos.x()<-100){
+			menu->push();
+			setFocus();
 		}
-		else{
-			delay->stop();
+		if(pos.x()>width()+100){
+			info->push();
+			setFocus();
 		}
-
-		if(y<-50||y>height()+50){
+		if(pos.y()<-50||pos.y()>width()+50){
 			menu->push();
 			info->push();
-		}
-		else{
-			if(x>250||x<-50){
-				menu->push();
-			}
-			else if(x<50){
-				menu->pop();
-			}
-			if(x<width()-250||x>width()+50){
-				info->push();
-			}
-			else if(x>width()-50){
-				info->pop();
-			}
+			setFocus();
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
-			info   ->setTime(time);
+			info->setTime(time);
 			danmaku->setTime(time);
 		}
 	});
@@ -126,6 +113,7 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(true);
 		tv->hide();
 		me->hide();
+		vplayer->setVolume(info->getVolume());
 		if(isFullScreen()){
 			vplayer->setSize(size());
 		}
@@ -140,23 +128,27 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
+		Utils::setCenter(this,QSize(960,540));
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){danmaku->jumpToTime(vplayer->getTime());});
+	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::dfont,danmaku,&Danmaku::setFont);
 	connect(menu,&Menu::alpha,danmaku,&Danmaku::setAlpha);
-	connect(menu,&Menu::delay,danmaku,&Danmaku::setDelay);
-	connect(menu,&Menu::protect,danmaku,&Danmaku::setProtect);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
 			power->start(_power);
 		else
 			power->stop();
 	});
+	connect(menu,&Menu::delay,[this](qint64 _delay){
+		danmaku->setDelay(_delay);
+		danmaku->jumpToTime(vplayer->getTime());
+	});
+	connect(menu,&Menu::protect,danmaku,&Danmaku::setProtect);
 	connect(info,&Info::time,vplayer,&VPlayer::setTime);
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
@@ -179,12 +171,12 @@ Interface::Interface(QWidget *parent):
 			showFullScreen();
 		}
 	});
-
 	addActions(info->actions());
 	addAction(fullA);
 	addActions(menu->actions());
 	addAction(quitA);
 	setContextMenuPolicy(Qt::ActionsContextMenu);
+	Search::initDataBase();
 }
 
 void Interface::dropEvent(QDropEvent *e)
@@ -195,7 +187,7 @@ void Interface::dropEvent(QDropEvent *e)
 		for(QString &item:list){
 			QString file=QUrl(item).toLocalFile().simplified();
 			if(QFile::exists(file)){
-				if(file.endsWith(".xml")){
+				if(file.endsWith(".xml")||file.endsWith(".json")){
 					menu->setDm(file);
 				}
 				else{
@@ -236,6 +228,35 @@ void Interface::keyPressEvent(QKeyEvent *e)
 		}
 	}
 	QWidget::keyPressEvent(e);
+}
+
+void Interface::mouseMoveEvent(QMouseEvent *e)
+{
+	int x=e->pos().x(),y=e->pos().y();
+	if(x<50){
+		menu->pop();
+	}
+	if(x>250){
+		menu->push();
+		setFocus();
+	}
+	if(x>width()-50){
+		info->pop();
+	}
+	if(x<width()-250){
+		info->push();
+		setFocus();
+	}
+	if(x>220&&x<width()-220&&y>50&&y<height()-50){
+		if(cursor().shape()==Qt::BlankCursor){
+			unsetCursor();
+		}
+		delay->start(2000);
+	}
+	else{
+		delay->stop();
+	}
+	QWidget::mouseMoveEvent(e);
 }
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)
