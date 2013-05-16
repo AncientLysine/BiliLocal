@@ -66,6 +66,8 @@ private:
 	QTimer *delay;
 	QAction *quitA;
 	QAction *fullA;
+	QMenu *top;
+	QMenu *sub;
 
 	Menu *menu;
 	Info *info;

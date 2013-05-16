@@ -215,7 +215,6 @@ void Danmaku::setDm(QString dm)
 				QString info=tr("Network error occurred, error code: %1");
 				QMessageBox::warning(p,tr("Network Error"),info.arg(code));
 			};
-			qDebug()<<reply->url().url();
 			if(reply->error()==QNetworkReply::NoError){
 				QString url=reply->url().url();
 				if(url.startsWith("http://api.bilibili.tv/")){
