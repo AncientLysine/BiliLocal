@@ -120,6 +120,17 @@ Interface::Interface(QWidget *parent):
 		else{
 			Utils::setCenter(this,vplayer->getSize());
 		}
+		sub->clear();
+		sub->setEnabled(true);
+		QActionGroup *group=new QActionGroup(sub);
+		group->setExclusive(true);
+		QString current=vplayer->getSubtitle();
+		for(QString title:vplayer->getSubtitles()){
+			QAction *action=group->addAction(title);
+			action->setCheckable(true);
+			action->setChecked(current==title);
+		}
+		sub->addActions(group->actions());
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
 		setPalette(QPalette());
@@ -128,7 +139,11 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
-		Utils::setCenter(this,QSize(960,540));
+		if(!isFullScreen()){
+			Utils::setCenter(this,QSize(960,540));
+		}
+		sub->clear();
+		sub->setEnabled(false);
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
@@ -171,11 +186,22 @@ Interface::Interface(QWidget *parent):
 			showFullScreen();
 		}
 	});
-	addActions(info->actions());
-	addAction(fullA);
-	addActions(menu->actions());
-	addAction(quitA);
-	setContextMenuPolicy(Qt::ActionsContextMenu);
+	top=new QMenu(this);
+	top->addActions(info->actions());
+	top->addAction(fullA);
+	top->addActions(menu->actions());
+	top->addAction(quitA);
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
+		top->exec(mapToGlobal(p));
+	});
+	sub=new QMenu(tr("Subtitle"),top);
+	sub->setEnabled(false);
+	top->addMenu(sub);
+	connect(sub,&QMenu::triggered,[this](QAction *action){
+		vplayer->setSubTitle(action->text());
+	});
+
 	Search::initDataBase();
 }
 
@@ -215,7 +241,7 @@ void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
 	if(key==Qt::Key_Escape&&isFullScreen()){
-		this->fullA->toggle();
+		fullA->toggle();
 	}
 	if(key==Qt::Key_Left){
 		if(vplayer->getState()==VPlayer::Play){
