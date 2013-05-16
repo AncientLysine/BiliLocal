@@ -30,15 +30,15 @@ int main(int argc,char *argv[])
 			while((cur=fix.indexIn(all,cur))!=-1){
 				int len=fix.matchedLength();
 				QString item=all.mid(cur,len);
+				QString text=item.mid(2);
 				cur+=len;
-				if(item.startsWith("u=")&&!u.contains(item)){
-					u.append(item.mid(2));
+				if(item.startsWith("u=")&&!u.contains(text)){
+					u.append(text);
 				}
-				if(item.startsWith("t=")&&!r.contains(item)){
-					r.append(item.mid(2));
+				if(item.startsWith("t=")&&!r.contains(text)){
+					r.append(text);
 				}
 				out<<item<<endl;
-				out.flush();
 			}
 		}
 	};
@@ -61,4 +61,5 @@ int main(int argc,char *argv[])
 	conf.open(QIODevice::WriteOnly|QIODevice::Text);
 	conf.write(QJsonDocument(config).toJson());
 	conf.close();
+	return 0;
 }

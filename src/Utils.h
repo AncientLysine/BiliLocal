@@ -34,6 +34,7 @@ class Config:public QJsonObject
 {
 public:
 	Config();
+	Config(const QJsonObject& o);
 	~Config();
 
 };
@@ -66,8 +67,9 @@ public:
 	}
 
 	static QJsonObject getConfig(QString area=QString());
-	static void setConfig(QJsonObject _config,QString area=QString());
+	static void setConfig(QJsonObject _config,QString area=QString(),bool rewrite=false);
 	static void loadConfig();
+	static QJsonObject unionObject(QJsonObject f,QJsonObject s);
 
 private:
 	static Config config;

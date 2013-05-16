@@ -29,6 +29,10 @@
 
 Search::Search(QWidget *parent):QDialog(parent)
 {
+	data=QSqlDatabase::database();
+	data.open();
+	QSqlQuery query;
+	query.exec("PRAGMA synchronous = OFF;");
 	auto outerLayout=new QVBoxLayout;
 	auto keywdLayout=new QHBoxLayout;
 	statusL=new QLabel(tr("Ready"),this);
@@ -73,21 +77,22 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	setLayout(outerLayout);
 	setWindowTitle(tr("Search"));
-	resize(820,520);
+	resize(900,520);
 	
-	QStringList labels={tr("Cover"),tr("Play"),tr("Title"),tr("Typename"),tr("Author")};
+	QStringList labels={tr("Cover"),tr("Play"),tr("Danmaku"),tr("Title"),tr("Typename"),tr("Author")};
 	resultW->setHeaderLabels(labels);
 	resultW->setSelectionMode(QAbstractItemView::SingleSelection);
 	resultW->setColumnWidth(0,165);
 	resultW->setColumnWidth(1,60);
-	resultW->setColumnWidth(2,350);
-	resultW->setColumnWidth(3,100);
+	resultW->setColumnWidth(2,60);
+	resultW->setColumnWidth(3,370);
+	resultW->setColumnWidth(4,100);
 
 	connect(searchB,&QPushButton::clicked,[this](){
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
-		else{
+		else if(!keywE->text().isEmpty()){
 			clearSearch();
 			startSearch();
 		}
@@ -144,29 +149,67 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QStringList content={
 							"",
 							item["play"].toString(),
+							item["video_review"].toString(),
 							item["title"].toString(),
 							item["typename"].toString(),
 							item["author"].toString()
 						};
-						auto count=[this](){return resultW->invisibleRootItem()->childCount();};
-						int index=count();
-						auto getPic=new QNetworkAccessManager(this);
 						temp.append(item["aid"].toString());
-						connect(getPic,&QNetworkAccessManager::finished,[this,index,count](QNetworkReply *reply){
-							if (reply->error()==QNetworkReply::NoError){
-								QPixmap pixmap;
-								pixmap.loadFromData(reply->readAll());
+						QSqlQuery query;
+						query.prepare("SELECT Pixmap FROM Cache Where Url=?;");
+						query.addBindValue(item["pic"].toString());
+						query.exec();
+						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
+						auto time=[](){
+							quint64 _time=0;
+							_time+=QDate(2000,1,1).daysTo(QDate::currentDate());
+							_time*=24*60*60;
+							_time+=QTime(0,0,1).secsTo(QTime::currentTime())+1;
+							return _time;
+						};
+						auto loadPixmap=[](QByteArray data){
+							QPixmap pixmap;
+							pixmap.loadFromData(data);
+							if(!pixmap.isNull()){
 								pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
-								auto line=resultW->topLevelItem(index);
-								if(index<count()&&line->icon(0).isNull()){
-									line->setIcon(0,QIcon(pixmap));
-								}
 							}
-						});
-						QNetworkRequest request;
-						request.setUrl(QUrl(item["pic"].toString()));
-						getPic->get(request);
-						new QTreeWidgetItem(resultW,content);
+							return pixmap;
+						};
+						if(query.first()){
+							row->setIcon(0,QIcon(loadPixmap(query.value("Pixmap").toByteArray())));
+							query.prepare("UPDATE Cache SET Time=? WHERE Url=?");
+							query.addBindValue(time());
+							query.addBindValue(item["pic"].toString());
+							query.exec();
+						}
+						else{
+							int index=resultW->invisibleRootItem()->childCount()-1;
+							auto getPic=new QNetworkAccessManager(this);
+							connect(getPic,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
+								if (reply->error()==QNetworkReply::NoError){
+									QByteArray byte=reply->readAll();
+									QSqlQuery query;
+									query.prepare("INSERT INTO Cache VALUES(?,?,?);");
+									query.addBindValue(reply->url().toString());
+									query.addBindValue(time());
+									query.addBindValue(byte);
+									query.exec();
+									while(QFileInfo("Cache.db").size()>2*1024*1024){
+										query.prepare("DELETE FROM Cache "
+													  "WHERE Cache.Time=("
+													  "SELECT MIN(Time) FROM Cache);");
+										query.exec();
+									}
+									auto line=resultW->topLevelItem(index);
+									if(line!=NULL&&line->icon(0).isNull()){
+										line->setIcon(0,QIcon(loadPixmap(byte)));
+									}
+								}
+							});
+							QNetworkRequest request;
+							request.setUrl(QUrl(item["pic"].toString()));
+							getPic->get(request);
+						}
 					}
 				}
 				statusL->setText(tr("Finished"));
@@ -191,7 +234,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 	auto quitSC=new QShortcut(this);
 	quitSC->setKey(QString("Ctrl+Q"));
 	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
-
 }
 
 void Search::setKey(QString _key)
@@ -219,6 +261,20 @@ void Search::getData(int pageNum)
 	QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
 	request.setUrl(QUrl(apiUrl.arg(key).arg(pageNum)));
 	manager->get(request);
+}
+
+void Search::initDataBase()
+{
+	QSqlDatabase data=QSqlDatabase::addDatabase("QSQLITE");
+	bool exists=QFile::exists("Cache.db");
+	data.setDatabaseName("Cache.db");
+	data.open();
+	QSqlQuery query;
+	if(!exists){
+		query.exec("PRAGMA auto_vacuum = 1;");
+		query.exec("CREATE TABLE Cache ( Url VARCHAR(128), Time INTEGER, Pixmap BLOB, PRIMARY KEY(Url) );");
+	}
+	data.close();
 }
 
 void Search::clearSearch()
