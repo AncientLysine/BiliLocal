@@ -76,6 +76,7 @@ private:
 	void dropEvent(QDropEvent *e);
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
+	void mouseMoveEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 

@@ -37,6 +37,7 @@ Info::Info(QWidget *parent):
 	updating=false;
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
+	QJsonObject info=Utils::getConfig("Info");
 	duration=100;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
@@ -54,7 +55,7 @@ Info::Info(QWidget *parent):
 	timeS->setRange(0,0);
 	volmS->setRange(0,100);
 	timeS->setValue(0);
-	volmS->setValue(100);
+	volmS->setValue(info.contains("Volume")?info["Volume"].toDouble():100);
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){if(!updating){emit time(duration*_time/400);}});
@@ -87,10 +88,16 @@ Info::Info(QWidget *parent):
 	durT->setText("00:00/00:00");
 	plfmT=new QLabel(tr("System"),this);
 	plfmT->setGeometry(QRect(10,150,100,25));
-	QJsonValue platform=Utils::getConfig("Info").value("Platform");
-	plfmL=new QLineEdit(platform.toString(),this);
+	plfmL=new QLineEdit(info["Platform"].toString(),this);
 	plfmL->setReadOnly(true);
 	plfmL->setGeometry(QRect(10,175,180,25));
+}
+
+Info::~Info()
+{
+	QJsonObject info;
+	info["Volume"]=volmS->value();
+	Utils::setConfig(info,"Info");
 }
 
 void Info::pop()
@@ -138,10 +145,7 @@ void Info::setTime(qint64 _time)
 void Info::setOpened(bool _opened)
 {
 	opened=_opened;
-	playing=opened;
-	playB->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
-	playA->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
-	playA->setText(playing?tr("Pause"):tr("Play"));
+	setPlaying(opened);
 }
 
 void Info::setPlaying(bool _playing)

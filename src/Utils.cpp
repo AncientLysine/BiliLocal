@@ -110,6 +110,11 @@ Config::Config()
 	insert("Info",probe);
 }
 
+Config::Config(const QJsonObject &o)
+{
+	static_cast<QJsonObject &>(*this)=o;
+}
+
 Config::~Config()
 {
 	QFile conf("./Config.txt");
@@ -131,13 +136,13 @@ QJsonObject Utils::getConfig(QString area)
 	}
 }
 
-void Utils::setConfig(QJsonObject _config,QString area)
+void Utils::setConfig(QJsonObject _config,QString area,bool rewrite)
 {
 	if(area.isEmpty()){
-		static_cast<QJsonObject &>(config)=_config;
+		config=rewrite?_config:unionObject(_config,config);
 	}
 	else{
-		config[area]=_config;
+		config[area]=rewrite?_config:unionObject(_config,config[area].toObject());
 	}
 }
 
@@ -147,9 +152,18 @@ void Utils::loadConfig()
 	conf.open(QIODevice::ReadOnly|QIODevice::Text);
 	auto read=QJsonDocument::fromJson(conf.readAll()).object();
 	conf.close();
-	for(auto iter=read.begin();iter!=read.end();++iter){
-		if(!config.contains(iter.key())){
-			config.insert(iter.key(),iter.value());
+	config=unionObject(config,read);
+}
+
+QJsonObject Utils::unionObject(QJsonObject f,QJsonObject s)
+{
+	for(auto iter=s.begin();iter!=s.end();++iter){
+		if(!f.contains(iter.key())){
+			f[iter.key()]=iter.value();
+		}
+		else if(f[iter.key()].isObject()){
+			f[iter.key()]=unionObject(f[iter.key()].toObject(),s[iter.key()].toObject());
 		}
 	}
+	return f;
 }
