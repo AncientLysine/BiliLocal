@@ -210,13 +210,13 @@ void Danmaku::setDm(QString dm)
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 		manager->get(QNetworkRequest(apiUrl));
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
+			QString url=reply->url().url();
 			auto error=[this](int code){
 				QWidget *p=dynamic_cast<QWidget *>(this->parent());
 				QString info=tr("Network error occurred, error code: %1");
 				QMessageBox::warning(p,tr("Network Error"),info.arg(code));
 			};
 			if(reply->error()==QNetworkReply::NoError){
-				QString url=reply->url().url();
 				if(url.startsWith("http://api.bilibili.tv/")){
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 					if(json.contains("cid")){
@@ -241,11 +241,22 @@ void Danmaku::setDm(QString dm)
 						}
 					}
 					else{
-						QRegExp regex("(?!\\[video\\])[0-9]+(?=\\[/video\\])");
-						QString page=QString::fromUtf8(reply->readAll()).simplified();
-						regex.indexIn(page);
-						QString api="http://www.acfun.tv/api/player/vids/%1.aspx";
-						reply->manager()->get(QNetworkRequest(QUrl(api.arg(regex.cap()))));
+						QString video=QString::fromUtf8(reply->readAll()),api,id;
+						QRegExp regex;
+						regex.setCaseSensitivity(Qt::CaseInsensitive);
+						regex.setPattern("[0-9]+(?=\\[/video\\])");
+						regex.indexIn(video);
+						if(regex.indexIn(video)==-1){
+							regex.setPattern("id\\=\\w+");
+							regex.indexIn(video,video.indexOf("<embed"));
+							id=regex.cap().mid(3);
+							api="http://comment.acfun.tv/%1.json";
+						}
+						else{
+							id=regex.cap();
+							api="http://www.acfun.tv/api/player/vids/%1.aspx";
+						}
+						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 					}
 
 				}
