@@ -56,11 +56,13 @@ private:
 	QSlider *timeS;
 	QSlider *volmS;
 	QLineEdit *plfmL;
+	QTableView *danmV;
 	QPushButton *playB;
 	QPushButton *stopB;
 	QPropertyAnimation *animation;
 	QAction *playA;
 	QAction *stopA;
+	void resizeEvent(QResizeEvent *e);
 	
 signals:
 	void play();
@@ -75,6 +77,7 @@ public slots:
 	void setOpened(bool _opened);
 	void setPlaying(bool _playing);
 	void setDuration(qint64 _duration);
+	void setModel(QAbstractItemModel *model);
 	
 };
 

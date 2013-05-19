@@ -56,6 +56,7 @@ Interface::Interface(QWidget *parent):
 	render->setDanmaku(danmaku);
 	menu=new Menu(this);
 	info=new Info(this);
+	info->setModel(danmaku);
 	Utils::setCenter(this,QSize(960,540));
 	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
@@ -121,16 +122,18 @@ Interface::Interface(QWidget *parent):
 			Utils::setCenter(this,vplayer->getSize());
 		}
 		sub->clear();
-		sub->setEnabled(true);
-		QActionGroup *group=new QActionGroup(sub);
-		group->setExclusive(true);
-		QString current=vplayer->getSubtitle();
-		for(QString title:vplayer->getSubtitles()){
-			QAction *action=group->addAction(title);
-			action->setCheckable(true);
-			action->setChecked(current==title);
+		if(!vplayer->getSubtitles().isEmpty()){
+			sub->setEnabled(true);
+			QActionGroup *group=new QActionGroup(sub);
+			group->setExclusive(true);
+			QString current=vplayer->getSubtitle();
+			for(QString title:vplayer->getSubtitles()){
+				QAction *action=group->addAction(title);
+				action->setCheckable(true);
+				action->setChecked(current==title);
+			}
+			sub->addActions(group->actions());
 		}
-		sub->addActions(group->actions());
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
 		setPalette(QPalette());
