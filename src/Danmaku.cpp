@@ -27,7 +27,7 @@
 #include "Danmaku.h"
 
 Danmaku::Danmaku(QObject *parent) :
-	QObject(parent)
+	QAbstractItemModel(parent)
 {
 	setSize(QSize(960,540));
 	currentIndex=0;
@@ -108,6 +108,83 @@ void Danmaku::draw(QPainter *painter,bool move)
 	}
 }
 
+QVariant Danmaku::data(const QModelIndex &index,int role) const
+{
+	if(index.isValid()){
+		const Comment &comment=danmaku[index.row()];
+		if(comment.valid){
+			if(index.column()==0&&role==Qt::DisplayRole){
+				QString time("%1:%2");
+				qint64 sec=comment.time/1000;
+				time=time.arg(sec/60,2,10,QChar('0'));
+				time=time.arg(sec%60,2,10,QChar('0'));
+				return time;
+			}
+			if(index.column()==1&&role==Qt::DisplayRole){
+				return comment.content;
+			}
+		}
+		else{
+			if(index.column()==0){
+				if(role==Qt::DisplayRole){
+					return tr("Blocked");
+				}
+				if(role==Qt::ForegroundRole){
+					return QColor(Qt::red);
+				}
+			}
+			if(index.column()==1){
+				if(role==Qt::DisplayRole){
+					return comment.content;
+				}
+				if(role==Qt::ForegroundRole){
+					return QColor(Qt::gray);
+				}
+			}
+		}
+		if(index.column()==0&&role==Qt::TextAlignmentRole){
+			return Qt::AlignCenter;
+		}
+	}
+	return QVariant();
+}
+
+int Danmaku::rowCount(const QModelIndex &parent) const
+{
+	return parent.isValid()?0:danmaku.size();
+}
+
+int Danmaku::columnCount(const QModelIndex &parent) const
+{
+	return parent.isValid()?0:2;
+}
+
+QModelIndex Danmaku::parent(const QModelIndex &) const
+{
+	return QModelIndex();
+}
+
+QModelIndex Danmaku::index(int row,int colum,const QModelIndex &parent) const
+{
+	if(!parent.isValid()&&colum<2){
+		return createIndex(row,colum);
+	}
+	return QModelIndex();
+}
+
+QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) const
+{
+	if(role==Qt::DisplayRole&&orientation==Qt::Horizontal){
+		if(section==0){
+			return tr("Time");
+		}
+		if(section==1){
+			return tr("Comment");
+		}
+	}
+	return QVariant();
+}
+
 void Danmaku::reset()
 {
 	for(auto &pool:current){
@@ -150,13 +227,12 @@ void Danmaku::setDm(QString dm)
 					break;
 				}
 			}
-			if(flag){
-				comment.time=args[0].toDouble()*1000;
-				comment.mode=args[1].toInt();
-				comment.font=args[2].toInt();
-				comment.color.setRgb(args[3].toInt());
-				danmaku.append(comment);
-			}
+			comment.time=args[0].toDouble()*1000;
+			comment.mode=args[1].toInt();
+			comment.font=args[2].toInt();
+			comment.valid=flag;
+			comment.color.setRgb(args[3].toInt());
+			danmaku.append(comment);
 		}
 	};
 
@@ -174,13 +250,12 @@ void Danmaku::setDm(QString dm)
 				}
 			}
 			QStringList args=item["c"].toString().split(',');
-			if(flag){
-				comment.time=args[0].toDouble()*1000;
-				comment.color.setRgb(args[1].toInt());
-				comment.mode=args[2].toInt();
-				comment.font=args[3].toInt();
-				danmaku.append(comment);
-			}
+			comment.time=args[0].toDouble()*1000;
+			comment.color.setRgb(args[1].toInt());
+			comment.mode=args[2].toInt();
+			comment.valid=flag;
+			comment.font=args[3].toInt();
+			danmaku.append(comment);
 		}
 	};
 
@@ -190,10 +265,12 @@ void Danmaku::setDm(QString dm)
 		});
 		currentIndex=0;
 		emit loaded();
+		emit layoutChanged();
 	};
 
 	danmaku.clear();
 	reset();
+	emit layoutChanged();
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
 	QString i=dm.mid(2,sharp-2);
@@ -212,9 +289,8 @@ void Danmaku::setDm(QString dm)
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
 			QString url=reply->url().url();
 			auto error=[this](int code){
-				QWidget *p=dynamic_cast<QWidget *>(this->parent());
 				QString info=tr("Network error occurred, error code: %1");
-				QMessageBox::warning(p,tr("Network Error"),info.arg(code));
+				QMessageBox::warning(NULL,tr("Network Error"),info.arg(code));
 			};
 			if(reply->error()==QNetworkReply::NoError){
 				if(url.startsWith("http://api.bilibili.tv/")){
@@ -258,7 +334,6 @@ void Danmaku::setDm(QString dm)
 						}
 						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 					}
-
 				}
 				else{
 					if(s=="av"){
@@ -324,6 +399,9 @@ void Danmaku::setTime(qint64 time)
 	for(;currentIndex<danmaku.size()&&danmaku[currentIndex].time+delay<time;++currentIndex){
 		QCoreApplication::processEvents();
 		Comment &comment=danmaku[currentIndex];
+		if(!comment.valid){
+			continue;
+		}
 		Static render;
 		font.setBold(true);
 		font.setPixelSize(comment.font);

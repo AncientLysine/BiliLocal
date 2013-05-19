@@ -4,12 +4,27 @@
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="215"/>
+        <location filename="../src/Danmaku.cpp" line="128"/>
+        <source>Blocked</source>
+        <translation>屏蔽</translation>
+    </message>
+    <message>
+        <location filename="../src/Danmaku.cpp" line="176"/>
+        <source>Time</source>
+        <translation>時間</translation>
+    </message>
+    <message>
+        <location filename="../src/Danmaku.cpp" line="179"/>
+        <source>Comment</source>
+        <translation>評論</translation>
+    </message>
+    <message>
+        <location filename="../src/Danmaku.cpp" line="289"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="216"/>
+        <location filename="../src/Danmaku.cpp" line="290"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
@@ -28,7 +43,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="71"/>
-        <location filename="../src/Info.cpp" line="156"/>
+        <location filename="../src/Info.cpp" line="165"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -43,7 +58,7 @@
         <translation>系統</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="156"/>
+        <location filename="../src/Info.cpp" line="165"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
@@ -51,17 +66,17 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="167"/>
+        <location filename="../src/Interface.cpp" line="174"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="171"/>
+        <location filename="../src/Interface.cpp" line="178"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="192"/>
+        <location filename="../src/Interface.cpp" line="199"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
@@ -272,12 +287,12 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="120"/>
+        <location filename="../src/VPlayer.cpp" line="133"/>
         <source>Track</source>
         <translation>軌道</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="121"/>
+        <location filename="../src/VPlayer.cpp" line="134"/>
         <source>Disable</source>
         <translation>關閉</translation>
     </message>

@@ -91,6 +91,10 @@ Info::Info(QWidget *parent):
 	plfmL=new QLineEdit(info["Platform"].toString(),this);
 	plfmL->setReadOnly(true);
 	plfmL->setGeometry(QRect(10,175,180,25));
+	danmV=new QTableView(this);
+	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
+	danmV->verticalHeader()->hide();
+	danmV->setAlternatingRowColors(true);
 }
 
 Info::~Info()
@@ -98,6 +102,11 @@ Info::~Info()
 	QJsonObject info;
 	info["Volume"]=volmS->value();
 	Utils::setConfig(info,"Info");
+}
+
+void Info::resizeEvent(QResizeEvent *e)
+{
+	danmV->setGeometry(QRect(10,215,180,e->size().height()-230));
 }
 
 void Info::pop()
@@ -168,4 +177,12 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");
 	}
+}
+
+void Info::setModel(QAbstractItemModel *model)
+{
+	danmV->setModel(model);
+	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
+	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+	danmV->horizontalHeader()->setHighlightSections(false);
 }
