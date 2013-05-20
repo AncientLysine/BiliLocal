@@ -121,7 +121,7 @@ Menu::Menu(QWidget *parent) :
 	delayL=new QLineEdit(this);
 	delayL->setGeometry(QRect(160,205,30,20));
 	connect(delayL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("([0-9]+)");
+		QRegExp regex("-?[0-9]*");
 		regex.indexIn(text);
 		delayL->setText(regex.cap());
 	});

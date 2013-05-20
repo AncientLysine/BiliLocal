@@ -86,15 +86,27 @@ Info::Info(QWidget *parent):
 	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	durT->setGeometry(QRect(70,15,120,25));
 	durT->setText("00:00/00:00");
-	plfmT=new QLabel(tr("System"),this);
-	plfmT->setGeometry(QRect(10,150,100,25));
-	plfmL=new QLineEdit(info["Platform"].toString(),this);
-	plfmL->setReadOnly(true);
-	plfmL->setGeometry(QRect(10,175,180,25));
 	danmV=new QTableView(this);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
+	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
+		QMenu menu(this);
+		QModelIndex index=danmV->currentIndex();
+		if(index.isValid()){
+			connect(menu.addAction(tr("eliminate the sender")),&QAction::triggered,[this,index](){
+				Shield::instance->shieldU.append(index.data(Qt::UserRole).value<Comment>().sender);
+			});
+		}
+		connect(menu.addAction(tr("edit blocking list")),&QAction::triggered,[this](){
+			qDebug()<<"edit";
+		});
+		connect(menu.addAction(tr("save danmaku to file")),&QAction::triggered,[this](){
+			qDebug()<<"save";
+		});
+		menu.exec(danmV->viewport()->mapToGlobal(p));
+	});
 }
 
 Info::~Info()
@@ -106,7 +118,7 @@ Info::~Info()
 
 void Info::resizeEvent(QResizeEvent *e)
 {
-	danmV->setGeometry(QRect(10,215,180,e->size().height()-230));
+	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
 }
 
 void Info::pop()
