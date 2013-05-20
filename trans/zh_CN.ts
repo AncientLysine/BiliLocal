@@ -4,27 +4,27 @@
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="128"/>
+        <location filename="../src/Danmaku.cpp" line="130"/>
         <source>Blocked</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="176"/>
+        <location filename="../src/Danmaku.cpp" line="182"/>
         <source>Time</source>
         <translation>时间</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="179"/>
+        <location filename="../src/Danmaku.cpp" line="185"/>
         <source>Comment</source>
         <translation>评论</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="289"/>
+        <location filename="../src/Danmaku.cpp" line="295"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="290"/>
+        <location filename="../src/Danmaku.cpp" line="296"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>
@@ -43,7 +43,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="71"/>
-        <location filename="../src/Info.cpp" line="165"/>
+        <location filename="../src/Info.cpp" line="176"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -53,12 +53,22 @@
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="89"/>
-        <source>System</source>
-        <translation>系统</translation>
+        <location filename="../src/Info.cpp" line="97"/>
+        <source>eliminate the sender</source>
+        <translation>屏蔽发送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="165"/>
+        <location filename="../src/Info.cpp" line="101"/>
+        <source>edit blocking list</source>
+        <translation>编辑屏蔽列表</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="104"/>
+        <source>save danmaku to file</source>
+        <translation>保存弹幕到文件</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="176"/>
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
@@ -66,17 +76,17 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="174"/>
+        <location filename="../src/Interface.cpp" line="176"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="178"/>
+        <location filename="../src/Interface.cpp" line="180"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="199"/>
+        <location filename="../src/Interface.cpp" line="206"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>

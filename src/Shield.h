@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Info.h
-*   Time:        2013/04/05
+*   Filename:    Shield.h
+*   Time:        2013/05/20
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,61 +24,26 @@
 *
 =========================================================================*/
 
-#ifndef INFO_H
-#define INFO_H
+#ifndef SHIELD_H
+#define SHIELD_H
 
 #include <QtCore>
-#include <QtWidgets>
 #include "Utils.h"
-#include "Shield.h"
 
-class Info:public QWidget
+class Shield
 {
-	Q_OBJECT
 public:
-	explicit Info(QWidget *parent=0);
-	~Info();
-	bool isPopped(){return isPop;}
-	int getVolume(){return volmS->value();}
-	
-private:
-	bool isPop;
-	bool isTurn;
-	bool opened;
-	bool playing;
-	bool sliding;
-	bool updating;
-	qint64 duration;
-	QLabel *durT;
-	QLabel *timeT;
-	QLabel *volmT;
-	QLabel *plfmT;
-	QSlider *timeS;
-	QSlider *volmS;
-	QLineEdit *plfmL;
-	QTableView *danmV;
-	QPushButton *playB;
-	QPushButton *stopB;
-	QPropertyAnimation *animation;
-	QAction *playA;
-	QAction *stopA;
-	void resizeEvent(QResizeEvent *e);
-	
-signals:
-	void play();
-	void stop();
-	void time(qint64);
-	void volume(int);
-	
-public slots:
-	void pop();
-	void push();
-	void setTime(qint64 _time);
-	void setOpened(bool _opened);
-	void setPlaying(bool _playing);
-	void setDuration(qint64 _duration);
-	void setModel(QAbstractItemModel *model);
-	
+	Shield();
+	~Shield();
+	QList<QString> shieldU;
+	QList<QRegExp> shieldR;
+	static Shield *instance;
+	static bool setTop(bool enabled);
+	static bool setBottom(bool enabled);
+	static bool setSlide(bool enabled);
+	static bool setGuest(bool enabled);
+	static bool setColor(bool enabled);
+	static bool isBlocked(const Comment &comment);
 };
 
-#endif // INFO_H
+#endif // SHIELD_H

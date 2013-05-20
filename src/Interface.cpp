@@ -119,7 +119,7 @@ Interface::Interface(QWidget *parent):
 			vplayer->setSize(size());
 		}
 		else{
-			Utils::setCenter(this,vplayer->getSize());
+			Utils::setCenter(this,vplayer->getSize(),false);
 		}
 		sub->clear();
 		if(!vplayer->getSubtitles().isEmpty()){
@@ -143,7 +143,7 @@ Interface::Interface(QWidget *parent):
 		danmaku->reset();
 		info->setDuration(-1);
 		if(!isFullScreen()){
-			Utils::setCenter(this,QSize(960,540));
+			Utils::setCenter(this,QSize(960,540),false);
 		}
 		sub->clear();
 		sub->setEnabled(false);
@@ -196,7 +196,12 @@ Interface::Interface(QWidget *parent):
 	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
-		top->exec(mapToGlobal(p));
+		bool flag=true;
+		flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
+		flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
+		if(flag){
+			top->exec(mapToGlobal(p));
+		}
 	});
 	sub=new QMenu(tr("Subtitle"),top);
 	sub->setEnabled(false);
