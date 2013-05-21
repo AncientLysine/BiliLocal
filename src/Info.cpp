@@ -96,14 +96,15 @@ Info::Info(QWidget *parent):
 		QModelIndex index=danmV->currentIndex();
 		if(index.isValid()){
 			connect(menu.addAction(tr("eliminate the sender")),&QAction::triggered,[this,index](){
-				Shield::instance->shieldU.append(index.data(Qt::UserRole).value<Comment>().sender);
+				QList<QString> &list=Shield::instance->shieldU;
+				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
+				if(!list.contains(sender)){
+					list.append(sender);
+				}
 			});
 		}
 		connect(menu.addAction(tr("edit blocking list")),&QAction::triggered,[this](){
-			qDebug()<<"edit";
-		});
-		connect(menu.addAction(tr("save danmaku to file")),&QAction::triggered,[this](){
-			qDebug()<<"save";
+			Shield::configure(parentWidget());
 		});
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 	});
