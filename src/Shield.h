@@ -33,17 +33,38 @@
 class Shield
 {
 public:
+	enum {Top,Bottom,Slide,Guest,Color,Whole};
 	Shield();
 	~Shield();
+	bool block[6];
 	QList<QString> shieldU;
 	QList<QRegExp> shieldR;
 	static Shield *instance;
-	static bool setTop(bool enabled);
-	static bool setBottom(bool enabled);
-	static bool setSlide(bool enabled);
-	static bool setGuest(bool enabled);
-	static bool setColor(bool enabled);
+	static void configure(QWidget *parent=0);
 	static bool isBlocked(const Comment &comment);
+	static bool setEnabled(quint8 t,bool enabled);
+};
+
+class Editor:public QDialog
+{
+	Q_OBJECT
+public:
+	explicit Editor(Shield *shield,QWidget *parent=0);
+	QStringList getRegexp() const {return rm->stringList();}
+	QStringList getSender() const {return sm->stringList();}
+	void import(QString path);
+
+private:
+	QLineEdit *edit;
+	QCheckBox *check[6];
+	QListView *regexp;
+	QListView *sender;
+	QStringListModel *rm;
+	QStringListModel *sm;
+	QPushButton *button[2];
+
+	void dropEvent(QDropEvent *e);
+	void dragEnterEvent(QDragEnterEvent *e);
 };
 
 #endif // SHIELD_H

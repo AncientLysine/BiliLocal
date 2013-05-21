@@ -4,29 +4,72 @@
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="130"/>
+        <location filename="../src/Danmaku.cpp" line="96"/>
         <source>Blocked</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="182"/>
+        <location filename="../src/Danmaku.cpp" line="166"/>
         <source>Time</source>
         <translation>時間</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="185"/>
+        <location filename="../src/Danmaku.cpp" line="169"/>
         <source>Comment</source>
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="295"/>
+        <location filename="../src/Danmaku.cpp" line="256"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="296"/>
+        <location filename="../src/Danmaku.cpp" line="257"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
+    </message>
+</context>
+<context>
+    <name>Editor</name>
+    <message>
+        <location filename="../src/Shield.cpp" line="118"/>
+        <source>Top</source>
+        <translation>頂端</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="119"/>
+        <source>Bottom</source>
+        <translation>底端</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="120"/>
+        <source>Slide</source>
+        <translation>滑動</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="121"/>
+        <source>Guest</source>
+        <translation>遊客</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="122"/>
+        <source>Color</source>
+        <translation>彩色</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="123"/>
+        <source>Whole</source>
+        <translation>全部</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="147"/>
+        <source>Add</source>
+        <translation>添加</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="148"/>
+        <source>Del</source>
+        <translation>删除</translation>
     </message>
 </context>
 <context>
@@ -43,7 +86,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="71"/>
-        <location filename="../src/Info.cpp" line="176"/>
+        <location filename="../src/Info.cpp" line="178"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -53,22 +96,17 @@
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="97"/>
+        <location filename="../src/Info.cpp" line="98"/>
         <source>eliminate the sender</source>
         <translation>屏蔽發送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="101"/>
+        <location filename="../src/Info.cpp" line="106"/>
         <source>edit blocking list</source>
         <translation>編輯屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="104"/>
-        <source>save danmaku to file</source>
-        <translation>保存彈幕到文件</translation>
-    </message>
-    <message>
-        <location filename="../src/Info.cpp" line="176"/>
+        <location filename="../src/Info.cpp" line="178"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
