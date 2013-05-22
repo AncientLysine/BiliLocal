@@ -37,10 +37,12 @@ Shield::Shield()
 	for(const auto &item:shield["Regex"].toArray()){
 		shieldR.append(QRegExp(item.toString()));
 	}
-	instance=this;
-	for(int i=0;i<6;++i){
-		block[i]=false;
+	int group=shield["Group"].toDouble();
+	for(int i=5;i>=0;--i){
+		block[i]=group&1;
+		group=group>>1;
 	}
+	instance=this;
 }
 
 Shield::~Shield()
@@ -55,6 +57,11 @@ Shield::~Shield()
 	}
 	shield.insert("User",u);
 	shield.insert("Regex",r);
+	int g=0;
+	for(int i=0;i<6;++i){
+		g=(g<<1)+block[i];
+	}
+	shield.insert("Group",g);
 	Utils::setConfig(shield,"Shield");
 	instance=NULL;
 }
