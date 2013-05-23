@@ -67,6 +67,7 @@ void Poster::postComment(){
         manager->post(request, data);
     }
     else{
+        QMessageBox::warning(this,tr("Warning"),tr("Danmaku post failed."));
         qDebug()<<"Attending to post but danmaku not loaded";
     }
 }
