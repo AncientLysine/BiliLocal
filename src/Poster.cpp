@@ -44,7 +44,7 @@ void Poster::postComment(){
     QByteArray data;
     QUrlQuery params;
 
-    QString cid = danmaku->cid;
+    QString cid = danmaku->getCid();
     if (!cid.isEmpty()){
         params.addQueryItem("cid",cid);
 
@@ -55,14 +55,14 @@ void Poster::postComment(){
         dt.setDate(date.currentDate());
         params.addQueryItem("date",dt.toString("yyyy-MM-dd hh:mm:ss"));
         params.addQueryItem("pool","0");
-        params.addQueryItem("playTime",QString::number(info->timeF,'f',4));
+        params.addQueryItem("playTime",QString::number(info->getTime()*1.0/1000,'f',4));
         params.addQueryItem("color","16777215");//白色
         params.addQueryItem("fontsize","25");
         params.addQueryItem("message",commentL->text());
         params.addQueryItem("rnd",QString::number(rnd));
         params.addQueryItem("mode","1");
 
-        data = QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"=&","-.~_");
+        data = QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_");
         qDebug()<<"POST:"<<data;
         manager->post(request, data);
     }

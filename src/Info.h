@@ -40,7 +40,8 @@ public:
 	~Info();
 	bool isPopped(){return isPop;}
 	int getVolume(){return volmS->value();}
-	
+    int getTime(){return timeS->value()*duration/400;}
+
 private:
 	bool isPop;
 	bool isTurn;
