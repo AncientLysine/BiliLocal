@@ -5,7 +5,7 @@ Poster::Poster(QWidget *parent) :
 {
     commentL = new QLineEdit(this);
     commentB = new QPushButton(this);
-    commentB->setText("发送");
+    commentB->setText(tr("post"));
     commentA = new QAction(this);
     manager=new QNetworkAccessManager(this);
 
@@ -56,7 +56,7 @@ void Poster::postComment(){
         params.addQueryItem("date",dt.toString("yyyy-MM-dd hh:mm:ss"));
         params.addQueryItem("pool","0");
         params.addQueryItem("playTime",QString::number(info->getTime()*1.0/1000,'f',4));
-        params.addQueryItem("color","16777215");//白色
+        params.addQueryItem("color","16777215");//white color
         params.addQueryItem("fontsize","25");
         params.addQueryItem("message",commentL->text());
         params.addQueryItem("rnd",QString::number(rnd));
