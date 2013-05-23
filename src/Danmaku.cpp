@@ -224,7 +224,8 @@ void Danmaku::setDm(QString dm)
 						QString api="http://comment.bilibili.tv/%1.xml";
 						QUrl xmlUrl(api.arg(json["cid"].toDouble()));
 						reply->manager()->get(QNetworkRequest(xmlUrl));
-					}
+                        cid = QString::number(json["cid"].toDouble());
+                    }
 					else{
 						error(-json["code"].toDouble());
 					}
