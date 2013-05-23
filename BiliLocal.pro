@@ -19,7 +19,8 @@ SOURCES += \
     src/Menu.cpp \
     src/Info.cpp \
     src/Search.cpp \
-    src/Utils.cpp
+    src/Utils.cpp \
+    src/Poster.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -28,7 +29,8 @@ HEADERS  += \
     src/Menu.h \
     src/Info.h \
     src/Search.h \
-    src/Utils.h
+    src/Utils.h \
+    src/Poster.h
 
 LIBS += -L./\
     -lvlc \
