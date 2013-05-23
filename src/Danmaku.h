@@ -57,12 +57,14 @@ public:
 	explicit Danmaku(QObject *parent=0);
 	~Danmaku();
 	void draw(QPainter *painter,bool move=true);
-	
+    QString getCid(){return cid;}
+
 private:
 	int currentIndex;
 	bool sub;
 	double alpha;
 	qint64 delay;
+    QString cid;
 
 	QFont font;
 	QSize size;
