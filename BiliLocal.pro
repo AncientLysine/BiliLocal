@@ -19,7 +19,9 @@ SOURCES += \
     src/Menu.cpp \
     src/Info.cpp \
     src/Search.cpp \
-    src/Utils.cpp
+    src/Utils.cpp \
+    src/Shield.cpp \
+    src/Poster.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -28,7 +30,9 @@ HEADERS  += \
     src/Menu.h \
     src/Info.h \
     src/Search.h \
-    src/Utils.h
+    src/Utils.h \
+    src/Shield.h \
+    src/Poster.h
 
 LIBS += -L./\
     -lvlc \
@@ -49,4 +53,7 @@ TRANSLATIONS += \
 win32 {
 RC_FILE = \
     Icon.rc
+}
+macx {
+    QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc++
 }

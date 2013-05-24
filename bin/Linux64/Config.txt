@@ -1,6 +1,0 @@
-{
-    "Hash": {
-        "BiliLocal": "e74ece2484958aba28a9294057110fcb",
-        "Import": "0c3bd0d1fdd590e05faba753d7cc5c71"
-    }
-}

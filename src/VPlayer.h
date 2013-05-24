@@ -53,6 +53,8 @@ public:
 	int getState();
 	QSize getSize();
 	qint64 getDuration();
+	QString getSubtitle();
+	QStringList getSubtitles();
 	void setFrame();
 	void draw(QPainter *painter,QRect rect);
 
@@ -65,6 +67,7 @@ private:
 	QSize dstSize;
 	QString file;
 	QPixmap frame;
+	QMap<QString,int> subtitle;
 
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
@@ -89,6 +92,7 @@ public slots:
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setVolume(int _volume);
+	void setSubTitle(QString _track);
 	void emitFrame(QImage _frame);
 
 };

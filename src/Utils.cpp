@@ -36,9 +36,9 @@ Config Utils::config;
 
 Config::Config()
 {
-	QJsonObject probe;
+    QJsonObject probe;
+    QString platform;
 #ifdef Q_OS_LINUX
-	QString platform;
 	probe.insert("Architecture",QString("Linux64"));
 	struct utsname v;
 	if(uname(&v)>=0){
@@ -47,7 +47,6 @@ Config::Config()
 	}
 #endif
 #ifdef Q_OS_WIN
-	QString platform;
 	probe.insert("Architecture",QString("Win32"));
 	SYSTEM_INFO info;
 	GetSystemInfo(&info);
@@ -104,6 +103,9 @@ Config::Config()
 			break;
 		}
 	}
+#endif
+#ifdef Q_OS_MAC
+    platform="Mac OS";
 #endif
 	platform=platform.isEmpty()?"Unknown":platform;
 	probe.insert("Platform",platform);

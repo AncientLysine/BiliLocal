@@ -110,6 +110,36 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
+QString VPlayer::getSubtitle()
+{
+	if(mp){
+		if(subtitle.isEmpty()){
+			getSubtitles();
+		}
+		return subtitle.key(libvlc_video_get_spu(mp));
+	}
+	else{
+		return QString();
+	}
+}
+
+QStringList VPlayer::getSubtitles()
+{
+	if(mp&&subtitle.isEmpty()){
+		auto list=libvlc_video_get_spu_description(mp);
+		auto iter=list;
+		while(iter){
+			QString title=iter->psz_name;
+			title.replace("Track"  ,tr("Track"));
+			title.replace("Disable",tr("Disable"));
+			subtitle[title]=iter->i_id;
+			iter=iter->p_next;
+		}
+		libvlc_track_description_list_release(list);
+	}
+	return subtitle.keys();
+}
+
 void VPlayer::setFrame()
 {
 	if(state!=Pause){
@@ -175,7 +205,12 @@ void VPlayer::stop()
 	if(mp){
 		if(state!=Stop){
 			libvlc_media_player_stop(mp);
-			Utils::delayExec(this,50,[this](){state=Stop;frame=QPixmap();emit ended();});
+			Utils::delayExec(this,50,[this](){
+				state=Stop;
+				frame=QPixmap();
+				subtitle.clear();
+				emit ended();
+			});
 		}
 	}
 }
@@ -229,6 +264,13 @@ void VPlayer::setVolume(int _volume)
 {
 	if(mp){
 		libvlc_audio_set_volume(mp,_volume);
+	}
+}
+
+void VPlayer::setSubTitle(QString _track)
+{
+	if(mp){
+		libvlc_video_set_spu(mp,subtitle[_track]);
 	}
 }
 
