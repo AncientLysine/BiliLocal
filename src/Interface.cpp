@@ -57,8 +57,8 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	info->setModel(danmaku);
-    poster=new Poster(this);
-    poster->setDanmaku(danmaku);
+	poster=new Poster(this);
+	poster->setDanmaku(danmaku);
 	poster->setVplayer(vplayer);
 	poster->hide();
 	Utils::setCenter(this,QSize(960,540));
@@ -297,15 +297,15 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	if(x>200&&x<width()-200){
 		if(y>height()-40&&!danmaku->getCid().isEmpty()){
-			poster->show();
+			poster->fadeIn();
 		}
 		if(y<height()-60){
-			poster->hide();
+			poster->fadeOut();
 		}
-    }
-    else{
-        poster->hide();
-    }
+	}
+	else{
+		poster->fadeOut();
+	}
 	QWidget::mouseMoveEvent(e);
 }
 
