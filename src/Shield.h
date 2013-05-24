@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Interface.h
-*   Time:        2013/03/18
+*   Filename:    Shield.h
+*   Time:        2013/05/20
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,65 +24,47 @@
 *
 =========================================================================*/
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#ifndef SHIELD_H
+#define SHIELD_H
 
-#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include "Menu.h"
-#include "Info.h"
 #include "Utils.h"
-#include "VPlayer.h"
-#include "Danmaku.h"
-#include "Poster.h"
 
-class Render:public QWidget
+class Shield
 {
-	Q_OBJECT
 public:
-	explicit Render(QWidget *parent=0);
-	void setVplayer(VPlayer *_vplayer){vplayer=_vplayer;}
-	void setDanmaku(Danmaku *_danmaku){danmaku=_danmaku;}
-
-private:
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-	void paintEvent(QPaintEvent *e);
-
+	enum {Top,Bottom,Slide,Guest,Color,Whole};
+	Shield();
+	~Shield();
+	bool block[6];
+	QList<QString> shieldU;
+	QList<QRegExp> shieldR;
+	static Shield *instance;
+	static void configure(QWidget *parent=0);
+	static bool isBlocked(const Comment &comment);
+	static bool setEnabled(quint8 t,bool enabled);
 };
 
-class Interface:public QWidget
+class Editor:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Interface(QWidget *parent=0);
+	explicit Editor(Shield *shield,QWidget *parent=0);
+	QStringList getRegexp() const {return rm->stringList();}
+	QStringList getSender() const {return sm->stringList();}
+	void import(QString path);
 
 private:
-	QLabel *tv;
-	QLabel *me;
-	QTimer *timer;
-	QTimer *power;
-	QTimer *delay;
-	QAction *quitA;
-	QAction *fullA;
-	QMenu *top;
-	QMenu *sub;
-
-	Menu *menu;
-	Info *info;
-	Render *render;
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-    Poster *poster;
+	QLineEdit *edit;
+	QCheckBox *check[6];
+	QListView *regexp;
+	QListView *sender;
+	QStringListModel *rm;
+	QStringListModel *sm;
+	QPushButton *button[2];
 
 	void dropEvent(QDropEvent *e);
-	void resizeEvent(QResizeEvent *e);
-	void keyPressEvent(QKeyEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-
 };
 
-#endif // INTERFACE_H
+#endif // SHIELD_H

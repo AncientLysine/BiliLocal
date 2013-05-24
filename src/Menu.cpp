@@ -43,14 +43,16 @@ Menu::Menu(QWidget *parent) :
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
 	fileL->setReadOnly(true);
-	danmL->setPlaceholderText(tr("av/ac number"));
+	danmL->setPlaceholderText(tr("av/ac"));
 	fileL->setGeometry(QRect(10,25, 120,25));
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("a([cv](([0-9]+)(#)?([0-9]+)?)?)?");
-		regex.indexIn(text);
+		regex.lastIndexIn(text);
+		int pos=danmL->cursorPosition();
 		danmL->setText(regex.cap());
+		danmL->setCursorPosition(pos);
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
@@ -72,7 +74,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
-			QString filter=tr("XML files (*.xml)")+";;"+tr("Json files (*.json)");
+			QString filter=tr("XML files (*.xml);;JSON files (*.json)");
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
 			if(!_file.isEmpty()){
 				setDm(_file);
@@ -119,7 +121,7 @@ Menu::Menu(QWidget *parent) :
 	delayL=new QLineEdit(this);
 	delayL->setGeometry(QRect(160,205,30,20));
 	connect(delayL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("([0-9]+)");
+		QRegExp regex("-?[0-9]*");
 		regex.indexIn(text);
 		delayL->setText(regex.cap());
 	});
@@ -144,7 +146,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	localT=new QLabel(this);
 	localT->setGeometry(QRect(10,275,100,25));
-	localT->setText(tr("Local XML File"));
+	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
 	localC->setGeometry(QRect(168,275,25,25));
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
@@ -160,7 +162,7 @@ Menu::Menu(QWidget *parent) :
 		}
 		else{
 			danmL->setReadOnly(false);
-			danmL->setPlaceholderText(tr("av/ac number"));
+			danmL->setPlaceholderText(tr("av/ac"));
 			danmB->setText(tr("Load"));
 			sechL->setEnabled(true);
 			sechB->setEnabled(true);

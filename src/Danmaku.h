@@ -32,15 +32,7 @@
 #include <QtWidgets>
 #include <QtNetwork>
 #include "Utils.h"
-
-struct Comment
-{
-	int mode;
-	int font;
-	qint64 time;
-	QColor color;
-	QString content;
-};
+#include "Shield.h"
 
 struct Static
 {
@@ -50,14 +42,20 @@ struct Static
 	QPixmap text;
 };
 
-class Danmaku:public QObject
+class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
 public:
 	explicit Danmaku(QObject *parent=0);
-	~Danmaku();
 	void draw(QPainter *painter,bool move=true);
-	
+	QVariant data(const QModelIndex &index,int role) const;
+	int rowCount(const QModelIndex &parent) const;
+	int columnCount(const QModelIndex &parent) const;
+	QModelIndex parent(const QModelIndex &) const;
+	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
+	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
+	QString getCid(){return cid;}
+
 private:
 	int currentIndex;
 	bool sub;
@@ -67,8 +65,8 @@ private:
 	QFont font;
 	QSize size;
 	QTime last;
-	QList<QString> shieldU;
-	QList<QRegExp> shieldR;
+	QString cid;
+	Shield shield;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 

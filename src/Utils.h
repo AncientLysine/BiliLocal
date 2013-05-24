@@ -39,6 +39,17 @@ public:
 
 };
 
+struct Comment
+{
+	int mode;
+	int font;
+	qint64 time;
+	QColor color;
+	QString sender;
+	QString content;
+};
+Q_DECLARE_METATYPE(Comment)
+
 class Utils
 {
 public:
@@ -58,11 +69,12 @@ public:
 		widget->setPalette(options);
 	}
 
-	static void setCenter(QWidget *widget,QSize _size)
+	static void setCenter(QWidget *widget,QSize _size,bool move=true)
 	{
 		QRect rect;
 		rect.setSize(_size);
-		rect.moveCenter(QApplication::desktop()->screenGeometry().center());
+		QRect prer=move?QApplication::desktop()->screenGeometry():widget->geometry();
+		rect.moveCenter(prer.center());
 		widget->setGeometry(rect);
 	}
 

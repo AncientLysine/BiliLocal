@@ -86,11 +86,28 @@ Info::Info(QWidget *parent):
 	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	durT->setGeometry(QRect(70,15,120,25));
 	durT->setText("00:00/00:00");
-	plfmT=new QLabel(tr("System"),this);
-	plfmT->setGeometry(QRect(10,150,100,25));
-	plfmL=new QLineEdit(info["Platform"].toString(),this);
-	plfmL->setReadOnly(true);
-	plfmL->setGeometry(QRect(10,175,180,25));
+	danmV=new QTableView(this);
+	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
+	danmV->verticalHeader()->hide();
+	danmV->setAlternatingRowColors(true);
+	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
+		QMenu menu(this);
+		QModelIndex index=danmV->currentIndex();
+		if(index.isValid()){
+			connect(menu.addAction(tr("eliminate the sender")),&QAction::triggered,[this,index](){
+				QList<QString> &list=Shield::instance->shieldU;
+				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
+				if(!list.contains(sender)){
+					list.append(sender);
+				}
+			});
+		}
+		connect(menu.addAction(tr("edit blocking list")),&QAction::triggered,[this](){
+			Shield::configure(parentWidget());
+		});
+		menu.exec(danmV->viewport()->mapToGlobal(p));
+	});
 }
 
 Info::~Info()
@@ -98,6 +115,11 @@ Info::~Info()
 	QJsonObject info;
 	info["Volume"]=volmS->value();
 	Utils::setConfig(info,"Info");
+}
+
+void Info::resizeEvent(QResizeEvent *e)
+{
+	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
 }
 
 void Info::pop()
@@ -168,4 +190,12 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");
 	}
+}
+
+void Info::setModel(QAbstractItemModel *model)
+{
+	danmV->setModel(model);
+	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
+	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+	danmV->horizontalHeader()->setHighlightSections(false);
 }

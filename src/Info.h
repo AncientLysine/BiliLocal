@@ -31,6 +31,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include "Utils.h"
+#include "Shield.h"
 
 class Info:public QWidget
 {
@@ -40,7 +41,7 @@ public:
 	~Info();
 	bool isPopped(){return isPop;}
 	int getVolume(){return volmS->value();}
-	
+
 private:
 	bool isPop;
 	bool isTurn;
@@ -56,11 +57,13 @@ private:
 	QSlider *timeS;
 	QSlider *volmS;
 	QLineEdit *plfmL;
+	QTableView *danmV;
 	QPushButton *playB;
 	QPushButton *stopB;
 	QPropertyAnimation *animation;
 	QAction *playA;
 	QAction *stopA;
+	void resizeEvent(QResizeEvent *e);
 	
 signals:
 	void play();
@@ -75,6 +78,7 @@ public slots:
 	void setOpened(bool _opened);
 	void setPlaying(bool _playing);
 	void setDuration(qint64 _duration);
+	void setModel(QAbstractItemModel *model);
 	
 };
 

@@ -56,6 +56,11 @@ Interface::Interface(QWidget *parent):
 	render->setDanmaku(danmaku);
 	menu=new Menu(this);
 	info=new Info(this);
+	info->setModel(danmaku);
+	poster=new Poster(this);
+	poster->setDanmaku(danmaku);
+	poster->setVplayer(vplayer);
+	poster->hide();
 	Utils::setCenter(this,QSize(960,540));
 	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
@@ -118,7 +123,20 @@ Interface::Interface(QWidget *parent):
 			vplayer->setSize(size());
 		}
 		else{
-			Utils::setCenter(this,vplayer->getSize());
+			Utils::setCenter(this,vplayer->getSize(),false);
+		}
+		sub->clear();
+		if(!vplayer->getSubtitles().isEmpty()){
+			sub->setEnabled(true);
+			QActionGroup *group=new QActionGroup(sub);
+			group->setExclusive(true);
+			QString current=vplayer->getSubtitle();
+			for(QString title:vplayer->getSubtitles()){
+				QAction *action=group->addAction(title);
+				action->setCheckable(true);
+				action->setChecked(current==title);
+			}
+			sub->addActions(group->actions());
 		}
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
@@ -128,7 +146,11 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
-		Utils::setCenter(this,QSize(960,540));
+		if(!isFullScreen()){
+			Utils::setCenter(this,QSize(960,540),false);
+		}
+		sub->clear();
+		sub->setEnabled(false);
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
@@ -171,11 +193,27 @@ Interface::Interface(QWidget *parent):
 			showFullScreen();
 		}
 	});
-	addActions(info->actions());
-	addAction(fullA);
-	addActions(menu->actions());
-	addAction(quitA);
-	setContextMenuPolicy(Qt::ActionsContextMenu);
+	top=new QMenu(this);
+	top->addActions(info->actions());
+	top->addAction(fullA);
+	top->addActions(menu->actions());
+	top->addAction(quitA);
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
+		bool flag=true;
+		flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
+		flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
+		if(flag){
+			top->exec(mapToGlobal(p));
+		}
+	});
+	sub=new QMenu(tr("Subtitle"),top);
+	sub->setEnabled(false);
+	top->addMenu(sub);
+	connect(sub,&QMenu::triggered,[this](QAction *action){
+		vplayer->setSubTitle(action->text());
+	});
+
 	Search::initDataBase();
 }
 
@@ -206,8 +244,9 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int w=e->size().width(),h=e->size().height();
 	tv->move((w-94)/2, (h-82)/2-60);
 	me->move((w-200)/2,(h-82)/2+60);
-	menu->setGeometry(QRect(menu->isPopped()?0:0-200,0,200,h));
-	info->setGeometry(QRect(info->isPopped()?w-200:w,0,200,h));
+	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
+	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
+	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
 	QWidget::resizeEvent(e);
 }
 
@@ -215,7 +254,7 @@ void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
 	if(key==Qt::Key_Escape&&isFullScreen()){
-		this->fullA->toggle();
+		fullA->toggle();
 	}
 	if(key==Qt::Key_Left){
 		if(vplayer->getState()==VPlayer::Play){
@@ -255,6 +294,17 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	else{
 		delay->stop();
+	}
+	if(x>200&&x<width()-200){
+		if(y>height()-40&&!danmaku->getCid().isEmpty()){
+			poster->fadeIn();
+		}
+		if(y<height()-60){
+			poster->fadeOut();
+		}
+	}
+	else{
+		poster->fadeOut();
 	}
 	QWidget::mouseMoveEvent(e);
 }
