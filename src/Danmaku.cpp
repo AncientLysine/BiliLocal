@@ -261,7 +261,8 @@ void Danmaku::setDm(QString dm)
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 					if(json.contains("cid")){
 						QString api="http://comment.bilibili.tv/%1.xml";
-						QUrl xmlUrl(api.arg(json["cid"].toDouble()));
+						cid=QString::number(json["cid"].toDouble());
+						QUrl xmlUrl(api.arg(cid));
 						reply->manager()->get(QNetworkRequest(xmlUrl));
 					}
 					else{

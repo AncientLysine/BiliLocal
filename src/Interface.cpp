@@ -57,6 +57,10 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	info->setModel(danmaku);
+    poster=new Poster(this);
+    poster->setDanmaku(danmaku);
+	poster->setVplayer(vplayer);
+	poster->hide();
 	Utils::setCenter(this,QSize(960,540));
 	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
@@ -240,8 +244,9 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int w=e->size().width(),h=e->size().height();
 	tv->move((w-94)/2, (h-82)/2-60);
 	me->move((w-200)/2,(h-82)/2+60);
-	menu->setGeometry(QRect(menu->isPopped()?0:0-200,0,200,h));
-	info->setGeometry(QRect(info->isPopped()?w-200:w,0,200,h));
+	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
+	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
+	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
 	QWidget::resizeEvent(e);
 }
 
@@ -290,6 +295,17 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	else{
 		delay->stop();
 	}
+	if(x>200&&x<width()-200){
+		if(y>height()-40&&!danmaku->getCid().isEmpty()){
+			poster->show();
+		}
+		if(y<height()-60){
+			poster->hide();
+		}
+    }
+    else{
+        poster->hide();
+    }
 	QWidget::mouseMoveEvent(e);
 }
 

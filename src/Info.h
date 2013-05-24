@@ -41,7 +41,7 @@ public:
 	~Info();
 	bool isPopped(){return isPop;}
 	int getVolume(){return volmS->value();}
-	
+
 private:
 	bool isPop;
 	bool isTurn;

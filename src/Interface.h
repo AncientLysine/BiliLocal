@@ -36,6 +36,7 @@
 #include "Utils.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
+#include "Poster.h"
 
 class Render:public QWidget
 {
@@ -74,6 +75,7 @@ private:
 	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
+    Poster *poster;
 
 	void dropEvent(QDropEvent *e);
 	void resizeEvent(QResizeEvent *e);
