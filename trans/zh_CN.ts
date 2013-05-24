@@ -32,42 +32,42 @@
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../src/Shield.cpp" line="118"/>
+        <location filename="../src/Shield.cpp" line="125"/>
         <source>Top</source>
         <translation>顶端</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="119"/>
+        <location filename="../src/Shield.cpp" line="126"/>
         <source>Bottom</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="120"/>
+        <location filename="../src/Shield.cpp" line="127"/>
         <source>Slide</source>
         <translation>滑动</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="121"/>
+        <location filename="../src/Shield.cpp" line="128"/>
         <source>Guest</source>
         <translation>游客</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="122"/>
+        <location filename="../src/Shield.cpp" line="129"/>
         <source>Color</source>
         <translation>彩色</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="123"/>
+        <location filename="../src/Shield.cpp" line="130"/>
         <source>Whole</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="147"/>
+        <location filename="../src/Shield.cpp" line="154"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="148"/>
+        <location filename="../src/Shield.cpp" line="155"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
@@ -114,17 +114,17 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="176"/>
+        <location filename="../src/Interface.cpp" line="180"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="180"/>
+        <location filename="../src/Interface.cpp" line="184"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="206"/>
+        <location filename="../src/Interface.cpp" line="210"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
@@ -205,6 +205,24 @@
         <location filename="../src/Menu.cpp" line="186"/>
         <source>Font</source>
         <translation>弹幕字体</translation>
+    </message>
+</context>
+<context>
+    <name>Poster</name>
+    <message>
+        <location filename="../src/Poster.cpp" line="67"/>
+        <source>Post</source>
+        <translation>发送</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="117"/>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="117"/>
+        <source>Empty cid.</source>
+        <translation>空 cid.</translation>
     </message>
 </context>
 <context>
