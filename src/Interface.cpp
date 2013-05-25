@@ -178,12 +178,14 @@ Interface::Interface(QWidget *parent):
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
+	addAction(quitA);
 	connect(quitA,&QAction::triggered,this,&QWidget::close);
 
 	fullA=new QAction(tr("Full Screen"),this);
 	fullA->setCheckable(true);
 	fullA->setChecked(false);
 	fullA->setShortcut(QKeySequence("F"));
+	addAction(fullA);
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
@@ -192,10 +194,17 @@ Interface::Interface(QWidget *parent):
 			showFullScreen();
 		}
 	});
+	sub=new QMenu(tr("Subtitle"),top);
+	sub->setEnabled(false);
+	connect(sub,&QMenu::triggered,[this](QAction *action){
+		vplayer->setSubTitle(action->text());
+	});
 	top=new QMenu(this);
 	top->addActions(info->actions());
 	top->addAction(fullA);
 	top->addActions(menu->actions());
+	top->addMenu(sub);
+	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
 		bool flag=true;
@@ -205,13 +214,7 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
-	sub=new QMenu(tr("Subtitle"),top);
-	sub->setEnabled(false);
-	top->addMenu(sub);
-	top->addAction(quitA);
-	connect(sub,&QMenu::triggered,[this](QAction *action){
-		vplayer->setSubTitle(action->text());
-	});
+
 
 	Search::initDataBase();
 }
@@ -222,7 +225,7 @@ void Interface::dropEvent(QDropEvent *e)
 		QString drop(e->mimeData()->data("text/uri-list"));
 		QStringList list=drop.split('\n');
 		for(QString &item:list){
-			QString file=QUrl(item).toLocalFile().simplified();
+			QString file=QUrl(item).toLocalFile().trimmed();
 			if(QFile::exists(file)){
 				if(file.endsWith(".xml")||file.endsWith(".json")){
 					menu->setDm(file);
