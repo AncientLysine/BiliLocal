@@ -87,6 +87,7 @@ Info::Info(QWidget *parent):
 	durT->setGeometry(QRect(70,15,120,25));
 	durT->setText("00:00/00:00");
 	danmV=new QTableView(this);
+	danmV->setWordWrap(false);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
@@ -95,7 +96,7 @@ Info::Info(QWidget *parent):
 		QMenu menu(this);
 		QModelIndex index=danmV->currentIndex();
 		if(index.isValid()){
-			connect(menu.addAction(tr("eliminate the sender")),&QAction::triggered,[this,index](){
+			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::instance->shieldU;
 				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
 				if(!list.contains(sender)){
@@ -103,7 +104,7 @@ Info::Info(QWidget *parent):
 				}
 			});
 		}
-		connect(menu.addAction(tr("edit blocking list")),&QAction::triggered,[this](){
+		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Shield::configure(parentWidget());
 		});
 		menu.exec(danmV->viewport()->mapToGlobal(p));

@@ -62,20 +62,19 @@ Interface::Interface(QWidget *parent):
 	poster->setVplayer(vplayer);
 	poster->hide();
 	Utils::setCenter(this,QSize(960,540));
-	QMovie *movie=new QMovie(":Interface/tv.gif");
 	tv=new QLabel(this);
-	tv->setMovie(movie);
+	tv->setMovie(new QMovie(":Interface/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
 	me=new QLabel(this);
-	me->setFixedSize(QSize(200,40));
 	me->setPixmap(QPixmap(":Interface/version.png"));
+	me->setFixedSize(me->pixmap()->size());
 	tv->lower();
 	me->lower();
+	tv->movie()->start();
 	render->lower();
 	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
 	me->setAttribute(Qt::WA_TransparentForMouseEvents);
 	render->setAttribute(Qt::WA_TransparentForMouseEvents);
-	movie->start();
 	timer=new QTimer(this);
 	power=new QTimer(this);
 	delay=new QTimer(this);
@@ -197,7 +196,6 @@ Interface::Interface(QWidget *parent):
 	top->addActions(info->actions());
 	top->addAction(fullA);
 	top->addActions(menu->actions());
-	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
 		bool flag=true;
@@ -210,6 +208,7 @@ Interface::Interface(QWidget *parent):
 	sub=new QMenu(tr("Subtitle"),top);
 	sub->setEnabled(false);
 	top->addMenu(sub);
+	top->addAction(quitA);
 	connect(sub,&QMenu::triggered,[this](QAction *action){
 		vplayer->setSubTitle(action->text());
 	});
@@ -242,8 +241,8 @@ void Interface::resizeEvent(QResizeEvent *e)
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();
-	tv->move((w-94)/2, (h-82)/2-60);
-	me->move((w-200)/2,(h-82)/2+60);
+	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
+	me->move((w-me->width())/2,(h-me->height())/2+40);
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);

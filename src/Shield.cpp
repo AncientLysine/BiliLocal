@@ -151,19 +151,17 @@ Editor::Editor(Shield *shield,QWidget *parent):
 	}
 	rm->setStringList(r);
 	sm->setStringList(shield->shieldU);
-	button[0]=new QPushButton(tr("Add"),this);
-	button[1]=new QPushButton(tr("Del"),this);
-	button[0]->setGeometry(310,50,38,25);
-	button[1]->setGeometry(352,50,38,25);
-	button[0]->setFocusPolicy(Qt::NoFocus);
-	button[1]->setFocusPolicy(Qt::NoFocus);
-	connect(button[0],&QPushButton::clicked,[this](){
+
+	action[0]=new QAction(tr("Add"),this);
+	action[1]=new QAction(tr("Del"),this);
+	action[2]=new QAction(tr("Import"),this);
+	connect(action[0],&QAction::triggered,[this](){
 		if(!edit->text().isEmpty()){
 			rm->insertRow(rm->rowCount());
 			rm->setData(rm->index(rm->rowCount()-1),edit->text());
 		}
 	});
-	connect(button[1],&QPushButton::clicked,[this](){
+	connect(action[1],&QAction::triggered,[this](){
 		if(regexp->hasFocus()){
 			rm->removeRow(regexp->currentIndex().row());
 		}
@@ -171,6 +169,24 @@ Editor::Editor(Shield *shield,QWidget *parent):
 			sm->removeRow(sender->currentIndex().row());
 		}
 	});
+	connect(action[2],&QAction::triggered,[this](){
+		QString filter=tr("Sol files (*.sol)");
+		QString file=QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath(),filter);
+		if(!file.isEmpty()){
+			import(file);
+		}
+	});
+	addAction(action[1]);
+	addAction(action[2]);
+	button[0]=new QPushButton(tr("Add"),this);
+	button[1]=new QPushButton(tr("Del"),this);
+	button[0]->setGeometry(310,50,38,25);
+	button[1]->setGeometry(352,50,38,25);
+	button[0]->setFocusPolicy(Qt::NoFocus);
+	button[1]->setFocusPolicy(Qt::NoFocus);
+	connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
+	connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
+	setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
 void Editor::import(QString path)

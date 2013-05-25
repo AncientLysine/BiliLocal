@@ -214,6 +214,7 @@ void Danmaku::setDm(QString dm)
 		for(QJsonValue _item:array){
 			QJsonObject item=_item.toObject();
 			Comment comment;
+			comment.content=item["m"].toString();
 			QStringList args=item["c"].toString().split(',');
 			comment.time=args[0].toDouble()*1000;
 			comment.color.setRgb(args[1].toInt());

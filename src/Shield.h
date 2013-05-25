@@ -61,6 +61,7 @@ private:
 	QListView *sender;
 	QStringListModel *rm;
 	QStringListModel *sm;
+	QAction *action[3];
 	QPushButton *button[2];
 
 	void dropEvent(QDropEvent *e);

@@ -62,14 +62,31 @@
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="154"/>
+        <location filename="../src/Shield.cpp" line="155"/>
+        <location filename="../src/Shield.cpp" line="181"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="155"/>
+        <location filename="../src/Shield.cpp" line="156"/>
+        <location filename="../src/Shield.cpp" line="182"/>
         <source>Del</source>
         <translation>删除</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="157"/>
+        <source>Import</source>
+        <translation>导入</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="173"/>
+        <source>Sol files (*.sol)</source>
+        <translation>Sol文件 (*.sol)</translation>
+    </message>
+    <message>
+        <location filename="../src/Shield.cpp" line="174"/>
+        <source>Import File</source>
+        <translation>导入文件</translation>
     </message>
 </context>
 <context>
@@ -86,7 +103,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="71"/>
-        <location filename="../src/Info.cpp" line="178"/>
+        <location filename="../src/Info.cpp" line="179"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -96,17 +113,17 @@
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="98"/>
-        <source>eliminate the sender</source>
+        <location filename="../src/Info.cpp" line="99"/>
+        <source>Eliminate The Sender</source>
         <translation>屏蔽发送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="106"/>
-        <source>edit blocking list</source>
+        <location filename="../src/Info.cpp" line="107"/>
+        <source>Edit Blocking List</source>
         <translation>编辑屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="178"/>
+        <location filename="../src/Info.cpp" line="179"/>
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
@@ -114,17 +131,17 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="180"/>
+        <location filename="../src/Interface.cpp" line="179"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="184"/>
+        <location filename="../src/Interface.cpp" line="183"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="210"/>
+        <location filename="../src/Interface.cpp" line="208"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
