@@ -90,9 +90,10 @@ Interface::Interface(QWidget *parent):
 			info->push();
 			setFocus();
 		}
-		if(pos.y()<-50||pos.y()>width()+50){
+		if(pos.y()<-50||pos.y()>height()+50){
 			menu->push();
 			info->push();
+			poster->fadeOut();
 			setFocus();
 		}
 		if(vplayer->getState()==VPlayer::Play){

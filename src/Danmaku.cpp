@@ -172,6 +172,18 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 	return QVariant();
 }
 
+bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
+{
+	if(!parent.isValid()){
+		if(row+count<=danmaku.size()){
+			danmaku.remove(row,count);
+			emit layoutChanged();
+			return true;
+		}
+	}
+	return false;
+}
+
 void Danmaku::reset()
 {
 	for(auto &pool:current){

@@ -63,6 +63,12 @@ Poster::Poster(QWidget *parent) :
 	effect->setOpacity(0.0);
 	setGraphicsEffect(effect);
 	manager=new QNetworkAccessManager(this);
+	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		if(reply->error()!=QNetworkReply::NoError){
+			QString info=tr("Network error occurred, error code: %1");
+			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(reply->error()));
+		}
+	});
 	commentL=new QLineEdit(this);
 	commentB=new QPushButton(tr("Post"),this);
 	commentA=new QAction(this);

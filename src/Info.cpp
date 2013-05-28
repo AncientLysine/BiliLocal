@@ -107,6 +107,12 @@ Info::Info(QWidget *parent):
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Shield::configure(parentWidget());
 		});
+		if(danmV->model()->rowCount()){
+			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
+				danmV->model()->removeRows(0,danmV->model()->rowCount());
+				danmV->setCurrentIndex(QModelIndex());
+			});
+		}
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 	});
 }
