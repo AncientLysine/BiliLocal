@@ -63,6 +63,7 @@ VPlayer::VPlayer(QObject *parent) :
 	swsctx=NULL;
 	state=Stop;
 	valid=false;
+	ratio=0;
 	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
 }
 
@@ -204,6 +205,7 @@ void VPlayer::stop()
 {
 	if(mp){
 		if(state!=Stop){
+			state=Invalid;
 			libvlc_media_player_stop(mp);
 			Utils::delayExec(50,[this](){
 				state=Stop;
@@ -219,7 +221,14 @@ void VPlayer::setSize(QSize _size)
 {
 	mutex.lock();
 	auto _dstSize=dstSize;
-	dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
+	if(ratio>0){
+		int w=_size.width(),h=_size.height()*ratio;
+		int sw=w>h?h:w;
+		dstSize=QSize(sw,sw/ratio);
+	}
+	else{
+		dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
+	}
 	dstSize/=4;
 	dstSize*=4;
 	if(_dstSize!=dstSize){
@@ -260,6 +269,11 @@ void VPlayer::setFile(QString _file)
 	}
 }
 
+void VPlayer::setRatio(double _ratio)
+{
+	ratio=_ratio;
+}
+
 void VPlayer::setVolume(int _volume)
 {
 	if(mp){
@@ -283,8 +297,8 @@ void VPlayer::emitFrame(QImage _frame)
 	if(state==Play){
 		frame=QPixmap::fromImage(_frame);
 		emit decoded();
-	}
-	if(getDuration()-getTime()<500){
-		stop();
+		if(getDuration()-getTime()<500){
+			stop();
+		}
 	}
 }

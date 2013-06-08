@@ -123,6 +123,7 @@ Interface::Interface(QWidget *parent):
 			vplayer->setSize(size());
 		}
 		else{
+			sca->setEnabled(true);
 			Utils::setCenter(this,vplayer->getSize(),false);
 		}
 		sub->clear();
@@ -138,6 +139,7 @@ Interface::Interface(QWidget *parent):
 			}
 			sub->addActions(group->actions());
 		}
+		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
 		setPalette(QPalette());
@@ -146,11 +148,15 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
+		sub->clear();
+		sub->setEnabled(false);
+		rat->defaultAction()->trigger();
+		rat->setEnabled(false);
+		sca->defaultAction()->setChecked(true);
+		sca->setEnabled(false);
 		if(!isFullScreen()){
 			Utils::setCenter(this,QSize(960,540),false);
 		}
-		sub->clear();
-		sub->setEnabled(false);
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
@@ -190,21 +196,78 @@ Interface::Interface(QWidget *parent):
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
+			if(vplayer->getState()!=VPlayer::Stop){
+				sca->setEnabled(true);
+			}
 		}
 		else{
 			showFullScreen();
+			sca->setEnabled(false);
 		}
 	});
+
+
+	top=new QMenu(this);
 	sub=new QMenu(tr("Subtitle"),top);
 	sub->setEnabled(false);
 	connect(sub,&QMenu::triggered,[this](QAction *action){
 		vplayer->setSubTitle(action->text());
 	});
-	top=new QMenu(this);
+
+	QActionGroup *g;
+	rat=new QMenu(tr("Ratio"),top);
+	rat->setEnabled(false);
+	g=new QActionGroup(rat);
+	rat->setDefaultAction(g->addAction(tr("Default")));
+	g->addAction("4:3");
+	g->addAction("16:9");
+	g->addAction("16:10");
+	for(QAction *a:g->actions()){
+		a->setCheckable(true);
+	}
+	rat->defaultAction()->setChecked(true);
+	rat->addActions(g->actions());
+	connect(rat,&QMenu::triggered,[this](QAction *action){
+		if(action->text()==tr("Default")){
+			vplayer->setRatio(0);
+		}
+		else{
+			QStringList l=action->text().split(':');
+			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
+		}
+		vplayer->setSize(size());
+	});
+
+	sca=new QMenu(tr("Scale"),top);
+	sca->setEnabled(false);
+	g=new QActionGroup(sca);
+	g->addAction("1:4");
+	g->addAction("1:2");
+	sca->setDefaultAction(g->addAction("1:1"));
+	g->addAction("2:1");
+	for(QAction *a:g->actions()){
+		a->setCheckable(true);
+	}
+	sca->defaultAction()->setChecked(true);
+	sca->addActions(g->actions());
+	connect(sca,&QMenu::triggered,[this](QAction *action){
+		QSize s;
+		if(action->text()=="1:1"){
+			s=vplayer->getSize();
+		}
+		else{
+			QStringList l=action->text().split(':');
+			s=vplayer->getSize()*l[0].toInt()/l[1].toInt();
+		}
+		Utils::setCenter(this,s,false);
+	});
+
 	top->addActions(info->actions());
 	top->addAction(fullA);
 	top->addActions(menu->actions());
 	top->addMenu(sub);
+	top->addMenu(sca);
+	top->addMenu(rat);
 	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){

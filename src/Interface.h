@@ -69,6 +69,8 @@ private:
 	QAction *fullA;
 	QMenu *top;
 	QMenu *sub;
+	QMenu *rat;
+	QMenu *sca;
 
 	Menu *menu;
 	Info *info;

@@ -241,8 +241,13 @@ void Danmaku::setDm(QString dm)
 			return f.time==s.time?f.content<s.content:f.time<s.time;
 		});
 		currentIndex=0;
-		emit loaded();
 		emit layoutChanged();
+	};
+
+	auto load=[this](){
+		if(danmaku.size()==0){
+			Utils::delayExec(0,[this](){emit loaded();});
+		}
 	};
 
 	if(Utils::getSetting<bool>("Clear",true)){
@@ -316,6 +321,7 @@ void Danmaku::setDm(QString dm)
 					}
 				}
 				else{
+					load();
 					if(s=="av"){
 						bi(reply->readAll());
 					}
@@ -334,6 +340,7 @@ void Danmaku::setDm(QString dm)
 		QFile file(dm);
 		if(file.exists()){
 			file.open(QIODevice::ReadOnly);
+			load();
 			if(dm.endsWith("xml")){
 				bi(file.readAll());
 			}

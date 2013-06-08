@@ -19,12 +19,12 @@
         <translation>评论</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="269"/>
+        <location filename="../src/Danmaku.cpp" line="276"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="270"/>
+        <location filename="../src/Danmaku.cpp" line="277"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>
@@ -136,19 +136,34 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="179"/>
+        <location filename="../src/Interface.cpp" line="186"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="184"/>
+        <location filename="../src/Interface.cpp" line="191"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="197"/>
+        <location filename="../src/Interface.cpp" line="211"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="218"/>
+        <source>Ratio</source>
+        <translation>宽高比</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="221"/>
+        <source>Default</source>
+        <translation>默认</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="241"/>
+        <source>Scale</source>
+        <translation>缩放</translation>
     </message>
 </context>
 <context>
@@ -385,12 +400,12 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="133"/>
+        <location filename="../src/VPlayer.cpp" line="134"/>
         <source>Track</source>
         <translation>轨道</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="134"/>
+        <location filename="../src/VPlayer.cpp" line="135"/>
         <source>Disable</source>
         <translation>关闭</translation>
     </message>

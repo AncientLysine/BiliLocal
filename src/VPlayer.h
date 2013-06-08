@@ -43,7 +43,7 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause};
+	enum {Stop,Play,Pause,Invalid};
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
@@ -62,6 +62,7 @@ private:
 	int state;
 	int valid;
 
+	double ratio;
 	QMutex mutex;
 	QSize srcSize;
 	QSize dstSize;
@@ -91,6 +92,7 @@ public slots:
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void setFile(QString _file);
+	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void setSubTitle(QString _track);
 	void emitFrame(QImage _frame);
