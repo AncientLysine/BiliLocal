@@ -54,32 +54,34 @@ class Utils
 {
 public:
 	template<class Func>
-	static void delayExec(QObject *parent,int time,Func func)
+	static void delayExec(int time,Func func)
 	{
-		QTimer *delay=new QTimer(parent);
+		QTimer *delay=new QTimer;
 		delay->setSingleShot(true);
 		delay->start(time);
-		parent->connect(delay,&QTimer::timeout,func);
+		delay->connect(delay,&QTimer::timeout,[=](){
+			func();
+			delay->deleteLater();
+		});
 	}
 
-	static void setBack(QWidget *widget,QColor color)
+	template<class T>
+	static T getSetting(QString name,T def=T())
 	{
-		QPalette options;
-		options.setColor(QPalette::Background,color);
-		widget->setPalette(options);
+		const QJsonObject &o=config["Global"].toObject();
+		return o.contains(name)?o[name].toVariant().value<T>():def;
 	}
 
-	static void setCenter(QWidget *widget,QSize _size,bool move=true)
+	template<class T>
+	static void setSetting(T setting,QString name)
 	{
-		QRect rect;
-		rect.setSize(_size);
-		QRect prer=move?QApplication::desktop()->screenGeometry():widget->geometry();
-		rect.moveCenter(prer.center());
-		widget->setGeometry(rect);
+		QJsonObject o=config["Global"].toObject();
+		o[name]=setting;
+		config["Global"]=o;
 	}
 
-	static QVariant getSetting(QString name);
-	static void setSetting(QVariant setting,QString name);
+	static void setBack(QWidget *widget,QColor color);
+	static void setCenter(QWidget *widget,QSize size,bool move=true);
 	static QJsonObject getConfig(QString area=QString());
 	static void setConfig(QJsonObject _config,QString area=QString(),bool rewrite=false);
 	static void loadConfig();

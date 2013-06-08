@@ -197,7 +197,7 @@ Menu::Menu(QWidget *parent) :
 #ifdef Q_OS_WIN
 	fontC->setCurrentText("黑体");
 #endif
-	Utils::delayExec(this,0,[this](){
+	Utils::delayExec(0,[this](){
 		QJsonObject menu=Utils::getConfig("Menu");
 		if(!menu.isEmpty()){
 			alphaS->setValue(menu["Alpha"].toDouble());
@@ -209,7 +209,7 @@ Menu::Menu(QWidget *parent) :
 		}
 	});
 	if(QApplication::arguments().count()>=2){
-		Utils::delayExec(this,0,[this](){
+		Utils::delayExec(0,[this](){
 			setFile(QApplication::arguments()[1]);
 		});
 	}

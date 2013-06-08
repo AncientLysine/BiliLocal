@@ -185,7 +185,7 @@ void VPlayer::play()
 			valid=true;
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			Utils::delayExec(this,50,[this](){libvlc_media_player_play(mp);});
+			Utils::delayExec(50,[this](){libvlc_media_player_play(mp);});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -205,7 +205,7 @@ void VPlayer::stop()
 	if(mp){
 		if(state!=Stop){
 			libvlc_media_player_stop(mp);
-			Utils::delayExec(this,50,[this](){
+			Utils::delayExec(50,[this](){
 				state=Stop;
 				frame=QPixmap();
 				subtitle.clear();

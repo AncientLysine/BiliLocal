@@ -125,29 +125,20 @@ Config::~Config()
 	conf.close();
 }
 
-QVariant Utils::getSetting(QString name)
+void Utils::setBack(QWidget *widget,QColor color)
 {
-	return config["Global"].toObject().value(name).toVariant();
+	QPalette options;
+	options.setColor(QPalette::Window,color);
+	widget->setPalette(options);
 }
 
-void Utils::setSetting(QVariant setting,QString name)
+void Utils::setCenter(QWidget *widget,QSize size,bool move)
 {
-	QJsonValue v;
-	int t=setting.type();
-	switch(t){
-	case QVariant::Bool:
-		v=setting.toBool();
-		break;
-	case QVariant::Int:
-		v=setting.toInt();
-		break;
-	case QVariant::String:
-		v=setting.toString();
-		break;
-	}
-	QJsonObject g=config["Global"].toObject();
-	g[name]=v;
-	config["Global"]=g;
+	QRect rect;
+	rect.setSize(size);
+	QRect temp=move?QApplication::desktop()->screenGeometry():widget->geometry();
+	rect.moveCenter(temp.center());
+	widget->setGeometry(rect);
 }
 
 QJsonObject Utils::getConfig(QString area)

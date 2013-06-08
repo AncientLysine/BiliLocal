@@ -69,6 +69,7 @@ private:
 	QTime last;
 	QString cid;
 	Shield shield;
+	QScriptEngine engine;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 

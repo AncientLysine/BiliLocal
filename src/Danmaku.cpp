@@ -245,8 +245,7 @@ void Danmaku::setDm(QString dm)
 		emit layoutChanged();
 	};
 
-	QVariant var=Utils::getSetting("Clear");
-	if(var.isValid()?var.toBool():true){
+	if(Utils::getSetting<bool>("Clear",true)){
 		danmaku.clear();
 		emit layoutChanged();
 	}
@@ -393,10 +392,8 @@ void Danmaku::setTime(qint64 time)
 		switch(comment.mode-1){
 		case 0:
 		{
-			QScriptEngine e;
-			QVariant var=Utils::getSetting("Speed");
-			QString exp=var.isValid()?var.toString():"125+%1/5";
-			render.speed=e.evaluate(exp.arg(textSize.width())).toNumber();
+			QString exp=Utils::getSetting<QString>("Speed","125+%1/5");
+			render.speed=engine.evaluate(exp.arg(textSize.width())).toNumber();
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
 			int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -417,7 +414,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 3:
 		{
-			render.life=5;
+			render.life=Utils::getSetting<double>("Life",5);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=render.rect.height();
@@ -438,7 +435,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 4:
 		{
-			render.life=5;
+			render.life=Utils::getSetting<double>("Life",5);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=size.height()-(sub?80:0)-render.rect.height();
