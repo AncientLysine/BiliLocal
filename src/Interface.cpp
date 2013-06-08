@@ -256,17 +256,20 @@ void Interface::resizeEvent(QResizeEvent *e)
 void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
+	QVariant var=Utils::getSetting("Interval");
+	int jmp=var.isValid()?var.toInt():10000;
+
 	if(key==Qt::Key_Escape&&isFullScreen()){
 		fullA->toggle();
 	}
 	if(key==Qt::Key_Left){
 		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()-10000);
+			vplayer->setTime(vplayer->getTime()-jmp);
 		}
 	}
 	if(key==Qt::Key_Right){
 		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()+10000);
+			vplayer->setTime(vplayer->getTime()+jmp);
 		}
 	}
 	QWidget::keyPressEvent(e);

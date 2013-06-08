@@ -237,17 +237,20 @@ void Danmaku::setDm(QString dm)
 	};
 
 	auto sort=[this](){
-		qSort(danmaku.begin(),danmaku.end(),[](const Comment &first,const Comment &second){
-			return first.time<second.time;
+		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
+			return f.time==s.time?f.content<s.content:f.time<s.time;
 		});
 		currentIndex=0;
 		emit loaded();
 		emit layoutChanged();
 	};
 
-	danmaku.clear();
+	QVariant var=Utils::getSetting("Clear");
+	if(var.isValid()?var.toBool():true){
+		danmaku.clear();
+		emit layoutChanged();
+	}
 	reset();
-	emit layoutChanged();
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
 	QString i=dm.mid(2,sharp-2);
@@ -390,7 +393,10 @@ void Danmaku::setTime(qint64 time)
 		switch(comment.mode-1){
 		case 0:
 		{
-			render.speed=100+textSize.width()/5.0+qrand()%50;
+			QScriptEngine e;
+			QVariant var=Utils::getSetting("Speed");
+			QString exp=var.isValid()?var.toString():"125+%1/5";
+			render.speed=e.evaluate(exp.arg(textSize.width())).toNumber();
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
 			int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -453,7 +459,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		}
 		if(flag){
-			QImage temp(text.size().toSize()+=QSize(2,2),QImage::Format_ARGB32);
+			QImage temp(textSize,QImage::Format_ARGB32);
 			temp.fill(Qt::transparent);
 			QPainter painter;
 			painter.begin(&temp);

@@ -125,6 +125,31 @@ Config::~Config()
 	conf.close();
 }
 
+QVariant Utils::getSetting(QString name)
+{
+	return config["Global"].toObject().value(name).toVariant();
+}
+
+void Utils::setSetting(QVariant setting,QString name)
+{
+	QJsonValue v;
+	int t=setting.type();
+	switch(t){
+	case QVariant::Bool:
+		v=setting.toBool();
+		break;
+	case QVariant::Int:
+		v=setting.toInt();
+		break;
+	case QVariant::String:
+		v=setting.toString();
+		break;
+	}
+	QJsonObject g=config["Global"].toObject();
+	g[name]=v;
+	config["Global"]=g;
+}
+
 QJsonObject Utils::getConfig(QString area)
 {
 	if(area.isEmpty()){

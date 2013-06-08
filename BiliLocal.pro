@@ -3,7 +3,8 @@ QT += \
     gui \
     widgets \
     network \
-    sql
+    sql \
+    script
 
 TARGET = BiliLocal
 

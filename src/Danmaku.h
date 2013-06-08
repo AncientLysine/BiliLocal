@@ -31,6 +31,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
+#include <QtScript>
 #include "Utils.h"
 #include "Shield.h"
 

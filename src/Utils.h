@@ -78,6 +78,8 @@ public:
 		widget->setGeometry(rect);
 	}
 
+	static QVariant getSetting(QString name);
+	static void setSetting(QVariant setting,QString name);
 	static QJsonObject getConfig(QString area=QString());
 	static void setConfig(QJsonObject _config,QString area=QString(),bool rewrite=false);
 	static void loadConfig();
