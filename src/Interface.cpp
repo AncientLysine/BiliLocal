@@ -27,21 +27,6 @@
 
 #include "Interface.h"
 
-Render::Render(QWidget *parent):
-	QWidget(parent)
-{
-}
-
-void Render::paintEvent(QPaintEvent *e)
-{
-	QPainter painter;
-	painter.begin(this);
-	vplayer->draw(&painter,rect());
-	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
-	painter.end();
-	QWidget::paintEvent(e);
-}
-
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
@@ -102,11 +87,7 @@ Interface::Interface(QWidget *parent):
 			danmaku->setTime(time);
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play){
-			update();
-		}
-	});
+	connect(power,&QTimer::timeout,[this](){render->updateDanmaku();});
 	connect(delay,&QTimer::timeout,[this](){
 		if(vplayer->getState()==VPlayer::Play){
 			setCursor(QCursor(Qt::BlankCursor));
@@ -158,7 +139,7 @@ Interface::Interface(QWidget *parent):
 			Utils::setCenter(this,QSize(960,540),false);
 		}
 	});
-	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
+	connect(vplayer,&VPlayer::decoded,[this](){render->updateVplayer();});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});

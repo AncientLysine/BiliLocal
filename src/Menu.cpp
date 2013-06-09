@@ -106,6 +106,8 @@ Menu::Menu(QWidget *parent) :
 	connect(fileB,&QPushButton::clicked,fileA,&QAction::trigger);
 	connect(danmB,&QPushButton::clicked,danmA,&QAction::trigger);
 	connect(sechB,&QPushButton::clicked,sechA,&QAction::trigger);
+	connect(danmL,&QLineEdit::returnPressed,danmA,&QAction::trigger);
+	connect(sechL,&QLineEdit::returnPressed,sechA,&QAction::trigger);
 	alphaT=new QLabel(this);
 	alphaT->setGeometry(QRect(10,145,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));

@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Interface.h
-*   Time:        2013/03/18
+*   Filename:    Render.cpp
+*   Time:        2013/06/09
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,53 +24,29 @@
 *
 =========================================================================*/
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
-
-#include <QtGui>
-#include <QtCore>
-#include <QtWidgets>
-#include "Menu.h"
-#include "Info.h"
-#include "Utils.h"
-#include "VPlayer.h"
-#include "Danmaku.h"
-#include "Poster.h"
 #include "Render.h"
 
-class Interface:public QWidget
+Render::Render(QWidget *parent):
+	QWidget(parent)
 {
-	Q_OBJECT
-public:
-	explicit Interface(QWidget *parent=0);
+}
 
-private:
-	QLabel *tv;
-	QLabel *me;
-	QTimer *timer;
-	QTimer *power;
-	QTimer *delay;
-	QAction *quitA;
-	QAction *fullA;
-	QMenu *top;
-	QMenu *sub;
-	QMenu *rat;
-	QMenu *sca;
+void Render::paintEvent(QPaintEvent *e)
+{
+	QPainter painter;
+	painter.begin(this);
+	vplayer->draw(&painter,rect());
+	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
+	painter.end();
+	QWidget::paintEvent(e);
+}
 
-	Menu *menu;
-	Info *info;
-	Render *render;
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-    Poster *poster;
+void Render::updateVplayer()
+{
+	update();
+}
 
-	void dropEvent(QDropEvent *e);
-	void resizeEvent(QResizeEvent *e);
-	void keyPressEvent(QKeyEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-
-};
-
-#endif // INTERFACE_H
+void Render::updateDanmaku()
+{
+	update();
+}

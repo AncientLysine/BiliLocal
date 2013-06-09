@@ -58,7 +58,16 @@ Info::Info(QWidget *parent):
 	volmS->setValue(info.contains("Volume")?info["Volume"].toDouble():100);
 	timeS->setTracking(false);
 	volmS->setTracking(false);
-	connect(timeS,&QSlider::valueChanged,[this](int _time){if(!updating){emit time(duration*_time/400);}});
+	connect(timeS,&QSlider::valueChanged,[this](int _time){
+		if(!updating){
+			if(_time==timeS->maximum()){
+				emit stop();
+			}
+			else{
+				emit time(duration*_time/400);
+			}
+		}
+	});
 	connect(timeS,&QSlider::sliderPressed, [this](){sliding=true;});
 	connect(timeS,&QSlider::sliderReleased,[this](){sliding=false;});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){emit volume(_volm);});
