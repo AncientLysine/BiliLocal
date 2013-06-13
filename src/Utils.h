@@ -69,8 +69,15 @@ public:
 	template<class T>
 	static T getSetting(QString name,T def=T())
 	{
-		const QJsonObject &o=config["Global"].toObject();
-		return o.contains(name)?o[name].toVariant().value<T>():def;
+		QJsonObject o=config["Global"].toObject();
+		if(o.contains(name)){
+			return o.value(name).toVariant().value<T>();
+		}
+		else{
+			o[name]=def;
+			config["Global"]=o;
+			return def;
+		}
 	}
 
 	template<class T>

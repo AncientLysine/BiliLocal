@@ -36,6 +36,9 @@ int main(int argc,char *argv[])
 	if(platform.startsWith("Windows")&&platform!="Windows 8"){
 		QApplication::setStyle("Fusion");
 	}
+	if(platform.indexOf("Linux",0,Qt::CaseInsensitive)!=-1){
+		QApplication::setStyle("Fusion");
+	}
 	QApplication a(argc,argv);
 	QDir::setCurrent(QApplication::applicationDirPath());
 	Utils::loadConfig();
