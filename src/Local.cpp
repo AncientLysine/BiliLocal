@@ -27,7 +27,7 @@
 #include "Interface.h"
 #include <QApplication>
 
-int main(int argc,char *argv[])
+static void setStyle()
 {
 	QString platform=Utils::findConfig("Platform").toString();
 	if(platform=="Mac OS"){
@@ -39,6 +39,11 @@ int main(int argc,char *argv[])
 	if(platform.indexOf("Linux",0,Qt::CaseInsensitive)!=-1){
 		QApplication::setStyle("Fusion");
 	}
+}
+
+int main(int argc,char *argv[])
+{
+	setStyle();
 	QApplication a(argc,argv);
 	QDir::setCurrent(QApplication::applicationDirPath());
 	Utils::loadConfig();

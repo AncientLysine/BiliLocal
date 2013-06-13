@@ -43,7 +43,7 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause,Invalid};
+	enum {Stop,Play,Pause,Invalid,Source,Scaled,Destinate};
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
@@ -51,7 +51,7 @@ public:
 	uchar *getDst();
 	qint64 getTime();
 	int getState();
-	QSize getSize();
+	QSize getSize(int t=Source);
 	qint64 getDuration();
 	QString getSubtitle();
 	QStringList getSubtitles();

@@ -91,9 +91,23 @@ uchar *VPlayer::getDst()
 	return (uchar *)*dstFrame.data;
 }
 
-QSize VPlayer::getSize()
+QSize VPlayer::getSize(int t)
 {
-	return srcSize;
+	switch(t){
+	case Scaled:
+	{
+		int w=srcSize.width(),h=srcSize.height();
+		return h*ratio>w?QSize(w,w/ratio):QSize(h*ratio,h);
+	}
+	case Destinate:
+	{
+		return dstSize;
+	}
+	default:
+	{
+		return srcSize;
+	}
+	}
 }
 
 qint64 VPlayer::getTime()

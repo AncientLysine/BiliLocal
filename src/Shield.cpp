@@ -89,8 +89,7 @@ bool Shield::isBlocked(const Comment &comment)
 				||(comment.mode==1&&instance->block[Slide])
 				||(comment.mode==4&&instance->block[Bottom])
 				||(comment.mode==5&&instance->block[Top])
-				||(comment.sender.startsWith("D")&&instance->block[Guest])
-				||(comment.sender.startsWith("d")&&instance->block[Guest])
+				||(comment.sender.startsWith('D',Qt::CaseInsensitive)&&instance->block[Guest])
 				||(comment.color!=Qt::white&&instance->block[Color])){
 			return true;
 		}

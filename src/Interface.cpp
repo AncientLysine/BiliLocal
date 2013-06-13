@@ -100,29 +100,7 @@ Interface::Interface(QWidget *parent):
 		}
 		else{
 			sca->setEnabled(true);
-			QRect v(QPoint(0,0),vplayer->getSize());
-			QRect s(QDesktopWidget().availableGeometry(this));
-			s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
-			if(v.width()>=s.width()||v.height()>=s.height()){
-				fullA->toggle();
-				Utils::delayExec(0,[this](){vplayer->setSize(size());});
-			}
-			else{
-				v.moveCenter(geometry().center());
-				if(v.top()<s.top()){
-					v.moveTop(s.top());
-				}
-				if(v.bottom()>s.bottom()){
-					v.moveBottom(s.bottom());
-				}
-				if(v.left()<s.left()){
-					v.moveLeft(s.left());
-				}
-				if(v.right()>s.right()){
-					v.moveRight(s.right());
-				}
-				setGeometry(v);
-			}
+			setCenter(vplayer->getSize(),false);
 		}
 		sub->clear();
 		if(!vplayer->getSubtitles().isEmpty()){
@@ -159,7 +137,14 @@ Interface::Interface(QWidget *parent):
 	connect(vplayer,&VPlayer::decoded,[this](){update();});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});
+	connect(danmaku,&Danmaku::loaded,[this](){
+		if(Utils::getSetting("Delay",false)){
+			menu->setDelay(vplayer->getTime());
+		}
+		else{
+			danmaku->jumpToTime(vplayer->getTime());
+		}
+	});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::dfont,danmaku,&Danmaku::setFont);
@@ -251,11 +236,11 @@ Interface::Interface(QWidget *parent):
 	connect(sca,&QMenu::triggered,[this](QAction *action){
 		QSize s;
 		if(action->text()=="1:1"){
-			s=vplayer->getSize();
+			s=vplayer->getSize(VPlayer::Scaled);
 		}
 		else{
 			QStringList l=action->text().split(':');
-			s=vplayer->getSize()*l[0].toInt()/l[1].toInt();
+			s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
 		}
 		setCenter(s,false);
 	});
@@ -281,13 +266,35 @@ Interface::Interface(QWidget *parent):
 	Search::initDataBase();
 }
 
-void Interface::setCenter(QSize s,bool f)
+void Interface::setCenter(QSize _s,bool f)
 {
+	QSize m=minimumSize();
+	int mw=m.width(),mh=m.height(),sw=_s.width(),sh=_s.height();
 	QRect r;
-	r.setSize(s);
+	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
+	QRect s=QDesktopWidget().availableGeometry(this);
 	QRect t=f?QApplication::desktop()->screenGeometry():geometry();
-	r.moveCenter(t.center());
-	setGeometry(r);
+	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	if(r.width()>=s.width()||r.height()>=s.height()){
+		fullA->toggle();
+		Utils::delayExec(0,[this](){vplayer->setSize(size());});
+	}
+	else{
+		r.moveCenter(t.center());
+		if(r.top()<s.top()){
+			r.moveTop(s.top());
+		}
+		if(r.bottom()>s.bottom()){
+			r.moveBottom(s.bottom());
+		}
+		if(r.left()<s.left()){
+			r.moveLeft(s.left());
+		}
+		if(r.right()>s.right()){
+			r.moveRight(s.right());
+		}
+		setGeometry(r);
+	}
 }
 
 void Interface::dropEvent(QDropEvent *e)

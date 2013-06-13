@@ -391,7 +391,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		Static render;
 		font.setBold(true);
-		font.setPixelSize(comment.font);
+		font.setPixelSize(comment.font*Utils::getSetting("Scale",1.0));
 		QStaticText text(comment.content);
 		text.prepare(QTransform(),font);
 		QSize textSize=text.size().toSize()+QSize(2,2);
