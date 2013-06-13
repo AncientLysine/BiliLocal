@@ -34,11 +34,8 @@ Interface::Interface(QWidget *parent):
 	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Interfacce/icon.png"));
-	render =new Render(this);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
-	render->setVplayer(vplayer);
-	render->setDanmaku(danmaku);
 	menu=new Menu(this);
 	info=new Info(this);
 	info->setModel(danmaku);
@@ -56,10 +53,8 @@ Interface::Interface(QWidget *parent):
 	tv->lower();
 	me->lower();
 	tv->movie()->start();
-	render->lower();
 	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
 	me->setAttribute(Qt::WA_TransparentForMouseEvents);
-	render->setAttribute(Qt::WA_TransparentForMouseEvents);
 	timer=new QTimer(this);
 	power=new QTimer(this);
 	delay=new QTimer(this);
@@ -87,7 +82,7 @@ Interface::Interface(QWidget *parent):
 			danmaku->setTime(time);
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){render->updateDanmaku();});
+	connect(power,&QTimer::timeout,[this](){update();});
 	connect(delay,&QTimer::timeout,[this](){
 		if(vplayer->getState()==VPlayer::Play){
 			setCursor(QCursor(Qt::BlankCursor));
@@ -105,14 +100,28 @@ Interface::Interface(QWidget *parent):
 		}
 		else{
 			sca->setEnabled(true);
-			QRect v(QPoint(0,0),vplayer->getSize()),s=QDesktopWidget().screenGeometry(this);
-			v.moveCenter(geometry().center());
-			if(s.contains(v)){
-				setGeometry(v);
-			}
-			else{
+			QRect v(QPoint(0,0),vplayer->getSize());
+			QRect s(QDesktopWidget().availableGeometry(this));
+			s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+			if(v.width()>=s.width()||v.height()>=s.height()){
 				fullA->toggle();
 				Utils::delayExec(0,[this](){vplayer->setSize(size());});
+			}
+			else{
+				v.moveCenter(geometry().center());
+				if(v.top()<s.top()){
+					v.moveTop(s.top());
+				}
+				if(v.bottom()>s.bottom()){
+					v.moveBottom(s.bottom());
+				}
+				if(v.left()<s.left()){
+					v.moveLeft(s.left());
+				}
+				if(v.right()>s.right()){
+					v.moveRight(s.right());
+				}
+				setGeometry(v);
 			}
 		}
 		sub->clear();
@@ -147,7 +156,7 @@ Interface::Interface(QWidget *parent):
 			setCenter(QSize(960,540),false);
 		}
 	});
-	connect(vplayer,&VPlayer::decoded,[this](){render->updateVplayer();});
+	connect(vplayer,&VPlayer::decoded,[this](){update();});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});
@@ -300,9 +309,18 @@ void Interface::dropEvent(QDropEvent *e)
 	}
 }
 
+void Interface::paintEvent(QPaintEvent *e)
+{
+	QPainter painter;
+	painter.begin(this);
+	vplayer->draw(&painter,rect());
+	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
+	painter.end();
+	QWidget::paintEvent(e);
+}
+
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	render->resize(e->size());
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();

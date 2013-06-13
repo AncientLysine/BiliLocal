@@ -37,7 +37,6 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 #include "Poster.h"
-#include "Render.h"
 
 class Interface:public QWidget
 {
@@ -61,12 +60,12 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
     Poster *poster;
 
 	void dropEvent(QDropEvent *e);
+	void paintEvent(QPaintEvent *e);
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);

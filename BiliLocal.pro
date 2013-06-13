@@ -22,8 +22,7 @@ SOURCES += \
     src/Search.cpp \
     src/Utils.cpp \
     src/Shield.cpp \
-    src/Poster.cpp \
-    src/Render.cpp
+    src/Poster.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -34,8 +33,7 @@ HEADERS  += \
     src/Search.h \
     src/Utils.h \
     src/Shield.h \
-    src/Poster.h \
-    src/Render.h
+    src/Poster.h
 
 LIBS += -L./\
     -lvlc \
