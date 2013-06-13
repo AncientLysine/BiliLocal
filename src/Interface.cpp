@@ -46,7 +46,7 @@ Interface::Interface(QWidget *parent):
 	poster->setDanmaku(danmaku);
 	poster->setVplayer(vplayer);
 	poster->hide();
-	Utils::setCenter(this,QSize(960,540));
+	setCenter(QSize(960,540),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":Interface/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
@@ -105,7 +105,15 @@ Interface::Interface(QWidget *parent):
 		}
 		else{
 			sca->setEnabled(true);
-			Utils::setCenter(this,vplayer->getSize(),false);
+			QRect v(QPoint(0,0),vplayer->getSize()),s=QDesktopWidget().screenGeometry(this);
+			v.moveCenter(geometry().center());
+			if(s.contains(v)){
+				setGeometry(v);
+			}
+			else{
+				fullA->toggle();
+				Utils::delayExec(0,[this](){vplayer->setSize(size());});
+			}
 		}
 		sub->clear();
 		if(!vplayer->getSubtitles().isEmpty()){
@@ -136,7 +144,7 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		if(!isFullScreen()){
-			Utils::setCenter(this,QSize(960,540),false);
+			setCenter(QSize(960,540),false);
 		}
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){render->updateVplayer();});
@@ -240,7 +248,7 @@ Interface::Interface(QWidget *parent):
 			QStringList l=action->text().split(':');
 			s=vplayer->getSize()*l[0].toInt()/l[1].toInt();
 		}
-		Utils::setCenter(this,s,false);
+		setCenter(s,false);
 	});
 
 	top->addActions(info->actions());
@@ -262,6 +270,15 @@ Interface::Interface(QWidget *parent):
 
 
 	Search::initDataBase();
+}
+
+void Interface::setCenter(QSize s,bool f)
+{
+	QRect r;
+	r.setSize(s);
+	QRect t=f?QApplication::desktop()->screenGeometry():geometry();
+	r.moveCenter(t.center());
+	setGeometry(r);
 }
 
 void Interface::dropEvent(QDropEvent *e)

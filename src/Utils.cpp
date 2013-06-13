@@ -112,9 +112,9 @@ Config::Config()
 	insert("Info",probe);
 }
 
-Config::Config(const QJsonObject &o)
+Config::Config(const QJsonObject &o):
+	QJsonObject(o)
 {
-	static_cast<QJsonObject &>(*this)=o;
 }
 
 Config::~Config()
@@ -132,13 +132,22 @@ void Utils::setBack(QWidget *widget,QColor color)
 	widget->setPalette(options);
 }
 
-void Utils::setCenter(QWidget *widget,QSize size,bool move)
+QJsonValue Utils::findConfig(QString name,QJsonObject s)
 {
-	QRect rect;
-	rect.setSize(size);
-	QRect temp=move?QApplication::desktop()->screenGeometry():widget->geometry();
-	rect.moveCenter(temp.center());
-	widget->setGeometry(rect);
+	if(s.contains(name)){
+		return s.value(name);
+	}
+	else{
+		for(auto i:s){
+			if(i.isObject()){
+				auto v=findConfig(name,i.toObject());
+				if(!v.isNull()){
+					return v;
+				}
+			}
+		}
+		return QJsonValue();
+	}
 }
 
 QJsonObject Utils::getConfig(QString area)

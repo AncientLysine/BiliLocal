@@ -27,13 +27,16 @@
 #include "Interface.h"
 #include <QApplication>
 
-int main(int argc, char *argv[])
+int main(int argc,char *argv[])
 {
-	QJsonObject info=Utils::getConfig("Info");
-	if(info.value("Platform").toString()!="Windows 8"){
+	QString platform=Utils::findConfig("Platform").toString();
+	if(platform=="Mac OS"){
+		QApplication::setStyle("Macintosh");
+	}
+	if(platform.startsWith("Windows")&&platform!="Windows 8"){
 		QApplication::setStyle("Fusion");
 	}
-	QApplication a(argc, argv);
+	QApplication a(argc,argv);
 	QDir::setCurrent(QApplication::applicationDirPath());
 	Utils::loadConfig();
 	auto locale=QLocale::system().name();

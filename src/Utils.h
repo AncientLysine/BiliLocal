@@ -30,15 +30,6 @@
 #include <QtCore>
 #include <QtWidgets>
 
-class Config:public QJsonObject
-{
-public:
-	Config();
-	Config(const QJsonObject& o);
-	~Config();
-
-};
-
 struct Comment
 {
 	int mode;
@@ -50,9 +41,19 @@ struct Comment
 };
 Q_DECLARE_METATYPE(Comment)
 
+class Config:public QJsonObject
+{
+public:
+	Config();
+	Config(const QJsonObject& o);
+	~Config();
+};
+
 class Utils
 {
 public:
+	static void setBack(QWidget *widget,QColor color);
+
 	template<class Func>
 	static void delayExec(int time,Func func)
 	{
@@ -80,8 +81,7 @@ public:
 		config["Global"]=o;
 	}
 
-	static void setBack(QWidget *widget,QColor color);
-	static void setCenter(QWidget *widget,QSize size,bool move=true);
+	static QJsonValue findConfig(QString name,QJsonObject s=config);
 	static QJsonObject getConfig(QString area=QString());
 	static void setConfig(QJsonObject _config,QString area=QString(),bool rewrite=false);
 	static void loadConfig();
