@@ -38,26 +38,12 @@
 #include "Danmaku.h"
 #include "Poster.h"
 
-class Render:public QWidget
-{
-	Q_OBJECT
-public:
-	explicit Render(QWidget *parent=0);
-	void setVplayer(VPlayer *_vplayer){vplayer=_vplayer;}
-	void setDanmaku(Danmaku *_danmaku){danmaku=_danmaku;}
-
-private:
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-	void paintEvent(QPaintEvent *e);
-
-};
-
 class Interface:public QWidget
 {
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
+	void setCenter(QSize s,bool f);
 
 private:
 	QLabel *tv;
@@ -69,15 +55,17 @@ private:
 	QAction *fullA;
 	QMenu *top;
 	QMenu *sub;
+	QMenu *rat;
+	QMenu *sca;
 
 	Menu *menu;
 	Info *info;
-	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
     Poster *poster;
 
 	void dropEvent(QDropEvent *e);
+	void paintEvent(QPaintEvent *e);
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);

@@ -172,6 +172,18 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 	return QVariant();
 }
 
+bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
+{
+	if(!parent.isValid()){
+		if(row+count<=danmaku.size()){
+			danmaku.remove(row,count);
+			emit layoutChanged();
+			return true;
+		}
+	}
+	return false;
+}
+
 void Danmaku::reset()
 {
 	for(auto &pool:current){
@@ -225,17 +237,24 @@ void Danmaku::setDm(QString dm)
 	};
 
 	auto sort=[this](){
-		qSort(danmaku.begin(),danmaku.end(),[](const Comment &first,const Comment &second){
-			return first.time<second.time;
+		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
+			return f.time==s.time?f.content<s.content:f.time<s.time;
 		});
 		currentIndex=0;
-		emit loaded();
 		emit layoutChanged();
 	};
 
-	danmaku.clear();
+	auto load=[this](){
+		if(danmaku.size()==0){
+			Utils::delayExec(0,[this](){emit loaded();});
+		}
+	};
+
+	if(Utils::getSetting<bool>("Clear",true)){
+		danmaku.clear();
+		emit layoutChanged();
+	}
 	reset();
-	emit layoutChanged();
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
 	QString i=dm.mid(2,sharp-2);
@@ -302,6 +321,7 @@ void Danmaku::setDm(QString dm)
 					}
 				}
 				else{
+					load();
 					if(s=="av"){
 						bi(reply->readAll());
 					}
@@ -320,6 +340,7 @@ void Danmaku::setDm(QString dm)
 		QFile file(dm);
 		if(file.exists()){
 			file.open(QIODevice::ReadOnly);
+			load();
 			if(dm.endsWith("xml")){
 				bi(file.readAll());
 			}
@@ -370,7 +391,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		Static render;
 		font.setBold(true);
-		font.setPixelSize(comment.font);
+		font.setPixelSize(comment.font*Utils::getSetting("Scale",1.0));
 		QStaticText text(comment.content);
 		text.prepare(QTransform(),font);
 		QSize textSize=text.size().toSize()+QSize(2,2);
@@ -378,7 +399,8 @@ void Danmaku::setTime(qint64 time)
 		switch(comment.mode-1){
 		case 0:
 		{
-			render.speed=100+textSize.width()/5.0+qrand()%50;
+			QString exp=Utils::getSetting<QString>("Speed","125+%1/5");
+			render.speed=engine.evaluate(exp.arg(textSize.width())).toNumber();
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
 			int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -399,7 +421,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 3:
 		{
-			render.life=5;
+			render.life=Utils::getSetting<double>("Life",5);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=render.rect.height();
@@ -420,7 +442,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 4:
 		{
-			render.life=5;
+			render.life=Utils::getSetting<double>("Life",5);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -441,7 +463,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		}
 		if(flag){
-			QImage temp(text.size().toSize()+=QSize(2,2),QImage::Format_ARGB32);
+			QImage temp(textSize,QImage::Format_ARGB32);
 			temp.fill(Qt::transparent);
 			QPainter painter;
 			painter.begin(&temp);

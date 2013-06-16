@@ -85,12 +85,11 @@ void Shield::configure(QWidget *parent)
 bool Shield::isBlocked(const Comment &comment)
 {
 	if(instance){
-		if(instance->block[Whole]
+		if(instance->block[Whole]||comment.mode>5
 				||(comment.mode==1&&instance->block[Slide])
 				||(comment.mode==4&&instance->block[Bottom])
 				||(comment.mode==5&&instance->block[Top])
-				||(comment.sender.startsWith("D")&&instance->block[Guest])
-				||(comment.sender.startsWith("d")&&instance->block[Guest])
+				||(comment.sender.startsWith('D',Qt::CaseInsensitive)&&instance->block[Guest])
 				||(comment.color!=Qt::white&&instance->block[Color])){
 			return true;
 		}
@@ -155,6 +154,8 @@ Editor::Editor(Shield *shield,QWidget *parent):
 	action[0]=new QAction(tr("Add"),this);
 	action[1]=new QAction(tr("Del"),this);
 	action[2]=new QAction(tr("Import"),this);
+	action[1]->setShortcut(QKeySequence("Del"));
+	action[2]->setShortcut(QKeySequence("Ctrl+I"));
 	connect(action[0],&QAction::triggered,[this](){
 		if(!edit->text().isEmpty()){
 			rm->insertRow(rm->rowCount());
@@ -171,7 +172,7 @@ Editor::Editor(Shield *shield,QWidget *parent):
 	});
 	connect(action[2],&QAction::triggered,[this](){
 		QString filter=tr("Sol files (*.sol)");
-		QString file=QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath(),filter);
+		QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath(),filter);
 		if(!file.isEmpty()){
 			import(file);
 		}
@@ -226,7 +227,7 @@ void Editor::dropEvent(QDropEvent *e)
 		QString drop(e->mimeData()->data("text/uri-list"));
 		QStringList list=drop.split('\n');
 		for(QString &item:list){
-			QString file=QUrl(item).toLocalFile().simplified();
+			QString file=QUrl(item).toLocalFile().trimmed();
 			if(file.endsWith(".sol")){
 				import(file);
 			}
