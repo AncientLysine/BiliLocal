@@ -27,21 +27,6 @@
 
 #include "Interface.h"
 
-Render::Render(QWidget *parent):
-	QWidget(parent)
-{
-}
-
-void Render::paintEvent(QPaintEvent *e)
-{
-	QPainter painter;
-	painter.begin(this);
-	vplayer->draw(&painter,rect());
-	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
-	painter.end();
-	QWidget::paintEvent(e);
-}
-
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
@@ -49,11 +34,8 @@ Interface::Interface(QWidget *parent):
 	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Interfacce/icon.png"));
-	render =new Render(this);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
-	render->setVplayer(vplayer);
-	render->setDanmaku(danmaku);
 	menu=new Menu(this);
 	info=new Info(this);
 	info->setModel(danmaku);
@@ -61,7 +43,7 @@ Interface::Interface(QWidget *parent):
 	poster->setDanmaku(danmaku);
 	poster->setVplayer(vplayer);
 	poster->hide();
-	Utils::setCenter(this,QSize(960,540));
+	setCenter(QSize(960,540),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":Interface/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
@@ -71,10 +53,8 @@ Interface::Interface(QWidget *parent):
 	tv->lower();
 	me->lower();
 	tv->movie()->start();
-	render->lower();
 	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
 	me->setAttribute(Qt::WA_TransparentForMouseEvents);
-	render->setAttribute(Qt::WA_TransparentForMouseEvents);
 	timer=new QTimer(this);
 	power=new QTimer(this);
 	delay=new QTimer(this);
@@ -90,9 +70,10 @@ Interface::Interface(QWidget *parent):
 			info->push();
 			setFocus();
 		}
-		if(pos.y()<-50||pos.y()>width()+50){
+		if(pos.y()<-50||pos.y()>height()+50){
 			menu->push();
 			info->push();
+			poster->fadeOut();
 			setFocus();
 		}
 		if(vplayer->getState()==VPlayer::Play){
@@ -101,11 +82,7 @@ Interface::Interface(QWidget *parent):
 			danmaku->setTime(time);
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play){
-			update();
-		}
-	});
+	connect(power,&QTimer::timeout,[this](){update();});
 	connect(delay,&QTimer::timeout,[this](){
 		if(vplayer->getState()==VPlayer::Play){
 			setCursor(QCursor(Qt::BlankCursor));
@@ -122,7 +99,8 @@ Interface::Interface(QWidget *parent):
 			vplayer->setSize(size());
 		}
 		else{
-			Utils::setCenter(this,vplayer->getSize(),false);
+			sca->setEnabled(true);
+			setCenter(vplayer->getSize(),false);
 		}
 		sub->clear();
 		if(!vplayer->getSubtitles().isEmpty()){
@@ -137,6 +115,7 @@ Interface::Interface(QWidget *parent):
 			}
 			sub->addActions(group->actions());
 		}
+		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
 		setPalette(QPalette());
@@ -145,16 +124,27 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->reset();
 		info->setDuration(-1);
-		if(!isFullScreen()){
-			Utils::setCenter(this,QSize(960,540),false);
-		}
 		sub->clear();
 		sub->setEnabled(false);
+		rat->defaultAction()->trigger();
+		rat->setEnabled(false);
+		sca->defaultAction()->setChecked(true);
+		sca->setEnabled(false);
+		if(!isFullScreen()){
+			setCenter(QSize(960,540),false);
+		}
 	});
-	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
+	connect(vplayer,&VPlayer::decoded,[this](){update();});
 	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){menu->setDelay(vplayer->getTime());});
+	connect(danmaku,&Danmaku::loaded,[this](){
+		if(Utils::getSetting("Delay",false)){
+			menu->setDelay(vplayer->getTime());
+		}
+		else{
+			danmaku->jumpToTime(vplayer->getTime());
+		}
+	});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::dfont,danmaku,&Danmaku::setFont);
@@ -178,24 +168,86 @@ Interface::Interface(QWidget *parent):
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
+	addAction(quitA);
 	connect(quitA,&QAction::triggered,this,&QWidget::close);
 
 	fullA=new QAction(tr("Full Screen"),this);
 	fullA->setCheckable(true);
 	fullA->setChecked(false);
 	fullA->setShortcut(QKeySequence("F"));
+	addAction(fullA);
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
+			if(vplayer->getState()!=VPlayer::Stop){
+				sca->setEnabled(true);
+			}
 		}
 		else{
 			showFullScreen();
+			sca->setEnabled(false);
 		}
 	});
+
+
 	top=new QMenu(this);
+	sub=new QMenu(tr("Subtitle"),top);
+	sub->setEnabled(false);
+	connect(sub,&QMenu::triggered,[this](QAction *action){
+		vplayer->setSubTitle(action->text());
+	});
+
+	QActionGroup *g;
+	rat=new QMenu(tr("Ratio"),top);
+	rat->setEnabled(false);
+	g=new QActionGroup(rat);
+	rat->setDefaultAction(g->addAction(tr("Default")));
+	g->addAction("4:3");
+	g->addAction("16:9");
+	g->addAction("16:10");
+	for(QAction *a:g->actions()){
+		a->setCheckable(true);
+	}
+	rat->defaultAction()->setChecked(true);
+	rat->addActions(g->actions());
+	connect(rat,&QMenu::triggered,[this](QAction *action){
+		QSize c=vplayer->getSize(VPlayer::Destinate);
+		if(action->text()==tr("Default")){
+			vplayer->setRatio(0);
+		}
+		else{
+			QStringList l=action->text().split(':');
+			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
+		}
+		QSize n=vplayer->getSize(VPlayer::Scaled);
+		setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+	});
+
+	sca=new QMenu(tr("Scale"),top);
+	sca->setEnabled(false);
+	g=new QActionGroup(sca);
+	g->addAction("1:4");
+	g->addAction("1:2");
+	sca->setDefaultAction(g->addAction("1:1"));
+	g->addAction("2:1");
+	for(QAction *a:g->actions()){
+		a->setCheckable(true);
+	}
+	sca->defaultAction()->setChecked(true);
+	sca->addActions(g->actions());
+	connect(sca,&QMenu::triggered,[this](QAction *action){
+		QStringList l=action->text().split(':');
+		QSize s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
+		setCenter(s,false);
+	});
+
 	top->addActions(info->actions());
 	top->addAction(fullA);
 	top->addActions(menu->actions());
+	top->addMenu(sub);
+	top->addMenu(sca);
+	top->addMenu(rat);
+	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
 		bool flag=true;
@@ -205,15 +257,40 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
-	sub=new QMenu(tr("Subtitle"),top);
-	sub->setEnabled(false);
-	top->addMenu(sub);
-	top->addAction(quitA);
-	connect(sub,&QMenu::triggered,[this](QAction *action){
-		vplayer->setSubTitle(action->text());
-	});
+
 
 	Search::initDataBase();
+}
+
+void Interface::setCenter(QSize _s,bool f)
+{
+	QSize m=minimumSize();
+	int mw=m.width(),mh=m.height(),sw=_s.width(),sh=_s.height();
+	QRect r;
+	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
+	QRect s=QDesktopWidget().availableGeometry(this);
+	QRect t=f?QApplication::desktop()->screenGeometry():geometry();
+	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	if(r.width()>=s.width()||r.height()>=s.height()){
+		fullA->toggle();
+		Utils::delayExec(0,[this](){vplayer->setSize(size());});
+	}
+	else{
+		r.moveCenter(t.center());
+		if(r.top()<s.top()){
+			r.moveTop(s.top());
+		}
+		if(r.bottom()>s.bottom()){
+			r.moveBottom(s.bottom());
+		}
+		if(r.left()<s.left()){
+			r.moveLeft(s.left());
+		}
+		if(r.right()>s.right()){
+			r.moveRight(s.right());
+		}
+		setGeometry(r);
+	}
 }
 
 void Interface::dropEvent(QDropEvent *e)
@@ -222,7 +299,7 @@ void Interface::dropEvent(QDropEvent *e)
 		QString drop(e->mimeData()->data("text/uri-list"));
 		QStringList list=drop.split('\n');
 		for(QString &item:list){
-			QString file=QUrl(item).toLocalFile().simplified();
+			QString file=QUrl(item).toLocalFile().trimmed();
 			if(QFile::exists(file)){
 				if(file.endsWith(".xml")||file.endsWith(".json")){
 					menu->setDm(file);
@@ -235,9 +312,18 @@ void Interface::dropEvent(QDropEvent *e)
 	}
 }
 
+void Interface::paintEvent(QPaintEvent *e)
+{
+	QPainter painter;
+	painter.begin(this);
+	vplayer->draw(&painter,rect());
+	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
+	painter.end();
+	QWidget::paintEvent(e);
+}
+
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	render->resize(e->size());
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();
@@ -252,17 +338,18 @@ void Interface::resizeEvent(QResizeEvent *e)
 void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
+	int jmp=Utils::getSetting<int>("Interval",10000);
 	if(key==Qt::Key_Escape&&isFullScreen()){
 		fullA->toggle();
 	}
 	if(key==Qt::Key_Left){
 		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()-10000);
+			vplayer->setTime(vplayer->getTime()-jmp);
 		}
 	}
 	if(key==Qt::Key_Right){
 		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()+10000);
+			vplayer->setTime(vplayer->getTime()+jmp);
 		}
 	}
 	QWidget::keyPressEvent(e);

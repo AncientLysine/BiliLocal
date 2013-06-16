@@ -63,6 +63,7 @@ VPlayer::VPlayer(QObject *parent) :
 	swsctx=NULL;
 	state=Stop;
 	valid=false;
+	ratio=0;
 	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
 }
 
@@ -90,9 +91,28 @@ uchar *VPlayer::getDst()
 	return (uchar *)*dstFrame.data;
 }
 
-QSize VPlayer::getSize()
+QSize VPlayer::getSize(int t)
 {
-	return srcSize;
+	switch(t){
+	case Scaled:
+	{
+		if(ratio==0){
+			return srcSize;
+		}
+		else{
+			int w=srcSize.width(),h=srcSize.height();
+			return h*ratio>w?QSize(w,w/ratio):QSize(h*ratio,h);
+		}
+	}
+	case Destinate:
+	{
+		return dstSize;
+	}
+	default:
+	{
+		return srcSize;
+	}
+	}
 }
 
 qint64 VPlayer::getTime()
@@ -185,7 +205,7 @@ void VPlayer::play()
 			valid=true;
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			Utils::delayExec(this,50,[this](){libvlc_media_player_play(mp);});
+			Utils::delayExec(50,[this](){libvlc_media_player_play(mp);});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -204,8 +224,9 @@ void VPlayer::stop()
 {
 	if(mp){
 		if(state!=Stop){
+			state=Invalid;
 			libvlc_media_player_stop(mp);
-			Utils::delayExec(this,50,[this](){
+			Utils::delayExec(50,[this](){
 				state=Stop;
 				frame=QPixmap();
 				subtitle.clear();
@@ -219,7 +240,14 @@ void VPlayer::setSize(QSize _size)
 {
 	mutex.lock();
 	auto _dstSize=dstSize;
-	dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
+	if(ratio>0){
+		int w=_size.width(),h=_size.height()*ratio;
+		int sw=w>h?h:w;
+		dstSize=QSize(sw,sw/ratio);
+	}
+	else{
+		dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
+	}
 	dstSize/=4;
 	dstSize*=4;
 	if(_dstSize!=dstSize){
@@ -260,6 +288,11 @@ void VPlayer::setFile(QString _file)
 	}
 }
 
+void VPlayer::setRatio(double _ratio)
+{
+	ratio=_ratio;
+}
+
 void VPlayer::setVolume(int _volume)
 {
 	if(mp){
@@ -283,8 +316,8 @@ void VPlayer::emitFrame(QImage _frame)
 	if(state==Play){
 		frame=QPixmap::fromImage(_frame);
 		emit decoded();
-	}
-	if(getDuration()-getTime()<500){
-		stop();
+		if(getDuration()-getTime()<500){
+			stop();
+		}
 	}
 }

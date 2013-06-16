@@ -106,6 +106,8 @@ Menu::Menu(QWidget *parent) :
 	connect(fileB,&QPushButton::clicked,fileA,&QAction::trigger);
 	connect(danmB,&QPushButton::clicked,danmA,&QAction::trigger);
 	connect(sechB,&QPushButton::clicked,sechA,&QAction::trigger);
+	connect(danmL,&QLineEdit::returnPressed,danmA,&QAction::trigger);
+	connect(sechL,&QLineEdit::returnPressed,sechA,&QAction::trigger);
 	alphaT=new QLabel(this);
 	alphaT->setGeometry(QRect(10,145,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));
@@ -197,7 +199,7 @@ Menu::Menu(QWidget *parent) :
 #ifdef Q_OS_WIN
 	fontC->setCurrentText("黑体");
 #endif
-	Utils::delayExec(this,0,[this](){
+	Utils::delayExec(0,[this](){
 		QJsonObject menu=Utils::getConfig("Menu");
 		if(!menu.isEmpty()){
 			alphaS->setValue(menu["Alpha"].toDouble());
@@ -209,7 +211,7 @@ Menu::Menu(QWidget *parent) :
 		}
 	});
 	if(QApplication::arguments().count()>=2){
-		Utils::delayExec(this,0,[this](){
+		Utils::delayExec(0,[this](){
 			setFile(QApplication::arguments()[1]);
 		});
 	}

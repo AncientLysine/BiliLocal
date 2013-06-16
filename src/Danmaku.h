@@ -31,6 +31,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
+#include <QtScript>
 #include "Utils.h"
 #include "Shield.h"
 
@@ -54,6 +55,7 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
+	bool removeRows(int row,int count,const QModelIndex &parent);
 	QString getCid(){return cid;}
 
 private:
@@ -67,6 +69,7 @@ private:
 	QTime last;
 	QString cid;
 	Shield shield;
+	QScriptEngine engine;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 
