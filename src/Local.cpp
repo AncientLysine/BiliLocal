@@ -31,6 +31,7 @@ int main(int argc,char *argv[])
 {
 	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
+	QDir::setCurrent(a.applicationDirPath());
 	QString locale=QLocale::system().name();
 	QTranslator myTrans;
 	myTrans.load(locale+".qm","./translations");
@@ -38,7 +39,6 @@ int main(int argc,char *argv[])
 	qtTrans.load(locale+".qt.qm","./translations");
 	a.installTranslator(&myTrans);
 	a.installTranslator(&qtTrans);
-	QDir::setCurrent(a.applicationDirPath());
 	Utils::loadConfig();
 	Interface w;
 	w.show();
