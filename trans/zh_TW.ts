@@ -19,12 +19,12 @@
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="256"/>
+        <location filename="../src/Danmaku.cpp" line="276"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="257"/>
+        <location filename="../src/Danmaku.cpp" line="277"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
@@ -63,13 +63,13 @@
     </message>
     <message>
         <location filename="../src/Shield.cpp" line="155"/>
-        <location filename="../src/Shield.cpp" line="181"/>
+        <location filename="../src/Shield.cpp" line="183"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
         <location filename="../src/Shield.cpp" line="156"/>
-        <location filename="../src/Shield.cpp" line="182"/>
+        <location filename="../src/Shield.cpp" line="184"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
@@ -79,12 +79,12 @@
         <translation>導入</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="173"/>
+        <location filename="../src/Shield.cpp" line="175"/>
         <source>Sol files (*.sol)</source>
         <translation>Sol文件 (*.sol)</translation>
     </message>
     <message>
-        <location filename="../src/Shield.cpp" line="174"/>
+        <location filename="../src/Shield.cpp" line="176"/>
         <source>Import File</source>
         <translation>導入文件</translation>
     </message>
@@ -103,7 +103,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="71"/>
-        <location filename="../src/Info.cpp" line="179"/>
+        <location filename="../src/Info.cpp" line="185"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -123,7 +123,12 @@
         <translation>編輯屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="179"/>
+        <location filename="../src/Info.cpp" line="111"/>
+        <source>Clear Danmaku Pool</source>
+        <translation>清除彈幕池</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="185"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
@@ -131,19 +136,34 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="179"/>
+        <location filename="../src/Interface.cpp" line="186"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="183"/>
+        <location filename="../src/Interface.cpp" line="191"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="208"/>
+        <location filename="../src/Interface.cpp" line="211"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="218"/>
+        <source>Ratio</source>
+        <translation>寬高比</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="221"/>
+        <source>Default</source>
+        <translation>默認</translation>
+    </message>
+    <message>
+        <location filename="../src/Interface.cpp" line="241"/>
+        <source>Scale</source>
+        <translation>縮放</translation>
     </message>
 </context>
 <context>
@@ -227,17 +247,27 @@
 <context>
     <name>Poster</name>
     <message>
-        <location filename="../src/Poster.cpp" line="67"/>
+        <location filename="../src/Poster.cpp" line="68"/>
+        <source>Network error occurred, error code: %1</source>
+        <translation>出現網絡錯誤，錯誤代碼：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="69"/>
+        <source>Network Error</source>
+        <translation>網絡錯誤</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="73"/>
         <source>Post</source>
         <translation>發送</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="117"/>
+        <location filename="../src/Poster.cpp" line="123"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="117"/>
+        <location filename="../src/Poster.cpp" line="123"/>
         <source>Empty cid.</source>
         <translation>空 cid.</translation>
     </message>
@@ -370,12 +400,12 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="133"/>
+        <location filename="../src/VPlayer.cpp" line="134"/>
         <source>Track</source>
         <translation>軌道</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="134"/>
+        <location filename="../src/VPlayer.cpp" line="135"/>
         <source>Disable</source>
         <translation>關閉</translation>
     </message>

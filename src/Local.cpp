@@ -27,22 +27,19 @@
 #include "Interface.h"
 #include <QApplication>
 
-int main(int argc, char *argv[])
+int main(int argc,char *argv[])
 {
-	QJsonObject info=Utils::getConfig("Info");
-	if(info.value("Platform").toString()!="Windows 8"){
-		QApplication::setStyle("Fusion");
-	}
-	QApplication a(argc, argv);
-	QDir::setCurrent(QApplication::applicationDirPath());
-	Utils::loadConfig();
-	auto locale=QLocale::system().name();
+	QApplication::setStyle("Fusion");
+	QApplication a(argc,argv);
+	QString locale=QLocale::system().name();
 	QTranslator myTrans;
 	myTrans.load(locale+".qm","./translations");
 	QTranslator qtTrans;
 	qtTrans.load(locale+".qt.qm","./translations");
 	a.installTranslator(&myTrans);
 	a.installTranslator(&qtTrans);
+	QDir::setCurrent(a.applicationDirPath());
+	Utils::loadConfig();
 	Interface w;
 	w.show();
 	return a.exec();
