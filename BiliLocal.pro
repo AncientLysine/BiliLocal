@@ -35,13 +35,11 @@ HEADERS  += \
     src/Shield.h \
     src/Poster.h
 
-LIBS += -L./\
+LIBS += \
     -lvlc \
     -lvlccore \
     -lavutil \
     -lswscale
-
-INCLUDEPATH += include/
 
 RESOURCES += \
     res/Res.qrc

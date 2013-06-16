@@ -33,10 +33,10 @@
 
 extern "C"
 {
-#include "vlc/vlc.h"
-#include "libavcodec/avcodec.h"
-#include "libavutil/imgutils.h"
-#include "libswscale/swscale.h"
+#include <vlc/vlc.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 }
 
 class VPlayer:public QObject

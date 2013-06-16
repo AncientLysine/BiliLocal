@@ -211,6 +211,7 @@ Interface::Interface(QWidget *parent):
 	rat->defaultAction()->setChecked(true);
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
+		QSize c=vplayer->getSize(VPlayer::Destinate);
 		if(action->text()==tr("Default")){
 			vplayer->setRatio(0);
 		}
@@ -218,7 +219,8 @@ Interface::Interface(QWidget *parent):
 			QStringList l=action->text().split(':');
 			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
-		vplayer->setSize(size());
+		QSize n=vplayer->getSize(VPlayer::Scaled);
+		setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
 	});
 
 	sca=new QMenu(tr("Scale"),top);
@@ -234,14 +236,8 @@ Interface::Interface(QWidget *parent):
 	sca->defaultAction()->setChecked(true);
 	sca->addActions(g->actions());
 	connect(sca,&QMenu::triggered,[this](QAction *action){
-		QSize s;
-		if(action->text()=="1:1"){
-			s=vplayer->getSize(VPlayer::Scaled);
-		}
-		else{
-			QStringList l=action->text().split(':');
-			s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
-		}
+		QStringList l=action->text().split(':');
+		QSize s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
 		setCenter(s,false);
 	});
 

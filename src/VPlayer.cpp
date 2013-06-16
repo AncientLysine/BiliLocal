@@ -96,8 +96,13 @@ QSize VPlayer::getSize(int t)
 	switch(t){
 	case Scaled:
 	{
-		int w=srcSize.width(),h=srcSize.height();
-		return h*ratio>w?QSize(w,w/ratio):QSize(h*ratio,h);
+		if(ratio==0){
+			return srcSize;
+		}
+		else{
+			int w=srcSize.width(),h=srcSize.height();
+			return h*ratio>w?QSize(w,w/ratio):QSize(h*ratio,h);
+		}
 	}
 	case Destinate:
 	{
