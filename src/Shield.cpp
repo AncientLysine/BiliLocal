@@ -171,8 +171,7 @@ Editor::Editor(Shield *shield,QWidget *parent):
 		}
 	});
 	connect(action[2],&QAction::triggered,[this](){
-		QString filter=tr("Sol files (*.sol)");
-		QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath(),filter);
+		QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath());
 		if(!file.isEmpty()){
 			import(file);
 		}
@@ -201,6 +200,7 @@ void Editor::import(QString path)
 		file.close();
 		QRegExp del(QString("[")+QChar(0)+"-"+QChar(31)+"]");
 		all.replace(del," ");
+		all.replace("</item>"," ");
 		all=all.simplified();
 		QRegExp fix("[tu]\\=\\S*");
 		int cur=0;
