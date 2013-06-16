@@ -27,39 +27,19 @@
 #include "Interface.h"
 #include <QApplication>
 
-static void initialize()
-{
-	Utils::loadConfig();
-	QString force=Utils::getSetting<QString>("Style","Auto");
-	if(force=="Auto"){
-		QString platform=Utils::findConfig("Platform").toString();
-		if(platform=="Mac OS"){
-			QApplication::setStyle("Macintosh");
-		}
-		if(platform.startsWith("Windows")&&platform!="Windows 8"){
-			QApplication::setStyle("Fusion");
-		}
-		if(platform.indexOf("Linux",0,Qt::CaseInsensitive)!=-1){
-			QApplication::setStyle("Fusion");
-		}
-	}
-	else{
-		QApplication::setStyle(force);
-	}
-	QString locale=QLocale::system().name();
-	QTranslator *myTrans=new QTranslator;
-	myTrans->load(locale+".qm","./translations");
-	QTranslator *qtTrans=new QTranslator;
-	qtTrans->load(locale+".qt.qm","./translations");
-	QApplication::installTranslator(myTrans);
-	QApplication::installTranslator(qtTrans);
-}
-
 int main(int argc,char *argv[])
 {
+	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
-	QDir::setCurrent(QApplication::applicationDirPath());
-	initialize();
+	QString locale=QLocale::system().name();
+	QTranslator myTrans;
+	myTrans.load(locale+".qm","./translations");
+	QTranslator qtTrans;
+	qtTrans.load(locale+".qt.qm","./translations");
+	a.installTranslator(&myTrans);
+	a.installTranslator(&qtTrans);
+	QDir::setCurrent(a.applicationDirPath());
+	Utils::loadConfig();
 	Interface w;
 	w.show();
 	return a.exec();

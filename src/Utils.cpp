@@ -25,91 +25,11 @@
 =========================================================================*/
 
 #include "Utils.h"
-#ifdef Q_OS_LINUX
-#include <sys/utsname.h>
-#endif
-#ifdef Q_OS_WIN
-#include "windows.h"
-#endif
 
 Config Utils::config;
 
 Config::Config()
 {
-    QJsonObject probe;
-    QString platform;
-#ifdef Q_OS_LINUX
-	probe.insert("Architecture",QString("Linux64"));
-	struct utsname v;
-	if(uname(&v)>=0){
-		platform="%1 %2 %3";
-		platform=platform.arg(v.sysname,v.release,v.machine);
-	}
-#endif
-#ifdef Q_OS_WIN
-	probe.insert("Architecture",QString("Win32"));
-	SYSTEM_INFO info;
-	GetSystemInfo(&info);
-	OSVERSIONINFOEX os;
-	os.dwOSVersionInfoSize=sizeof(OSVERSIONINFOEX);
-	if(GetVersionEx((OSVERSIONINFO *)&os))
-	{
-		switch(os.dwMajorVersion){
-		case 5:
-			switch(os.dwMinorVersion){
-			case 0:
-				platform="Windows 2000";
-				break;
-			case 1:
-				platform="Windows XP";
-				break;
-			case 2:
-				if(GetSystemMetrics(SM_SERVERR2)==0){
-					platform="Windows Server 2003";
-				}
-				else{
-					platform="Windows Server 2003 R2";
-				}
-				break;
-			}
-			break;
-		case 6:
-			switch(os.dwMinorVersion){
-			case 0:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows Vista";
-				}
-				else{
-					platform="Windows Server 2008";
-				}
-				break;
-			case 1:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows 7";
-				}
-				else{
-					platform="Windows Server 2008 R2";
-				}
-				break;
-			case 2:
-				if(os.wProductType==VER_NT_WORKSTATION){
-					platform="Windows 8";
-				}
-				else{
-					platform="Windows Server 2012";
-				}
-				break;
-			}
-			break;
-		}
-	}
-#endif
-#ifdef Q_OS_MAC
-    platform="Mac OS";
-#endif
-	platform=platform.isEmpty()?"Unknown":platform;
-	probe.insert("Platform",platform);
-	insert("Info",probe);
 }
 
 Config::Config(const QJsonObject &o):
