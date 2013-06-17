@@ -26,24 +26,7 @@
 
 #include "Utils.h"
 
-Config Utils::config;
-
-Config::Config()
-{
-}
-
-Config::Config(const QJsonObject &o):
-	QJsonObject(o)
-{
-}
-
-Config::~Config()
-{
-	QFile conf("./Config.txt");
-	conf.open(QIODevice::WriteOnly|QIODevice::Text);
-	conf.write(QJsonDocument(*this).toJson());
-	conf.close();
-}
+QJsonObject Utils::config;
 
 void Utils::setBack(QWidget *widget,QColor color)
 {
@@ -52,65 +35,19 @@ void Utils::setBack(QWidget *widget,QColor color)
 	widget->setPalette(options);
 }
 
-QJsonValue Utils::findConfig(QString name,QJsonObject s)
-{
-	if(s.contains(name)){
-		return s.value(name);
-	}
-	else{
-		for(auto i:s){
-			if(i.isObject()){
-				auto v=findConfig(name,i.toObject());
-				if(!v.isNull()){
-					return v;
-				}
-			}
-		}
-		return QJsonValue();
-	}
-}
-
-QJsonObject Utils::getConfig(QString area)
-{
-	if(area.isEmpty()){
-		return config;
-	}
-	else if(config.contains(area)){
-		return config[area].toObject();
-	}
-	else{
-		return QJsonObject();
-	}
-}
-
-void Utils::setConfig(QJsonObject _config,QString area,bool rewrite)
-{
-	if(area.isEmpty()){
-		config=rewrite?_config:unionObject(_config,config);
-	}
-	else{
-		config[area]=rewrite?_config:unionObject(_config,config[area].toObject());
-	}
-}
-
 void Utils::loadConfig()
 {
 	QFile conf("./Config.txt");
 	conf.open(QIODevice::ReadOnly|QIODevice::Text);
-	auto read=QJsonDocument::fromJson(conf.readAll()).object();
+	config=QJsonDocument::fromJson(conf.readAll()).object();
 	conf.close();
-	config=unionObject(config,read);
 }
 
-QJsonObject Utils::unionObject(QJsonObject f,QJsonObject s)
+void Utils::saveConfig()
 {
-	for(auto iter=s.begin();iter!=s.end();++iter){
-		if(!f.contains(iter.key())){
-			f[iter.key()]=iter.value();
-		}
-		else if(f[iter.key()].isObject()){
-			f[iter.key()]=unionObject(f[iter.key()].toObject(),s[iter.key()].toObject());
-		}
-	}
-	return f;
+	QFile conf("./Config.txt");
+	conf.open(QIODevice::WriteOnly|QIODevice::Text);
+	conf.write(QJsonDocument(config).toJson());
+	conf.close();
 }
+

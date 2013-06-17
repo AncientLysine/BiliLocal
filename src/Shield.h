@@ -34,38 +34,12 @@ class Shield
 {
 public:
 	enum {Top,Bottom,Slide,Guest,Color,Whole};
-	Shield();
-	~Shield();
-	bool block[6];
-	QList<QString> shieldU;
-	QList<QRegExp> shieldR;
-	static Shield *instance;
-	static void configure(QWidget *parent=0);
+	static bool block[6];
+	static QList<QString> shieldU;
+	static QList<QRegExp> shieldR;
+	static void init();
+	static void free();
 	static bool isBlocked(const Comment &comment);
-	static bool setEnabled(quint8 t,bool enabled);
-};
-
-class Editor:public QDialog
-{
-	Q_OBJECT
-public:
-	explicit Editor(Shield *shield,QWidget *parent=0);
-	QStringList getRegexp() const {return rm->stringList();}
-	QStringList getSender() const {return sm->stringList();}
-	void import(QString path);
-
-private:
-	QLineEdit *edit;
-	QCheckBox *check[6];
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[3];
-	QPushButton *button[2];
-
-	void dropEvent(QDropEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
 };
 
 #endif // SHIELD_H

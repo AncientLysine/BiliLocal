@@ -59,16 +59,11 @@ public:
 	QString getCid(){return cid;}
 
 private:
-	int currentIndex;
-	bool sub;
-	double alpha;
+	qint32 cur;
 	qint64 delay;
-
-	QFont font;
 	QSize size;
 	QTime last;
 	QString cid;
-	Shield shield;
 	QScriptEngine engine;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
@@ -82,10 +77,7 @@ public slots:
 	void setDm(QString dm);
 	void setTime(qint64 time);
 	void setSize(QSize _size);
-	void setFont(QString _font);
-	void setAlpha(double _alpha);
 	void setDelay(qint64 _delay);
-	void setProtect(bool enabled);
 	void jumpToTime(qint64 time);
 };
 

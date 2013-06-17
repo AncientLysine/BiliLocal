@@ -30,16 +30,8 @@ Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
 	setSize(QSize(960,540));
-	currentIndex=0;
-	alpha=1;
+	cur=0;
 	delay=0;
-#ifdef Q_OS_LINUX
-	font.setFamily("文泉驿正黑");
-#endif
-#ifdef Q_OS_WIN
-	font.setFamily("黑体");
-#endif
-	sub=false;
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
@@ -189,7 +181,7 @@ void Danmaku::reset()
 	for(auto &pool:current){
 		pool.clear();
 	}
-	currentIndex=0;
+	cur=0;
 	setLast();
 }
 
@@ -240,7 +232,7 @@ void Danmaku::setDm(QString dm)
 		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
 			return f.time==s.time?f.content<s.content:f.time<s.time;
 		});
-		currentIndex=0;
+		cur=0;
 		emit layoutChanged();
 	};
 
@@ -250,7 +242,7 @@ void Danmaku::setDm(QString dm)
 		}
 	};
 
-	if(Utils::getSetting<bool>("Clear",true)){
+	if(Utils::getConfig("/Danmaku/Clear",true)){
 		danmaku.clear();
 		emit layoutChanged();
 	}
@@ -383,23 +375,25 @@ void Danmaku::setTime(qint64 time)
 			return false;
 		}
 	};
-	for(;currentIndex<danmaku.size()&&danmaku[currentIndex].time+delay<time;++currentIndex){
+	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
 		QCoreApplication::processEvents();
-		Comment &comment=danmaku[currentIndex];
+		Comment &comment=danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
 		}
 		Static render;
+		QFont font;
 		font.setBold(true);
-		font.setPixelSize(comment.font*Utils::getSetting("Scale",1.0));
+		font.setFamily(Utils::getConfig<QString>("/Danmaku/Font"));
+		font.setPixelSize(comment.font*Utils::getConfig("/Danmaku/Scale",1.0));
 		QStaticText text(comment.content);
 		text.prepare(QTransform(),font);
 		QSize textSize=text.size().toSize()+QSize(2,2);
-		bool flag=false;
+		bool flag=false,sub=Utils::getConfig("/Danmaku/Protect",false);
 		switch(comment.mode-1){
 		case 0:
 		{
-			QString exp=Utils::getSetting<QString>("Speed","125+%1/5");
+			QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%1/5");
 			render.speed=engine.evaluate(exp.arg(textSize.width())).toNumber();
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
@@ -421,7 +415,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 3:
 		{
-			render.life=Utils::getSetting<double>("Life",5);
+			render.life=Utils::getConfig("/Danmaku/Life",5.0);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=render.rect.height();
@@ -442,7 +436,7 @@ void Danmaku::setTime(qint64 time)
 		}
 		case 4:
 		{
-			render.life=Utils::getSetting<double>("Life",5);
+			render.life=Utils::getConfig("/Danmaku/Life",5.0);
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveCenter(QPoint(size.width()/2,0));
 			int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -479,6 +473,7 @@ void Danmaku::setTime(qint64 time)
 			draw(edge,QPoint(0,-1));
 			draw(comment.color,QPoint(0,0));
 			painter.end();
+			double alpha=Utils::getConfig("/Danmaku/Alpha",1.0);
 			if(alpha!=1){
 				int w=temp.width();
 				int h=temp.height();
@@ -500,27 +495,12 @@ void Danmaku::setSize(QSize _size)
 	size=_size;
 }
 
-void Danmaku::setFont(QString _font)
-{
-	font.setFamily(_font);
-}
-
-void Danmaku::setAlpha(double _alpha)
-{
-	alpha=_alpha;
-}
-
 void Danmaku::setDelay(qint64 _delay)
 {
 	delay=_delay;
 }
 
-void Danmaku::setProtect(bool enabled)
-{
-	sub=enabled;
-}
-
 void Danmaku::jumpToTime(qint64 time)
 {
-	for(currentIndex=0;currentIndex<danmaku.size()&&danmaku[currentIndex].time+delay<time;++currentIndex);
+	for(cur=0;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur);
 }

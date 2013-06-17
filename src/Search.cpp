@@ -160,6 +160,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						query.addBindValue(item["pic"].toString());
 						query.exec();
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
+						row->setSizeHint(0,QSize(120,92));
 						auto time=[](){
 							quint64 _time=0;
 							_time+=QDate(2000,1,1).daysTo(QDate::currentDate());

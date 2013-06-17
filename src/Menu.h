@@ -38,7 +38,6 @@ class Menu:public QWidget
 	Q_OBJECT
 public:
 	explicit Menu(QWidget *parent=0);
-	~Menu();
 	bool isPopped(){return isPop;}
 
 private:
@@ -73,10 +72,7 @@ signals:
 	void open(QString file);
 	void load(QString danm);
 	void power(qint16 _power);
-	void alpha(double _alpha);
 	void delay(qint64 _delay);
-	void dfont(QString _font);
-	void protect(bool _protect);
 
 public slots:
 	void pop();

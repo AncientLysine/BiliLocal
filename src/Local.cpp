@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Shield.h"
 #include "Interface.h"
 #include <QApplication>
 
@@ -40,7 +41,11 @@ int main(int argc,char *argv[])
 	a.installTranslator(&myTrans);
 	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
+	Shield::init();
 	Interface w;
 	w.show();
-	return a.exec();
+	int ret=a.exec();
+	Shield::free();
+	Utils::saveConfig();
+	return ret;
 }
