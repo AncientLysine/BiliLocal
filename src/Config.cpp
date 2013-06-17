@@ -42,8 +42,8 @@ Config::Config(QWidget *parent,int index):
 
 		auto l=new QHBoxLayout;
 		play[1]=new QLineEdit(widget[0]);
-		play[1]->setText(QString::number(Utils::getConfig("/Danmaku/Life",5),'g',2));
-		connect(play[0],&QLineEdit::returnPressed,[this](){
+		play[1]->setText(QString::number(Utils::getConfig("/Danmaku/Life",5),'f',2));
+		connect(play[1],&QLineEdit::returnPressed,[this](){
 			Utils::setConfig("/Danmaku/Life",play[1]->text().toDouble());
 		});
 		l->addWidget(play[1]);
@@ -53,9 +53,9 @@ Config::Config(QWidget *parent,int index):
 
 		auto e=new QHBoxLayout;
 		play[2]=new QLineEdit(widget[0]);
-		play[2]->setText(QString::number(Utils::getConfig("/Danmaku/Scale",1.0),'g',2));
-		connect(play[0],&QLineEdit::returnPressed,[this](){
-			Utils::setConfig("/Danmaku/Scale",play[1]->text().toDouble());
+		play[2]->setText(QString::number(Utils::getConfig("/Danmaku/Scale",1.0),'f',2));
+		connect(play[2],&QLineEdit::returnPressed,[this](){
+			Utils::setConfig("/Danmaku/Scale",play[2]->text().toDouble());
 		});
 		e->addWidget(play[2]);
 		box[3]=new QGroupBox(tr("force scale"),widget[0]);
