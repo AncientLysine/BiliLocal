@@ -245,7 +245,7 @@ void Menu::setFile(QString _file)
 	lastPath=_file.mid(0,_file.lastIndexOf("/"));
 	_file=QDir::toNativeSeparators(_file);
 	fileL->setText(_file);
-	Utils::setConfig("/Danmaku/Path",lastPath);
+	Utils::setConfig("/Playing/Path",lastPath);
 	emit open(_file);
 }
 

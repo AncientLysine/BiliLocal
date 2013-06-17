@@ -18,9 +18,9 @@ private:
 	QWidget *widget[4];
 
 	//Playing
-	QGroupBox *box[4];
+	QGroupBox *box[5];
 	QCheckBox *danm[2];
-	QLineEdit *play[3];
+	QLineEdit *play[4];
 
 	//Shiled
 	QLineEdit *edit;

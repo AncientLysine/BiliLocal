@@ -3,7 +3,7 @@
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
 {
-	resize(480,400);
+	resize(540,450);
 	setWindowTitle(tr("Config"));
 	auto outer=new QGridLayout(this);
 	tab=new QTabWidget(this);
@@ -32,7 +32,7 @@ Config::Config(QWidget *parent,int index):
 		auto s=new QHBoxLayout;
 		play[0]=new QLineEdit(widget[0]);
 		play[0]->setText(Utils::getConfig("/Danmaku/Speed",QString("125+%1/5")));
-		connect(play[0],&QLineEdit::returnPressed,[this](){
+		connect(play[0],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Danmaku/Speed",play[0]->text());
 		});
 		s->addWidget(play[0]);
@@ -43,7 +43,7 @@ Config::Config(QWidget *parent,int index):
 		auto l=new QHBoxLayout;
 		play[1]=new QLineEdit(widget[0]);
 		play[1]->setText(QString::number(Utils::getConfig("/Danmaku/Life",5),'f',2));
-		connect(play[1],&QLineEdit::returnPressed,[this](){
+		connect(play[1],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Danmaku/Life",play[1]->text().toDouble());
 		});
 		l->addWidget(play[1]);
@@ -54,13 +54,24 @@ Config::Config(QWidget *parent,int index):
 		auto e=new QHBoxLayout;
 		play[2]=new QLineEdit(widget[0]);
 		play[2]->setText(QString::number(Utils::getConfig("/Danmaku/Scale",1.0),'f',2));
-		connect(play[2],&QLineEdit::returnPressed,[this](){
+		connect(play[2],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Danmaku/Scale",play[2]->text().toDouble());
 		});
 		e->addWidget(play[2]);
 		box[3]=new QGroupBox(tr("force scale"),widget[0]);
 		box[3]->setLayout(e);
 		list->addWidget(box[3]);
+
+		auto j=new QHBoxLayout;
+		play[3]=new QLineEdit(widget[0]);
+		play[3]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
+		connect(play[3],&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Playing/Interval",play[3]->text().toDouble());
+		});
+		j->addWidget(play[3]);
+		box[4]=new QGroupBox(tr("skip time"),widget[0]);
+		box[4]->setLayout(j);
+		list->addWidget(box[4]);
 
 		tab->addTab(widget[0],tr("Playing"));
 	}
@@ -138,7 +149,7 @@ Config::Config(QWidget *parent,int index):
 		r->addLayout(b);
 		r->addWidget(sender);
 		auto s=new QHBoxLayout;
-		s->addLayout(l,3);
+		s->addLayout(l,8);
 		s->addLayout(r,1);
 		lines->addLayout(s);
 		tab->addTab(widget[1],tr("Shield"));

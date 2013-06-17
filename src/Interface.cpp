@@ -342,7 +342,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 void Interface::keyPressEvent(QKeyEvent *e)
 {
 	int key=e->key();
-	int jmp=Utils::getConfig("Playing/Interval",10000);
+	int jmp=Utils::getConfig("Playing/Interval",10)*1000;
 	if(key==Qt::Key_Escape&&isFullScreen()){
 		fullA->toggle();
 	}

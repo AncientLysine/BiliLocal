@@ -39,74 +39,79 @@
         <translation>强制缩放</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="65"/>
+        <location filename="../src/Config.cpp" line="72"/>
+        <source>skip time</source>
+        <translation>跳转间隔</translation>
+    </message>
+    <message>
+        <location filename="../src/Config.cpp" line="76"/>
         <source>Playing</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Top</source>
         <translation>顶端</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Bottom</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Slide</source>
         <translation>滑动</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Guest</source>
         <translation>游客</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Color</source>
         <translation>彩色</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="70"/>
+        <location filename="../src/Config.cpp" line="81"/>
         <source>Whole</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="95"/>
-        <location filename="../src/Config.cpp" line="122"/>
+        <location filename="../src/Config.cpp" line="106"/>
+        <location filename="../src/Config.cpp" line="133"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="96"/>
-        <location filename="../src/Config.cpp" line="123"/>
+        <location filename="../src/Config.cpp" line="107"/>
+        <location filename="../src/Config.cpp" line="134"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="97"/>
+        <location filename="../src/Config.cpp" line="108"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="115"/>
+        <location filename="../src/Config.cpp" line="126"/>
         <source>Import File</source>
         <translation>导入文件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="144"/>
+        <location filename="../src/Config.cpp" line="155"/>
         <source>Shield</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="157"/>
+        <location filename="../src/Config.cpp" line="168"/>
         <source>Thanks</source>
         <translation>感谢</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="170"/>
+        <location filename="../src/Config.cpp" line="181"/>
         <source>License</source>
         <translation>许可</translation>
     </message>
