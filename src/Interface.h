@@ -34,9 +34,10 @@
 #include "Menu.h"
 #include "Info.h"
 #include "Utils.h"
+#include "Poster.h"
+#include "Config.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
-#include "Poster.h"
 
 class Interface:public QWidget
 {
@@ -53,6 +54,7 @@ private:
 	QTimer *delay;
 	QAction *quitA;
 	QAction *fullA;
+	QAction *confA;
 	QMenu *top;
 	QMenu *sub;
 	QMenu *rat;
