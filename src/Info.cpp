@@ -37,7 +37,6 @@ Info::Info(QWidget *parent):
 	updating=false;
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
-	QJsonObject info=Utils::getConfig("Info");
 	duration=100;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
@@ -55,7 +54,7 @@ Info::Info(QWidget *parent):
 	timeS->setRange(0,0);
 	volmS->setRange(0,100);
 	timeS->setValue(0);
-	volmS->setValue(info.contains("Volume")?info["Volume"].toDouble():100);
+	volmS->setValue(Utils::getConfig("/Playing/Volume",100));
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
@@ -70,15 +69,18 @@ Info::Info(QWidget *parent):
 	});
 	connect(timeS,&QSlider::sliderPressed, [this](){sliding=true;});
 	connect(timeS,&QSlider::sliderReleased,[this](){sliding=false;});
-	connect(volmS,&QSlider::valueChanged,[this](int _volm){emit volume(_volm);});
+	connect(volmS,&QSlider::valueChanged,[this](int _volm){
+		Utils::setConfig("Playing/Volume",_volm);
+		emit volume(_volm);
+	});
 	playB=new QPushButton(this);
 	stopB=new QPushButton(this);
 	playB->setGeometry(QRect(10,15,25,25));
 	stopB->setGeometry(QRect(40,15,25,25));
-	playB->setIcon(QIcon(":/Interface/play.png"));
-	stopB->setIcon(QIcon(":/Interface/stop.png"));
-	playA=new QAction(QIcon(":/Interface/play.png"),tr("Play"),this);
-	stopA=new QAction(QIcon(":/Interface/stop.png"),tr("Stop"),this);
+	playB->setIcon(QIcon(":/Picture/play.png"));
+	stopB->setIcon(QIcon(":/Picture/stop.png"));
+	playA=new QAction(QIcon(":/Picture/play.png"),tr("Play"),this);
+	stopA=new QAction(QIcon(":/Picture/stop.png"),tr("Stop"),this);
 	connect(playA,&QAction::triggered,[this](){
 		if(opened){
 			setPlaying(!playing);
@@ -106,7 +108,7 @@ Info::Info(QWidget *parent):
 		QModelIndex index=danmV->currentIndex();
 		if(index.isValid()){
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
-				QList<QString> &list=Shield::instance->shieldU;
+				QList<QString> &list=Shield::shieldU;
 				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
 				if(!list.contains(sender)){
 					list.append(sender);
@@ -114,7 +116,8 @@ Info::Info(QWidget *parent):
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Shield::configure(parentWidget());
+			Config config(this,1);
+			config.exec();
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
@@ -124,13 +127,6 @@ Info::Info(QWidget *parent):
 		}
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 	});
-}
-
-Info::~Info()
-{
-	QJsonObject info;
-	info["Volume"]=volmS->value();
-	Utils::setConfig(info,"Info");
 }
 
 void Info::resizeEvent(QResizeEvent *e)
@@ -189,8 +185,8 @@ void Info::setOpened(bool _opened)
 void Info::setPlaying(bool _playing)
 {
 	playing=_playing;
-	playB->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
-	playA->setIcon(QIcon(playing?":/Interface/pause.png":":/Interface/play.png"));
+	playB->setIcon(QIcon(playing?":/Picture/pause.png":":/Picture/play.png"));
+	playA->setIcon(QIcon(playing?":/Picture/pause.png":":/Picture/play.png"));
 	playA->setText(playing?tr("Pause"):tr("Play"));
 }
 

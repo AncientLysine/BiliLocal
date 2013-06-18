@@ -41,13 +41,25 @@ struct Comment
 };
 Q_DECLARE_METATYPE(Comment)
 
-class Config:public QJsonObject
+namespace{
+template<class T>
+T fromJsonValue(QJsonValue v)
 {
-public:
-	Config();
-	Config(const QJsonObject& o);
-	~Config();
-};
+	return v.toVariant().value<T>();
+}
+
+template<>
+QJsonArray fromJsonValue(QJsonValue v)
+{
+	return v.toArray();
+}
+
+template<>
+QJsonObject fromJsonValue(QJsonValue v)
+{
+	return v.toObject();
+}
+}
 
 class Utils
 {
@@ -67,35 +79,48 @@ public:
 	}
 
 	template<class T>
-	static T getSetting(QString name,T def=T())
+	static T getConfig(QString key,T def=T())
 	{
-		QJsonObject o=config["Global"].toObject();
-		if(o.contains(name)){
-			return o.value(name).toVariant().value<T>();
+		QStringList tree=key.split('/',QString::SkipEmptyParts);
+		QString last=tree.takeLast();
+		QJsonObject cur=config;
+		for(const QString &k:tree){
+			cur=cur.value(k).toObject();
+		}
+		if(cur.contains(last)){
+			return fromJsonValue<T>(cur.value(last));
 		}
 		else{
-			o[name]=def;
-			config["Global"]=o;
+			setConfig(key,def);
 			return def;
 		}
 	}
 
 	template<class T>
-	static void setSetting(T setting,QString name)
+	static void setConfig(QString key,T set)
 	{
-		QJsonObject o=config["Global"].toObject();
-		o[name]=setting;
-		config["Global"]=o;
+		QStringList tree=key.split('/',QString::SkipEmptyParts);
+		QString last=tree.takeLast();
+		QJsonObject cur=config;
+		QList<QJsonObject> path;
+		for(const QString &k:tree){
+			path.append(cur);
+			cur=cur.value(k).toObject();
+		}
+		cur[last]=set;
+		while(!path.isEmpty()){
+			QJsonObject pre=path.takeLast();
+			pre[tree.takeLast()]=cur;
+			cur=pre;
+		}
+		config=cur;
 	}
 
-	static QJsonValue findConfig(QString name,QJsonObject s=config);
-	static QJsonObject getConfig(QString area=QString());
-	static void setConfig(QJsonObject _config,QString area=QString(),bool rewrite=false);
 	static void loadConfig();
-	static QJsonObject unionObject(QJsonObject f,QJsonObject s);
+	static void saveConfig();
 
 private:
-	static Config config;
+	static QJsonObject config;
 
 };
 

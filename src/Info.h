@@ -32,15 +32,14 @@
 #include <QtWidgets>
 #include "Utils.h"
 #include "Shield.h"
+#include "Config.h"
 
 class Info:public QWidget
 {
 	Q_OBJECT
 public:
 	explicit Info(QWidget *parent=0);
-	~Info();
 	bool isPopped(){return isPop;}
-	int getVolume(){return volmS->value();}
 
 private:
 	bool isPop;
