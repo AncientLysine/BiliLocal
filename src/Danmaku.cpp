@@ -169,6 +169,9 @@ bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
 	if(!parent.isValid()){
 		if(row+count<=danmaku.size()){
 			danmaku.remove(row,count);
+			if(danmaku.isEmpty()){
+				cid.clear();
+			}
 			emit layoutChanged();
 			return true;
 		}
@@ -273,8 +276,8 @@ void Danmaku::setDm(QString dm)
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 					if(json.contains("cid")){
 						QString api="http://comment.bilibili.tv/%1.xml";
-						cid=QString::number(json["cid"].toDouble());
-						QUrl xmlUrl(api.arg(cid));
+						cid["Bilibili"]=QString::number(json["cid"].toDouble());
+						QUrl xmlUrl(api.arg(cid["Bilibili"]));
 						reply->manager()->get(QNetworkRequest(xmlUrl));
 					}
 					else{
@@ -286,7 +289,8 @@ void Danmaku::setDm(QString dm)
 						QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 						if(json.contains("cid")){
 							QString api="http://comment.acfun.tv/%1.json";
-							QUrl jsonUrl(api.arg(json["cid"].toString().toInt()));
+							cid["Acfun"]=json["cid"].toString();
+							QUrl jsonUrl(api.arg(cid["Acfun"]));
 							reply->manager()->get(QNetworkRequest(jsonUrl));
 						}
 						else{
@@ -393,8 +397,9 @@ void Danmaku::setTime(qint64 time)
 		switch(comment.mode-1){
 		case 0:
 		{
-			QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%1/5");
-			render.speed=engine.evaluate(exp.arg(textSize.width())).toNumber();
+			QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+			exp.replace("%{width}",QString::number(textSize.width()),Qt::CaseInsensitive);
+			render.speed=engine.evaluate(exp).toNumber();
 			render.rect=QRectF(QPointF(0,0),textSize);
 			render.rect.moveLeft(size.width());
 			int limit=size.height()-(sub?80:0)-render.rect.height();

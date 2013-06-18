@@ -31,7 +31,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto s=new QHBoxLayout;
 		play[0]=new QLineEdit(widget[0]);
-		play[0]->setText(Utils::getConfig("/Danmaku/Speed",QString("125+%1/5")));
+		play[0]->setText(Utils::getConfig("/Danmaku/Speed",QString("125+%{width}/5")));
 		connect(play[0],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Danmaku/Speed",play[0]->text());
 		});

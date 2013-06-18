@@ -50,21 +50,21 @@ public:
 	explicit Danmaku(QObject *parent=0);
 	void draw(QPainter *painter,bool move=true);
 	QVariant data(const QModelIndex &index,int role) const;
-	int rowCount(const QModelIndex &parent) const;
-	int columnCount(const QModelIndex &parent) const;
+	int rowCount(const QModelIndex &parent=QModelIndex()) const;
+	int columnCount(const QModelIndex &parent=QModelIndex()) const;
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	bool removeRows(int row,int count,const QModelIndex &parent);
-	QString getCid(){return cid;}
+	QMap<QString,QString> getCids(){return cid;}
 
 private:
 	qint32 cur;
 	qint64 delay;
 	QSize size;
 	QTime last;
-	QString cid;
 	QScriptEngine engine;
+	QMap<QString,QString> cid;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 

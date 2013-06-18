@@ -386,7 +386,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		delay->stop();
 	}
 	if(x>200&&x<width()-200){
-		if(y>height()-40&&!danmaku->getCid().isEmpty()){
+		if(y>height()-40&&danmaku->rowCount()>0){
 			poster->fadeIn();
 		}
 		if(y<height()-60){
