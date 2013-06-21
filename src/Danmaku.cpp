@@ -36,19 +36,12 @@ Danmaku::Danmaku(QObject *parent) :
 
 void Danmaku::draw(QPainter *painter,bool move)
 {
-	qint64 etime;
-	if(move){
-		if(last.isNull()){
-			etime=40;
-			last.start();
-		}
-		else{
-			etime=last.restart();
-		}
+	qint64 etime=0;
+	if(move&&!last.isNull()){
+		etime=last.elapsed();
+		etime=etime>50?0:etime;
 	}
-	else{
-		etime=0;
-	}
+	last.start();
 	for(int index=0;index<5;++index){
 		for(auto iter=current[index].begin();iter!=current[index].end();){
 			Static &render=*iter;
@@ -179,18 +172,12 @@ bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
 	return false;
 }
 
-void Danmaku::reset()
+void Danmaku::clearCurrent()
 {
 	for(auto &pool:current){
 		pool.clear();
 	}
 	cur=0;
-	setLast();
-}
-
-void Danmaku::setLast()
-{
-	last=QTime();
 }
 
 void Danmaku::setDm(QString dm)
@@ -231,25 +218,31 @@ void Danmaku::setDm(QString dm)
 		}
 	};
 
-	auto sort=[this](){
+	auto init=[this](){
 		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
 			return f.time==s.time?f.content<s.content:f.time<s.time;
 		});
 		cur=0;
-		emit layoutChanged();
-	};
-
-	auto load=[this](){
-		if(danmaku.size()==0){
-			Utils::delayExec(0,[this](){emit loaded();});
+		int l=Utils::getConfig("/Shield/Limit",0);
+		if(l!=0){
+			QHash<QString,int> c;
+			for(const Comment &com:danmaku){
+				c[com.content]=c.value(com.content,0)+1;
+			}
+			Shield::shieldC.clear();
+			for(const QString &k:c.keys()){
+				if(c[k]>l){
+					Shield::shieldC.append(k);
+				}
+			}
 		}
+		emit layoutChanged();
 	};
 
 	if(Utils::getConfig("/Danmaku/Clear",true)){
 		danmaku.clear();
 		emit layoutChanged();
 	}
-	reset();
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
 	QString i=dm.mid(2,sharp-2);
@@ -317,14 +310,14 @@ void Danmaku::setDm(QString dm)
 					}
 				}
 				else{
-					load();
 					if(s=="av"){
 						bi(reply->readAll());
 					}
 					if(s=="ac"){
 						ac(reply->readAll());
 					}
-					sort();
+					init();
+					emit loaded();
 				}
 			}
 			else{
@@ -336,14 +329,14 @@ void Danmaku::setDm(QString dm)
 		QFile file(dm);
 		if(file.exists()){
 			file.open(QIODevice::ReadOnly);
-			load();
 			if(dm.endsWith("xml")){
 				bi(file.readAll());
 			}
 			if(dm.endsWith("json")){
 				ac(file.readAll());
 			}
-			sort();
+			init();
+			emit loaded();
 		}
 	}
 }
@@ -381,7 +374,7 @@ void Danmaku::setTime(qint64 time)
 	};
 	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
 		QCoreApplication::processEvents();
-		Comment &comment=danmaku[cur];
+		const Comment &comment=danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
 		}

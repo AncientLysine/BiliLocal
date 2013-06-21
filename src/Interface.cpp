@@ -122,7 +122,7 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(false);
 		tv->show();
 		me->show();
-		danmaku->reset();
+		danmaku->clearCurrent();
 		info->setDuration(-1);
 		sub->clear();
 		sub->setEnabled(false);
@@ -135,7 +135,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
-	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){
 		if(Utils::getConfig("/Danmaku/Delay",false)){
@@ -272,8 +271,8 @@ void Interface::setCenter(QSize _s,bool f)
 	int mw=m.width(),mh=m.height(),sw=_s.width(),sh=_s.height();
 	QRect r;
 	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
-	QRect s=QDesktopWidget().availableGeometry(this);
-	QRect t=f?QApplication::desktop()->screenGeometry():geometry();
+	QRect s=QApplication::desktop()->screenGeometry(this);
+	QRect t=f?s:geometry();
 	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
 	if(r.width()>=s.width()||r.height()>=s.height()){
 		fullA->toggle();

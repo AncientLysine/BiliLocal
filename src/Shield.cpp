@@ -29,15 +29,16 @@
 bool Shield::block[6];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
+QList<QString> Shield::shieldC;
 
 void Shield::init()
 {
 	QJsonArray u=Utils::getConfig<QJsonArray>("/Shield/User");
 	QJsonArray r=Utils::getConfig<QJsonArray>("/Shield/Regexp");
-	for(const auto &item:u){
+	for(const QJsonValue &item:u){
 		shieldU.append(item.toString());
 	}
-	for(const auto &item:r){
+	for(const QJsonValue &item:r){
 		shieldR.append(QRegExp(item.toString()));
 	}
 	int group=Utils::getConfig("/Shield/Group",0);
@@ -75,20 +76,20 @@ bool Shield::isBlocked(const Comment &comment)
 			||(comment.color!=Qt::white&&block[Color])){
 		return true;
 	}
-	else{
-		bool flag=false;
-		for(const QRegExp &reg:shieldR){
-			if(reg.indexIn(comment.content)!=-1){
-				flag=true;
-				break;
-			}
+	for(const QRegExp &r:shieldR){
+		if(r.indexIn(comment.content)!=-1){
+			return true;
 		}
-		for(const QString &name:shieldU){
-			if(name==comment.sender){
-				flag=true;
-				break;
-			}
-		}
-		return flag;
 	}
+	for(const QString &n:shieldU){
+		if(n==comment.sender){
+			return true;
+		}
+	}
+	for(const QString &c:shieldC){
+		if(comment.content.indexOf(c)!=-1){
+			return true;
+		}
+	}
+	return false;
 }

@@ -11,7 +11,6 @@ class Config:public QDialog
 public:
 	explicit Config(QWidget *parent=0,int index=0);
 	~Config();
-	void importShield(QString path);
 
 private:
 	QTabWidget *tab;
@@ -31,6 +30,8 @@ private:
 	QStringListModel *sm;
 	QAction *action[3];
 	QPushButton *button[2];
+	QSlider *limit;
+	QGroupBox *label;
 
 	//Thanks
 	QTextEdit *thanks;

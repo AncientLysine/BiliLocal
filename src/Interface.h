@@ -62,9 +62,9 @@ private:
 
 	Menu *menu;
 	Info *info;
+	Poster *poster;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
-    Poster *poster;
 
 	void dropEvent(QDropEvent *e);
 	void paintEvent(QPaintEvent *e);

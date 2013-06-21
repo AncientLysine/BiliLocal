@@ -61,8 +61,8 @@ public:
 private:
 	qint32 cur;
 	qint64 delay;
-	QSize size;
 	QTime last;
+	QSize size;
 	QScriptEngine engine;
 	QMap<QString,QString> cid;
 	QList<Static> current[5];
@@ -72,8 +72,7 @@ signals:
 	void loaded();
 
 public slots:
-	void reset();
-	void setLast();
+	void clearCurrent();
 	void setDm(QString dm);
 	void setTime(qint64 time);
 	void setSize(QSize _size);

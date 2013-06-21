@@ -80,6 +80,7 @@ Config::Config(QWidget *parent,int index):
 		widget[1]=new QWidget(this);
 		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Color"),tr("Whole")};
 		auto lines=new QVBoxLayout(widget[1]);
+
 		auto g=new QHBoxLayout;
 		for(int i=0;i<6;++i){
 			check[i]=new QCheckBox(list[i],widget[1]);
@@ -91,6 +92,7 @@ Config::Config(QWidget *parent,int index):
 			g->addWidget(check[i]);
 		}
 		lines->addLayout(g);
+
 		edit=new QLineEdit(widget[1]);
 		edit->setFixedHeight(25);
 		regexp=new QListView(widget[1]);
@@ -123,9 +125,36 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[2],&QAction::triggered,[this](){
-			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath());
-			if(!file.isEmpty()){
-				importShield(file);
+			QString path=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath());
+			if(!path.isEmpty()){
+				QFile file(path);
+				if(file.exists()){
+					file.open(QIODevice::ReadOnly|QIODevice::Text);
+					QTextStream stream(&file);
+					stream.setCodec("UTF-8");
+					QString all=stream.readAll();
+					file.close();
+					QRegExp del(QString("[")+QChar(0)+"-"+QChar(31)+"]");
+					all.replace(del," ");
+					all.replace("</item>"," ");
+					all=all.simplified();
+					QRegExp fix("[tu]\\=\\S*");
+					int cur=0;
+					while((cur=fix.indexIn(all,cur))!=-1){
+						int len=fix.matchedLength();
+						QString item=all.mid(cur,len);
+						QString text=item.mid(2);
+						cur+=len;
+						if(item.startsWith("u=")&&!sm->stringList().contains(text)){
+							sm->insertRow(sm->rowCount());
+							sm->setData(sm->index(sm->rowCount()-1),text);
+						}
+						if(item.startsWith("t=")&&!rm->stringList().contains(text)){
+							rm->insertRow(rm->rowCount());
+							rm->setData(rm->index(rm->rowCount()-1),text);
+						}
+					}
+				}
 			}
 		});
 		widget[1]->addAction(action[1]);
@@ -152,6 +181,20 @@ Config::Config(QWidget *parent,int index):
 		s->addLayout(l,8);
 		s->addLayout(r,1);
 		lines->addLayout(s);
+
+		limit=new QSlider(Qt::Horizontal,widget[1]);
+		limit->setRange(5,20);
+		int li=Utils::getConfig("/Shield/Limit",0);
+		limit->setValue(li==0?20:li);
+		connect(limit,&QSlider::valueChanged,[this](int value){
+			Utils::setConfig("/Shield/Limit",value==20?0:value);
+		});
+		auto a=new QHBoxLayout;
+		a->addWidget(limit);
+		label=new QGroupBox(tr("limit of the same"),widget[1]);
+		label->setLayout(a);
+		lines->addWidget(label);
+
 		tab->addTab(widget[1],tr("Shield"));
 	}
 	//Thanks
@@ -192,37 +235,5 @@ Config::~Config()
 	}
 	for(QString item:sm->stringList()){
 		Shield::shieldU.append(item);
-	}
-}
-
-void Config::importShield(QString path)
-{
-	QFile file(path);
-	if(file.exists()){
-		file.open(QIODevice::ReadOnly|QIODevice::Text);
-		QTextStream stream(&file);
-		stream.setCodec("UTF-8");
-		QString all=stream.readAll();
-		file.close();
-		QRegExp del(QString("[")+QChar(0)+"-"+QChar(31)+"]");
-		all.replace(del," ");
-		all.replace("</item>"," ");
-		all=all.simplified();
-		QRegExp fix("[tu]\\=\\S*");
-		int cur=0;
-		while((cur=fix.indexIn(all,cur))!=-1){
-			int len=fix.matchedLength();
-			QString item=all.mid(cur,len);
-			QString text=item.mid(2);
-			cur+=len;
-			if(item.startsWith("u=")&&!sm->stringList().contains(text)){
-				sm->insertRow(sm->rowCount());
-				sm->setData(sm->index(sm->rowCount()-1),text);
-			}
-			if(item.startsWith("t=")&&!rm->stringList().contains(text)){
-				rm->insertRow(rm->rowCount());
-				rm->setData(rm->index(rm->rowCount()-1),text);
-			}
-		}
 	}
 }
