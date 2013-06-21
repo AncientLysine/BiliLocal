@@ -30,6 +30,7 @@ bool Shield::block[6];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
 QList<QString> Shield::shieldC;
+QHash<QString,bool> Shield::cacheS;
 
 void Shield::init()
 {
@@ -76,20 +77,30 @@ bool Shield::isBlocked(const Comment &comment)
 			||(comment.color!=Qt::white&&block[Color])){
 		return true;
 	}
-	for(const QRegExp &r:shieldR){
-		if(r.indexIn(comment.content)!=-1){
-			return true;
-		}
-	}
 	for(const QString &n:shieldU){
 		if(n==comment.sender){
 			return true;
 		}
 	}
-	for(const QString &c:shieldC){
-		if(comment.content.indexOf(c)!=-1){
-			return true;
+	if(!cacheS.contains(comment.content)){
+		for(const QRegExp &r:shieldR){
+			if(r.indexIn(comment.content)!=-1){
+				cacheS[comment.content]=true;
+				return true;
+			}
 		}
+		for(const QString &c:shieldC){
+			QString clean=comment.content;
+			clean.remove(QRegExp("\\W"));
+			if(clean.indexOf(c)!=-1){
+				cacheS[comment.content]=true;
+				return true;
+			}
+		}
+		cacheS[comment.content]=false;
+		return false;
 	}
-	return false;
+	else{
+		return cacheS[comment.content];
+	}
 }

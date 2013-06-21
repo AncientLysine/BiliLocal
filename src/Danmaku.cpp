@@ -227,7 +227,9 @@ void Danmaku::setDm(QString dm)
 		if(l!=0){
 			QHash<QString,int> c;
 			for(const Comment &com:danmaku){
-				c[com.content]=c.value(com.content,0)+1;
+				QString clean=com.content;
+				clean.remove(QRegExp("\\W"));
+				c[clean]=c.value(clean,0)+1;
 			}
 			Shield::shieldC.clear();
 			for(const QString &k:c.keys()){

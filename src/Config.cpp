@@ -236,4 +236,5 @@ Config::~Config()
 	for(QString item:sm->stringList()){
 		Shield::shieldU.append(item);
 	}
+	Shield::cacheS.clear();
 }
