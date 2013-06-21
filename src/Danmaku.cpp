@@ -233,7 +233,7 @@ void Danmaku::setDm(QString dm)
 			}
 			Shield::shieldC.clear();
 			for(const QString &k:c.keys()){
-				if(c[k]>l){
+				if(!k.isEmpty()&&c[k]>l){
 					Shield::shieldC.append(k);
 				}
 			}
