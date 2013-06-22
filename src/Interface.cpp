@@ -38,10 +38,7 @@ Interface::Interface(QWidget *parent):
 	danmaku=new Danmaku(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	info->setModel(danmaku);
 	poster=new Poster(this);
-	poster->setDanmaku(danmaku);
-	poster->setVplayer(vplayer);
 	poster->hide();
 	setCenter(QSize(960,540),true);
 	tv=new QLabel(this);
@@ -191,6 +188,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
+		danmaku->generateShield();
 	});
 
 	top=new QMenu(this);

@@ -103,6 +103,10 @@ Info::Info(QWidget *parent):
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
+	danmV->setModel(Danmaku::instance());
+	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
+	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+	danmV->horizontalHeader()->setHighlightSections(false);
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
 		QModelIndex index=danmV->currentIndex();
@@ -118,10 +122,11 @@ Info::Info(QWidget *parent):
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(this,1);
 			config.exec();
+			Danmaku::instance()->generateShield();
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
-				danmV->model()->removeRows(0,danmV->model()->rowCount());
+				Danmaku::instance()->removeRows(0,danmV->model()->rowCount());
 				danmV->setCurrentIndex(QModelIndex());
 			});
 		}
@@ -202,12 +207,4 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");
 	}
-}
-
-void Info::setModel(QAbstractItemModel *model)
-{
-	danmV->setModel(model);
-	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
-	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
-	danmV->horizontalHeader()->setHighlightSections(false);
 }

@@ -26,12 +26,15 @@
 
 #include "Danmaku.h"
 
+Danmaku *Danmaku::ins=NULL;
+
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
 	setSize(QSize(960,540));
 	cur=0;
 	delay=0;
+	ins=this;
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
@@ -180,6 +183,25 @@ void Danmaku::clearCurrent()
 	cur=0;
 }
 
+void Danmaku::generateShield()
+{
+	int l=Utils::getConfig("/Shield/Limit",0);
+	Shield::shieldC.clear();
+	if(l!=0){
+		QHash<QString,int> c;
+		for(const Comment &com:danmaku){
+			QString clean=com.content;
+			clean.remove(QRegExp("\\W"));
+			c[clean]=c.value(clean,0)+1;
+		}
+		for(const QString &k:c.keys()){
+			if(!k.isEmpty()&&c[k]>l){
+				Shield::shieldC.append(k);
+			}
+		}
+	}
+}
+
 void Danmaku::setDm(QString dm)
 {
 	auto bi=[this](QByteArray data){
@@ -219,25 +241,9 @@ void Danmaku::setDm(QString dm)
 	};
 
 	auto init=[this](){
-		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
-			return f.time==s.time?f.content<s.content:f.time<s.time;
-		});
+		qSort(danmaku.begin(),danmaku.end());
 		cur=0;
-		int l=Utils::getConfig("/Shield/Limit",0);
-		if(l!=0){
-			QHash<QString,int> c;
-			for(const Comment &com:danmaku){
-				QString clean=com.content;
-				clean.remove(QRegExp("\\W"));
-				c[clean]=c.value(clean,0)+1;
-			}
-			Shield::shieldC.clear();
-			for(const QString &k:c.keys()){
-				if(!k.isEmpty()&&c[k]>l){
-					Shield::shieldC.append(k);
-				}
-			}
-		}
+		generateShield();
 		emit layoutChanged();
 	};
 

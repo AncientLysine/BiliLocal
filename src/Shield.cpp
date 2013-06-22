@@ -30,7 +30,17 @@ bool Shield::block[6];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
 QList<QString> Shield::shieldC;
-QHash<QString,bool> Shield::cacheS;
+QCache<Comment,bool> Shield::cacheS;
+
+uint qHash(const Comment &key,uint seed=0)
+{
+	uint h=0;
+	h+=qHash(key.mode,seed);
+	h+=qHash(key.sender,seed);
+	h+=qHash(key.content,seed);
+	h+=qHash(key.color.rgb(),seed);
+	return h;
+}
 
 void Shield::init()
 {
@@ -47,6 +57,7 @@ void Shield::init()
 		block[i]=group&1;
 		group=group>>1;
 	}
+	cacheS.setMaxCost(2000);
 }
 
 void Shield::free()
@@ -67,40 +78,40 @@ void Shield::free()
 	Utils::setConfig("/Shield/Group",g);
 }
 
+#define RET(b) cacheS.insert(comment,new bool(b));return b
+
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(block[Whole]||comment.mode>5
-			||(comment.mode==1&&block[Slide])
-			||(comment.mode==4&&block[Bottom])
-			||(comment.mode==5&&block[Top])
-			||(comment.sender.startsWith('D',Qt::CaseInsensitive)&&block[Guest])
-			||(comment.color!=Qt::white&&block[Color])){
-		return true;
-	}
-	for(const QString &n:shieldU){
-		if(n==comment.sender){
-			return true;
+	bool *blocked=cacheS.object(comment);
+	if(blocked==NULL){
+		if(block[Whole]||comment.mode>5
+				||(comment.mode==1&&block[Slide])
+				||(comment.mode==4&&block[Bottom])
+				||(comment.mode==5&&block[Top])
+				||(comment.sender.startsWith('D',Qt::CaseInsensitive)&&block[Guest])
+				||(comment.color!=Qt::white&&block[Color])){
+			RET(true);
 		}
-	}
-	if(!cacheS.contains(comment.content)){
+		for(const QString &n:shieldU){
+			if(n==comment.sender){
+				RET(true);
+			}
+		}
 		for(const QRegExp &r:shieldR){
 			if(r.indexIn(comment.content)!=-1){
-				cacheS[comment.content]=true;
-				return true;
+				RET(true);
 			}
 		}
 		for(const QString &c:shieldC){
 			QString clean=comment.content;
 			clean.remove(QRegExp("\\W"));
 			if(clean.indexOf(c)!=-1){
-				cacheS[comment.content]=true;
-				return true;
+				RET(true);
 			}
 		}
-		cacheS[comment.content]=false;
-		return false;
+		RET(false);
 	}
 	else{
-		return cacheS[comment.content];
+		return *blocked;
 	}
 }

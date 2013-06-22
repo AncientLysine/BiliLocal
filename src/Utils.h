@@ -38,6 +38,8 @@ struct Comment
 	QColor color;
 	QString sender;
 	QString content;
+	bool operator < (const Comment &o) const;
+	bool operator ==(const Comment &o) const;
 };
 Q_DECLARE_METATYPE(Comment)
 

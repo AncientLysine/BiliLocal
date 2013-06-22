@@ -55,8 +55,9 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	bool removeRows(int row,int count,const QModelIndex &parent);
+	bool removeRows(int row,int count,const QModelIndex &parent=QModelIndex());
 	QMap<QString,QString> getCids(){return cid;}
+	static Danmaku *instance(){return ins;}
 
 private:
 	qint32 cur;
@@ -67,12 +68,14 @@ private:
 	QMap<QString,QString> cid;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
+	static Danmaku *ins;
 
 signals:
 	void loaded();
 
 public slots:
 	void clearCurrent();
+	void generateShield();
 	void setDm(QString dm);
 	void setTime(qint64 time);
 	void setSize(QSize _size);

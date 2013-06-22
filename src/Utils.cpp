@@ -28,6 +28,16 @@
 
 QJsonObject Utils::config;
 
+bool Comment::operator < (const Comment &o) const
+{
+	return time==o.time?content<o.content:time<o.time;
+}
+
+bool Comment::operator ==(const Comment &o) const
+{
+	return mode==o.mode&&color==o.color&&sender==o.sender&&content==o.content;
+}
+
 void Utils::setBack(QWidget *widget,QColor color)
 {
 	QPalette options;
