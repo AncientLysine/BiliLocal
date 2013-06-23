@@ -40,7 +40,7 @@ Interface::Interface(QWidget *parent):
 	info=new Info(this);
 	poster=new Poster(this);
 	poster->hide();
-	setCenter(QSize(960,540),true);
+	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
@@ -128,13 +128,18 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		if(!isFullScreen()){
-			setCenter(QSize(960,540),false);
+			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
+		}
+		if(Utils::getConfig("/Playing/Loop",false)){
+			Utils::delayExec(0,[this](){
+				vplayer->play();
+			});
 		}
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){
-		if(Utils::getConfig("/Danmaku/Delay",false)){
+		if(Utils::getConfig("/Playing/Delay",false)){
 			menu->setDelay(vplayer->getTime());
 		}
 		else{
@@ -291,6 +296,14 @@ void Interface::setCenter(QSize _s,bool f)
 			r.moveRight(s.right());
 		}
 		setGeometry(r);
+	}
+}
+
+void Interface::setCenter(QString s,bool f)
+{
+	QStringList l=s.split(',',QString::SkipEmptyParts);
+	if(l.size()==2){
+		setCenter(QSize(l[0].toInt(),l[1].toInt()),f);
 	}
 }
 

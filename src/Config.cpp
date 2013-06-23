@@ -14,15 +14,15 @@ Config::Config(QWidget *parent,int index):
 		auto list=new QVBoxLayout(widget[0]);
 		auto c=new QHBoxLayout;
 		danm[0]=new QCheckBox(tr("clear when reloading"),widget[0]);
-		danm[0]->setChecked(Utils::getConfig("/Danmaku/Clear",true));
+		danm[0]->setChecked(Utils::getConfig("/Playing/Clear",true));
 		connect(danm[0],&QCheckBox::stateChanged,[this](int state){
-			Utils::setConfig("/Danmaku/Clear",state==Qt::Checked);
+			Utils::setConfig("/Playing/Clear",state==Qt::Checked);
 		});
 		c->addWidget(danm[0]);
 		danm[1]=new QCheckBox(tr("auto delay after loaded"),widget[0]);
-		danm[1]->setChecked(Utils::getConfig("/Danmaku/Delay",false));
+		danm[1]->setChecked(Utils::getConfig("/Playing//Delay",false));
 		connect(danm[1],&QCheckBox::stateChanged,[this](int state){
-			Utils::setConfig("/Danmaku/Delay",state==Qt::Checked);
+			Utils::setConfig("/Playing/Delay",state==Qt::Checked);
 		});
 		c->addWidget(danm[1]);
 		box[0]=new QGroupBox(tr("Loading"),widget[0]);

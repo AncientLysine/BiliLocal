@@ -247,7 +247,7 @@ void Danmaku::setDm(QString dm)
 		emit layoutChanged();
 	};
 
-	if(Utils::getConfig("/Danmaku/Clear",true)){
+	if(Utils::getConfig("/Playing/Clear",true)){
 		danmaku.clear();
 		emit layoutChanged();
 	}
@@ -351,7 +351,6 @@ void Danmaku::setDm(QString dm)
 
 void Danmaku::setTime(qint64 time)
 {
-	qsrand(time);
 	auto intersects=[](const Static &first,const Static &second){
 		if(first.rect.intersects(second.rect)){
 			return true;
@@ -381,20 +380,31 @@ void Danmaku::setTime(qint64 time)
 		}
 	};
 	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
-		QCoreApplication::processEvents();
+		int l=Utils::getConfig("/Shield/Density",0);
+		if(l!=0){
+			int c=0;
+			for(const QList<Static> &m:current){
+				c+=m.size();
+			}
+			if(c>l){
+				continue;
+			}
+		}
 		const Comment &comment=danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
 		}
-		Static render;
+		QCoreApplication::processEvents();
 		QFont font;
 		font.setBold(true);
 		font.setFamily(Utils::getConfig<QString>("/Danmaku/Font"));
 		font.setPixelSize(comment.font*Utils::getConfig("/Danmaku/Scale",1.0));
-		QStaticText text(comment.content);
+		QStaticText text;
+		text.setText(QString(comment.content).replace("/n","<br>"));
 		text.prepare(QTransform(),font);
 		QSize textSize=text.size().toSize()+QSize(2,2);
 		bool flag=false,sub=Utils::getConfig("/Danmaku/Protect",false);
+		Static render;
 		switch(comment.mode-1){
 		case 0:
 		{
@@ -463,10 +473,10 @@ void Danmaku::setTime(qint64 time)
 		}
 		}
 		if(flag){
-			QImage temp(textSize,QImage::Format_ARGB32);
-			temp.fill(Qt::transparent);
+			QPixmap fst(textSize);
+			fst.fill(Qt::transparent);
 			QPainter painter;
-			painter.begin(&temp);
+			painter.begin(&fst);
 			painter.setFont(font);
 			auto draw=[&](QColor c,QPoint p){
 				painter.setPen(c);
@@ -479,18 +489,13 @@ void Danmaku::setTime(qint64 time)
 			draw(edge,QPoint(0,-1));
 			draw(comment.color,QPoint(0,0));
 			painter.end();
-			double alpha=Utils::getConfig("/Danmaku/Alpha",1.0);
-			if(alpha!=1){
-				int w=temp.width();
-				int h=temp.height();
-				uchar *bits=temp.bits();
-				for(int y=0;y<h;++y){
-					for(int x=0;x<w;++x){
-						bits[(y*w+x)*4+3]*=alpha;
-					}
-				}
-			}
-			render.text=QPixmap::fromImage(temp);
+			QPixmap sec(textSize);
+			sec.fill(Qt::transparent);
+			painter.begin(&sec);
+			painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
+			painter.drawPixmap(QPoint(0,0),fst);
+			painter.end();
+			render.text=sec;
 			current[comment.mode-1].append(render);
 		}
 	}

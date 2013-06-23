@@ -45,6 +45,7 @@ class Interface:public QWidget
 public:
 	explicit Interface(QWidget *parent=0);
 	void setCenter(QSize s,bool f);
+	void setCenter(QString s,bool f);
 
 private:
 	QLabel *tv;

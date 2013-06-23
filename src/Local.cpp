@@ -42,6 +42,9 @@ int main(int argc,char *argv[])
 	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
 	Shield::init();
+	QFont f=a.font();
+	f.setFamily(Utils::getConfig("/Interface/Font",f.family()));
+	a.setFont(f);
 	Interface w;
 	w.show();
 	int ret=a.exec();
