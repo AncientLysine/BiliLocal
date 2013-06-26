@@ -35,6 +35,7 @@ Danmaku::Danmaku(QObject *parent) :
 	cur=0;
 	delay=0;
 	ins=this;
+	qsrand(QTime::currentTime().msec());
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
@@ -236,6 +237,7 @@ void Danmaku::setDm(QString dm)
 			comment.color.setRgb(args[1].toInt());
 			comment.mode=args[2].toInt();
 			comment.font=args[3].toInt();
+			comment.sender=args[4];
 			danmaku.append(comment);
 		}
 	};
@@ -380,19 +382,18 @@ void Danmaku::setTime(qint64 time)
 		}
 	};
 	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
-		int l=Utils::getConfig("/Shield/Density",0);
-		if(l!=0){
-			int c=0;
-			for(const QList<Static> &m:current){
-				c+=m.size();
-			}
-			if(c>l){
-				continue;
-			}
-		}
 		const Comment &comment=danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
+		}
+		int l=Utils::getConfig("/Shield/Density",80);
+		if(comment.mode==1&&l!=0){
+			QEasingCurve c(QEasingCurve::InExpo);
+			qreal r=qrand()%1000;
+			qreal v=1000*c.valueForProgress(((qreal)current[0].size())/l);
+			if(r<v){
+				continue;
+			}
 		}
 		QCoreApplication::processEvents();
 		QFont font;

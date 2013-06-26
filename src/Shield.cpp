@@ -88,9 +88,16 @@ bool Shield::isBlocked(const Comment &comment)
 				||(comment.mode==1&&block[Slide])
 				||(comment.mode==4&&block[Bottom])
 				||(comment.mode==5&&block[Top])
-				||(comment.sender.startsWith('D',Qt::CaseInsensitive)&&block[Guest])
 				||(comment.color!=Qt::white&&block[Color])){
 			RET(true);
+		}
+		if(block[Guest]){
+			if(comment.sender.length()==14&&comment.sender[3]=='k'){
+				RET(true);
+			}
+			if(comment.sender.startsWith('D',Qt::CaseInsensitive)){
+				RET(true);
+			}
 		}
 		for(const QString &n:shieldU){
 			if(n==comment.sender){

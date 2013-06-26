@@ -37,6 +37,7 @@ Config::Config(QWidget *parent,int index):
 		});
 		s->addWidget(play[0]);
 		box[1]=new QGroupBox(tr("slide speed"),widget[0]);
+		box[1]->setToolTip(tr("%{width} means the width of an danmaku"));
 		box[1]->setLayout(s);
 		list->addWidget(box[1]);
 
@@ -182,18 +183,29 @@ Config::Config(QWidget *parent,int index):
 		s->addLayout(r,1);
 		lines->addLayout(s);
 
-		limit=new QSlider(Qt::Horizontal,widget[1]);
-		limit->setRange(5,20);
-		int li=Utils::getConfig("/Shield/Limit",0);
-		limit->setValue(li==0?20:li);
-		connect(limit,&QSlider::valueChanged,[this](int value){
-			Utils::setConfig("/Shield/Limit",value==20?0:value);
+		limit[0]=new QLineEdit(widget[1]);
+		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",0)));
+		connect(limit[0],&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Shield/Limit",limit[0]->text().toInt());
 		});
 		auto a=new QHBoxLayout;
-		a->addWidget(limit);
-		label=new QGroupBox(tr("limit of the same"),widget[1]);
-		label->setLayout(a);
-		lines->addWidget(label);
+		a->addWidget(limit[0]);
+		label[0]=new QGroupBox(tr("limit of the same"),widget[1]);
+		label[0]->setToolTip(tr("0 means disabled"));
+		label[0]->setLayout(a);
+		lines->addWidget(label[0]);
+
+		limit[1]=new QLineEdit(widget[1]);
+		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",80)));
+		connect(limit[1],&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Shield/Density",limit[1]->text().toInt());
+		});
+		auto d=new QHBoxLayout;
+		d->addWidget(limit[1]);
+		label[1]=new QGroupBox(tr("limit of density"),widget[1]);
+		label[1]->setToolTip(tr("0 means disabled"));
+		label[1]->setLayout(d);
+		lines->addWidget(label[1]);
 
 		tab->addTab(widget[1],tr("Shield"));
 	}

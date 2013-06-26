@@ -34,6 +34,9 @@ Interface::Interface(QWidget *parent):
 	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
+	if(Utils::getConfig("/Interface/Top",false)){
+		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
+	}
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	menu=new Menu(this);
