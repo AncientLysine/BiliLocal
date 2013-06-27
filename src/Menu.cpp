@@ -74,7 +74,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
-			QString filter=tr("XML files (*.xml);;JSON files (*.json)");
+			QString filter=tr("Danmaku files (*.xml *.json)");
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
 			if(!_file.isEmpty()){
 				setDm(_file);
@@ -193,13 +193,7 @@ Menu::Menu(QWidget *parent) :
 	fontC=new QComboBox(this);
 	fontC->setGeometry(QRect(100,345,90,25));
 	fontC->addItems(QFontDatabase().families());
-#ifdef Q_OS_LINUX
-	QString def("文泉驿正黑");
-#endif
-#ifdef Q_OS_WIN
-	QString def("黑体");
-#endif
-	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",def));
+	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
 		Utils::setConfig("/Danmaku/Font",_font);
 	});

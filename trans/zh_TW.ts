@@ -155,12 +155,12 @@
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="273"/>
+        <location filename="../src/Danmaku.cpp" line="274"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="274"/>
+        <location filename="../src/Danmaku.cpp" line="275"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
@@ -212,38 +212,38 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="167"/>
+        <location filename="../src/Interface.cpp" line="170"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="172"/>
+        <location filename="../src/Interface.cpp" line="175"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="190"/>
+        <location filename="../src/Interface.cpp" line="193"/>
         <source>Config</source>
         <translation>設置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="200"/>
+        <location filename="../src/Interface.cpp" line="203"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="207"/>
+        <location filename="../src/Interface.cpp" line="210"/>
         <source>Ratio</source>
         <translation>寬高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="210"/>
-        <location filename="../src/Interface.cpp" line="221"/>
+        <location filename="../src/Interface.cpp" line="213"/>
+        <location filename="../src/Interface.cpp" line="224"/>
         <source>Default</source>
         <translation>默認</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="232"/>
+        <location filename="../src/Interface.cpp" line="235"/>
         <source>Scale</source>
         <translation>縮放</translation>
     </message>
@@ -291,11 +291,6 @@
         <translation>搜尋彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="77"/>
-        <source>XML files (*.xml);;JSON files (*.json)</source>
-        <translation>XML文件 (*.xml);;JSON文件 (*.json)</translation>
-    </message>
-    <message>
         <location filename="../src/Menu.cpp" line="156"/>
         <source>Local Danmaku</source>
         <translation>本地彈幕</translation>
@@ -304,6 +299,11 @@
         <location filename="../src/Menu.cpp" line="113"/>
         <source>Danmaku Alpha</source>
         <translation>不透明度</translation>
+    </message>
+    <message>
+        <location filename="../src/Menu.cpp" line="77"/>
+        <source>Danmaku files (*.xml *.json)</source>
+        <translation>彈幕文件 (*.xml *.json)</translation>
     </message>
     <message>
         <location filename="../src/Menu.cpp" line="124"/>

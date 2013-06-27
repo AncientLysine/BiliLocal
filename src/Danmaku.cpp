@@ -398,7 +398,7 @@ void Danmaku::setTime(qint64 time)
 		QCoreApplication::processEvents();
 		QFont font;
 		font.setBold(true);
-		font.setFamily(Utils::getConfig<QString>("/Danmaku/Font"));
+		font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
 		font.setPixelSize(comment.font*Utils::getConfig("/Danmaku/Scale",1.0));
 		QStaticText text;
 		text.setText(QString(comment.content).replace("/n","<br>"));
