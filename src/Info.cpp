@@ -120,14 +120,22 @@ Info::Info(QWidget *parent):
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(this,1);
+			Config config(this,2);
 			config.exec();
 			Danmaku::instance()->generateShield();
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
-				Danmaku::instance()->removeRows(0,danmV->model()->rowCount());
+				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
+			});
+			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
+				QString filter=tr("Danmaku files (*.json)");
+				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
+				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
+				if(!file.isEmpty()){
+					Danmaku::instance()->save(file);
+				}
 			});
 		}
 		menu.exec(danmV->viewport()->mapToGlobal(p));

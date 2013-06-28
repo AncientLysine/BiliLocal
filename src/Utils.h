@@ -34,7 +34,8 @@ struct Comment
 {
 	int mode;
 	int font;
-	qint64 time;
+	quint64 time;
+	quint64 date;
 	QColor color;
 	QString sender;
 	QString content;

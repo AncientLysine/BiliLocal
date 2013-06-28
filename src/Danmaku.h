@@ -55,13 +55,11 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	bool removeRows(int row,int count,const QModelIndex &parent=QModelIndex());
 	QMap<QString,QString> getCids(){return cid;}
 	static Danmaku *instance(){return ins;}
 
 private:
 	qint32 cur;
-	qint64 delay;
 	QTime last;
 	QSize size;
 	QScriptEngine engine;
@@ -74,13 +72,14 @@ signals:
 	void loaded();
 
 public slots:
+	void clearPool();
 	void clearCurrent();
 	void generateShield();
+	void save(QString file);
 	void setDm(QString dm);
-	void setTime(qint64 time);
+	void setTime(quint64 time);
 	void setSize(QSize _size);
-	void setDelay(qint64 _delay);
-	void jumpToTime(qint64 time);
+	void jumpToTime(quint64 time);
 };
 
 #endif // DANMAKU_H

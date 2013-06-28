@@ -33,7 +33,6 @@ Danmaku::Danmaku(QObject *parent) :
 {
 	setSize(QSize(960,540));
 	cur=0;
-	delay=0;
 	ins=this;
 	qsrand(QTime::currentTime().msec());
 }
@@ -161,19 +160,11 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 	return QVariant();
 }
 
-bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
+void Danmaku::clearPool()
 {
-	if(!parent.isValid()){
-		if(row+count<=danmaku.size()){
-			danmaku.remove(row,count);
-			if(danmaku.isEmpty()){
-				cid.clear();
-			}
-			emit layoutChanged();
-			return true;
-		}
-	}
-	return false;
+	cid.clear();
+	danmaku.clear();
+	emit layoutChanged();
 }
 
 void Danmaku::clearCurrent()
@@ -186,7 +177,7 @@ void Danmaku::clearCurrent()
 
 void Danmaku::generateShield()
 {
-	int l=Utils::getConfig("/Shield/Limit",0);
+	int l=Utils::getConfig("/Shield/Limit",5);
 	Shield::shieldC.clear();
 	if(l!=0){
 		QHash<QString,int> c;
@@ -201,6 +192,28 @@ void Danmaku::generateShield()
 			}
 		}
 	}
+}
+
+void Danmaku::save(QString file)
+{
+	QFile f(file);
+	f.open(QIODevice::WriteOnly|QIODevice::Text);
+	QJsonArray a;
+	for(const Comment &c:danmaku){
+		QJsonObject o;
+		QStringList l;
+		l<<QString::number(c.time/1000.0);
+		l<<QString::number(c.color.rgb());
+		l<<QString::number(c.mode);
+		l<<QString::number(c.font);
+		l<<c.sender;
+		l<<QString::number(c.date);
+		o["c"]=l.join(',');
+		o["m"]=c.content;
+		a.append(o);
+	}
+	f.write(QJsonDocument(a).toJson());
+	f.close();
 }
 
 void Danmaku::setDm(QString dm)
@@ -218,6 +231,7 @@ void Danmaku::setDm(QString dm)
 			len=item.indexOf("<",sta)-sta;
 			comment.content=item.mid(sta,len);
 			comment.time=args[0].toDouble()*1000;
+			comment.date=args[4].toInt();
 			comment.mode=args[1].toInt();
 			comment.font=args[2].toInt();
 			comment.color.setRgb(args[3].toInt());
@@ -234,6 +248,7 @@ void Danmaku::setDm(QString dm)
 			comment.content=item["m"].toString();
 			QStringList args=item["c"].toString().split(',');
 			comment.time=args[0].toDouble()*1000;
+			comment.date=args[5].toInt();
 			comment.color.setRgb(args[1].toInt());
 			comment.mode=args[2].toInt();
 			comment.font=args[3].toInt();
@@ -250,8 +265,7 @@ void Danmaku::setDm(QString dm)
 	};
 
 	if(Utils::getConfig("/Playing/Clear",true)){
-		danmaku.clear();
-		emit layoutChanged();
+		clearPool();
 	}
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
@@ -351,7 +365,7 @@ void Danmaku::setDm(QString dm)
 	}
 }
 
-void Danmaku::setTime(qint64 time)
+void Danmaku::setTime(quint64 time)
 {
 	auto intersects=[](const Static &first,const Static &second){
 		if(first.rect.intersects(second.rect)){
@@ -381,7 +395,7 @@ void Danmaku::setTime(qint64 time)
 			return false;
 		}
 	};
-	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
+	for(;cur<danmaku.size()&&danmaku[cur].time<time;++cur){
 		const Comment &comment=danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
@@ -507,12 +521,7 @@ void Danmaku::setSize(QSize _size)
 	size=_size;
 }
 
-void Danmaku::setDelay(qint64 _delay)
+void Danmaku::jumpToTime(quint64 time)
 {
-	delay=_delay;
-}
-
-void Danmaku::jumpToTime(qint64 time)
-{
-	for(cur=0;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur);
+	for(cur=0;cur<danmaku.size()&&danmaku[cur].time<time;++cur);
 }

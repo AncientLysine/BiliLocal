@@ -34,9 +34,6 @@ Interface::Interface(QWidget *parent):
 	setMouseTracking(true);
 	setMinimumSize(520,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
-	if(Utils::getConfig("/Interface/Top",false)){
-		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
-	}
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	menu=new Menu(this);
@@ -143,10 +140,7 @@ Interface::Interface(QWidget *parent):
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(danmaku,&Danmaku::loaded,[this](){
 		if(Utils::getConfig("/Playing/Delay",false)){
-			menu->setDelay(vplayer->getTime());
-		}
-		else{
-			danmaku->jumpToTime(vplayer->getTime());
+			;
 		}
 	});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
@@ -156,10 +150,6 @@ Interface::Interface(QWidget *parent):
 			power->start(_power);
 		else
 			power->stop();
-	});
-	connect(menu,&Menu::delay,[this](qint64 _delay){
-		danmaku->setDelay(_delay);
-		danmaku->jumpToTime(vplayer->getTime());
 	});
 	connect(info,&Info::time,vplayer,&VPlayer::setTime);
 	connect(info,&Info::play,vplayer,&VPlayer::play);
@@ -267,7 +257,9 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
-
+	if(Utils::getConfig("/Interface/Top",false)){
+		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
+	}
 	Search::initDataBase();
 }
 

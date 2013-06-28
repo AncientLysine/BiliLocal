@@ -22,8 +22,9 @@ private:
 	QLineEdit *play[4];
 
 	//Interface
-	QGroupBox *ui[2];
+	QGroupBox *ui[3];
 	QComboBox *font;
+	QComboBox *stay;
 	QLineEdit *size;
 
 	//Shiled

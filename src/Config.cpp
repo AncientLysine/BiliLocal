@@ -74,17 +74,63 @@ Config::Config(QWidget *parent,int index):
 		box[4]->setLayout(j);
 		list->addWidget(box[4]);
 
+		list->addStretch(10);
 		tab->addTab(widget[0],tr("Playing"));
+	}
+	//Interface
+	{
+		widget[1]=new QWidget(this);
+		auto lines=new QVBoxLayout(widget[1]);
+
+		auto s=new QHBoxLayout;
+		size=new QLineEdit(widget[1]);
+		size->setText(Utils::getConfig("/Interface/Size",QString("960,540")));
+		connect(size,&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Interface/Size",size->text());
+		});
+		s->addWidget(size);
+		ui[0]=new QGroupBox(tr("initialize size"),widget[1]);
+		ui[0]->setLayout(s);
+		lines->addWidget(ui[0]);
+
+		auto f=new QHBoxLayout;
+		font=new QComboBox(widget[1]);
+		font->addItems(QFontDatabase().families());
+		font->setCurrentText(Utils::getConfig("/Interface/Font",QFont().family()));
+		connect(font,&QComboBox::currentTextChanged,[this](QString _font){
+			Utils::setConfig("/Interface/Font",_font);
+		});
+		f->addWidget(font);
+		ui[1]=new QGroupBox(tr("interface font"),widget[1]);
+		ui[1]->setLayout(f);
+		lines->addWidget(ui[1]);
+
+		auto t=new QHBoxLayout;
+		stay=new QComboBox(widget[1]);
+		stay->addItem(tr("default"));
+		stay->addItem(tr("stay on top"));
+		stay->setCurrentIndex(Utils::getConfig("/Interface/Top",false));
+		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
+		connect(stay,signal,[this](int i){
+			Utils::setConfig<bool>("/Interface/Top",i);
+		});
+		t->addWidget(stay);
+		ui[2]=new QGroupBox(tr("window flag"),widget[1]);
+		ui[2]->setLayout(t);
+		lines->addWidget(ui[2]);
+
+		lines->addStretch(10);
+		tab->addTab(widget[1],tr("Interface"));
 	}
 	//Shield
 	{
-		widget[1]=new QWidget(this);
+		widget[2]=new QWidget(this);
 		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Color"),tr("Whole")};
-		auto lines=new QVBoxLayout(widget[1]);
+		auto lines=new QVBoxLayout(widget[2]);
 
 		auto g=new QHBoxLayout;
 		for(int i=0;i<6;++i){
-			check[i]=new QCheckBox(list[i],widget[1]);
+			check[i]=new QCheckBox(list[i],widget[2]);
 			check[i]->setFixedHeight(40);
 			check[i]->setChecked(Shield::block[i]);
 			connect(check[i],&QCheckBox::stateChanged,[=](int state){
@@ -94,10 +140,10 @@ Config::Config(QWidget *parent,int index):
 		}
 		lines->addLayout(g);
 
-		edit=new QLineEdit(widget[1]);
+		edit=new QLineEdit(widget[2]);
 		edit->setFixedHeight(25);
-		regexp=new QListView(widget[1]);
-		sender=new QListView(widget[1]);
+		regexp=new QListView(widget[2]);
+		sender=new QListView(widget[2]);
 		regexp->setModel(rm=new QStringListModel(regexp));
 		sender->setModel(sm=new QStringListModel(sender));
 		QStringList re;
@@ -106,9 +152,9 @@ Config::Config(QWidget *parent,int index):
 		}
 		rm->setStringList(re);
 		sm->setStringList(Shield::shieldU);
-		action[0]=new QAction(tr("Add"),widget[1]);
-		action[1]=new QAction(tr("Del"),widget[1]);
-		action[2]=new QAction(tr("Import"),widget[1]);
+		action[0]=new QAction(tr("Add"),widget[2]);
+		action[1]=new QAction(tr("Del"),widget[2]);
+		action[2]=new QAction(tr("Import"),widget[2]);
 		action[1]->setShortcut(QKeySequence("Del"));
 		action[2]->setShortcut(QKeySequence("Ctrl+I"));
 		connect(action[0],&QAction::triggered,[this](){
@@ -158,17 +204,17 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 		});
-		widget[1]->addAction(action[1]);
-		widget[1]->addAction(action[2]);
-		button[0]=new QPushButton(tr("Add"),widget[1]);
-		button[1]=new QPushButton(tr("Del"),widget[1]);
+		widget[2]->addAction(action[1]);
+		widget[2]->addAction(action[2]);
+		button[0]=new QPushButton(tr("Add"),widget[2]);
+		button[1]=new QPushButton(tr("Del"),widget[2]);
 		button[0]->setFixedHeight(25);
 		button[1]->setFixedHeight(25);
 		button[0]->setFocusPolicy(Qt::NoFocus);
 		button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
 		connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
-		widget[1]->setContextMenuPolicy(Qt::ActionsContextMenu);
+		widget[2]->setContextMenuPolicy(Qt::ActionsContextMenu);
 		auto l=new QVBoxLayout;
 		l->addWidget(edit);
 		l->addWidget(regexp);
@@ -183,57 +229,57 @@ Config::Config(QWidget *parent,int index):
 		s->addLayout(r,1);
 		lines->addLayout(s);
 
-		limit[0]=new QLineEdit(widget[1]);
-		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",0)));
+		limit[0]=new QLineEdit(widget[2]);
+		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",5)));
 		connect(limit[0],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Shield/Limit",limit[0]->text().toInt());
 		});
 		auto a=new QHBoxLayout;
 		a->addWidget(limit[0]);
-		label[0]=new QGroupBox(tr("limit of the same"),widget[1]);
+		label[0]=new QGroupBox(tr("limit of the same"),widget[2]);
 		label[0]->setToolTip(tr("0 means disabled"));
 		label[0]->setLayout(a);
 		lines->addWidget(label[0]);
 
-		limit[1]=new QLineEdit(widget[1]);
+		limit[1]=new QLineEdit(widget[2]);
 		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",80)));
 		connect(limit[1],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Shield/Density",limit[1]->text().toInt());
 		});
 		auto d=new QHBoxLayout;
 		d->addWidget(limit[1]);
-		label[1]=new QGroupBox(tr("limit of density"),widget[1]);
+		label[1]=new QGroupBox(tr("limit of density"),widget[2]);
 		label[1]->setToolTip(tr("0 means disabled"));
 		label[1]->setLayout(d);
 		lines->addWidget(label[1]);
 
-		tab->addTab(widget[1],tr("Shield"));
+		tab->addTab(widget[2],tr("Shield"));
 	}
 	//Thanks
 	{
-		widget[2]=new QWidget(this);
-		auto w=new QGridLayout(widget[2]);
+		widget[3]=new QWidget(this);
+		auto w=new QGridLayout(widget[3]);
 		QFile t(":/Text/THANKS");
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
-		thanks=new QTextEdit(widget[2]);
+		thanks=new QTextEdit(widget[3]);
 		thanks->setReadOnly(true);
 		thanks->setAcceptRichText(true);
 		thanks->setText(t.readAll());
 		w->addWidget(thanks);
-		tab->addTab(widget[2],tr("Thanks"));
+		tab->addTab(widget[3],tr("Thanks"));
 	}
 	//License
 	{
-		widget[3]=new QWidget(this);
-		auto w=new QGridLayout(widget[3]);
+		widget[4]=new QWidget(this);
+		auto w=new QGridLayout(widget[4]);
 		QFile l(":/Text/COPYING");
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
-		license=new QTextEdit(widget[3]);
+		license=new QTextEdit(widget[4]);
 		license->setReadOnly(true);
 		license->setAcceptRichText(true);
 		license->setText(l.readAll());
 		w->addWidget(license);
-		tab->addTab(widget[3],tr("License"));
+		tab->addTab(widget[4],tr("License"));
 	}
 	tab->setCurrentIndex(index);
 }

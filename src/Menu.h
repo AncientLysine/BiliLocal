@@ -56,8 +56,6 @@ private:
 	QAction *sechA;
 	QLabel *alphaT;
 	QSlider *alphaS;
-	QLabel *delayT;
-	QLineEdit *delayL;
 	QLabel *powerT;
 	QLineEdit *powerL;
 	QLabel *localT;
@@ -72,7 +70,6 @@ signals:
 	void open(QString file);
 	void load(QString danm);
 	void power(qint16 _power);
-	void delay(qint64 _delay);
 
 public slots:
 	void pop();
@@ -80,7 +77,6 @@ public slots:
 	void setDm(QString _file);
 	void setFile(QString _file);
 	void setPower(qint16 fps);
-	void setDelay(qint64 _delay);
 	
 };
 
