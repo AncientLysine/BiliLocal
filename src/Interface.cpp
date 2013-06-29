@@ -130,11 +130,6 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
-		if(Utils::getConfig("/Playing/Loop",false)){
-			Utils::delayExec(0,[this](){
-				vplayer->play();
-			});
-		}
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);

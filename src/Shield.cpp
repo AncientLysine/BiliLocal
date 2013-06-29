@@ -36,9 +36,9 @@ uint qHash(const Comment &key,uint seed=0)
 {
 	uint h=0;
 	h+=qHash(key.mode,seed);
+	h+=qHash(key.color,seed);
 	h+=qHash(key.sender,seed);
-	h+=qHash(key.content,seed);
-	h+=qHash(key.color.rgb(),seed);
+	h+=qHash(key.string,seed);
 	return h;
 }
 
@@ -105,12 +105,12 @@ bool Shield::isBlocked(const Comment &comment)
 			}
 		}
 		for(const QRegExp &r:shieldR){
-			if(r.indexIn(comment.content)!=-1){
+			if(r.indexIn(comment.string)!=-1){
 				RET(true);
 			}
 		}
 		for(const QString &c:shieldC){
-			QString clean=comment.content;
+			QString clean=comment.string;
 			clean.remove(QRegExp("\\W"));
 			if(clean.indexOf(c)!=-1){
 				RET(true);

@@ -104,7 +104,7 @@ Info::Info(QWidget *parent):
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
 	danmV->setModel(Danmaku::instance());
-	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
+	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
 	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
 	danmV->horizontalHeader()->setHighlightSections(false);
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
@@ -113,10 +113,11 @@ Info::Info(QWidget *parent):
 		if(index.isValid()){
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::shieldU;
-				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
+				QString sender=index.data(Qt::UserRole).toString();
 				if(!list.contains(sender)){
 					list.append(sender);
 				}
+				Shield::cacheS.clear();
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){

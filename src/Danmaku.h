@@ -55,15 +55,13 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	QMap<QString,QString> getCids(){return cid;}
 	static Danmaku *instance(){return ins;}
 
 private:
-	qint32 cur;
+	int cur;
 	QTime last;
 	QSize size;
 	QScriptEngine engine;
-	QMap<QString,QString> cid;
 	QList<Static> current[5];
 	QVector<Comment> danmaku;
 	static Danmaku *ins;

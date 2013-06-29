@@ -30,12 +30,12 @@ QJsonObject Utils::config;
 
 bool Comment::operator < (const Comment &o) const
 {
-	return time==o.time?content<o.content:time<o.time;
+	return time==o.time?string<o.string:time<o.time;
 }
 
 bool Comment::operator ==(const Comment &o) const
 {
-	return mode==o.mode&&color==o.color&&sender==o.sender&&content==o.content;
+	return mode==o.mode&&color==o.color&&sender==o.sender&&string==o.string;
 }
 
 void Utils::setBack(QWidget *widget,QColor color)
