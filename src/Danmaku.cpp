@@ -274,7 +274,7 @@ void Danmaku::setDm(QString dm)
 	if(s=="av"||s=="ac"){
 		QString api;
 		if(s=="av"){
-			api="http://api.bilibili.tv/view?type=json&appkey=0&id=%1&page=%2";
+			api="http://www.bilibili.tv/video/av%1/index_%2.html";
 		}
 		if(s=="ac"){
 			api="http://www.acfun.tv/v/ac%1_%2";
@@ -289,17 +289,25 @@ void Danmaku::setDm(QString dm)
 				QMessageBox::warning(NULL,tr("Network Error"),info.arg(code));
 			};
 			if(reply->error()==QNetworkReply::NoError){
-				if(url.startsWith("http://api.bilibili.tv/")){
-					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-					if(json.contains("cid")){
-						QString api="http://comment.bilibili.tv/%1.xml";
-						cid["Bilibili"]=QString::number(json["cid"].toDouble());
-						QUrl xmlUrl(api.arg(cid["Bilibili"]));
-						reply->manager()->get(QNetworkRequest(xmlUrl));
+				if(url.startsWith("http://www.bilibili.tv/")){
+					QString api,id,video=QString::fromUtf8(reply->readAll());
+					QRegExp regex;
+					regex.setCaseSensitivity(Qt::CaseInsensitive);
+					regex.setPattern("cid\\=\\d+");
+					if(regex.indexIn(video)==-1){
+						regex.setPattern("cid:'\\d+");
+						if(regex.indexIn(video)==-1){
+							error(404);
+						}
+						else{
+							id=regex.cap().mid(5);
+						}
 					}
 					else{
-						error(-json["code"].toDouble());
+						id=regex.cap().mid(4);
 					}
+					api="http://comment.bilibili.tv/%1.xml";
+					reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 				}
 				else if(url.startsWith("http://www.acfun.tv/")){
 					if(url.endsWith(".aspx")){
@@ -315,11 +323,10 @@ void Danmaku::setDm(QString dm)
 						}
 					}
 					else{
-						QString video=QString::fromUtf8(reply->readAll()),api,id;
+						QString api,id,video=QString::fromUtf8(reply->readAll());
 						QRegExp regex;
 						regex.setCaseSensitivity(Qt::CaseInsensitive);
 						regex.setPattern("[0-9]+(?=\\[/video\\])");
-						regex.indexIn(video);
 						if(regex.indexIn(video)==-1){
 							regex.setPattern("id\\=\\w+");
 							regex.indexIn(video,video.indexOf("<embed"));
