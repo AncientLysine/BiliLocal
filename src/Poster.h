@@ -39,8 +39,6 @@ class Poster : public QWidget
 	Q_OBJECT
 public:
 	explicit Poster(QWidget *parent = 0);
-	void setDanmaku(Danmaku *value);
-	void setVplayer(VPlayer *value);
 
 public slots:
 	void postComment(QString comment);
@@ -52,8 +50,6 @@ private:
 	QPushButton *commentB;
 	QAction *commentA;
 	QNetworkAccessManager *manager;
-	Danmaku *danmaku;
-	VPlayer *vplayer;
 	int rnd;
 	int ioo;
 	QTimer *timer;

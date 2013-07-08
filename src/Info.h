@@ -33,6 +33,8 @@
 #include "Utils.h"
 #include "Shield.h"
 #include "Config.h"
+#include "Editor.h"
+#include "Danmaku.h"
 
 class Info:public QWidget
 {
@@ -49,6 +51,7 @@ private:
 	bool sliding;
 	bool updating;
 	qint64 duration;
+
 	QLabel *durT;
 	QLabel *timeT;
 	QLabel *volmT;
@@ -77,7 +80,6 @@ public slots:
 	void setOpened(bool _opened);
 	void setPlaying(bool _playing);
 	void setDuration(qint64 _duration);
-	void setModel(QAbstractItemModel *model);
 	
 };
 

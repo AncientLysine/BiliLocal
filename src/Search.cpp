@@ -162,7 +162,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 						row->setSizeHint(0,QSize(120,92));
 						auto time=[](){
-							quint64 _time=0;
+							qint64 _time=0;
 							_time+=QDate(2000,1,1).daysTo(QDate::currentDate());
 							_time*=24*60*60;
 							_time+=QTime(0,0,1).secsTo(QTime::currentTime())+1;
@@ -259,8 +259,8 @@ void Search::getData(int pageNum)
 	isWaiting=true;
 	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
-	QString apiUrl("http://api.bilibili.tv/search?type=json&keyword=%1&page=%2&order=default");
-	request.setUrl(QUrl(apiUrl.arg(key).arg(pageNum)));
+	QString apiUrl("http://api.bilibili.tv/search?type=json&appkey=%1&keyword=%2&page=%3&order=default");
+	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString("0"))).arg(key).arg(pageNum)));
 	manager->get(request);
 }
 

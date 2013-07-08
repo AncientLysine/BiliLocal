@@ -38,12 +38,9 @@ Interface::Interface(QWidget *parent):
 	danmaku=new Danmaku(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	info->setModel(danmaku);
 	poster=new Poster(this);
-	poster->setDanmaku(danmaku);
-	poster->setVplayer(vplayer);
 	poster->hide();
-	setCenter(QSize(960,540),true);
+	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
@@ -122,7 +119,8 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(false);
 		tv->show();
 		me->show();
-		danmaku->reset();
+		danmaku->resetTime();
+		danmaku->clearCurrent();
 		info->setDuration(-1);
 		sub->clear();
 		sub->setEnabled(false);
@@ -131,20 +129,11 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		if(!isFullScreen()){
-			setCenter(QSize(960,540),false);
+			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
-	connect(vplayer,&VPlayer::paused,danmaku,&Danmaku::setLast);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){
-		if(Utils::getConfig("/Danmaku/Delay",false)){
-			menu->setDelay(vplayer->getTime());
-		}
-		else{
-			danmaku->jumpToTime(vplayer->getTime());
-		}
-	});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -152,10 +141,6 @@ Interface::Interface(QWidget *parent):
 			power->start(_power);
 		else
 			power->stop();
-	});
-	connect(menu,&Menu::delay,[this](qint64 _delay){
-		danmaku->setDelay(_delay);
-		danmaku->jumpToTime(vplayer->getTime());
 	});
 	connect(info,&Info::time,vplayer,&VPlayer::setTime);
 	connect(info,&Info::play,vplayer,&VPlayer::play);
@@ -192,6 +177,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
+		danmaku->parse(0x2);
 	});
 
 	top=new QMenu(this);
@@ -262,7 +248,9 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
-
+	if(Utils::getConfig("/Interface/Top",false)){
+		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
+	}
 	Search::initDataBase();
 }
 
@@ -272,8 +260,8 @@ void Interface::setCenter(QSize _s,bool f)
 	int mw=m.width(),mh=m.height(),sw=_s.width(),sh=_s.height();
 	QRect r;
 	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
-	QRect s=QDesktopWidget().availableGeometry(this);
-	QRect t=f?QApplication::desktop()->screenGeometry():geometry();
+	QRect s=QApplication::desktop()->screenGeometry(this);
+	QRect t=f?s:geometry();
 	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
 	if(r.width()>=s.width()||r.height()>=s.height()){
 		fullA->toggle();
@@ -294,6 +282,14 @@ void Interface::setCenter(QSize _s,bool f)
 			r.moveRight(s.right());
 		}
 		setGeometry(r);
+	}
+}
+
+void Interface::setCenter(QString s,bool f)
+{
+	QStringList l=s.split(',',QString::SkipEmptyParts);
+	if(l.size()==2){
+		setCenter(QSize(l[0].toInt(),l[1].toInt()),f);
 	}
 }
 
