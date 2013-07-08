@@ -175,24 +175,37 @@
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="154"/>
+        <location filename="../src/Danmaku.cpp" line="152"/>
         <source>Time</source>
         <translation>時間</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="157"/>
+        <location filename="../src/Danmaku.cpp" line="155"/>
         <source>Comment</source>
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="288"/>
+        <location filename="../src/Danmaku.cpp" line="278"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="289"/>
+        <location filename="../src/Danmaku.cpp" line="279"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
+    </message>
+</context>
+<context>
+    <name>Editor</name>
+    <message>
+        <location filename="../src/Editor.cpp" line="127"/>
+        <source>Delay: %1s</source>
+        <translation>延遲: %1s</translation>
+    </message>
+    <message>
+        <location filename="../src/Editor.cpp" line="133"/>
+        <source>Editor</source>
+        <translation>編輯</translation>
     </message>
 </context>
 <context>
@@ -209,7 +222,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="82"/>
-        <location filename="../src/Info.cpp" line="203"/>
+        <location filename="../src/Info.cpp" line="208"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -224,32 +237,37 @@
         <translation>屏蔽發送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="122"/>
+        <location filename="../src/Info.cpp" line="123"/>
         <source>Edit Blocking List</source>
         <translation>編輯屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="128"/>
+        <location filename="../src/Info.cpp" line="129"/>
+        <source>Edit Danmaku Pool</source>
+        <translation>編輯彈幕池</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="133"/>
         <source>Clear Danmaku Pool</source>
         <translation>清除彈幕池</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="132"/>
+        <location filename="../src/Info.cpp" line="137"/>
         <source>Save Danmaku to File</source>
         <translation>保存彈幕到文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="133"/>
+        <location filename="../src/Info.cpp" line="138"/>
         <source>Danmaku files (*.json)</source>
         <translation>彈幕文件 (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="135"/>
+        <location filename="../src/Info.cpp" line="140"/>
         <source>Save File</source>
         <translation>保存文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="203"/>
+        <location filename="../src/Info.cpp" line="208"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
@@ -257,38 +275,38 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="160"/>
+        <location filename="../src/Interface.cpp" line="151"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="165"/>
+        <location filename="../src/Interface.cpp" line="156"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="183"/>
+        <location filename="../src/Interface.cpp" line="174"/>
         <source>Config</source>
         <translation>設置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="193"/>
+        <location filename="../src/Interface.cpp" line="184"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="200"/>
+        <location filename="../src/Interface.cpp" line="191"/>
         <source>Ratio</source>
         <translation>寬高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="203"/>
-        <location filename="../src/Interface.cpp" line="214"/>
+        <location filename="../src/Interface.cpp" line="194"/>
+        <location filename="../src/Interface.cpp" line="205"/>
         <source>Default</source>
         <translation>默認</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="225"/>
+        <location filename="../src/Interface.cpp" line="216"/>
         <source>Scale</source>
         <translation>縮放</translation>
     </message>
@@ -351,10 +369,6 @@
         <translation>彈幕文件 (*.xml *.json)</translation>
     </message>
     <message>
-        <source>Danmaku Delay</source>
-        <translation type="obsolete">彈幕延遲</translation>
-    </message>
-    <message>
         <location filename="../src/Menu.cpp" line="124"/>
         <source>Danmaku Power</source>
         <translation>彈幕增壓</translation>
@@ -388,12 +402,12 @@
         <translation>發送</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="113"/>
+        <location filename="../src/Poster.cpp" line="119"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="113"/>
+        <location filename="../src/Poster.cpp" line="119"/>
         <source>Empty cid.</source>
         <translation>空 cid.</translation>
     </message>

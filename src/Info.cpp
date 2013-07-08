@@ -107,6 +107,9 @@ Info::Info(QWidget *parent):
 	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
 	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
 	danmV->horizontalHeader()->setHighlightSections(false);
+	connect(danmV->model(),&QAbstractItemModel::layoutChanged,[this](){
+		danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
+	});
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
 		QModelIndex index=danmV->currentIndex();
@@ -123,9 +126,13 @@ Info::Info(QWidget *parent):
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(this,2);
 			config.exec();
-			Danmaku::instance()->generateShield();
+			Danmaku::instance()->parse(0x2);
 		});
 		if(danmV->model()->rowCount()){
+			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
+				Editor editor(this);
+				editor.exec();
+			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
 				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
@@ -135,7 +142,7 @@ Info::Info(QWidget *parent):
 				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
 				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
 				if(!file.isEmpty()){
-					Danmaku::instance()->save(file);
+					Danmaku::instance()->saveToFile(file);
 				}
 			});
 		}

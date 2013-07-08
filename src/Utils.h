@@ -35,8 +35,8 @@ struct Comment
 	int mode;
 	int font;
 	int color;
-	quint64 time;
-	quint64 date;
+	qint64 time;
+	qint64 date;
 	QString sender;
 	QString string;
 	bool operator < (const Comment &o) const;

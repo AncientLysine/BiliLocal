@@ -23,7 +23,8 @@ SOURCES += \
     src/Utils.cpp \
     src/Shield.cpp \
     src/Poster.cpp \
-    src/Config.cpp
+    src/Config.cpp \
+    src/Editor.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -35,7 +36,8 @@ HEADERS  += \
     src/Utils.h \
     src/Shield.h \
     src/Poster.h \
-    src/Config.h
+    src/Config.h \
+    src/Editor.h
 
 LIBS += \
     -lvlc \

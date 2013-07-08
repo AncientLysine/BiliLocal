@@ -92,6 +92,12 @@ void Poster::resizeEvent(QResizeEvent *e)
 void Poster::postComment(QString comment)
 {
 	QString cid;
+	for(QString source:Danmaku::instance()->getPool().keys()){
+		if(source.startsWith("http://comment.bilibili.tv/")){
+			cid=QFileInfo(source).baseName();
+			break;
+		}
+	}
 	if(!cid.isEmpty()){
 		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");

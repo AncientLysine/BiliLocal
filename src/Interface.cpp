@@ -119,6 +119,7 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(false);
 		tv->show();
 		me->show();
+		danmaku->resetTime();
 		danmaku->clearCurrent();
 		info->setDuration(-1);
 		sub->clear();
@@ -133,11 +134,6 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(danmaku,&Danmaku::loaded,[this](){
-		if(Utils::getConfig("/Playing/Delay",false)){
-			;
-		}
-	});
 	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -181,7 +177,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
-		danmaku->generateShield();
+		danmaku->parse(0x2);
 	});
 
 	top=new QMenu(this);

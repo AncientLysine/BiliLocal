@@ -32,6 +32,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
+#include "Utils.h"
 
 class Search:public QDialog
 {
