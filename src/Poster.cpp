@@ -82,16 +82,6 @@ Poster::Poster(QWidget *parent) :
 	});
 }
 
-void Poster::setDanmaku(Danmaku *value)
-{
-	danmaku=value;
-}
-
-void Poster::setVplayer(VPlayer *value)
-{
-	vplayer=value;
-}
-
 void Poster::resizeEvent(QResizeEvent *e)
 {
 	int w=e->size().width(),h=e->size().height();
@@ -101,7 +91,13 @@ void Poster::resizeEvent(QResizeEvent *e)
 
 void Poster::postComment(QString comment)
 {
-	QString cid=danmaku->getCids()["Bilibili"];
+	QString cid;
+	for(QString source:Danmaku::instance()->getPool().keys()){
+		if(source.startsWith("http://comment.bilibili.tv/")){
+			cid=QFileInfo(source).baseName();
+			break;
+		}
+	}
 	if(!cid.isEmpty()){
 		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
@@ -110,7 +106,7 @@ void Poster::postComment(QString comment)
 		params.addQueryItem("cid",cid);
 		params.addQueryItem("date",QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 		params.addQueryItem("pool","0");
-		params.addQueryItem("playTime",QString::number(qMax(qint64(0),vplayer->getTime())/1000.0,'f',4));
+		params.addQueryItem("playTime",QString::number(qMax(qint64(0),VPlayer::instance()->getTime())/1000.0,'f',4));
 		params.addQueryItem("color","16777215");
 		params.addQueryItem("fontsize","25");
 		params.addQueryItem("message",comment);

@@ -34,12 +34,14 @@ struct Comment
 {
 	int mode;
 	int font;
+	int color;
 	qint64 time;
-	QColor color;
+	qint64 date;
 	QString sender;
-	QString content;
+	QString string;
+	bool operator < (const Comment &o) const;
+	bool operator ==(const Comment &o) const;
 };
-Q_DECLARE_METATYPE(Comment)
 
 namespace{
 template<class T>

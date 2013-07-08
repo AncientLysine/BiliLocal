@@ -103,26 +103,47 @@ Info::Info(QWidget *parent):
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
+	danmV->setModel(Danmaku::instance());
+	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
+	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+	danmV->horizontalHeader()->setHighlightSections(false);
+	connect(danmV->model(),&QAbstractItemModel::layoutChanged,[this](){
+		danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
+	});
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
 		QModelIndex index=danmV->currentIndex();
 		if(index.isValid()){
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::shieldU;
-				QString sender=index.data(Qt::UserRole).value<Comment>().sender;
+				QString sender=index.data(Qt::UserRole).toString();
 				if(!list.contains(sender)){
 					list.append(sender);
 				}
+				Shield::cacheS.clear();
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(this,1);
+			Config config(this,2);
 			config.exec();
+			Danmaku::instance()->parse(0x2);
 		});
 		if(danmV->model()->rowCount()){
+			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
+				Editor editor(this);
+				editor.exec();
+			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
-				danmV->model()->removeRows(0,danmV->model()->rowCount());
+				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
+			});
+			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
+				QString filter=tr("Danmaku files (*.json)");
+				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
+				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
+				if(!file.isEmpty()){
+					Danmaku::instance()->saveToFile(file);
+				}
 			});
 		}
 		menu.exec(danmV->viewport()->mapToGlobal(p));
@@ -202,12 +223,4 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");
 	}
-}
-
-void Info::setModel(QAbstractItemModel *model)
-{
-	danmV->setModel(model);
-	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::QHeaderView::ResizeToContents);
-	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
-	danmV->horizontalHeader()->setHighlightSections(false);
 }

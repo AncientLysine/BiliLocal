@@ -43,6 +43,12 @@ struct Static
 	QPixmap text;
 };
 
+struct Record
+{
+	qint64 delay;
+	QList<Comment> danmaku;
+};
+
 class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
@@ -55,30 +61,31 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	bool removeRows(int row,int count,const QModelIndex &parent);
-	QMap<QString,QString> getCids(){return cid;}
+	qint64 getTime(){return time;}
+	QMap<QString,Record> &getPool(){return pool;}
+	static Danmaku *instance(){return ins;}
 
 private:
-	qint32 cur;
-	qint64 delay;
-	QSize size;
+	int cur;
 	QTime last;
+	QSize size;
+	qint64 time;
 	QScriptEngine engine;
-	QMap<QString,QString> cid;
 	QList<Static> current[5];
-	QVector<Comment> danmaku;
-
-signals:
-	void loaded();
+	QMap<QString,Record> pool;
+	QVector<Comment *> danmaku;
+	static Danmaku *ins;
 
 public slots:
-	void reset();
-	void setLast();
+	void resetTime();
+	void clearPool();
+	void clearCurrent();
+	void parse(int flag=0);
 	void setDm(QString dm);
-	void setTime(qint64 time);
 	void setSize(QSize _size);
-	void setDelay(qint64 _delay);
-	void jumpToTime(qint64 time);
+	void setTime(qint64 _time);
+	void jumpToTime(qint64 _time);
+	void saveToFile(QString _file);
 };
 
 #endif // DANMAKU_H

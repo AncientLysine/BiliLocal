@@ -26,6 +26,8 @@
 
 #include "VPlayer.h"
 
+VPlayer*VPlayer::ins=NULL;
+
 int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
 {
 	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
@@ -64,6 +66,7 @@ VPlayer::VPlayer(QObject *parent) :
 	state=Stop;
 	valid=false;
 	ratio=0;
+	ins=this;
 	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
 }
 

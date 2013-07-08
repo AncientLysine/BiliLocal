@@ -28,6 +28,26 @@
 #include "Interface.h"
 #include <QApplication>
 
+static void setDefaultFont()
+{
+	QString def;
+#ifdef Q_OS_LINUX
+	def="文泉驿正黑";
+#endif
+#ifdef Q_OS_WIN
+	def="微软雅黑";
+#endif
+#ifdef Q_OS_MAC
+	def="华文黑体";
+#endif
+	QFont f=qApp->font();
+	if(!QFontDatabase().families().contains(def)){
+		def=QFontInfo(f).family();
+	}
+	f.setFamily(Utils::getConfig("/Interface/Font",def));
+	qApp->setFont(f);
+}
+
 int main(int argc,char *argv[])
 {
 	QApplication::setStyle("Fusion");
@@ -42,10 +62,12 @@ int main(int argc,char *argv[])
 	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
 	Shield::init();
+	setDefaultFont();
+	a.connect(&a,&QApplication::aboutToQuit,[](){
+		Shield::free();
+		Utils::saveConfig();
+	});
 	Interface w;
 	w.show();
-	int ret=a.exec();
-	Shield::free();
-	Utils::saveConfig();
-	return ret;
+	return a.exec();
 }

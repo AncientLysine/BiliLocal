@@ -74,7 +74,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(isLocal){
-			QString filter=tr("XML files (*.xml);;JSON files (*.json)");
+			QString filter=tr("Danmaku files (*.xml *.json)");
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
 			if(!_file.isEmpty()){
 				setDm(_file);
@@ -119,27 +119,11 @@ Menu::Menu(QWidget *parent) :
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){
 		Utils::setConfig("/Danmaku/Alpha",_alpha/100.0);
 	});
-	delayT=new QLabel(this);
-	delayT->setGeometry(QRect(10,205,100,20));
-	delayT->setText(tr("Danmaku Delay"));
-	delayL=new QLineEdit(this);
-	delayL->setGeometry(QRect(160,205,30,20));
-	connect(delayL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("-?[0-9]*");
-		regex.indexIn(text);
-		delayL->setText(regex.cap());
-	});
-	connect(delayL,&QLineEdit::editingFinished,[this](){
-		emit delay(delayL->text().toInt()*1000);
-		if(delayL->text()=="0"){
-			delayL->setText("");
-		}
-	});
 	powerT=new QLabel(this);
-	powerT->setGeometry(QRect(10,240,100,20));
+	powerT->setGeometry(QRect(10,205,100,20));
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
-	powerL->setGeometry(QRect(160,240,30,20));
+	powerL->setGeometry(QRect(160,205,30,20));
 	Utils::delayExec(0,[this](){setPower(Utils::getConfig("/Danmaku/Power",0));});
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
@@ -152,10 +136,10 @@ Menu::Menu(QWidget *parent) :
 		Utils::setConfig("/Danmaku/Power",p);
 	});
 	localT=new QLabel(this);
-	localT->setGeometry(QRect(10,275,100,25));
+	localT->setGeometry(QRect(10,240,100,25));
 	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
-	localC->setGeometry(QRect(168,275,25,25));
+	localC->setGeometry(QRect(168,240,25,25));
 	Utils::delayExec(0,[this](){localC->setChecked(Utils::getConfig("/Danmaku/Local",false));});
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
@@ -179,27 +163,21 @@ Menu::Menu(QWidget *parent) :
 		Utils::setConfig("/Danmaku/Local",state==Qt::Checked);
 	});
 	subT=new QLabel(this);
-	subT->setGeometry(QRect(10,310,100,25));
+	subT->setGeometry(QRect(10,275,100,25));
 	subT->setText(tr("Protect Sub"));
 	subC=new QCheckBox(this);
-	subC->setGeometry(QRect(168,310,25,25));
+	subC->setGeometry(QRect(168,275,25,25));
 	subC->setChecked(Utils::getConfig("/Danmaku/Protect",false));
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
 		Utils::setConfig("/Danmaku/Protect",state==Qt::Checked);
 	});
 	fontT=new QLabel(this);
 	fontT->setText(tr("Font"));
-	fontT->setGeometry(QRect(10,345,50,25));
+	fontT->setGeometry(QRect(10,310,50,25));
 	fontC=new QComboBox(this);
-	fontC->setGeometry(QRect(100,345,90,25));
+	fontC->setGeometry(QRect(100,310,90,25));
 	fontC->addItems(QFontDatabase().families());
-#ifdef Q_OS_LINUX
-	QString def("文泉驿正黑");
-#endif
-#ifdef Q_OS_WIN
-	QString def("黑体");
-#endif
-	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",def));
+	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
 		Utils::setConfig("/Danmaku/Font",_font);
 	});
@@ -260,11 +238,4 @@ void Menu::setPower(qint16 fps)
 		powerL->setText(QString::number(fps));
 	}
 	emit power(fps==0?-1:1000/fps);
-}
-
-void Menu::setDelay(qint64 _delay)
-{
-	_delay=_delay<=0?0:_delay;
-	delayL->setText(_delay/1000==0?QString():QString::number(_delay/1000));
-	emit delay(_delay);
 }

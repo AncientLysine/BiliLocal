@@ -26,29 +26,25 @@
 
 #include "Danmaku.h"
 
+Danmaku *Danmaku::ins=NULL;
+
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
 	setSize(QSize(960,540));
-	cur=0;
-	delay=0;
+	cur=time=0;
+	ins=this;
+	qsrand(QTime::currentTime().msec());
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
 {
-	qint64 etime;
-	if(move){
-		if(last.isNull()){
-			etime=40;
-			last.start();
-		}
-		else{
-			etime=last.restart();
-		}
+	qint64 etime=0;
+	if(move&&!last.isNull()){
+		etime=last.elapsed();
+		etime=etime>50?0:etime;
 	}
-	else{
-		etime=0;
-	}
+	last.start();
 	for(int index=0;index<5;++index){
 		for(auto iter=current[index].begin();iter!=current[index].end();){
 			Static &render=*iter;
@@ -81,7 +77,7 @@ void Danmaku::draw(QPainter *painter,bool move)
 QVariant Danmaku::data(const QModelIndex &index,int role) const
 {
 	if(index.isValid()){
-		const Comment &comment=danmaku[index.row()];
+		const Comment &comment=*danmaku[index.row()];
 		if(Shield::isBlocked(comment)){
 			if(index.column()==0){
 				if(role==Qt::DisplayRole){
@@ -93,7 +89,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 			if(index.column()==1){
 				if(role==Qt::DisplayRole){
-					return comment.content;
+					return comment.string;
 				}
 				if(role==Qt::ForegroundRole){
 					return QColor(Qt::gray);
@@ -104,25 +100,27 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			if(index.column()==0&&role==Qt::DisplayRole){
 				QString time("%1:%2");
 				qint64 sec=comment.time/1000;
+				if(sec<0){
+					time.prepend("-");
+					sec=-sec;
+				}
 				time=time.arg(sec/60,2,10,QChar('0'));
 				time=time.arg(sec%60,2,10,QChar('0'));
 				return time;
 			}
 			if(index.column()==1&&role==Qt::DisplayRole){
-				return comment.content;
+				return comment.string;
 			}
 
 		}
 		if(index.column()==1&&role==Qt::ToolTipRole){
-			return comment.content;
+			return comment.string;
 		}
 		if(index.column()==0&&role==Qt::TextAlignmentRole){
 			return Qt::AlignCenter;
 		}
 		if(role==Qt::UserRole){
-			QVariant variant;
-			variant.setValue(comment);
-			return variant;
+			return comment.sender;
 		}
 	}
 	return QVariant();
@@ -164,92 +162,106 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 	return QVariant();
 }
 
-bool Danmaku::removeRows(int row,int count,const QModelIndex &parent)
+void Danmaku::resetTime()
 {
-	if(!parent.isValid()){
-		if(row+count<=danmaku.size()){
-			danmaku.remove(row,count);
-			if(danmaku.isEmpty()){
-				cid.clear();
+	cur=0;
+	time=0;
+}
+
+void Danmaku::clearPool()
+{
+	pool.clear();
+	danmaku.clear();
+	Shield::cacheS.clear();
+	emit layoutChanged();
+}
+
+void Danmaku::clearCurrent()
+{
+	for(QList<Static> &iter:current){
+		iter.clear();
+	}
+}
+
+void Danmaku::parse(int flag)
+{
+	if((flag&0x1)>0){
+		qSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
+		jumpToTime(time);
+	}
+	if((flag&0x2)>0){
+		Shield::shieldC.clear();
+		int l=Utils::getConfig("/Shield/Limit",5);
+		if(l!=0){
+			QHash<QString,int> c;
+			for(const Comment *com:danmaku){
+				QString clean=com->string;
+				clean.remove(QRegExp("\\W"));
+				c[clean]=c.value(clean,0)+1;
 			}
-			emit layoutChanged();
-			return true;
+			for(const QString &k:c.keys()){
+				if(!k.isEmpty()&&c[k]>l){
+					Shield::shieldC.append(k);
+				}
+			}
 		}
 	}
-	return false;
-}
-
-void Danmaku::reset()
-{
-	for(auto &pool:current){
-		pool.clear();
+	if(flag>0){
+		emit layoutChanged();
 	}
-	cur=0;
-	setLast();
-}
-
-void Danmaku::setLast()
-{
-	last=QTime();
 }
 
 void Danmaku::setDm(QString dm)
 {
-	auto bi=[this](QByteArray data){
-		QString xml=QString(data).simplified();
-		QStringList list=xml.split("<d p=\"");
-		list.removeFirst();
-		for(QString &item:list){
+	auto bi=[this](const QByteArray &data,QList<Comment> &list){
+		QStringList l=QString(data).simplified().split("<d p=\"");
+		l.removeFirst();
+		qint64 delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		for(QString &item:l){
 			Comment comment;
 			int sta=0;
 			int len=item.indexOf("\"");
 			QStringList args=item.mid(sta,len).split(',');
 			sta=item.indexOf(">")+1;
 			len=item.indexOf("<",sta)-sta;
-			comment.content=item.mid(sta,len);
-			comment.time=args[0].toDouble()*1000;
+			comment.time=args[0].toDouble()*1000+delay;
+			comment.date=args[4].toInt();
 			comment.mode=args[1].toInt();
 			comment.font=args[2].toInt();
-			comment.color.setRgb(args[3].toInt());
+			comment.color=args[3].toInt();
 			comment.sender=args[6];
-			danmaku.append(comment);
+			comment.string=item.mid(sta,len);
+			if(!list.contains(comment)){
+				list.append(comment);
+				danmaku.append(&list.last());
+			}
 		}
 	};
 
-	auto ac=[this](QByteArray data){
-		QJsonArray array=QJsonDocument::fromJson(data).array();
-		for(QJsonValue _item:array){
-			QJsonObject item=_item.toObject();
+	auto ac=[this](const QByteArray &data,QList<Comment> &list){
+		QJsonArray a=QJsonDocument::fromJson(data).array();
+		qint64 delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		for(QJsonValue i:a){
 			Comment comment;
-			comment.content=item["m"].toString();
+			QJsonObject item=i.toObject();
 			QStringList args=item["c"].toString().split(',');
-			comment.time=args[0].toDouble()*1000;
-			comment.color.setRgb(args[1].toInt());
+			comment.time=args[0].toDouble()*1000+delay;
+			comment.date=args[5].toInt();
 			comment.mode=args[2].toInt();
 			comment.font=args[3].toInt();
-			danmaku.append(comment);
+			comment.color=args[1].toInt();
+			comment.sender=args[4];
+			comment.string=item["m"].toString();
+			if(!list.contains(comment)){
+				list.append(comment);
+				danmaku.append(&list.last());
+			}
 		}
 	};
 
-	auto sort=[this](){
-		qSort(danmaku.begin(),danmaku.end(),[](const Comment &f,const Comment &s){
-			return f.time==s.time?f.content<s.content:f.time<s.time;
-		});
-		cur=0;
-		emit layoutChanged();
-	};
-
-	auto load=[this](){
-		if(danmaku.size()==0){
-			Utils::delayExec(0,[this](){emit loaded();});
-		}
-	};
-
-	if(Utils::getConfig("/Danmaku/Clear",true)){
-		danmaku.clear();
-		emit layoutChanged();
+	if(Utils::getConfig("/Playing/Clear",true)){
+		clearPool();
 	}
-	reset();
 	int sharp=dm.indexOf("#");
 	QString s=dm.mid(0,2);
 	QString i=dm.mid(2,sharp-2);
@@ -257,7 +269,7 @@ void Danmaku::setDm(QString dm)
 	if(s=="av"||s=="ac"){
 		QString api;
 		if(s=="av"){
-			api="http://api.bilibili.tv/view?type=json&appkey=0&id=%1&page=%2";
+			api="http://www.bilibili.tv/video/av%1/index_%2.html";
 		}
 		if(s=="ac"){
 			api="http://www.acfun.tv/v/ac%1_%2";
@@ -266,31 +278,48 @@ void Danmaku::setDm(QString dm)
 		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 		manager->get(QNetworkRequest(apiUrl));
 		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
-			QString url=reply->url().url();
 			auto error=[this](int code){
 				QString info=tr("Network error occurred, error code: %1");
 				QMessageBox::warning(NULL,tr("Network Error"),info.arg(code));
 			};
+			QString url=reply->url().url();
 			if(reply->error()==QNetworkReply::NoError){
-				if(url.startsWith("http://api.bilibili.tv/")){
-					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-					if(json.contains("cid")){
-						QString api="http://comment.bilibili.tv/%1.xml";
-						cid["Bilibili"]=QString::number(json["cid"].toDouble());
-						QUrl xmlUrl(api.arg(cid["Bilibili"]));
-						reply->manager()->get(QNetworkRequest(xmlUrl));
+				if(url.startsWith("http://comment.")){
+					if(s=="av"){
+						bi(reply->readAll(),pool[url].danmaku);
+					}
+					if(s=="ac"){
+						ac(reply->readAll(),pool[url].danmaku);
+					}
+					parse(0x1|0x2);
+					reply->manager()->deleteLater();
+				}
+				else if(url.startsWith("http://www.bilibili.tv/")){
+					QString api,id,video(reply->readAll());
+					QRegExp regex;
+					regex.setCaseSensitivity(Qt::CaseInsensitive);
+					regex.setPattern("cid\\=\\d+");
+					if(regex.indexIn(video)==-1){
+						regex.setPattern("cid:'\\d+");
+						if(regex.indexIn(video)==-1){
+							error(404);
+						}
+						else{
+							id=regex.cap().mid(5);
+						}
 					}
 					else{
-						error(-json["code"].toDouble());
+						id=regex.cap().mid(4);
 					}
+					api="http://comment.bilibili.tv/%1.xml";
+					reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 				}
 				else if(url.startsWith("http://www.acfun.tv/")){
 					if(url.endsWith(".aspx")){
 						QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 						if(json.contains("cid")){
 							QString api="http://comment.acfun.tv/%1.json";
-							cid["Acfun"]=json["cid"].toString();
-							QUrl jsonUrl(api.arg(cid["Acfun"]));
+							QUrl jsonUrl(api.arg(json["cid"].toString()));
 							reply->manager()->get(QNetworkRequest(jsonUrl));
 						}
 						else{
@@ -298,11 +327,10 @@ void Danmaku::setDm(QString dm)
 						}
 					}
 					else{
-						QString video=QString::fromUtf8(reply->readAll()),api,id;
+						QString api,id,video(reply->readAll());
 						QRegExp regex;
 						regex.setCaseSensitivity(Qt::CaseInsensitive);
-						regex.setPattern("[0-9]+(?=\\[/video\\])");
-						regex.indexIn(video);
+						regex.setPattern("\\d+(?=\\[/video\\])");
 						if(regex.indexIn(video)==-1){
 							regex.setPattern("id\\=\\w+");
 							regex.indexIn(video,video.indexOf("<embed"));
@@ -316,16 +344,6 @@ void Danmaku::setDm(QString dm)
 						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 					}
 				}
-				else{
-					load();
-					if(s=="av"){
-						bi(reply->readAll());
-					}
-					if(s=="ac"){
-						ac(reply->readAll());
-					}
-					sort();
-				}
 			}
 			else{
 				error(reply->error());
@@ -336,21 +354,24 @@ void Danmaku::setDm(QString dm)
 		QFile file(dm);
 		if(file.exists()){
 			file.open(QIODevice::ReadOnly);
-			load();
 			if(dm.endsWith("xml")){
-				bi(file.readAll());
+				bi(file.readAll(),pool[dm].danmaku);
 			}
 			if(dm.endsWith("json")){
-				ac(file.readAll());
+				ac(file.readAll(),pool[dm].danmaku);
 			}
-			sort();
+			parse(0x1|0x2);
 		}
 	}
 }
 
-void Danmaku::setTime(qint64 time)
+void Danmaku::setSize(QSize _size)
 {
-	qsrand(time);
+	size=_size;
+}
+
+void Danmaku::setTime(qint64 _time)
+{
 	auto intersects=[](const Static &first,const Static &second){
 		if(first.rect.intersects(second.rect)){
 			return true;
@@ -379,21 +400,32 @@ void Danmaku::setTime(qint64 time)
 			return false;
 		}
 	};
-	for(;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur){
-		QCoreApplication::processEvents();
-		Comment &comment=danmaku[cur];
+	time=_time;
+	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
+		const Comment &comment=*danmaku[cur];
 		if(Shield::isBlocked(comment)){
 			continue;
 		}
-		Static render;
+		int l=Utils::getConfig("/Shield/Density",80);
+		if(comment.mode==1&&l!=0){
+			QEasingCurve c(QEasingCurve::InExpo);
+			qreal r=qrand()%1000;
+			qreal v=1000*c.valueForProgress(((qreal)current[0].size())/l);
+			if(r<v){
+				continue;
+			}
+		}
+		QCoreApplication::processEvents();
 		QFont font;
 		font.setBold(true);
-		font.setFamily(Utils::getConfig<QString>("/Danmaku/Font"));
+		font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
 		font.setPixelSize(comment.font*Utils::getConfig("/Danmaku/Scale",1.0));
-		QStaticText text(comment.content);
+		QStaticText text;
+		text.setText(QString(comment.string).replace("/n","<br>"));
 		text.prepare(QTransform(),font);
 		QSize textSize=text.size().toSize()+QSize(2,2);
 		bool flag=false,sub=Utils::getConfig("/Danmaku/Protect",false);
+		Static render;
 		switch(comment.mode-1){
 		case 0:
 		{
@@ -462,50 +494,59 @@ void Danmaku::setTime(qint64 time)
 		}
 		}
 		if(flag){
-			QImage temp(textSize,QImage::Format_ARGB32);
-			temp.fill(Qt::transparent);
+			QPixmap fst(textSize);
+			fst.fill(Qt::transparent);
 			QPainter painter;
-			painter.begin(&temp);
+			painter.begin(&fst);
 			painter.setFont(font);
 			auto draw=[&](QColor c,QPoint p){
 				painter.setPen(c);
 				painter.drawStaticText(p+=QPoint(1,1),text);
 			};
-			QColor edge=qGray(comment.color.rgb())<50?Qt::white:Qt::black;
+			QColor edge=qGray(comment.color)<50?Qt::white:Qt::black;
 			draw(edge,QPoint(+1,0));
 			draw(edge,QPoint(-1,0));
 			draw(edge,QPoint(0,+1));
 			draw(edge,QPoint(0,-1));
 			draw(comment.color,QPoint(0,0));
 			painter.end();
-			double alpha=Utils::getConfig("/Danmaku/Alpha",1.0);
-			if(alpha!=1){
-				int w=temp.width();
-				int h=temp.height();
-				uchar *bits=temp.bits();
-				for(int y=0;y<h;++y){
-					for(int x=0;x<w;++x){
-						bits[(y*w+x)*4+3]*=alpha;
-					}
-				}
-			}
-			render.text=QPixmap::fromImage(temp);
+			QPixmap sec(textSize);
+			sec.fill(Qt::transparent);
+			painter.begin(&sec);
+			painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
+			painter.drawPixmap(QPoint(0,0),fst);
+			painter.end();
+			render.text=sec;
 			current[comment.mode-1].append(render);
 		}
 	}
 }
 
-void Danmaku::setSize(QSize _size)
+void Danmaku::jumpToTime(qint64 _time)
 {
-	size=_size;
+	clearCurrent();
+	time=_time;
+	for(cur=0;cur<danmaku.size()&&danmaku[cur]->time<time;++cur);
 }
 
-void Danmaku::setDelay(qint64 _delay)
+void Danmaku::saveToFile(QString _file)
 {
-	delay=_delay;
-}
-
-void Danmaku::jumpToTime(qint64 time)
-{
-	for(cur=0;cur<danmaku.size()&&danmaku[cur].time+delay<time;++cur);
+	QFile f(_file);
+	f.open(QIODevice::WriteOnly|QIODevice::Text);
+	QJsonArray a;
+	for(const Comment *c:danmaku){
+		QJsonObject o;
+		QStringList l;
+		l<<QString::number(c->time/1000.0);
+		l<<QString::number(c->color);
+		l<<QString::number(c->mode);
+		l<<QString::number(c->font);
+		l<<c->sender;
+		l<<QString::number(c->date);
+		o["c"]=l.join(',');
+		o["m"]=c->string;
+		a.append(o);
+	}
+	f.write(QJsonDocument(a).toJson());
+	f.close();
 }

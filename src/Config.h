@@ -11,16 +11,21 @@ class Config:public QDialog
 public:
 	explicit Config(QWidget *parent=0,int index=0);
 	~Config();
-	void importShield(QString path);
 
 private:
 	QTabWidget *tab;
-	QWidget *widget[4];
+	QWidget *widget[5];
 
 	//Playing
 	QGroupBox *box[5];
 	QCheckBox *danm[2];
 	QLineEdit *play[4];
+
+	//Interface
+	QGroupBox *ui[3];
+	QComboBox *font;
+	QComboBox *stay;
+	QLineEdit *size;
 
 	//Shiled
 	QLineEdit *edit;
@@ -31,6 +36,8 @@ private:
 	QStringListModel *sm;
 	QAction *action[3];
 	QPushButton *button[2];
+	QLineEdit *limit[2];
+	QGroupBox *label[2];
 
 	//Thanks
 	QTextEdit *thanks;

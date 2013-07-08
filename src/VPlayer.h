@@ -57,6 +57,7 @@ public:
 	QStringList getSubtitles();
 	void setFrame();
 	void draw(QPainter *painter,QRect rect);
+	static VPlayer *instance(){return ins;}
 
 private:
 	int state;
@@ -77,6 +78,8 @@ private:
 	SwsContext *swsctx;
 	AVPicture srcFrame;
 	AVPicture dstFrame;
+
+	static VPlayer *ins;
 
 signals:
 	void opened();

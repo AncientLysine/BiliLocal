@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Menu.h
-*   Time:        2013/04/05
+*   Filename:    Editor.h
+*   Time:        2013/06/30
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,59 +24,44 @@
 *
 =========================================================================*/
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef EDITOR_H
+#define EDITOR_H
 
+#include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Utils.h"
-#include "Search.h"
+#include "Danmaku.h"
+#include "VPlayer.h"
 
-class Menu:public QWidget
+class Widget:public QWidget
+{
+public:
+	explicit Widget(QWidget *parent=0,QString trans=QString());
+
+private:
+	int interval;
+	QPoint point;
+	qint64 duration;
+	QPixmap snapshot;
+	QString translation;
+	QMap<QString,Record> pool;
+	void paintEvent(QPaintEvent *e);
+	void mouseMoveEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
+};
+
+class Editor:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Menu(QWidget *parent=0);
-	bool isPopped(){return isPop;}
+	explicit Editor(QWidget *parent=0);
+	~Editor();
 
 private:
-	bool isPop;
-	bool isTurn;
-	bool isLocal;
-	QString lastPath;
-	QLineEdit *fileL;
-	QLineEdit *danmL;
-	QLineEdit *sechL;
-	QPushButton *fileB;
-	QPushButton *danmB;
-	QPushButton *sechB;
-	QAction *fileA;
-	QAction *danmA;
-	QAction *sechA;
-	QLabel *alphaT;
-	QSlider *alphaS;
-	QLabel *powerT;
-	QLineEdit *powerL;
-	QLabel *localT;
-	QCheckBox *localC;
-	QLabel *subT;
-	QCheckBox *subC;
-	QLabel *fontT;
-	QComboBox *fontC;
-	QPropertyAnimation *animation;
-
-signals:
-	void open(QString file);
-	void load(QString danm);
-	void power(qint16 _power);
-
-public slots:
-	void pop();
-	void push();
-	void setDm(QString _file);
-	void setFile(QString _file);
-	void setPower(qint16 fps);
-	
+	Widget *widget;
+	QGridLayout *layout;
+	QScrollArea *scroll;
+	void resizeEvent(QResizeEvent *e);
 };
 
-#endif // MENU_H
+#endif // EDITOR_H
