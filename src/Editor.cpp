@@ -29,12 +29,13 @@
 Widget::Widget(QWidget *parent,QString trans):
 	QWidget(parent),translation(trans)
 {
-	interval=100;
+	length=100;
 	pool=Danmaku::instance()->getPool();
 	for(auto &line:pool){
 		qSort(line.danmaku);
 	}
-	resize(width(),pool.count()*interval);
+	resize(width(),pool.count()*length);
+	current=VPlayer::instance()->getTime();
 	duration=VPlayer::instance()->getDuration();
 	if(duration==-1){
 		for(auto &line:pool){
@@ -48,43 +49,41 @@ void Widget::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
-	auto keys=pool.keys();
-	int l=e->rect().bottom()/interval+1;
-	int s=point.isNull()?-1:point.y()/interval;
-	for(int i=e->rect().top()/interval;i<l;++i){
+	painter.fillRect(rect(),Qt::gray);
+	const QList<QString> &keys=pool.keys();
+	int l=e->rect().bottom()/length+1;
+	int s=point.isNull()?-1:point.y()/length;
+	for(int i=e->rect().top()/length;i<l;++i){
 		const Record &r=pool[keys[i]];
-		int w=width()-100,h=i*interval;
-		painter.fillRect(0,h,width(),interval,Qt::gray);
-		if(i==s){
-			painter.drawPixmap(100+mapFromGlobal(QCursor::pos()).x()-point.x(),h,snapshot);
-		}
-		painter.fillRect(0,h,100-2,interval-2,Qt::white);
+		int w=width()-100,h=i*length;
+		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		QStringList text;
 		text<<QFileInfo(keys[i]).fileName();
 		text<<translation.arg(r.delay/1000);
-		painter.drawText(0,h,100-2,interval-2,Qt::AlignCenter,text.join("\n"));
-		if(i==s){
-			continue;
-		}
-		const QList<Comment> &line=r.danmaku;
-		int c=0,m=0;
-		for(;c<line.count()&&line[c].time<0;++c);
-		QList<int> height;
-		for(int j=0;j<w;j+=5){
-			int n=c;
-			qint64 e=(j+5)*duration/w;
-			for(;c<line.count()&&line[c].time<e;++c);
-			n=c-n;
-			m=m>n?m:n;
-			height.append(n);
+		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter,text.join("\n"));
+		int m=0,d=5*duration/w;
+		QHash<int,int> c;
+		for(const Comment &com:r.danmaku){
+			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
+			c.insert(k,v);
+			m=v>m?v:m;
 		}
 		if(m==0){
 			continue;
 		}
-		for(int j=0;j<w;j+=5){
-			int he=height.takeFirst()*(interval-2)/m;
-			painter.fillRect(100+j,h+interval-2-he,5,he,Qt::white);
+		int o=w*r.delay/duration+100;
+		if(i==s){
+			o+=mapFromGlobal(QCursor::pos()).x()-point.x();
 		}
+		painter.setClipRect(100,h,w,length);
+		for(int j=0;j<w;j+=5){
+			int he=c[j/5]*(length-2)/m;
+			painter.fillRect(o+j,h+length-2-he,5,he,Qt::white);
+		}
+		painter.setClipping(false);
+	}
+	if(current>=0){
+		painter.fillRect(current*(width()-100)/duration+100,0,1,height(),Qt::red);
 	}
 	painter.end();
 	QWidget::paintEvent(e);
@@ -93,12 +92,10 @@ void Widget::paintEvent(QPaintEvent *e)
 void Widget::mouseMoveEvent(QMouseEvent *e)
 {
 	if(point.isNull()){
-		snapshot=QPixmap(width()-100,interval);
-		render(&snapshot,QPoint(),QRegion(100,e->y()/interval*interval,width()-100,interval));
 		point=e->pos();
 	}
 	else{
-		update(QRegion(100,point.y()/interval*interval,width()-100,interval));
+		update(100,point.y()/length*length,width()-100,length);
 	}
 }
 
@@ -106,7 +103,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
 		auto &p=Danmaku::instance()->getPool();
-		auto &r=p[p.keys()[point.y()/interval]];
+		auto &r=p[p.keys()[point.y()/length]];
 		qint64 d=(e->x()-point.x())*duration/(width()-100);
 		r.delay+=d;
 		for(Comment &c:r.danmaku){
@@ -116,10 +113,9 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 		for(auto &line:pool){
 			qSort(line.danmaku);
 		}
-		update();
+		update(0,point.y()/length*length,100,length);
 	}
 	point=QPoint();
-	snapshot=QPixmap();
 }
 
 Editor::Editor(QWidget *parent):
@@ -131,13 +127,20 @@ Editor::Editor(QWidget *parent):
 	layout->addWidget(scroll);
 	scroll->setWidget(widget);
 	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	state=VPlayer::instance()->getState();
 	resize(640,450);
 	setMinimumSize(300,200);
 	setWindowTitle(tr("Editor"));
+	if(state==VPlayer::Play){
+		VPlayer::instance()->play();
+	}
 }
 
 Editor::~Editor()
 {
+	if(state==VPlayer::Play){
+		VPlayer::instance()->play();
+	}
 	Danmaku::instance()->parse(0x1);
 }
 

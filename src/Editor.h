@@ -39,10 +39,10 @@ public:
 	explicit Widget(QWidget *parent=0,QString trans=QString());
 
 private:
-	int interval;
+	int length;
 	QPoint point;
+	qint64 current;
 	qint64 duration;
-	QPixmap snapshot;
 	QString translation;
 	QMap<QString,Record> pool;
 	void paintEvent(QPaintEvent *e);
@@ -58,6 +58,7 @@ public:
 	~Editor();
 
 private:
+	int state;
 	Widget *widget;
 	QGridLayout *layout;
 	QScrollArea *scroll;
