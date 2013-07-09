@@ -43,6 +43,7 @@ Widget::Widget(QWidget *parent,QString trans):
 			duration=duration>t?duration:t;
 		}
 	}
+	magnet={0,current};
 }
 
 void Widget::paintEvent(QPaintEvent *e)
@@ -71,14 +72,21 @@ void Widget::paintEvent(QPaintEvent *e)
 		if(m==0){
 			continue;
 		}
-		int o=w*r.delay/duration+100;
+		int o=w*r.delay/duration;
 		if(i==s){
 			o+=mapFromGlobal(QCursor::pos()).x()-point.x();
+			for(qint64 p:magnet){
+				p=p*w/duration;
+				if(qAbs(o-p)<5){
+					o=p;
+					break;
+				}
+			}
 		}
 		painter.setClipRect(100,h,w,length);
 		for(int j=0;j<w;j+=5){
 			int he=c[j/5]*(length-2)/m;
-			painter.fillRect(o+j,h+length-2-he,5,he,Qt::white);
+			painter.fillRect(o+j+100,h+length-2-he,5,he,Qt::white);
 		}
 		painter.setClipping(false);
 	}
@@ -104,7 +112,14 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 	if(!point.isNull()){
 		auto &p=Danmaku::instance()->getPool();
 		auto &r=p[p.keys()[point.y()/length]];
-		qint64 d=(e->x()-point.x())*duration/(width()-100);
+		int w=width()-100;
+		qint64 d=(e->x()-point.x())*duration/w;
+		for(qint64 p:magnet){
+			if(qAbs(d+r.delay-p)<5*duration/w){
+				d=p-r.delay;
+				break;
+			}
+		}
 		r.delay+=d;
 		for(Comment &c:r.danmaku){
 			c.time+=d;
