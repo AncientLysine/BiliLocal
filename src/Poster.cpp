@@ -85,8 +85,8 @@ Poster::Poster(QWidget *parent) :
 void Poster::resizeEvent(QResizeEvent *e)
 {
 	int w=e->size().width(),h=e->size().height();
-	commentL->setGeometry(0, 0,w-70,h);
-	commentB->setGeometry(w-60,0,60,h);
+	commentL->setGeometry(5, 0,w-65,h);
+	commentB->setGeometry(w-60,0,55,h);
 }
 
 void Poster::postComment(QString comment)

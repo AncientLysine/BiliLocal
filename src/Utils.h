@@ -67,6 +67,7 @@ class Utils
 {
 public:
 	static void setBack(QWidget *widget,QColor color);
+	static void setCenter(QWidget *widget);
 
 	template<class Func>
 	static void delayExec(int time,Func func)

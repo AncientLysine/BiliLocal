@@ -149,6 +149,7 @@ Editor::Editor(QWidget *parent):
 	if(state==VPlayer::Play){
 		VPlayer::instance()->play();
 	}
+	Utils::setCenter(this);
 }
 
 Editor::~Editor()

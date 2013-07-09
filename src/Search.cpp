@@ -78,6 +78,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 	setLayout(outerLayout);
 	setWindowTitle(tr("Search"));
 	resize(900,520);
+	Utils::setCenter(this);
 	
 	QStringList labels={tr("Cover"),tr("Play"),tr("Danmaku"),tr("Title"),tr("Typename"),tr("Author")};
 	resultW->setHeaderLabels(labels);

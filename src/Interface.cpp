@@ -39,7 +39,7 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	poster=new Poster(this);
-	poster->hide();
+    poster->hide();
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -382,7 +382,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		delay->stop();
 	}
 	if(x>200&&x<width()-200){
-		if(y>height()-40&&danmaku->rowCount()>0){
+		if(y>height()-40){
 			poster->fadeIn();
 		}
 		if(y<height()-60){

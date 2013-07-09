@@ -99,6 +99,7 @@ Info::Info(QWidget *parent):
 	durT->setText("00:00/00:00");
 	danmV=new QTableView(this);
 	danmV->setWordWrap(false);
+	danmV->setSelectionMode(QAbstractItemView::SingleSelection);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
@@ -124,13 +125,13 @@ Info::Info(QWidget *parent):
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(this,2);
+			Config config(parentWidget(),2);
 			config.exec();
 			Danmaku::instance()->parse(0x2);
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-				Editor editor(this);
+				Editor editor(parentWidget());
 				editor.exec();
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
