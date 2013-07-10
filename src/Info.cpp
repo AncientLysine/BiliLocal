@@ -59,12 +59,7 @@ Info::Info(QWidget *parent):
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(!updating){
-			if(_time==timeS->maximum()){
-				emit stop();
-			}
-			else{
-				emit time(duration*_time/400);
-			}
+			emit time(duration*_time/400);
 		}
 	});
 	connect(timeS,&QSlider::sliderPressed, [this](){sliding=true;});

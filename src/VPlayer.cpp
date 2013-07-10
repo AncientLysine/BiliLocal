@@ -270,6 +270,7 @@ void VPlayer::setSize(QSize _size)
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
+		_time=qBound((qint64)0,_time,getDuration()-500);
 		libvlc_media_player_set_time(mp,_time);
 		emit jumped(_time);
 	}
@@ -320,7 +321,12 @@ void VPlayer::emitFrame(QImage _frame)
 		frame=QPixmap::fromImage(_frame);
 		emit decoded();
 		if(getDuration()-getTime()<500){
-			stop();
+			if(Utils::getConfig("/Playing/Loop",false)){
+				setTime(0);
+			}
+			else{
+				stop();
+			}
 		}
 	}
 }

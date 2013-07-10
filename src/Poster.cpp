@@ -82,6 +82,16 @@ Poster::Poster(QWidget *parent) :
 	});
 }
 
+bool Poster::isValid()
+{
+	for(QString source:Danmaku::instance()->getPool().keys()){
+		if(source.startsWith("http://comment.bilibili.tv/")){
+			return true;
+		}
+	}
+	return false;
+}
+
 void Poster::resizeEvent(QResizeEvent *e)
 {
 	int w=e->size().width(),h=e->size().height();

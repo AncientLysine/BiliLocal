@@ -62,6 +62,8 @@ private:
 	QCheckBox *localC;
 	QLabel *subT;
 	QCheckBox *subC;
+	QLabel *loopT;
+	QCheckBox *loopC;
 	QLabel *fontT;
 	QComboBox *fontC;
 	QPropertyAnimation *animation;

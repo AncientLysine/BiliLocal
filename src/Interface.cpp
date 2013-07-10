@@ -39,7 +39,7 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	poster=new Poster(this);
-    poster->hide();
+	poster->hide();
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -171,6 +171,18 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
+	toggA=new QAction(tr("Block All"),this);
+	toggA->setCheckable(true);
+	toggA->setChecked(Shield::block[5]);
+	toggA->setShortcut(QKeySequence("Ctrl+T"));
+	addAction(toggA);
+	connect(toggA,&QAction::toggled,[this](bool b){
+		Shield::block[5]=b;
+		Shield::cacheS.clear();
+		danmaku->parse(0x0);
+		danmaku->clearCurrent();
+	});
+
 	confA=new QAction(tr("Config"),this);
 	confA->setShortcut(QKeySequence("Ctrl+I"));
 	addAction(confA);
@@ -233,6 +245,7 @@ Interface::Interface(QWidget *parent):
 
 	top->addActions(info->actions());
 	top->addAction(fullA);
+	top->addAction(toggA);
 	top->addActions(menu->actions());
 	top->addMenu(sub);
 	top->addMenu(sca);
@@ -382,7 +395,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		delay->stop();
 	}
 	if(x>200&&x<width()-200){
-		if(y>height()-40){
+		if(y>height()-40&&poster->isValid()){
 			poster->fadeIn();
 		}
 		if(y<height()-60){
