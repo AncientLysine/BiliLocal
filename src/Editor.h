@@ -47,8 +47,10 @@ private:
 	QList<qint64> magnet;
 	QMap<QString,Record> pool;
 	void paintEvent(QPaintEvent *e);
+	void wheelEvent(QWheelEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
+	void delayRecord(int index,qint64 delay);
 };
 
 class Editor:public QDialog

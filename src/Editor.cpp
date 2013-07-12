@@ -97,6 +97,23 @@ void Widget::paintEvent(QPaintEvent *e)
 	QWidget::paintEvent(e);
 }
 
+void Widget::wheelEvent(QWheelEvent *e)
+{
+	int s=e->angleDelta().y();
+	auto &p=Danmaku::instance()->getPool();
+	auto &r=p[p.keys()[point.y()/length]];
+	qint64 d=(r.delay/1000)*1000;
+	if(s>0){
+		d-=1000;
+	}
+	if(s<0){
+		d+=1000;
+	}
+	d-=r.delay;
+	delayRecord(e->pos().y()/length,d);
+	QWidget::wheelEvent(e);
+}
+
 void Widget::mouseMoveEvent(QMouseEvent *e)
 {
 	if(point.isNull()){
@@ -110,9 +127,9 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 void Widget::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
+		int w=width()-100;
 		auto &p=Danmaku::instance()->getPool();
 		auto &r=p[p.keys()[point.y()/length]];
-		int w=width()-100;
 		qint64 d=(e->x()-point.x())*duration/w;
 		for(qint64 p:magnet){
 			if(qAbs(d+r.delay-p)<5*duration/w){
@@ -120,17 +137,24 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 				break;
 			}
 		}
-		r.delay+=d;
-		for(Comment &c:r.danmaku){
-			c.time+=d;
-		}
-		pool=p;
-		for(auto &line:pool){
-			qSort(line.danmaku);
-		}
-		update(0,point.y()/length*length,100,length);
+		delayRecord(point.y()/length,d);
 	}
 	point=QPoint();
+}
+
+void Widget::delayRecord(int index,qint64 delay)
+{
+	auto &p=Danmaku::instance()->getPool();
+	auto &r=p[p.keys()[index]];
+	r.delay+=delay;
+	for(Comment &c:r.danmaku){
+		c.time+=delay;
+	}
+	pool=p;
+	for(auto &line:pool){
+		qSort(line.danmaku);
+	}
+	update(0,index*length,width(),length);
 }
 
 Editor::Editor(QWidget *parent):
