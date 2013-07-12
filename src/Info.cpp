@@ -138,6 +138,9 @@ Info::Info(QWidget *parent):
 				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
 				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
 				if(!file.isEmpty()){
+					if(!file.endsWith(".json")){
+						file.append(".json");
+					}
 					Danmaku::instance()->saveToFile(file);
 				}
 			});

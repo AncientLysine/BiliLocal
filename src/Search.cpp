@@ -136,9 +136,16 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	manager=new QNetworkAccessManager(this);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		auto error=[this](int code){
+			QString info=tr("Network error occurred, error code: %1");
+			QMessageBox::warning(this,tr("Network Error"),info.arg(code));
+			clearSearch();
+			isWaiting=false;
+		};
 		if (reply->error()==QNetworkReply::NoError) {
 			QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-			if(static_cast<int>(json["code"].toDouble())==0){
+			int code=json["code"].toDouble();
+			if(code==0){
 				if (pageNum==-1) {
 					pageNum=json["page"].toDouble();
 					pageNuL->setText(QString("/%1").arg(pageNum));
@@ -218,18 +225,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 				isWaiting=false;
 			}
 			else{
-				auto timer=new QTimer(this);
-				timer->setSingleShot(true);
-				connect(timer,&QTimer::timeout,[this](){getData(pageCur);});
-				timer->start(2000);
-				isWaiting=true;
+				if(json["error"].toString()=="overspeed"){
+					Utils::delayExec(2000,[this](){getData(pageCur);});
+					isWaiting=true;
+				}
+				else{
+					error(-code);
+				}
 			}
 		}
 		else {
-			QString info=tr("Network error occurred, error code: %1");
-			QMessageBox::warning(this,tr("Network Error"),info.arg(reply->error()));
-			clearSearch();
-			isWaiting=false;
+			error(reply->error());
 		}
 	});
 

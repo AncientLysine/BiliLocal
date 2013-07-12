@@ -59,19 +59,21 @@ Interface::Interface(QWidget *parent):
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint pos=this->mapFromGlobal(QCursor::pos());
-		if(pos.x()<-100){
-			menu->push();
-			setFocus();
-		}
-		if(pos.x()>width()+100){
-			info->push();
-			setFocus();
-		}
-		if(pos.y()<-50||pos.y()>height()+50){
-			menu->push();
-			info->push();
-			poster->fadeOut();
-			setFocus();
+		if(isActiveWindow()){
+			if(pos.x()<-100){
+				menu->push();
+				setFocus();
+			}
+			if(pos.x()>width()+100){
+				info->push();
+				setFocus();
+			}
+			if(pos.y()<-50||pos.y()>height()+50){
+				menu->push();
+				info->push();
+				poster->fadeOut();
+				setFocus();
+			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
