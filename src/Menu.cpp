@@ -86,7 +86,7 @@ Menu::Menu(QWidget *parent) :
 		}
 	});
 	connect(sechA,&QAction::triggered,[this](){
-		Search searchBox;
+		Search searchBox(parentWidget());
 		if(!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
 		}
@@ -171,11 +171,20 @@ Menu::Menu(QWidget *parent) :
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
 		Utils::setConfig("/Danmaku/Protect",state==Qt::Checked);
 	});
+	loopT=new QLabel(this);
+	loopT->setGeometry(QRect(10,310,100,25));
+	loopT->setText(tr("Loop"));
+	loopC=new QCheckBox(this);
+	loopC->setGeometry(QRect(168,310,25,25));
+	loopC->setChecked(Utils::getConfig("/Playing/Loop",false));
+	connect(loopC,&QCheckBox::stateChanged,[this](int state){
+		Utils::setConfig("/Playing/Loop",state==Qt::Checked);
+	});
 	fontT=new QLabel(this);
 	fontT->setText(tr("Font"));
-	fontT->setGeometry(QRect(10,310,50,25));
+	fontT->setGeometry(QRect(10,345,50,25));
 	fontC=new QComboBox(this);
-	fontC->setGeometry(QRect(100,310,90,25));
+	fontC->setGeometry(QRect(100,345,90,25));
 	fontC->addItems(QFontDatabase().families());
 	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){

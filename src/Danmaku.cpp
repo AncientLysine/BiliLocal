@@ -206,9 +206,7 @@ void Danmaku::parse(int flag)
 			}
 		}
 	}
-	if(flag>0){
-		emit layoutChanged();
-	}
+	emit layoutChanged();
 }
 
 void Danmaku::setDm(QString dm)

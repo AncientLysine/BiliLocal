@@ -56,10 +56,12 @@ private:
 	QAction *quitA;
 	QAction *fullA;
 	QAction *confA;
+	QAction *toggA;
 	QMenu *top;
 	QMenu *sub;
 	QMenu *rat;
 	QMenu *sca;
+	QPixmap background;
 
 	Menu *menu;
 	Info *info;
