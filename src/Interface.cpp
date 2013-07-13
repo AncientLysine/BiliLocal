@@ -81,7 +81,11 @@ Interface::Interface(QWidget *parent):
 			danmaku->setTime(time);
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){update();});
+	connect(power,&QTimer::timeout,[this](){
+		if(vplayer->getState()==VPlayer::Play){
+			update();
+		}
+	});
 	connect(delay,&QTimer::timeout,[this](){
 		if(vplayer->getState()==VPlayer::Play){
 			setCursor(QCursor(Qt::BlankCursor));
@@ -332,6 +336,7 @@ void Interface::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
+	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 	if(vplayer->getState()==VPlayer::Stop){
 		QRect to=rect();
 		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
