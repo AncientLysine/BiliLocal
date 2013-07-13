@@ -61,7 +61,7 @@ void Widget::paintEvent(QPaintEvent *e)
 		QStringList text;
 		text<<QFileInfo(keys[i]).fileName();
 		text<<translation.arg(r.delay/1000);
-		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter,text.join("\n"));
+		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
 		int m=0,d=5*duration/w;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
