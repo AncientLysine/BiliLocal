@@ -99,9 +99,9 @@ void Widget::paintEvent(QPaintEvent *e)
 
 void Widget::wheelEvent(QWheelEvent *e)
 {
-	int s=e->angleDelta().y();
+	int s=e->angleDelta().y(),i=e->pos().y()/length;
 	auto &p=Danmaku::instance()->getPool();
-	auto &r=p[p.keys()[point.y()/length]];
+	auto &r=p[p.keys()[i]];
 	qint64 d=(r.delay/1000)*1000;
 	if(s>0){
 		d-=1000;
@@ -110,7 +110,7 @@ void Widget::wheelEvent(QWheelEvent *e)
 		d+=1000;
 	}
 	d-=r.delay;
-	delayRecord(e->pos().y()/length,d);
+	delayRecord(i,d);
 	QWidget::wheelEvent(e);
 }
 

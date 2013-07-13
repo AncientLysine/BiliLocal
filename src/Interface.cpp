@@ -266,6 +266,7 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	Search::initDataBase();
 }
 
@@ -331,6 +332,12 @@ void Interface::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
+	if(vplayer->getState()==VPlayer::Stop){
+		QRect to=rect();
+		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
+		to.moveCenter(rect().center());
+		painter.drawPixmap(to,background);
+	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
 	painter.end();

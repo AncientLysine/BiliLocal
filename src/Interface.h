@@ -61,6 +61,7 @@ private:
 	QMenu *sub;
 	QMenu *rat;
 	QMenu *sca;
+	QPixmap background;
 
 	Menu *menu;
 	Info *info;
