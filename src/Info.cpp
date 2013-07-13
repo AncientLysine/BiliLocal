@@ -59,12 +59,7 @@ Info::Info(QWidget *parent):
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(!updating){
-			if(_time==timeS->maximum()){
-				emit stop();
-			}
-			else{
-				emit time(duration*_time/400);
-			}
+			emit time(duration*_time/400);
 		}
 	});
 	connect(timeS,&QSlider::sliderPressed, [this](){sliding=true;});
@@ -99,6 +94,7 @@ Info::Info(QWidget *parent):
 	durT->setText("00:00/00:00");
 	danmV=new QTableView(this);
 	danmV->setWordWrap(false);
+	danmV->setSelectionMode(QAbstractItemView::SingleSelection);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
@@ -124,13 +120,13 @@ Info::Info(QWidget *parent):
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(this,2);
+			Config config(parentWidget(),2);
 			config.exec();
 			Danmaku::instance()->parse(0x2);
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-				Editor editor(this);
+				Editor editor(parentWidget());
 				editor.exec();
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
@@ -142,6 +138,9 @@ Info::Info(QWidget *parent):
 				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
 				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
 				if(!file.isEmpty()){
+					if(!file.endsWith(".json")){
+						file.append(".json");
+					}
 					Danmaku::instance()->saveToFile(file);
 				}
 			});

@@ -59,19 +59,21 @@ Interface::Interface(QWidget *parent):
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint pos=this->mapFromGlobal(QCursor::pos());
-		if(pos.x()<-100){
-			menu->push();
-			setFocus();
-		}
-		if(pos.x()>width()+100){
-			info->push();
-			setFocus();
-		}
-		if(pos.y()<-50||pos.y()>height()+50){
-			menu->push();
-			info->push();
-			poster->fadeOut();
-			setFocus();
+		if(isActiveWindow()){
+			if(pos.x()<-100){
+				menu->push();
+				setFocus();
+			}
+			if(pos.x()>width()+100){
+				info->push();
+				setFocus();
+			}
+			if(pos.y()<-50||pos.y()>height()+50){
+				menu->push();
+				info->push();
+				poster->fadeOut();
+				setFocus();
+			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
@@ -171,6 +173,18 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
+	toggA=new QAction(tr("Block All"),this);
+	toggA->setCheckable(true);
+	toggA->setChecked(Shield::block[5]);
+	toggA->setShortcut(QKeySequence("Ctrl+T"));
+	addAction(toggA);
+	connect(toggA,&QAction::toggled,[this](bool b){
+		Shield::block[5]=b;
+		Shield::cacheS.clear();
+		danmaku->parse(0x0);
+		danmaku->clearCurrent();
+	});
+
 	confA=new QAction(tr("Config"),this);
 	confA->setShortcut(QKeySequence("Ctrl+I"));
 	addAction(confA);
@@ -233,6 +247,7 @@ Interface::Interface(QWidget *parent):
 
 	top->addActions(info->actions());
 	top->addAction(fullA);
+	top->addAction(toggA);
 	top->addActions(menu->actions());
 	top->addMenu(sub);
 	top->addMenu(sca);
@@ -251,6 +266,7 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	Search::initDataBase();
 }
 
@@ -316,6 +332,12 @@ void Interface::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
+	if(vplayer->getState()==VPlayer::Stop){
+		QRect to=rect();
+		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
+		to.moveCenter(rect().center());
+		painter.drawPixmap(to,background);
+	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
 	painter.end();
@@ -382,7 +404,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		delay->stop();
 	}
 	if(x>200&&x<width()-200){
-		if(y>height()-40&&danmaku->rowCount()>0){
+		if(y>height()-40&&poster->isValid()){
 			poster->fadeIn();
 		}
 		if(y<height()-60){

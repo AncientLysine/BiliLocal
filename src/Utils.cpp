@@ -45,6 +45,24 @@ void Utils::setBack(QWidget *widget,QColor color)
 	widget->setPalette(options);
 }
 
+void Utils::setCenter(QWidget *widget)
+{
+	QPoint center;
+	QWidget *parent=widget->parentWidget();
+	if(parent==NULL){
+		center=QApplication::desktop()->screenGeometry(widget).center();
+	}
+	else if(widget->isWindow()){
+		center=parent->geometry().center();
+	}
+	else{
+		center=parent->rect().center();
+	}
+	QRect rect=widget->geometry();
+	rect.moveCenter(center);
+	widget->setGeometry(rect);
+}
+
 void Utils::loadConfig()
 {
 	QFile conf("./Config.txt");

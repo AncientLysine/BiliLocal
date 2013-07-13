@@ -39,6 +39,7 @@ class Poster : public QWidget
 	Q_OBJECT
 public:
 	explicit Poster(QWidget *parent = 0);
+	bool isValid();
 
 public slots:
 	void postComment(QString comment);
