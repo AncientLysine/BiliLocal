@@ -283,11 +283,17 @@ void Interface::setCenter(QSize _s,bool f)
 	QRect s=QApplication::desktop()->screenGeometry(this);
 	QRect t=f?s:geometry();
 	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	bool flag=true;
 	if(r.width()>=s.width()||r.height()>=s.height()){
-		fullA->toggle();
-		Utils::delayExec(0,[this](){vplayer->setSize(size());});
+		if(isVisible()){
+			fullA->toggle();
+			flag=false;
+		}
+		else{
+			r.setSize(QSize(960,540));
+		}
 	}
-	else{
+	if(flag){
 		r.moveCenter(t.center());
 		if(r.top()<s.top()){
 			r.moveTop(s.top());
@@ -354,6 +360,9 @@ void Interface::resizeEvent(QResizeEvent *e)
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();
+	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()){
+		Utils::setConfig("/Interface/Size",QString("%1,%2").arg(w).arg(h));
+	}
 	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
 	me->move((w-me->width())/2,(h-me->height())/2+40);
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
