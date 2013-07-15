@@ -36,6 +36,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 	auto outerLayout=new QVBoxLayout;
 	auto keywdLayout=new QHBoxLayout;
 	statusL=new QLabel(tr("Ready"),this);
+	if(Utils::getConfig("/Playing/Appkey",QString("0"))=="0"){
+		statusL->setText(tr("<font color=red>Empty Appkey<font>"));
+	}
 	pageTxL=new QLabel(tr("Page"),this);
 	pageNuL=new QLabel(this);
 	pageNuL->setFixedWidth(40);
@@ -169,13 +172,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 						query.exec();
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 						row->setSizeHint(0,QSize(120,92));
-						auto time=[](){
-							qint64 _time=0;
-							_time+=QDate(2000,1,1).daysTo(QDate::currentDate());
-							_time*=24*60*60;
-							_time+=QTime(0,0,1).secsTo(QTime::currentTime())+1;
-							return _time;
-						};
 						auto loadPixmap=[](QByteArray data){
 							QPixmap pixmap;
 							pixmap.loadFromData(data);
@@ -187,7 +183,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						if(query.first()){
 							row->setIcon(0,QIcon(loadPixmap(query.value("Pixmap").toByteArray())));
 							query.prepare("UPDATE Cache SET Time=? WHERE Url=?");
-							query.addBindValue(time());
+							query.addBindValue(QDateTime::currentDateTime().toTime_t());
 							query.addBindValue(item["pic"].toString());
 							query.exec();
 						}
@@ -196,14 +192,16 @@ Search::Search(QWidget *parent):QDialog(parent)
 							auto getPic=new QNetworkAccessManager(this);
 							connect(getPic,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
 								if (reply->error()==QNetworkReply::NoError){
-									QByteArray byte=reply->readAll();
 									QSqlQuery query;
+									QByteArray byte=reply->readAll();
 									query.prepare("INSERT INTO Cache VALUES(?,?,?);");
 									query.addBindValue(reply->url().toString());
-									query.addBindValue(time());
+									query.addBindValue(QDateTime::currentDateTime().toTime_t());
 									query.addBindValue(byte);
 									query.exec();
-									while(QFileInfo("Cache.db").size()>2*1024*1024){
+									query.prepare("SELECT COUNT(*) FROM Cache;");
+									query.exec();
+									if(query.first()&&query.value(0).toInt()>200){
 										query.prepare("DELETE FROM Cache "
 													  "WHERE Cache.Time=("
 													  "SELECT MIN(Time) FROM Cache);");
@@ -214,6 +212,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 										line->setIcon(0,QIcon(loadPixmap(byte)));
 									}
 								}
+								reply->manager()->deleteLater();
 							});
 							QNetworkRequest request;
 							request.setUrl(QUrl(item["pic"].toString()));
