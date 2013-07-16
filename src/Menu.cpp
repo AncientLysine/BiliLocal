@@ -229,11 +229,12 @@ void Menu::setDm(QString _file)
 
 void Menu::setFile(QString _file)
 {
-	lastPath=_file.mid(0,_file.lastIndexOf("/"));
-	_file=QDir::toNativeSeparators(_file);
-	fileL->setText(_file);
+	QFileInfo file(_file);
+	lastPath=file.absolutePath();
 	Utils::setConfig("/Playing/Path",lastPath);
-	emit open(_file);
+	_file=file.absoluteFilePath();
+	fileL->setText(_file);
+	emit open(QDir::toNativeSeparators(_file));
 }
 
 void Menu::setPower(qint16 fps)
