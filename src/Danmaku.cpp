@@ -292,25 +292,33 @@ void Danmaku::setDm(QString dm)
 					parse(0x1|0x2);
 					reply->manager()->deleteLater();
 				}
-				else if(url.startsWith("http://www.bilibili.tv/")){
-					QString api,id,video(reply->readAll());
-					QRegExp regex;
-					regex.setCaseSensitivity(Qt::CaseInsensitive);
-					regex.setPattern("cid\\=\\d+");
-					if(regex.indexIn(video)==-1){
-						regex.setPattern("cid:'\\d+");
-						if(regex.indexIn(video)==-1){
-							error(404);
-						}
-						else{
-							id=regex.cap().mid(5);
-						}
+				else if(url.startsWith("http://www.bilibili.tv/")||url.startsWith("http://comic.letv.com/")){
+					QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+					if(redirect.isValid()){
+						reply->manager()->get(QNetworkRequest(redirect));
 					}
 					else{
-						id=regex.cap().mid(4);
+						QString api,id,video(reply->readAll());
+						QRegExp regex;
+						regex.setCaseSensitivity(Qt::CaseInsensitive);
+						regex.setPattern("cid\\=\\d+");
+						if(regex.indexIn(video)==-1){
+							regex.setPattern("cid:'\\d+");
+							if(regex.indexIn(video)==-1){
+								error(404);
+							}
+							else{
+								id=regex.cap().mid(5);
+							}
+						}
+						else{
+							id=regex.cap().mid(4);
+						}
+						if(!id.isEmpty()){
+							api="http://comment.bilibili.tv/%1.xml";
+							reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+						}
 					}
-					api="http://comment.bilibili.tv/%1.xml";
-					reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 				}
 				else if(url.startsWith("http://www.acfun.tv/")){
 					if(url.endsWith(".aspx")){
