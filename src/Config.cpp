@@ -64,15 +64,18 @@ Config::Config(QWidget *parent,int index):
 		box[3]->setLayout(e);
 		list->addWidget(box[3]);
 
-		auto j=new QHBoxLayout;
-		play[3]=new QLineEdit(widget[0]);
-		play[3]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
-		connect(play[3],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Playing/Interval",play[3]->text().toDouble());
+		auto g=new QHBoxLayout;
+		effect=new QComboBox(widget[0]);
+		effect->addItem(tr("Stroke"));
+		effect->addItem(tr("Projection"));
+		effect->setCurrentIndex(Utils::getConfig("/Playing/Effect",0));
+		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
+		connect(effect,signal,[this](int i){
+			Utils::setConfig("/Playing/Effect",i);
 		});
-		j->addWidget(play[3]);
-		box[4]=new QGroupBox(tr("skip time"),widget[0]);
-		box[4]->setLayout(j);
+		g->addWidget(effect);
+		box[4]=new QGroupBox(tr("Style"),widget[0]);
+		box[4]->setLayout(g);
 		list->addWidget(box[4]);
 
 		list->addStretch(10);
@@ -119,6 +122,17 @@ Config::Config(QWidget *parent,int index):
 		ui[2]=new QGroupBox(tr("window flag"),widget[1]);
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
+
+		auto j=new QHBoxLayout;
+		jump=new QLineEdit(widget[1]);
+		jump->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
+		connect(jump,&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Playing/Interval",jump->text().toDouble());
+		});
+		j->addWidget(jump);
+		ui[3]=new QGroupBox(tr("skip time"),widget[1]);
+		ui[3]->setLayout(j);
+		lines->addWidget(ui[3]);
 
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
