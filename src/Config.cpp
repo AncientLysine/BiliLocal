@@ -68,10 +68,10 @@ Config::Config(QWidget *parent,int index):
 		effect=new QComboBox(widget[0]);
 		effect->addItem(tr("Stroke"));
 		effect->addItem(tr("Projection"));
-		effect->setCurrentIndex(Utils::getConfig("/Playing/Effect",0));
+		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",0));
 		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
 		connect(effect,signal,[this](int i){
-			Utils::setConfig("/Playing/Effect",i);
+			Utils::setConfig("/Danmaku/Effect",i);
 		});
 		g->addWidget(effect);
 		box[4]=new QGroupBox(tr("Style"),widget[0]);

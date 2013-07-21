@@ -45,9 +45,14 @@ Search::Search(QWidget *parent):QDialog(parent)
 	keywE=new QLineEdit(this);
 	pageE=new QLineEdit(this);
 	pageE->setFixedWidth(40);
+	orderC=new QComboBox(this);
+	QStringList orders={tr("default"),tr("pubdate"),tr("senddate"),tr("ranklevel"),tr("click"),tr("scores"),tr("danmaku"),tr("stow")};
+	orderC->addItems(orders);
+	orderC->setEditable(false);
 	searchB=new QPushButton(this);
 	searchB->setText(tr("Search"));
 	keywdLayout->addWidget(keywE);
+	keywdLayout->addWidget(orderC);
 	keywdLayout->addWidget(searchB);
 	outerLayout->addLayout(keywdLayout);
 
@@ -91,6 +96,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 	resultW->setColumnWidth(2,60);
 	resultW->setColumnWidth(3,370);
 	resultW->setColumnWidth(4,100);
+
+	connect(orderC,&QComboBox::currentTextChanged,[this](QString){
+		if(!isWaiting&&resultW->topLevelItemCount()>0){
+			searchB->click();
+		}
+	});
 
 	connect(searchB,&QPushButton::clicked,[this](){
 		if(isWaiting){
@@ -265,8 +276,9 @@ void Search::getData(int pageNum)
 	isWaiting=true;
 	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
-	QString apiUrl("http://api.bilibili.tv/search?type=json&appkey=%1&keyword=%2&page=%3&order=default");
-	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString("0"))).arg(key).arg(pageNum)));
+	QString order[]={"default","pubdate","senddate","ranklevel","click","scores","damku","stow"};
+	QString apiUrl("http://api.bilibili.tv/search?type=json&appkey=%1&keyword=%2&page=%3&order=%4");
+	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString("0"))).arg(key).arg(pageNum).arg(order[orderC->currentIndex()])));
 	manager->get(request);
 }
 

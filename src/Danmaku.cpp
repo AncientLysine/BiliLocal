@@ -547,7 +547,7 @@ void Danmaku::setTime(qint64 _time)
 				painter.drawStaticText(p+=QPoint(2,2),text);
 			};
 			QColor edge=qGray(comment.color)<50?Qt::white:Qt::black;
-			switch(Utils::getConfig("/Playing/Effect",0)){
+			switch(Utils::getConfig("/Danmaku/Effect",0)){
 			case 0:
 				draw(edge,QPoint(+1,0));
 				draw(edge,QPoint(-1,0));
