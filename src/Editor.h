@@ -39,6 +39,7 @@ public:
 	explicit Widget(QWidget *parent=0,QString trans=QString());
 
 private:
+	int scale;
 	int length;
 	QPoint point;
 	qint64 current;

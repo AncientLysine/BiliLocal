@@ -32,7 +32,7 @@ Interface::Interface(QWidget *parent):
 {
 	setAcceptDrops(true);
 	setMouseTracking(true);
-	setMinimumSize(520,390);
+	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
@@ -393,40 +393,42 @@ void Interface::keyPressEvent(QKeyEvent *e)
 
 void Interface::mouseMoveEvent(QMouseEvent *e)
 {
-	int x=e->pos().x(),y=e->pos().y();
-	if(x<50){
-		menu->pop();
-	}
-	if(x>250){
-		menu->push();
-		setFocus();
-	}
-	if(x>width()-50){
-		info->pop();
-	}
-	if(x<width()-250){
-		info->push();
-		setFocus();
-	}
-	if(x>220&&x<width()-220&&y>50&&y<height()-50){
-		if(cursor().shape()==Qt::BlankCursor){
-			unsetCursor();
+	if(isActiveWindow()){
+		int x=e->pos().x(),y=e->pos().y();
+		if(x<50){
+			menu->pop();
 		}
-		delay->start(2000);
-	}
-	else{
-		delay->stop();
-	}
-	if(x>200&&x<width()-200){
-		if(y>height()-40&&poster->isValid()){
-			poster->fadeIn();
+		if(x>250){
+			menu->push();
+			setFocus();
 		}
-		if(y<height()-60){
+		if(x>width()-50){
+			info->pop();
+		}
+		if(x<width()-250){
+			info->push();
+			setFocus();
+		}
+		if(x>220&&x<width()-220&&y>50&&y<height()-50){
+			if(cursor().shape()==Qt::BlankCursor){
+				unsetCursor();
+			}
+			delay->start(2000);
+		}
+		else{
+			delay->stop();
+		}
+		if(x>200&&x<width()-200){
+			if(y>height()-40&&poster->isValid()){
+				poster->fadeIn();
+			}
+			if(y<height()-60){
+				poster->fadeOut();
+			}
+		}
+		else{
 			poster->fadeOut();
 		}
-	}
-	else{
-		poster->fadeOut();
 	}
 	QWidget::mouseMoveEvent(e);
 }
