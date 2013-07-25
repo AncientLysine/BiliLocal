@@ -282,7 +282,11 @@ void Danmaku::setDm(QString dm)
 			};
 			QString url=reply->url().url();
 			if(reply->error()==QNetworkReply::NoError){
-				if(url.startsWith("http://comment.")){
+				QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+				if(redirect.isValid()){
+					reply->manager()->get(QNetworkRequest(redirect));
+				}
+				else if(url.startsWith("http://comment.")){
 					if(s=="av"){
 						bi(reply->readAll(),pool[url].danmaku);
 					}
@@ -295,7 +299,6 @@ void Danmaku::setDm(QString dm)
 				else if(url.startsWith("http://www.bilibili.tv/")){
 					QString api,id,video(reply->readAll());
 					QRegExp regex;
-					regex.setCaseSensitivity(Qt::CaseInsensitive);
 					regex.setPattern("cid\\=\\d+");
 					if(regex.indexIn(video)==-1){
 						regex.setPattern("cid:'\\d+");
@@ -309,8 +312,13 @@ void Danmaku::setDm(QString dm)
 					else{
 						id=regex.cap().mid(4);
 					}
-					api="http://comment.bilibili.tv/%1.xml";
-					reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+					if(!id.isEmpty()){
+						api="http://comment.bilibili.tv/%1.xml";
+						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+					}
+					else{
+						reply->manager()->deleteLater();
+					}
 				}
 				else if(url.startsWith("http://www.acfun.tv/")){
 					if(url.endsWith(".aspx")){
@@ -322,6 +330,7 @@ void Danmaku::setDm(QString dm)
 						}
 						else{
 							error(404);
+							reply->manager()->deleteLater();
 						}
 					}
 					else{
@@ -339,12 +348,48 @@ void Danmaku::setDm(QString dm)
 							id=regex.cap();
 							api="http://www.acfun.tv/api/player/vids/%1.aspx";
 						}
+						if(!id.isEmpty()){
+							reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+						}
+						else{
+							reply->manager()->deleteLater();
+						}
+					}
+				}
+				else if(url.startsWith("http://comic.letv.com/")){
+					QString api,id,video(reply->readAll());
+					QRegExp regex;
+					regex.setPattern("#p\\d+");
+					regex.indexIn(url);
+					int part=regex.cap().mid(2).toInt(),sta;
+					if(part>0&&(sta=video.indexOf("<div class=\"page_box\">"))!=-1){
+						video=video.mid(sta);
+						regex.setPattern("cid\\=\"\\d+");
+						int cur=0;
+						for(int i=1;i<=part;++i){
+							if((cur=regex.indexIn(video,cur))!=-1){
+								if(i==part){
+									id=regex.cap().mid(5);
+								}
+								cur+=regex.matchedLength();
+							}
+							else{
+								break;
+							}
+						}
+					}
+					if(!id.isEmpty()){
+						api="http://comment.bilibili.tv/%1.xml";
 						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+					}
+					else{
+						reply->manager()->deleteLater();
 					}
 				}
 			}
 			else{
 				error(reply->error());
+				reply->manager()->deleteLater();
 			}
 		});
 	}
@@ -421,7 +466,7 @@ void Danmaku::setTime(qint64 _time)
 		QStaticText text;
 		text.setText(QString(comment.string).replace("/n","<br>"));
 		text.prepare(QTransform(),font);
-		QSize textSize=text.size().toSize()+QSize(2,2);
+		QSize textSize=text.size().toSize()+QSize(4,4);
 		bool flag=false,sub=Utils::getConfig("/Danmaku/Protect",false);
 		Static render;
 		switch(comment.mode-1){
@@ -499,13 +544,20 @@ void Danmaku::setTime(qint64 _time)
 			painter.setFont(font);
 			auto draw=[&](QColor c,QPoint p){
 				painter.setPen(c);
-				painter.drawStaticText(p+=QPoint(1,1),text);
+				painter.drawStaticText(p+=QPoint(2,2),text);
 			};
 			QColor edge=qGray(comment.color)<50?Qt::white:Qt::black;
-			draw(edge,QPoint(+1,0));
-			draw(edge,QPoint(-1,0));
-			draw(edge,QPoint(0,+1));
-			draw(edge,QPoint(0,-1));
+			switch(Utils::getConfig("/Danmaku/Effect",0)){
+			case 0:
+				draw(edge,QPoint(+1,0));
+				draw(edge,QPoint(-1,0));
+				draw(edge,QPoint(0,+1));
+				draw(edge,QPoint(0,-1));
+				break;
+			case 1:
+				draw(edge,QPoint(2,2));
+				break;
+			}
 			draw(comment.color,QPoint(0,0));
 			painter.end();
 			QPixmap sec(textSize);

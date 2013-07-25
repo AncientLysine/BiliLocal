@@ -49,6 +49,7 @@ private:
 	QLabel *pageNuL;
 	QLineEdit *keywE;
 	QLineEdit *pageE;
+	QComboBox *orderC;
 	QPushButton *okB;
 	QPushButton *ccB;
 	QPushButton *searchB;

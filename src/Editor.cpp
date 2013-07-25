@@ -29,6 +29,7 @@
 Widget::Widget(QWidget *parent,QString trans):
 	QWidget(parent),translation(trans)
 {
+	scale=0;
 	length=100;
 	pool=Danmaku::instance()->getPool();
 	for(auto &line:pool){
@@ -99,18 +100,17 @@ void Widget::paintEvent(QPaintEvent *e)
 
 void Widget::wheelEvent(QWheelEvent *e)
 {
-	int s=e->angleDelta().y(),i=e->pos().y()/length;
-	auto &p=Danmaku::instance()->getPool();
-	auto &r=p[p.keys()[i]];
-	qint64 d=(r.delay/1000)*1000;
-	if(s>0){
-		d-=1000;
+	int i=e->pos().y()/length;
+	scale+=e->angleDelta().y();
+	if(qAbs(scale)>=120){
+		auto &p=Danmaku::instance()->getPool();
+		auto &r=p[p.keys()[i]];
+		qint64 d=(r.delay/1000)*1000;
+		d+=scale>0?-1000:1000;
+		d-=r.delay;
+		delayRecord(i,d);
+		scale=0;
 	}
-	if(s<0){
-		d+=1000;
-	}
-	d-=r.delay;
-	delayRecord(i,d);
 	QWidget::wheelEvent(e);
 }
 
