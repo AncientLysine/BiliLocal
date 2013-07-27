@@ -35,7 +35,7 @@ bool Comment::operator < (const Comment &o) const
 
 bool Comment::operator ==(const Comment &o) const
 {
-	return mode==o.mode&&color==o.color&&sender==o.sender&&string==o.string;
+	return mode==o.mode&&color==o.color&&sender==o.sender&&string==o.string&&time==o.time&&date==o.date;
 }
 
 void Utils::setBack(QWidget *widget,QColor color)

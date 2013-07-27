@@ -34,6 +34,7 @@
 #include <QtScript>
 #include "Utils.h"
 #include "Shield.h"
+#include "Render.h"
 
 struct Static
 {
@@ -70,6 +71,7 @@ private:
 	QTime last;
 	QSize size;
 	qint64 time;
+	Render render;
 	QScriptEngine engine;
 	QList<Static> current[5];
 	QMap<QString,Record> pool;
@@ -86,6 +88,7 @@ public slots:
 	void setTime(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
+	void appendToCurrent(QVariantMap arguments);
 };
 
 #endif // DANMAKU_H

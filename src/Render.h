@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Config.h
-*   Time:        2013/06/17
+*   Filename:    Render.h
+*   Time:        2013/07/26
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,54 +24,29 @@
 *
 =========================================================================*/
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef RENDER_H
+#define RENDER_H
 
+#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include "Shield.h"
 
-class Config:public QDialog
+class Render:public QObject
 {
 	Q_OBJECT
 public:
-	explicit Config(QWidget *parent=0,int index=0);
-	~Config();
+	explicit Render(QObject *parent=0);
+	~Render();
 
 private:
-	QTabWidget *tab;
-	QWidget *widget[5];
-
-	//Playing
-	QGroupBox *box[5];
-	QCheckBox *danm[2];
-	QComboBox *effect;
-	QLineEdit *play[3];
-
-	//Interface
-	QGroupBox *ui[4];
-	QComboBox *font;
-	QComboBox *stay;
-	QLineEdit *size;
-	QLineEdit *jump;
-
-	//Shiled
-	QLineEdit *edit;
-	QCheckBox *check[6];
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[3];
-	QPushButton *button[2];
-	QLineEdit *limit[2];
-	QGroupBox *label[2];
-
-	//Thanks
-	QTextEdit *thanks;
-
-	//License
-	QTextEdit *license;
+	QThread *thread;
+	
+signals:
+	void middle(QVariantMap arguments);
+	void result(QVariantMap arguments);
+	
+public slots:
+	void append(QVariantMap arguments);
+	void render(QVariantMap arguments);
 };
 
-#endif // CONFIG_H
+#endif // RENDER_H
