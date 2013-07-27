@@ -42,6 +42,9 @@ public:
 	static void init();
 	static void free();
 	static bool isBlocked(const Comment &comment);
+
+private:
+	static bool judge(const Comment &comment);
 };
 
 #endif // SHIELD_H

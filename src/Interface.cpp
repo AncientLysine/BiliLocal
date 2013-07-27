@@ -140,8 +140,8 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(menu,&Menu::open, vplayer,&VPlayer::setFile);
-	connect(menu,&Menu::load, danmaku,&Danmaku::setDm);
+	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
+	connect(menu,&Menu::load,danmaku,&Danmaku::setDanmaku);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
 			power->start(_power);

@@ -28,6 +28,16 @@
 
 Danmaku *Danmaku::ins=NULL;
 
+
+static Record createRecord(QString s,const QList<Comment> &d=QList<Comment>(),qint64 l=0)
+{
+	Record r;
+	r.source=s;
+	r.danmaku=d;
+	r.delay=l;
+	return r;
+}
+
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
@@ -210,12 +220,12 @@ void Danmaku::parse(int flag)
 	emit layoutChanged();
 }
 
-void Danmaku::setDm(QString dm)
+void Danmaku::setDanmaku(QString _code)
 {
-	auto bi=[this](const QByteArray &data,QList<Comment> &list){
+	auto bi=[](const QByteArray &data){
 		QStringList l=QString(data).simplified().split("<d p=\"");
 		l.removeFirst();
-		qint64 delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		QList<Comment> list;
 		for(QString &item:l){
 			Comment comment;
 			int sta=0;
@@ -223,48 +233,44 @@ void Danmaku::setDm(QString dm)
 			QStringList args=item.mid(sta,len).split(',');
 			sta=item.indexOf(">")+1;
 			len=item.indexOf("<",sta)-sta;
-			comment.time=args[0].toDouble()*1000+delay;
+			comment.time=args[0].toDouble()*1000;
 			comment.date=args[4].toInt();
 			comment.mode=args[1].toInt();
 			comment.font=args[2].toInt();
 			comment.color=args[3].toInt();
 			comment.sender=args[6];
 			comment.string=item.mid(sta,len);
-			if(!list.contains(comment)){
-				list.append(comment);
-				danmaku.append(&list.last());
-			}
+			list.append(comment);
 		}
+		return list;
 	};
 
-	auto ac=[this](const QByteArray &data,QList<Comment> &list){
+	auto ac=[](const QByteArray &data){
 		QJsonArray a=QJsonDocument::fromJson(data).array();
-		qint64 delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		QList<Comment> list;
 		for(QJsonValue i:a){
 			Comment comment;
 			QJsonObject item=i.toObject();
 			QStringList args=item["c"].toString().split(',');
-			comment.time=args[0].toDouble()*1000+delay;
+			comment.time=args[0].toDouble()*1000;
 			comment.date=args[5].toInt();
 			comment.mode=args[2].toInt();
 			comment.font=args[3].toInt();
 			comment.color=args[1].toInt();
 			comment.sender=args[4];
 			comment.string=item["m"].toString();
-			if(!list.contains(comment)){
-				list.append(comment);
-				danmaku.append(&list.last());
-			}
+			list.append(comment);
 		}
+		return list;
 	};
 
 	if(Utils::getConfig("/Playing/Clear",true)){
 		clearPool();
 	}
-	int sharp=dm.indexOf("#");
-	QString s=dm.mid(0,2);
-	QString i=dm.mid(2,sharp-2);
-	QString p=sharp==-1?QString():dm.mid(sharp+1);
+	int sharp=_code.indexOf("#");
+	QString s=_code.mid(0,2);
+	QString i=_code.mid(2,sharp-2);
+	QString p=sharp==-1?QString():_code.mid(sharp+1);
 	if(s=="av"||s=="ac"){
 		QString api;
 		if(s=="av"){
@@ -289,12 +295,11 @@ void Danmaku::setDm(QString dm)
 				}
 				else if(url.startsWith("http://comment.")){
 					if(s=="av"){
-						bi(reply->readAll(),pool[url].danmaku);
+						appendToPool(createRecord(url,bi(reply->readAll())));
 					}
 					if(s=="ac"){
-						ac(reply->readAll(),pool[url].danmaku);
+						appendToPool(createRecord(url,ac(reply->readAll())));
 					}
-					parse(0x1|0x2);
 					reply->manager()->deleteLater();
 				}
 				else if(url.startsWith("http://www.bilibili.tv/")){
@@ -395,16 +400,14 @@ void Danmaku::setDm(QString dm)
 		});
 	}
 	else{
-		QFile file(dm);
-		if(file.exists()){
-			file.open(QIODevice::ReadOnly);
-			if(dm.endsWith("xml")){
-				bi(file.readAll(),pool[dm].danmaku);
+		QFile file(_code);
+		if(file.open(QIODevice::ReadOnly)){
+			if(_code.endsWith("xml")){
+				appendToPool(createRecord(_code,bi(file.readAll())));
 			}
-			if(dm.endsWith("json")){
-				ac(file.readAll(),pool[dm].danmaku);
+			if(_code.endsWith("json")){
+				appendToPool(createRecord(_code,ac(file.readAll())));
 			}
-			parse(0x1|0x2);
 		}
 	}
 }
@@ -476,6 +479,29 @@ void Danmaku::saveToFile(QString _file)
 	}
 	f.write(QJsonDocument(a).toJson());
 	f.close();
+}
+
+void Danmaku::appendToPool(Record record)
+{
+	Record *append=NULL;
+	for(Record &r:pool){
+		if(r.source==record.source){
+			append=&r;
+			break;
+		}
+	}
+	if(append==NULL){
+		pool.append(createRecord(record.source,QList<Comment>(),Utils::getConfig("/Playing/Delay",false)?time:0));
+		append=&pool.last();
+	}
+	for(Comment c:record.danmaku){
+		if(!append->danmaku.contains(c)){
+			c.time+=append->delay;
+			append->danmaku.append(c);
+			danmaku.append(&append->danmaku.last());
+		}
+	}
+	parse(0x1|0x2);
 }
 
 void Danmaku::appendToCurrent(QVariantMap arguments)

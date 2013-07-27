@@ -47,6 +47,7 @@ struct Static
 struct Record
 {
 	qint64 delay;
+	QString source;
 	QList<Comment> danmaku;
 };
 
@@ -63,7 +64,7 @@ public:
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	qint64 getTime(){return time;}
-	QMap<QString,Record> &getPool(){return pool;}
+	QList<Record> &getPool(){return pool;}
 	static Danmaku *instance(){return ins;}
 
 private:
@@ -73,9 +74,9 @@ private:
 	qint64 time;
 	Render render;
 	QScriptEngine engine;
+	QList<Record> pool;
 	QList<Static> current[5];
-	QMap<QString,Record> pool;
-	QVector<Comment *> danmaku;
+	QVector<const Comment *> danmaku;
 	static Danmaku *ins;
 
 public slots:
@@ -83,11 +84,12 @@ public slots:
 	void clearPool();
 	void clearCurrent();
 	void parse(int flag=0);
-	void setDm(QString dm);
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void jumpToTime(qint64 _time);
+	void setDanmaku(QString _code);
 	void saveToFile(QString _file);
+	void appendToPool(Record record);
 	void appendToCurrent(QVariantMap arguments);
 };
 

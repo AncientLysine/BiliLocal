@@ -84,8 +84,8 @@ Poster::Poster(QWidget *parent) :
 
 bool Poster::isValid()
 {
-	for(QString source:Danmaku::instance()->getPool().keys()){
-		if(source.startsWith("http://comment.bilibili.tv/")){
+	for(const Record &r:Danmaku::instance()->getPool()){
+		if(r.source.startsWith("http://comment.bilibili.tv/")){
 			return true;
 		}
 	}
@@ -102,9 +102,9 @@ void Poster::resizeEvent(QResizeEvent *e)
 void Poster::postComment(QString comment)
 {
 	QString cid;
-	for(QString source:Danmaku::instance()->getPool().keys()){
-		if(source.startsWith("http://comment.bilibili.tv/")){
-			cid=QFileInfo(source).baseName();
+	for(const Record &r:Danmaku::instance()->getPool()){
+		if(r.source.startsWith("http://comment.bilibili.tv/")){
+			cid=QFileInfo(r.source).baseName();
 			break;
 		}
 	}

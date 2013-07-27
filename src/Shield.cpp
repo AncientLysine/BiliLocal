@@ -78,47 +78,49 @@ void Shield::free()
 	Utils::setConfig("/Shield/Group",g);
 }
 
-#define RET(b) cacheS.insert(comment,new bool(b));return b
-
 bool Shield::isBlocked(const Comment &comment)
 {
-	bool *blocked=cacheS.object(comment);
-	if(blocked==NULL){
-		if(block[Whole]||comment.mode>5
-				||(comment.mode==1&&block[Slide])
-				||(comment.mode==4&&block[Bottom])
-				||(comment.mode==5&&block[Top])
-				||(comment.color!=Qt::white&&block[Color])){
-			RET(true);
-		}
-		if(block[Guest]){
-			if(comment.sender.length()==14&&comment.sender[3]=='k'){
-				RET(true);
-			}
-			if(comment.sender.startsWith('D',Qt::CaseInsensitive)){
-				RET(true);
-			}
-		}
-		for(const QString &n:shieldU){
-			if(n==comment.sender){
-				RET(true);
-			}
-		}
-		for(const QRegExp &r:shieldR){
-			if(r.indexIn(comment.string)!=-1){
-				RET(true);
-			}
-		}
-		for(const QString &c:shieldC){
-			QString clean=comment.string;
-			clean.remove(QRegExp("\\W"));
-			if(clean.indexOf(c)!=-1){
-				RET(true);
-			}
-		}
-		RET(false);
+	bool *blocked;
+	if((blocked=cacheS.object(comment))==NULL){
+		blocked=new bool(judge(comment));
+		cacheS.insert(comment,blocked);
 	}
-	else{
-		return *blocked;
+	return *blocked;
+}
+
+bool Shield::judge(const Comment &comment)
+{
+	if(block[Whole]||comment.mode>5
+			||(comment.mode==1&&block[Slide])
+			||(comment.mode==4&&block[Bottom])
+			||(comment.mode==5&&block[Top])
+			||(comment.color!=Qt::white&&block[Color])){
+		return true;
 	}
+	if(block[Guest]){
+		if(comment.sender.length()==14&&comment.sender[3]=='k'){
+			return true;
+		}
+		if(comment.sender.startsWith('D',Qt::CaseInsensitive)){
+			return true;
+		}
+	}
+	for(const QString &n:shieldU){
+		if(n==comment.sender){
+			return true;
+		}
+	}
+	for(const QRegExp &r:shieldR){
+		if(r.indexIn(comment.string)!=-1){
+			return true;
+		}
+	}
+	for(const QString &c:shieldC){
+		QString clean=comment.string;
+		clean.remove(QRegExp("\\W"));
+		if(clean.indexOf(c)!=-1){
+			return true;
+		}
+	}
+	return false;
 }

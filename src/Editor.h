@@ -45,8 +45,8 @@ private:
 	qint64 current;
 	qint64 duration;
 	QString translation;
+	QList<Record> pool;
 	QList<qint64> magnet;
-	QMap<QString,Record> pool;
 	void paintEvent(QPaintEvent *e);
 	void wheelEvent(QWheelEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);

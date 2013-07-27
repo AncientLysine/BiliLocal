@@ -52,15 +52,14 @@ void Widget::paintEvent(QPaintEvent *e)
 	QPainter painter;
 	painter.begin(this);
 	painter.fillRect(rect(),Qt::gray);
-	const QList<QString> &keys=pool.keys();
 	int l=e->rect().bottom()/length+1;
 	int s=point.isNull()?-1:point.y()/length;
 	for(int i=e->rect().top()/length;i<l;++i){
-		const Record &r=pool[keys[i]];
+		const Record &r=pool[i];
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		QStringList text;
-		text<<QFileInfo(keys[i]).fileName();
+		text<<QFileInfo(r.source).fileName();
 		text<<translation.arg(r.delay/1000);
 		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
 		int m=0,d=5*duration/w;
@@ -103,8 +102,7 @@ void Widget::wheelEvent(QWheelEvent *e)
 	int i=e->pos().y()/length;
 	scale+=e->angleDelta().y();
 	if(qAbs(scale)>=120){
-		auto &p=Danmaku::instance()->getPool();
-		auto &r=p[p.keys()[i]];
+		auto &r=Danmaku::instance()->getPool()[i];
 		qint64 d=(r.delay/1000)*1000;
 		d+=scale>0?-1000:1000;
 		d-=r.delay;
@@ -128,8 +126,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
 		int w=width()-100;
-		auto &p=Danmaku::instance()->getPool();
-		auto &r=p[p.keys()[point.y()/length]];
+		auto &r=Danmaku::instance()->getPool()[point.y()/length];
 		qint64 d=(e->x()-point.x())*duration/w;
 		for(qint64 p:magnet){
 			if(qAbs(d+r.delay-p)<5*duration/w){
@@ -144,13 +141,12 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 
 void Widget::delayRecord(int index,qint64 delay)
 {
-	auto &p=Danmaku::instance()->getPool();
-	auto &r=p[p.keys()[index]];
+	auto &r=Danmaku::instance()->getPool()[index];
 	r.delay+=delay;
 	for(Comment &c:r.danmaku){
 		c.time+=delay;
 	}
-	pool=p;
+	pool[index]=r;
 	for(auto &line:pool){
 		qSort(line.danmaku);
 	}
