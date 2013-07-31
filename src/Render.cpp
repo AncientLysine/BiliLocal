@@ -51,14 +51,14 @@ void Render::append(QVariantMap arguments)
 
 void Render::render(QVariantMap arguments)
 {
-	QSize textSize=arguments["bound"].toSize();
 	QFont font;
-	font.setBold(true);
+	font.setBold(arguments["effect"].toInt()%2);
 	font.setFamily(arguments["family"].toString());
 	font.setPixelSize(arguments["size"].toInt());
 	QStaticText text;
 	text.setText(arguments["text"].toString().replace("\n","<br>"));
-	int color=arguments["color"].toInt();
+	text.prepare(QTransform(),font);
+	QSize textSize=text.size().toSize()+QSize(4,4);
 	QPixmap fst(textSize);
 	fst.fill(Qt::transparent);
 	QPainter painter;
@@ -68,8 +68,9 @@ void Render::render(QVariantMap arguments)
 		painter.setPen(c);
 		painter.drawStaticText(p+=QPoint(2,2),text);
 	};
+	int color=arguments["color"].toInt();
 	QColor edge=qGray(color)<50?Qt::white:Qt::black;
-	switch(arguments["effect"].toInt()){
+	switch(arguments["effect"].toInt()/2){
 	case 0:
 		draw(edge,QPoint(+1,0));
 		draw(edge,QPoint(-1,0));

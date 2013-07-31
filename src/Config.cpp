@@ -93,8 +93,10 @@ Config::Config(QWidget *parent,int index):
 		auto g=new QHBoxLayout;
 		effect=new QComboBox(widget[0]);
 		effect->addItem(tr("Stroke"));
+		effect->addItem(tr("Stroke")+"&"+tr("Bold"));
 		effect->addItem(tr("Projection"));
-		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",0));
+		effect->addItem(tr("Projection")+"&"+tr("Bold"));
+		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",1));
 		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
 		connect(effect,signal,[this](int i){
 			Utils::setConfig("/Danmaku/Effect",i);

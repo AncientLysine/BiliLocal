@@ -77,12 +77,11 @@ Menu::Menu(QWidget *parent) :
 			QString filter=tr("Danmaku files (*.xml *.json)");
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
 			if(!_file.isEmpty()){
-				setDm(_file);
+				setDanmaku(_file);
 			}
 		}
 		else{
-			QString _danm=danmL->text();
-			emit load(_danm);
+			setDanmaku(danmL->text());
 		}
 	});
 	connect(sechA,&QAction::triggered,[this](){
@@ -91,9 +90,7 @@ Menu::Menu(QWidget *parent) :
 			searchBox.setKey(sechL->text());
 		}
 		if(searchBox.exec()) {
-			QString aid("av"+searchBox.getAid());
-			danmL->setText(aid);
-			emit load(aid);
+			setDanmaku("av"+searchBox.getAid());
 		}
 		sechL->setText(searchBox.getKey());
 	});
@@ -153,6 +150,7 @@ Menu::Menu(QWidget *parent) :
 			isLocal=true;
 		}
 		else{
+			danmL->setText("");
 			danmL->setReadOnly(false);
 			danmL->setPlaceholderText(tr("av/ac"));
 			danmB->setText(tr("Load"));
@@ -193,7 +191,14 @@ Menu::Menu(QWidget *parent) :
 	lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
 	if(QApplication::arguments().count()>=2){
 		Utils::delayExec(0,[this](){
-			setFile(QApplication::arguments()[1]);
+			for(QString file:QApplication::arguments().mid(1)){
+				if(file.endsWith(".xml")||file.endsWith(".json")){
+					setDanmaku(file);
+				}
+				else{
+					setFile(file);
+				}
+			}
 		});
 	}
 }
@@ -219,14 +224,6 @@ void Menu::push()
 	}
 }
 
-void Menu::setDm(QString _file)
-{
-	if(isLocal){
-		danmL->setText(_file);
-		emit load(_file);
-	}
-}
-
 void Menu::setFile(QString _file)
 {
 	QFileInfo file(_file);
@@ -248,4 +245,204 @@ void Menu::setPower(qint16 fps)
 		powerL->setText(QString::number(fps));
 	}
 	emit power(fps==0?-1:1000/fps);
+}
+
+void Menu::setDanmaku(QString _code)
+{
+	auto bi=[](const QByteArray &data){
+		QStringList l=QString(data).simplified().split("<d p=\"");
+		l.removeFirst();
+		QList<Comment> list;
+		for(QString &item:l){
+			Comment comment;
+			int sta=0;
+			int len=item.indexOf("\"");
+			QStringList args=item.mid(sta,len).split(',');
+			sta=item.indexOf(">")+1;
+			len=item.indexOf("<",sta)-sta;
+			comment.time=args[0].toDouble()*1000;
+			comment.date=args[4].toInt();
+			comment.mode=args[1].toInt();
+			comment.font=args[2].toInt();
+			comment.color=args[3].toInt();
+			comment.sender=args[6];
+			comment.string=item.mid(sta,len);
+			list.append(comment);
+		}
+		return list;
+	};
+
+	auto ac=[](const QByteArray &data){
+		QJsonArray a=QJsonDocument::fromJson(data).array();
+		QList<Comment> list;
+		for(QJsonValue i:a){
+			Comment comment;
+			QJsonObject item=i.toObject();
+			QStringList args=item["c"].toString().split(',');
+			comment.time=args[0].toDouble()*1000;
+			comment.date=args[5].toInt();
+			comment.mode=args[2].toInt();
+			comment.font=args[3].toInt();
+			comment.color=args[1].toInt();
+			comment.sender=args[4];
+			comment.string=item["m"].toString();
+			list.append(comment);
+		}
+		return list;
+	};
+
+	if(Utils::getConfig("/Playing/Clear",true)){
+		Danmaku::instance()->clearPool();
+	}
+	int sharp=_code.indexOf("#");
+	QString s=_code.mid(0,2);
+	QString i=_code.mid(2,sharp-2);
+	QString p=sharp==-1?QString():_code.mid(sharp+1);
+	if(s=="av"||s=="ac"){
+		QString api;
+		if(s=="av"){
+			api="http://www.bilibili.tv/video/av%1/index_%2.html";
+		}
+		if(s=="ac"){
+			api="http://www.acfun.tv/v/ac%1_%2";
+		}
+		QUrl apiUrl(api.arg(i).arg(p.isEmpty()?"1":p));
+		QNetworkAccessManager *manager=new QNetworkAccessManager(this);
+		manager->get(QNetworkRequest(apiUrl));
+		connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
+			auto error=[this](int code){
+				QString info=tr("Network error occurred, error code: %1");
+				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(code));
+			};
+			QString url=reply->url().url();
+			if(reply->error()==QNetworkReply::NoError){
+				QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+				if(redirect.isValid()){
+					reply->manager()->get(QNetworkRequest(redirect));
+				}
+				else if(url.startsWith("http://comment.")){
+					if(isLocal){
+						localC->toggle();
+					}
+					danmL->setText(_code);
+					if(s=="av"){
+						Danmaku::instance()->appendToPool(Record(url,bi(reply->readAll())));
+					}
+					if(s=="ac"){
+						Danmaku::instance()->appendToPool(Record(url,ac(reply->readAll())));
+					}
+					reply->manager()->deleteLater();
+				}
+				else if(url.startsWith("http://www.bilibili.tv/")){
+					QString api,id,video(reply->readAll());
+					QRegExp regex;
+					regex.setPattern("cid\\=\\d+");
+					if(regex.indexIn(video)==-1){
+						regex.setPattern("cid:'\\d+");
+						if(regex.indexIn(video)==-1){
+							error(404);
+						}
+						else{
+							id=regex.cap().mid(5);
+						}
+					}
+					else{
+						id=regex.cap().mid(4);
+					}
+					if(!id.isEmpty()){
+						api="http://comment.bilibili.tv/%1.xml";
+						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+					}
+					else{
+						reply->manager()->deleteLater();
+					}
+				}
+				else if(url.startsWith("http://www.acfun.tv/")){
+					if(url.endsWith(".aspx")){
+						QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+						if(json.contains("cid")){
+							QString api="http://comment.acfun.tv/%1.json";
+							QUrl jsonUrl(api.arg(json["cid"].toString()));
+							reply->manager()->get(QNetworkRequest(jsonUrl));
+						}
+						else{
+							error(404);
+							reply->manager()->deleteLater();
+						}
+					}
+					else{
+						QString api,id,video(reply->readAll());
+						QRegExp regex;
+						regex.setCaseSensitivity(Qt::CaseInsensitive);
+						regex.setPattern("\\d+(?=\\[/video\\])");
+						if(regex.indexIn(video)==-1){
+							regex.setPattern("id\\=\\w+");
+							regex.indexIn(video,video.indexOf("<embed"));
+							id=regex.cap().mid(3);
+							api="http://comment.acfun.tv/%1.json";
+						}
+						else{
+							id=regex.cap();
+							api="http://www.acfun.tv/api/player/vids/%1.aspx";
+						}
+						if(!id.isEmpty()){
+							reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+						}
+						else{
+							reply->manager()->deleteLater();
+						}
+					}
+				}
+				else if(url.startsWith("http://comic.letv.com/")){
+					QString api,id,video(reply->readAll());
+					QRegExp regex;
+					regex.setPattern("#p\\d+");
+					regex.indexIn(url);
+					int part=regex.cap().mid(2).toInt(),sta;
+					if(part>0&&(sta=video.indexOf("<div class=\"page_box\">"))!=-1){
+						video=video.mid(sta);
+						regex.setPattern("cid\\=\"\\d+");
+						int cur=0;
+						for(int i=1;i<=part;++i){
+							if((cur=regex.indexIn(video,cur))!=-1){
+								if(i==part){
+									id=regex.cap().mid(5);
+								}
+								cur+=regex.matchedLength();
+							}
+							else{
+								break;
+							}
+						}
+					}
+					if(!id.isEmpty()){
+						api="http://comment.bilibili.tv/%1.xml";
+						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+					}
+					else{
+						reply->manager()->deleteLater();
+					}
+				}
+			}
+			else{
+				error(reply->error());
+				reply->manager()->deleteLater();
+			}
+		});
+	}
+	else{
+		QFile file(_code);
+		if(file.open(QIODevice::ReadOnly)){
+			if(!isLocal){
+				localC->toggle();
+			}
+			danmL->setText(QFileInfo(file).fileName());
+			if(_code.endsWith("xml")){
+				Danmaku::instance()->appendToPool(Record(_code,bi(file.readAll())));
+			}
+			if(_code.endsWith("json")){
+				Danmaku::instance()->appendToPool(Record(_code,ac(file.readAll())));
+			}
+		}
+	}
 }

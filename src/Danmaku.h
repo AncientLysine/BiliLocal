@@ -29,9 +29,8 @@
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include <QtNetwork>
 #include <QtScript>
+#include <QtWidgets>
 #include "Utils.h"
 #include "Shield.h"
 #include "Render.h"
@@ -49,6 +48,7 @@ struct Record
 	qint64 delay;
 	QString source;
 	QList<Comment> danmaku;
+	Record(QString s,const QList<Comment> &d=QList<Comment>(),qint64 l=0):delay(l),source(s),danmaku(d){}
 };
 
 class Danmaku:public QAbstractItemModel
@@ -87,7 +87,6 @@ public slots:
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void jumpToTime(qint64 _time);
-	void setDanmaku(QString _code);
 	void saveToFile(QString _file);
 	void appendToPool(Record record);
 	void appendToCurrent(QVariantMap arguments);

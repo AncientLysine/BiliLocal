@@ -30,8 +30,10 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 #include "Utils.h"
 #include "Search.h"
+#include "Danmaku.h"
 
 class Menu:public QWidget
 {
@@ -70,15 +72,14 @@ private:
 
 signals:
 	void open(QString file);
-	void load(QString danm);
 	void power(qint16 _power);
 
 public slots:
 	void pop();
 	void push();
-	void setDm(QString _file);
 	void setFile(QString _file);
 	void setPower(qint16 fps);
+	void setDanmaku(QString _code);
 	
 };
 
