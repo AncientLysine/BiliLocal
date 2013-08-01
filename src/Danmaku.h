@@ -33,7 +33,6 @@
 #include <QtWidgets>
 #include "Utils.h"
 #include "Shield.h"
-#include "Render.h"
 
 struct Static
 {
@@ -72,7 +71,6 @@ private:
 	QTime last;
 	QSize size;
 	qint64 time;
-	Render render;
 	QScriptEngine engine;
 	QList<Record> pool;
 	QList<Static> current[5];
@@ -88,8 +86,8 @@ public slots:
 	void setTime(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
-	void appendToPool(Record record);
-	void appendToCurrent(QVariantMap arguments);
+	void appendToPool(const Record &record);
+	void appendToCurrent(const Comment &comment);
 };
 
 #endif // DANMAKU_H

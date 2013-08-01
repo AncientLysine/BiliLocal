@@ -35,7 +35,6 @@ Danmaku::Danmaku(QObject *parent) :
 	cur=time=0;
 	ins=this;
 	qsrand(QTime::currentTime().msec());
-	connect(&render,SIGNAL(result(QVariantMap)),this,SLOT(appendToCurrent(QVariantMap)));
 }
 
 void Danmaku::draw(QPainter *painter,bool move)
@@ -220,27 +219,9 @@ void Danmaku::setTime(qint64 _time)
 	time=_time;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment &comment=*danmaku[cur];
-		if(Shield::isBlocked(comment)){
-			continue;
+		if(!Shield::isBlocked(comment)){
+			appendToCurrent(comment);
 		}
-		int l=Utils::getConfig("/Shield/Density",80);
-		if(comment.mode==1&&l!=0){
-			QEasingCurve c(QEasingCurve::InExpo);
-			qreal r=qrand()%1000;
-			qreal v=1000*c.valueForProgress(((qreal)current[0].size())/l);
-			if(r<v){
-				continue;
-			}
-		}
-		QVariantMap arguments;
-		arguments["family"]=Utils::getConfig("/Danmaku/Font",QFont().family());
-		arguments["size"]=comment.font*Utils::getConfig("/Danmaku/Scale",1.0);
-		arguments["text"]=QString(comment.string).replace("/n","\n");
-		arguments["color"]=comment.color;
-		arguments["effect"]=Utils::getConfig("/Danmaku/Effect",1);
-		arguments["alpha"]=Utils::getConfig("/Danmaku/Alpha",1.0);
-		arguments["mode"]=comment.mode;
-		render.append(arguments);
 	}
 }
 
@@ -273,7 +254,7 @@ void Danmaku::saveToFile(QString _file)
 	f.close();
 }
 
-void Danmaku::appendToPool(Record record)
+void Danmaku::appendToPool(const Record &record)
 {
 	Record *append=NULL;
 	for(Record &r:pool){
@@ -296,7 +277,7 @@ void Danmaku::appendToPool(Record record)
 	parse(0x1|0x2);
 }
 
-void Danmaku::appendToCurrent(QVariantMap arguments)
+void Danmaku::appendToCurrent(const Comment &comment)
 {
 	auto intersects=[](const Static &first,const Static &second){
 		if(first.rect.intersects(second.rect)){
@@ -326,11 +307,23 @@ void Danmaku::appendToCurrent(QVariantMap arguments)
 			return false;
 		}
 	};
+
+	int l=Utils::getConfig("/Shield/Density",80);
+	if(comment.mode==1&&l!=0&&current[0].size()>l){
+		return;
+	}
+	qApp->processEvents();
+	QFont font;
+	font.setBold(Utils::getConfig("/Danmaku/Effect",1)%2);
+	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
+	font.setPixelSize(Utils::getConfig("/Danmaku/Scale",1.0)*comment.font);
+	QStaticText text;
+	text.setText(QString(comment.string).replace("/n","\n").replace("\n","<br>"));
+	text.prepare(QTransform(),font);
+	QSize bound=text.size().toSize()+QSize(4,4);
+	bool sub=Utils::getConfig("/Danmaku/Protect",false),flag=false;
 	Static render;
-	render.text=arguments["result"].value<QPixmap>();
-	QSize bound=render.text.size();
-	bool flag=false,sub=Utils::getConfig("/Danmaku/Protect",false);
-	switch(arguments["mode"].toInt()){
+	switch(comment.mode){
 	case 1:
 	{
 		QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
@@ -398,6 +391,37 @@ void Danmaku::appendToCurrent(QVariantMap arguments)
 	}
 	}
 	if(flag){
-		current[arguments["mode"].toInt()-1].append(render);
+		QPixmap fst(bound);
+		fst.fill(Qt::transparent);
+		QPainter painter;
+		painter.begin(&fst);
+		painter.setFont(font);
+		auto draw=[&](QColor c,QPoint p){
+			painter.setPen(c);
+			painter.drawStaticText(p+=QPoint(2,2),text);
+		};
+		int color=comment.color;
+		QColor edge=qGray(color)<50?Qt::white:Qt::black;
+		switch(Utils::getConfig("/Danmaku/Effect",1)/2){
+		case 0:
+			draw(edge,QPoint(+1,0));
+			draw(edge,QPoint(-1,0));
+			draw(edge,QPoint(0,+1));
+			draw(edge,QPoint(0,-1));
+			break;
+		case 1:
+			draw(edge,QPoint(2,2));
+			break;
+		}
+		draw(color,QPoint(0,0));
+		painter.end();
+		QPixmap sec(bound);
+		sec.fill(Qt::transparent);
+		painter.begin(&sec);
+		painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
+		painter.drawPixmap(QPoint(0,0),fst);
+		painter.end();
+		render.text=sec;
+		current[comment.mode-1].append(render);
 	}
 }
