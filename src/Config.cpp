@@ -204,6 +204,7 @@ Config::Config(QWidget *parent,int index):
 			if(!edit->text().isEmpty()){
 				rm->insertRow(rm->rowCount());
 				rm->setData(rm->index(rm->rowCount()-1),edit->text());
+				edit->clear();
 			}
 		});
 		connect(action[1],&QAction::triggered,[this](){

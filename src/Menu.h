@@ -50,6 +50,7 @@ private:
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QLineEdit *sechL;
+	QCompleter *danmC;
 	QPushButton *fileB;
 	QPushButton *danmB;
 	QPushButton *sechB;
@@ -69,6 +70,7 @@ private:
 	QLabel *fontT;
 	QComboBox *fontC;
 	QPropertyAnimation *animation;
+	QNetworkAccessManager *manager;
 
 signals:
 	void open(QString file);

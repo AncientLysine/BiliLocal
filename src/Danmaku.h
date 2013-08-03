@@ -30,7 +30,6 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtScript>
-#include <QtWidgets>
 #include "Utils.h"
 #include "Shield.h"
 
