@@ -267,22 +267,29 @@ Menu::Menu(QWidget *parent) :
 				bool flag=true;
 				QString api,id,video(reply->readAll());
 				if(!url.endsWith("html")){
-					video=video.mid(video.indexOf("<div class=\"alist\">"));
-					QRegExp regex("value\\='[^']+");
-					int cur=0;
-					api="http://www.bilibili.tv";
-					QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
-					model->clear();
-					while((cur=regex.indexIn(video,cur))!=-1){
-						int sta=video.indexOf('>',cur)+1;
-						QStandardItem *item=new QStandardItem();
-						item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
-						item->setData(video.mid(sta,video.indexOf('<',sta)-sta),Qt::EditRole);
-						model->appendRow(item);
-						cur+=regex.matchedLength();
+					int sta;
+					if((sta=video.indexOf("<div class=\"alist\">"))!=-1){
+						int len=video.indexOf("</select>",sta)-sta+1;
+						len=len<0?0:len;
+						QString select=video.mid(sta,len);
+						QRegExp regex("value\\='[^']+");
+						int cur=0;
+						api="http://www.bilibili.tv";
+						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
+						model->clear();
+						while((cur=regex.indexIn(select,cur))!=-1){
+							int sta=select.indexOf('>',cur)+1;
+							QStandardItem *item=new QStandardItem();
+							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
+							item->setData(select.mid(sta,select.indexOf('<',sta)-sta),Qt::EditRole);
+							model->appendRow(item);
+							cur+=regex.matchedLength();
+						}
+						if(model->rowCount()>0){
+							danmC->complete();
+							flag=false;
+						}
 					}
-					danmC->complete();
-					flag=false;
 				}
 				if(flag){
 					id=QRegularExpression("((?<=cid=)|(?<=cid:'))\\d+",option).match(video).captured();
@@ -311,27 +318,31 @@ Menu::Menu(QWidget *parent) :
 					bool flag=true;
 					QString api,id,video(reply->readAll());
 					if(url.indexOf("_")==-1){
-						video=video.mid(video.indexOf("<div id=\"area-pager\""));
-						video=video.mid(0,video.indexOf("<a id=\"pager-more\""));
-						QRegExp regex("href\\=\"[^\"]+");
-						int cur=0;
-						api="http://www.acfun.tv";
-						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
-						model->clear();
-						while((cur=regex.indexIn(video,cur))!=-1){
-							int sta=video.indexOf("i>",cur)+2;
-							QStandardItem *item=new QStandardItem();
-							item->setData(QUrl(api+regex.cap().mid(6)),Qt::UserRole);
-							item->setData(video.mid(sta,video.indexOf('<',sta)-sta),Qt::EditRole);
-							model->appendRow(item);
-							cur+=regex.matchedLength();
+						int sta;
+						if((sta=video.indexOf("<div id=\"area-pager\""))!=-1){
+							int len=video.indexOf("<a id=\"pager-more\"",sta)-sta+1;
+							len=len<0?0:len;
+							QString select=video.mid(sta,len);
+							QRegExp regex("href\\=\"[^\"]+");
+							int cur=0;
+							api="http://www.acfun.tv";
+							QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
+							model->clear();
+							while((cur=regex.indexIn(select,cur))!=-1){
+								int sta=select.indexOf("i>",cur)+2;
+								QStandardItem *item=new QStandardItem();
+								item->setData(QUrl(api+regex.cap().mid(6)),Qt::UserRole);
+								item->setData(select.mid(sta,select.indexOf('<',sta)-sta),Qt::EditRole);
+								model->appendRow(item);
+								cur+=regex.matchedLength();
+							}
+							if(model->rowCount()>0){
+								QStandardItem *f=model->item(0);
+								f->setData(QUrl(url+"_1"),Qt::UserRole);
+								danmC->complete();
+								flag=false;
+							}
 						}
-						QStandardItem *f=model->item(0);
-						if(f!=NULL){
-							f->setData(QUrl(url+"_1"),Qt::UserRole);
-						}
-						danmC->complete();
-						flag=false;
 					}
 					if(flag){
 						QRegularExpressionMatch match=QRegularExpression("(?<=\\[video\\])\\d+(?=\\[/video\\])",option).match(video);
