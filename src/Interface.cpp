@@ -270,7 +270,6 @@ Interface::Interface(QWidget *parent):
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
-	Search::initDataBase();
 }
 
 void Interface::setCenter(QSize _s,bool f)

@@ -63,7 +63,9 @@ Menu::Menu(QWidget *parent) :
 	danmL->setCompleter(danmC);
 	void (QCompleter::*signal)(const QModelIndex &)=&QCompleter::activated;
 	connect(danmC,signal,[this](const QModelIndex &index){
-		danmL->setText(danmL->text()+QString("#%1").arg(index.row()+1));
+		if(!index.data(Qt::UserRole+1).toBool()){
+			danmL->setText(danmL->text()+QString("#%1").arg(index.row()+1));
+		}
 		manager->get(QNetworkRequest(index.data(Qt::UserRole).toUrl()));
 	});
 	fileB=new QPushButton(this);
@@ -200,7 +202,7 @@ Menu::Menu(QWidget *parent) :
 	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
 		Utils::setConfig("/Danmaku/Font",_font);
 	});
-	connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *reply){
+	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
 			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(code));
@@ -277,7 +279,7 @@ Menu::Menu(QWidget *parent) :
 						api="http://www.bilibili.tv";
 						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 						model->clear();
-						while((cur=regex.indexIn(select,cur))!=-1){
+						while(isPopped()&&(cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem();
 							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
@@ -328,7 +330,7 @@ Menu::Menu(QWidget *parent) :
 							api="http://www.acfun.tv";
 							QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 							model->clear();
-							while((cur=regex.indexIn(select,cur))!=-1){
+							while(isPopped()&&(cur=regex.indexIn(select,cur))!=-1){
 								int sta=select.indexOf("i>",cur)+2;
 								QStandardItem *item=new QStandardItem();
 								item->setData(QUrl(api+regex.cap().mid(6)),Qt::UserRole);
@@ -372,15 +374,21 @@ Menu::Menu(QWidget *parent) :
 				api="http://comment.bilibili.tv/%1.xml";
 				QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 				model->clear();
-				while((cur=regex.indexIn(video,cur))!=-1){
+				while(isPopped()&&(cur=regex.indexIn(video,cur))!=-1){
 					int sta=video.indexOf('>',cur)+1;
 					QStandardItem *item=new QStandardItem();
+					item->setData(true,Qt::UserRole+1);
 					item->setData(QUrl(api.arg(regex.cap().mid(5))),Qt::UserRole);
 					item->setData(video.mid(sta,video.indexOf('<',sta)-sta),Qt::EditRole);
 					model->appendRow(item);
 					cur+=regex.matchedLength();
 				}
-				danmC->complete();
+				if(model->rowCount()>0){
+					danmC->complete();
+				}
+				else{
+					error(404);
+				}
 			}
 		}
 		else{

@@ -49,11 +49,12 @@ private:
 	QLineEdit *play[3];
 
 	//Interface
-	QGroupBox *ui[4];
+	QGroupBox *ui[5];
 	QComboBox *font;
 	QComboBox *stay;
 	QLineEdit *size;
 	QLineEdit *jump;
+	QLineEdit *appk;
 
 	//Shiled
 	QLineEdit *edit;
