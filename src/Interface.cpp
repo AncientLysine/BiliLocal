@@ -138,6 +138,7 @@ Interface::Interface(QWidget *parent):
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
 	});
+	connect(vplayer,SIGNAL(paused()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
@@ -349,6 +350,23 @@ void Interface::paintEvent(QPaintEvent *e)
 	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
+	painter.setRenderHint(QPainter::Antialiasing);
+	if(vplayer->getState()==VPlayer::Pause){
+		painter.setPen(QPen(QBrush(),0));
+		QRect r=rect();
+		double l=((r.bottomLeft()-r.center())*0.1).manhattanLength();
+		QRect s(r.bottomLeft()+QPoint(0.5*l,-1.5*l),QSize(l,l));
+		painter.setBrush(QBrush(QColor(0,0,0,80)));
+		painter.drawRoundedRect(s,5,5);
+		QPolygon p;
+		double h=l/4;
+		QPoint c=s.center()+QPoint(0.2*h,0);
+		p.append(c+QPoint(h,0));
+		p.append(c+QPoint(-h,+h));
+		p.append(c+QPoint(-h,-h));
+		painter.setBrush(QBrush(QColor(255,255,255,100)));
+		painter.drawPolygon(p);
+	}
 	painter.end();
 	QWidget::paintEvent(e);
 }

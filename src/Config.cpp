@@ -70,12 +70,13 @@ Config::Config(QWidget *parent,int index):
 
 		auto l=new QHBoxLayout;
 		play[1]=new QLineEdit(widget[0]);
-		play[1]->setText(QString::number(Utils::getConfig("/Danmaku/Life",5),'f',2));
+		play[1]->setText(Utils::getConfig("/Danmaku/Life",QString("5")));
 		connect(play[1],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Danmaku/Life",play[1]->text().toDouble());
+			Utils::setConfig("/Danmaku/Life",play[1]->text());
 		});
 		l->addWidget(play[1]);
 		box[2]=new QGroupBox(tr("life time"),widget[0]);
+		box[2]->setToolTip(tr("%{width} means the width of an danmaku"));
 		box[2]->setLayout(l);
 		list->addWidget(box[2]);
 

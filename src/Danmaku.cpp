@@ -349,7 +349,9 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	}
 	case 4:
 	{
-		render.life=Utils::getConfig("/Danmaku/Life",5.0);
+		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
+		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+		render.life=engine.evaluate(exp).toNumber();
 		render.rect=QRectF(QPointF(0,0),bound);
 		render.rect.moveCenter(QPoint(size.width()/2,0));
 		int limit=render.rect.height();
@@ -370,7 +372,9 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	}
 	case 5:
 	{
-		render.life=Utils::getConfig("/Danmaku/Life",5.0);
+		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
+		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+		render.life=engine.evaluate(exp).toNumber();
 		render.rect=QRectF(QPointF(0,0),bound);
 		render.rect.moveCenter(QPoint(size.width()/2,0));
 		int limit=size.height()-(sub?80:0)-render.rect.height();
