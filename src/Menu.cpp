@@ -32,8 +32,6 @@ Menu::Menu(QWidget *parent) :
 {
 	isPop=false;
 	isTurn=false;
-	isLocal=false;
-	lastPath=QDir::homePath();
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
@@ -51,9 +49,7 @@ Menu::Menu(QWidget *parent) :
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("a([cv](([0-9]+)(#)?([0-9]+)?)?)?");
 		regex.lastIndexIn(text);
-		int pos=danmL->cursorPosition();
 		danmL->setText(regex.cap());
-		danmL->setCursorPosition(pos);
 		dynamic_cast<QStandardItemModel *>(danmC->model())->clear();
 	});
 	danmC=new QCompleter(new QStandardItemModel(this),this);
@@ -81,15 +77,15 @@ Menu::Menu(QWidget *parent) :
 	danmA=new QAction(tr("Load Danmaku"),this);
 	sechA=new QAction(tr("Search Danmaku"),this);
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath);
+		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),Utils::getConfig("/Playing/Path",QDir::homePath()));
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
-		if(isLocal){
+		if(Utils::getConfig("/Danmaku/Local",false)){
 			QString filter=tr("Danmaku files (*.xml *.json)");
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),lastPath,filter);
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),Utils::getConfig("/Playing/Path",QDir::homePath()),filter);
 			if(!_file.isEmpty()){
 				setDanmaku(_file);
 			}
@@ -161,7 +157,6 @@ Menu::Menu(QWidget *parent) :
 			sechL->setText("");
 			sechL->setEnabled(false);
 			sechB->setEnabled(false);
-			isLocal=true;
 		}
 		else{
 			danmL->setText("");
@@ -170,7 +165,6 @@ Menu::Menu(QWidget *parent) :
 			danmB->setText(tr("Load"));
 			sechL->setEnabled(true);
 			sechB->setEnabled(true);
-			isLocal=false;
 		}
 		Utils::setConfig("/Danmaku/Local",state==Qt::Checked);
 	});
@@ -395,7 +389,6 @@ Menu::Menu(QWidget *parent) :
 			error(reply->error());
 		}
 	});
-	lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
 	if(QApplication::arguments().count()>=2){
 		Utils::delayExec(0,[this](){
 			for(QString file:QApplication::arguments().mid(1)){
@@ -436,8 +429,7 @@ void Menu::push()
 void Menu::setFile(QString _file)
 {
 	QFileInfo file(_file);
-	lastPath=file.absolutePath();
-	Utils::setConfig("/Playing/Path",lastPath);
+	Utils::setConfig("/Playing/Path",file.absolutePath());
 	_file=file.absoluteFilePath();
 	fileL->setText(_file);
 	emit open(QDir::toNativeSeparators(_file));
@@ -449,8 +441,7 @@ void Menu::setPower(qint16 fps)
 		powerL->setText("");
 	}
 	else{
-		fps=fps>200?200:fps;
-		fps=fps<30 ?30 :fps;
+		fps=qBound<qint16>(30,fps,200);
 		powerL->setText(QString::number(fps));
 	}
 	emit power(fps==0?-1:1000/fps);
@@ -478,14 +469,14 @@ void Menu::setDanmaku(QString _code)
 			}
 		}
 		url=QUrl(u);
-		if(isLocal){
+		if(Utils::getConfig("/Danmaku/Local",false)){
 			localC->toggle();
 		}
 		danmL->setText(_code);
 	}
 	else if(!_code.isEmpty()){
 		url=QUrl::fromLocalFile(_code);
-		if(!isLocal){
+		if(!Utils::getConfig("/Danmaku/Local",false)){
 			localC->toggle();
 		}
 		danmL->setText(QFileInfo(_code).fileName());

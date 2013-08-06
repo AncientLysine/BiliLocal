@@ -45,8 +45,6 @@ public:
 private:
 	bool isPop;
 	bool isTurn;
-	bool isLocal;
-	QString lastPath;
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QLineEdit *sechL;

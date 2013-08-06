@@ -192,23 +192,25 @@ void VPlayer::play()
 {
 	if(mp){
 		if(state==Stop){
-			libvlc_media_track_info_t *info;
+			libvlc_media_track_t **info;
 			libvlc_media_parse(m);
-			int i=libvlc_media_get_tracks_info(m,&info);
-			for(--i;i>=0;--i){
-				if(info[i].i_type==libvlc_track_video){
-					srcSize.setWidth (info[i].u.video.i_width);
-					srcSize.setHeight(info[i].u.video.i_height);
+			int n=libvlc_media_tracks_get(m,&info);
+			for(int i=0;i<n;++i){
+				if(info[i]->i_type==libvlc_track_video){
+					libvlc_video_track_t *v=info[i]->video;
+					double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
+					srcSize=QSize(v->i_width*r,v->i_height);
+					break;
 				}
 			}
-			free(info);
+			libvlc_media_tracks_release(info,n);
 			dstSize=srcSize;
 			avpicture_alloc(&srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
 			avpicture_alloc(&dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			valid=true;
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			Utils::delayExec(50,[this](){libvlc_media_player_play(mp);});
+			Utils::delayExec(0,[this](){libvlc_media_player_play(mp);});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -229,7 +231,7 @@ void VPlayer::stop()
 		if(state!=Stop){
 			state=Invalid;
 			libvlc_media_player_stop(mp);
-			Utils::delayExec(50,[this](){
+			Utils::delayExec(0,[this](){
 				state=Stop;
 				frame=QPixmap();
 				subtitle.clear();
@@ -244,9 +246,8 @@ void VPlayer::setSize(QSize _size)
 	mutex.lock();
 	auto _dstSize=dstSize;
 	if(ratio>0){
-		int w=_size.width(),h=_size.height()*ratio;
-		int sw=w>h?h:w;
-		dstSize=QSize(sw,sw/ratio);
+		int w=qMax<int>(_size.width(),_size.height()*ratio);
+		dstSize=QSize(w,w/ratio);
 	}
 	else{
 		dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
@@ -270,7 +271,7 @@ void VPlayer::setSize(QSize _size)
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
-		_time=qBound((qint64)0,_time,getDuration()-500);
+		_time=qBound<qint64>(0,_time,getDuration()-500);
 		libvlc_media_player_set_time(mp,_time);
 		emit jumped(_time);
 	}
