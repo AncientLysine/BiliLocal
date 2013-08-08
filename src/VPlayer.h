@@ -52,32 +52,30 @@ public:
 	qint64 getTime();
 	int getState();
 	QSize getSize(int t=Source);
+	int getSubtitle();
 	qint64 getDuration();
-	QString getSubtitle();
-	QStringList getSubtitles();
-	void setFrame();
+	QMap<int,QString> getSubtitles();
+	void setFrame(bool force=false);
 	void draw(QPainter *painter,QRect rect);
+	QMutex *getMutex(){return &mutex;}
 	static VPlayer *instance(){return ins;}
 
 private:
 	int state;
-	int valid;
-
 	double ratio;
 	QMutex mutex;
 	QSize srcSize;
 	QSize dstSize;
-	QString file;
+	QSize guiSize;
 	QPixmap frame;
-	QMap<QString,int> subtitle;
 
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
 
 	SwsContext *swsctx;
-	AVPicture srcFrame;
-	AVPicture dstFrame;
+	AVPicture *srcFrame;
+	AVPicture *dstFrame;
 
 	static VPlayer *ins;
 
@@ -87,7 +85,7 @@ signals:
 	void ended();
 	void decoded();
 	void jumped(qint64 _time);
-	void rendered(QImage _frame);
+	void rendered(QPixmap _frame);
 
 public slots:
 	void play();
@@ -97,8 +95,8 @@ public slots:
 	void setFile(QString _file);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
-	void setSubTitle(QString _track);
-	void emitFrame(QImage _frame);
+	void setSubTitle(int _track);
+	void emitFrame(QPixmap _frame);
 
 };
 

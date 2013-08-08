@@ -50,15 +50,15 @@ Menu::Menu(QWidget *parent) :
 		QRegExp regex("a([cv](([0-9]+)(#)?([0-9]+)?)?)?");
 		regex.lastIndexIn(text);
 		danmL->setText(regex.cap());
-		dynamic_cast<QStandardItemModel *>(danmC->model())->clear();
 	});
 	danmC=new QCompleter(new QStandardItemModel(this),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setCaseSensitivity(Qt::CaseInsensitive);
-	danmC->popup()->setMouseTracking(true);
-	danmL->setCompleter(danmC);
-	void (QCompleter::*signal)(const QModelIndex &)=&QCompleter::activated;
-	connect(danmC,signal,[this](const QModelIndex &index){
+	danmC->setWidget(danmL);
+	QAbstractItemView *popup=danmC->popup();
+	popup->setMouseTracking(true);
+	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
+	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
 		if(!index.data(Qt::UserRole+1).toBool()){
 			danmL->setText(danmL->text()+QString("#%1").arg(index.row()+1));
 		}
@@ -273,7 +273,7 @@ Menu::Menu(QWidget *parent) :
 						api="http://www.bilibili.tv";
 						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 						model->clear();
-						while(isPopped()&&(cur=regex.indexIn(select,cur))!=-1){
+						while((cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem();
 							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
@@ -282,7 +282,9 @@ Menu::Menu(QWidget *parent) :
 							cur+=regex.matchedLength();
 						}
 						if(model->rowCount()>0){
-							danmC->complete();
+							if(isPop){
+								danmC->complete();
+							}
 							flag=false;
 						}
 					}
@@ -324,7 +326,7 @@ Menu::Menu(QWidget *parent) :
 							api="http://www.acfun.tv";
 							QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 							model->clear();
-							while(isPopped()&&(cur=regex.indexIn(select,cur))!=-1){
+							while((cur=regex.indexIn(select,cur))!=-1){
 								int sta=select.indexOf("i>",cur)+2;
 								QStandardItem *item=new QStandardItem();
 								item->setData(QUrl(api+regex.cap().mid(6)),Qt::UserRole);
@@ -335,7 +337,9 @@ Menu::Menu(QWidget *parent) :
 							if(model->rowCount()>0){
 								QStandardItem *f=model->item(0);
 								f->setData(QUrl(url+"_1"),Qt::UserRole);
-								danmC->complete();
+								if(isPop){
+									danmC->complete();
+								}
 								flag=false;
 							}
 						}
@@ -368,7 +372,7 @@ Menu::Menu(QWidget *parent) :
 				api="http://comment.bilibili.tv/%1.xml";
 				QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 				model->clear();
-				while(isPopped()&&(cur=regex.indexIn(video,cur))!=-1){
+				while((cur=regex.indexIn(video,cur))!=-1){
 					int sta=video.indexOf('>',cur)+1;
 					QStandardItem *item=new QStandardItem();
 					item->setData(true,Qt::UserRole+1);
@@ -377,11 +381,11 @@ Menu::Menu(QWidget *parent) :
 					model->appendRow(item);
 					cur+=regex.matchedLength();
 				}
-				if(model->rowCount()>0){
-					danmC->complete();
-				}
-				else{
+				if(model->rowCount()==0){
 					error(404);
+				}
+				else if(isPop){
+					danmC->complete();
 				}
 			}
 		}
@@ -454,7 +458,7 @@ void Menu::setDanmaku(QString _code)
 	QString s=_code.mid(0,2);
 	QString i=_code.mid(2,sharp-2);
 	QString p=sharp==-1?QString():_code.mid(sharp+1);
-	if(s=="av"||s=="ac"){
+	if((s=="av"||s=="ac")&&_code.length()>2){
 		QString u;
 		if(s=="av"){
 			u=QString("http://www.bilibili.tv/video/av%1/").arg(i);
@@ -474,7 +478,7 @@ void Menu::setDanmaku(QString _code)
 		}
 		danmL->setText(_code);
 	}
-	else if(!_code.isEmpty()){
+	else if(QFile::exists(_code)){
 		url=QUrl::fromLocalFile(_code);
 		if(!Utils::getConfig("/Danmaku/Local",false)){
 			localC->toggle();

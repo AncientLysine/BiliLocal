@@ -46,8 +46,15 @@ void avpicture_free(AVPicture *picture)
 static void *lock(void *opaque,void **planes)
 {
 	VPlayer *player=static_cast<VPlayer *>(opaque);
+	player->getMutex()->lock();
 	*planes=player->getSrc();
 	return NULL;
+}
+
+static void unlock(void *opaque,void *,void *const *)
+{
+	VPlayer *player=static_cast<VPlayer *>(opaque);
+	player->getMutex()->unlock();
 }
 
 static void display(void *opaque,void *)
@@ -63,11 +70,12 @@ VPlayer::VPlayer(QObject *parent) :
 	m=NULL;
 	mp=NULL;
 	swsctx=NULL;
+	srcFrame=NULL;
+	dstFrame=NULL;
 	state=Stop;
-	valid=false;
 	ratio=0;
 	ins=this;
-	connect(this,SIGNAL(rendered(QImage)),this,SLOT(emitFrame(QImage)));
+	connect(this,SIGNAL(rendered(QPixmap)),this,SLOT(emitFrame(QPixmap)));
 }
 
 VPlayer::~VPlayer()
@@ -82,16 +90,22 @@ VPlayer::~VPlayer()
 	if(swsctx){
 		sws_freeContext(swsctx);
 	}
+	if(srcFrame){
+		avpicture_free(srcFrame);
+	}
+	if(dstFrame){
+		avpicture_free(dstFrame);
+	}
 }
 
 uchar *VPlayer::getSrc()
 {
-	return (uchar *)*srcFrame.data;
+	return (uchar *)*srcFrame->data;
 }
 
 uchar *VPlayer::getDst()
 {
-	return (uchar *)*dstFrame.data;
+	return (uchar *)*dstFrame->data;
 }
 
 QSize VPlayer::getSize(int t)
@@ -109,7 +123,7 @@ QSize VPlayer::getSize(int t)
 	}
 	case Destinate:
 	{
-		return dstSize;
+		return guiSize;
 	}
 	default:
 	{
@@ -128,58 +142,48 @@ int VPlayer::getState()
 	return state;
 }
 
+int VPlayer::getSubtitle()
+{
+	return mp?libvlc_video_get_spu(mp):-1;
+}
+
 qint64 VPlayer::getDuration()
 {
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-QString VPlayer::getSubtitle()
+QMap<int,QString> VPlayer::getSubtitles()
 {
+	QMap<int,QString> map;
 	if(mp){
-		if(subtitle.isEmpty()){
-			getSubtitles();
-		}
-		return subtitle.key(libvlc_video_get_spu(mp));
-	}
-	else{
-		return QString();
-	}
-}
-
-QStringList VPlayer::getSubtitles()
-{
-	if(mp&&subtitle.isEmpty()){
-		auto list=libvlc_video_get_spu_description(mp);
-		auto iter=list;
+		libvlc_track_description_t *list=libvlc_video_get_spu_description(mp);
+		libvlc_track_description_t *iter=list;
 		while(iter){
 			QString title=iter->psz_name;
 			title.replace("Track"  ,tr("Track"));
 			title.replace("Disable",tr("Disable"));
-			subtitle[title]=iter->i_id;
+			map[iter->i_id]=title;
 			iter=iter->p_next;
 		}
 		libvlc_track_description_list_release(list);
 	}
-	return subtitle.keys();
+	return map;
 }
 
-void VPlayer::setFrame()
+void VPlayer::setFrame(bool force)
 {
-	if(state!=Pause){
-		mutex.lock();
+	if(state!=Pause||force){
+		if(dstSize!=guiSize){
+			dstSize=guiSize;
+			avpicture_free (dstFrame);
+			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
+		}
 		swsctx=sws_getCachedContext(swsctx,
 									srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
 									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
 									SWS_FAST_BILINEAR,NULL,NULL,NULL);
-		if(!valid){
-			avpicture_free (&dstFrame);
-			avpicture_alloc(&dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
-			valid=true;
-		}
-		sws_scale(swsctx,srcFrame.data,srcFrame.linesize,0,srcSize.height(),dstFrame.data,dstFrame.linesize);
-		QImage frame=QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy();
-		mutex.unlock();
-		emit rendered(frame);
+		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
+		emit rendered(QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy()));
 	}
 }
 
@@ -204,13 +208,20 @@ void VPlayer::play()
 				}
 			}
 			libvlc_media_tracks_release(info,n);
-			dstSize=srcSize;
-			avpicture_alloc(&srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
-			avpicture_alloc(&dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
-			valid=true;
+			dstSize=guiSize=srcSize;
+			if(srcFrame){
+				avpicture_free(srcFrame);
+			}
+			if(dstFrame){
+				avpicture_free(dstFrame);
+			}
+			srcFrame=new AVPicture;
+			dstFrame=new AVPicture;
+			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
+			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
-			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
-			Utils::delayExec(0,[this](){libvlc_media_player_play(mp);});
+			libvlc_video_set_callbacks(mp,lock,unlock,display,this);
+			libvlc_media_player_play(mp);
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -231,39 +242,30 @@ void VPlayer::stop()
 		if(state!=Stop){
 			state=Invalid;
 			libvlc_media_player_stop(mp);
-			Utils::delayExec(0,[this](){
-				state=Stop;
-				frame=QPixmap();
-				subtitle.clear();
-				emit ended();
-			});
+			qApp->processEvents();
+			state=Stop;
+			frame=QPixmap();
+			emit ended();
 		}
 	}
 }
 
 void VPlayer::setSize(QSize _size)
 {
-	mutex.lock();
-	auto _dstSize=dstSize;
-	if(ratio>0){
-		int w=qMax<int>(_size.width(),_size.height()*ratio);
-		dstSize=QSize(w,w/ratio);
-	}
-	else{
-		dstSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
-	}
-	dstSize/=4;
-	dstSize*=4;
-	if(_dstSize!=dstSize){
-		valid=false;
-		mutex.unlock();
-		if(state==Pause){
-			state=Play;
-			setFrame();
-			state=Pause;
+	if(state==Play||state==Pause){
+		mutex.lock();
+		if(ratio>0){
+			int w=qMax<int>(_size.width(),_size.height()*ratio);
+			guiSize=QSize(w,w/ratio);
 		}
-	}
-	else{
+		else{
+			guiSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
+		}
+		guiSize/=4;
+		guiSize*=4;
+		if(guiSize!=dstSize&&state==Pause){
+			setFrame(true);
+		}
 		mutex.unlock();
 	}
 }
@@ -280,14 +282,13 @@ void VPlayer::setTime(qint64 _time)
 void VPlayer::setFile(QString _file)
 {
 	stop();
-	file=_file;
 	if(m){
 		libvlc_media_release(m);
 	}
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
-	m=libvlc_media_new_path(vlc,file.toUtf8());
+	m=libvlc_media_new_path(vlc,_file.toUtf8());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 	}
@@ -305,29 +306,27 @@ void VPlayer::setVolume(int _volume)
 	}
 }
 
-void VPlayer::setSubTitle(QString _track)
+void VPlayer::setSubTitle(int _track)
 {
 	if(mp){
-		libvlc_video_set_spu(mp,subtitle[_track]);
+		libvlc_video_set_spu(mp,_track);
 	}
 }
 
-void VPlayer::emitFrame(QImage _frame)
+void VPlayer::emitFrame(QPixmap _frame)
 {
 	if(state==Stop){
 		state=Play;
 		emit opened();
 	}
-	if(state==Play){
-		frame=QPixmap::fromImage(_frame);
-		emit decoded();
-		if(getDuration()-getTime()<500){
-			if(Utils::getConfig("/Playing/Loop",false)){
-				setTime(0);
-			}
-			else{
-				stop();
-			}
+	frame=_frame;
+	emit decoded();
+	if(getDuration()-getTime()<500){
+		if(Utils::getConfig("/Playing/Loop",false)){
+			setTime(0);
+		}
+		else{
+			stop();
 		}
 	}
 }

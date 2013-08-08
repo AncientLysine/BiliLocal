@@ -98,8 +98,7 @@ Config::Config(QWidget *parent,int index):
 		effect->addItem(tr("Projection"));
 		effect->addItem(tr("Projection")+"&"+tr("Bold"));
 		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",1));
-		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
-		connect(effect,signal,[this](int i){
+		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig("/Danmaku/Effect",i);
 		});
 		g->addWidget(effect);
@@ -143,8 +142,7 @@ Config::Config(QWidget *parent,int index):
 		stay->addItem(tr("default"));
 		stay->addItem(tr("stay on top"));
 		stay->setCurrentIndex(Utils::getConfig("/Interface/Top",false));
-		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
-		connect(stay,signal,[this](int i){
+		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig<bool>("/Interface/Top",i);
 		});
 		t->addWidget(stay);

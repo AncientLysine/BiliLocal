@@ -110,11 +110,13 @@ Interface::Interface(QWidget *parent):
 			sub->setEnabled(true);
 			QActionGroup *group=new QActionGroup(sub);
 			group->setExclusive(true);
-			QString current=vplayer->getSubtitle();
-			for(QString title:vplayer->getSubtitles()){
-				QAction *action=group->addAction(title);
+			int current=vplayer->getSubtitle();
+			QMap<int,QString> map=vplayer->getSubtitles();
+			for(auto iter=map.begin();iter!=map.end();++iter){
+				QAction *action=group->addAction(iter.value());
 				action->setCheckable(true);
-				action->setChecked(current==title);
+				action->setData(iter.key());
+				action->setChecked(current==iter.key());
 			}
 			sub->addActions(group->actions());
 		}
@@ -152,7 +154,6 @@ Interface::Interface(QWidget *parent):
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
 	connect(info,&Info::volume,vplayer,&VPlayer::setVolume);
-	setFocus();
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
@@ -202,7 +203,7 @@ Interface::Interface(QWidget *parent):
 	sub=new QMenu(tr("Subtitle"),top);
 	sub->setEnabled(false);
 	connect(sub,&QMenu::triggered,[this](QAction *action){
-		vplayer->setSubTitle(action->text());
+		vplayer->setSubTitle(action->data().toInt());
 	});
 
 	QActionGroup *g;
@@ -270,6 +271,7 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	setFocus();
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 }
 
