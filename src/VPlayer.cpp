@@ -46,15 +46,8 @@ void avpicture_free(AVPicture *picture)
 static void *lock(void *opaque,void **planes)
 {
 	VPlayer *player=static_cast<VPlayer *>(opaque);
-	player->getMutex()->lock();
 	*planes=player->getSrc();
 	return NULL;
-}
-
-static void unlock(void *opaque,void *,void *const *)
-{
-	VPlayer *player=static_cast<VPlayer *>(opaque);
-	player->getMutex()->unlock();
 }
 
 static void display(void *opaque,void *)
@@ -75,7 +68,7 @@ VPlayer::VPlayer(QObject *parent) :
 	state=Stop;
 	ratio=0;
 	ins=this;
-	connect(this,SIGNAL(rendered(QPixmap)),this,SLOT(emitFrame(QPixmap)));
+	connect(this,SIGNAL(rendered()),this,SLOT(emitFrame()));
 }
 
 VPlayer::~VPlayer()
@@ -172,6 +165,7 @@ QMap<int,QString> VPlayer::getSubtitles()
 
 void VPlayer::setFrame(bool force)
 {
+	mutex.lock();
 	if(state!=Pause||force){
 		if(dstSize!=guiSize){
 			dstSize=guiSize;
@@ -183,13 +177,20 @@ void VPlayer::setFrame(bool force)
 									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
 									SWS_FAST_BILINEAR,NULL,NULL,NULL);
 		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
-		emit rendered(QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy()));
+		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
+		mutex.unlock();
+		emit rendered();
+	}
+	else{
+		mutex.unlock();
 	}
 }
 
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
+	mutex.lock();
 	painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
+	mutex.unlock();
 }
 
 void VPlayer::play()
@@ -203,12 +204,11 @@ void VPlayer::play()
 				if(info[i]->i_type==libvlc_track_video){
 					libvlc_video_track_t *v=info[i]->video;
 					double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
-					srcSize=QSize(v->i_width*r,v->i_height);
+					dstSize=guiSize=srcSize=QSize(v->i_width*r,v->i_height);
 					break;
 				}
 			}
 			libvlc_media_tracks_release(info,n);
-			dstSize=guiSize=srcSize;
 			if(srcFrame){
 				avpicture_free(srcFrame);
 			}
@@ -220,7 +220,7 @@ void VPlayer::play()
 			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
 			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
-			libvlc_video_set_callbacks(mp,lock,unlock,display,this);
+			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
 			libvlc_media_player_play(mp);
 		}
 		else{
@@ -264,9 +264,12 @@ void VPlayer::setSize(QSize _size)
 		guiSize/=4;
 		guiSize*=4;
 		if(guiSize!=dstSize&&state==Pause){
+			mutex.unlock();
 			setFrame(true);
 		}
-		mutex.unlock();
+		else{
+			mutex.unlock();
+		}
 	}
 }
 
@@ -313,20 +316,21 @@ void VPlayer::setSubTitle(int _track)
 	}
 }
 
-void VPlayer::emitFrame(QPixmap _frame)
+void VPlayer::emitFrame()
 {
 	if(state==Stop){
 		state=Play;
 		emit opened();
 	}
-	frame=_frame;
-	emit decoded();
-	if(getDuration()-getTime()<500){
-		if(Utils::getConfig("/Playing/Loop",false)){
-			setTime(0);
-		}
-		else{
-			stop();
+	if(state==Play){
+		emit decoded();
+		if(getDuration()-getTime()<500){
+			if(Utils::getConfig("/Playing/Loop",false)){
+				setTime(0);
+			}
+			else{
+				stop();
+			}
 		}
 	}
 }

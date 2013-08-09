@@ -76,6 +76,7 @@ signals:
 public slots:
 	void pop();
 	void push();
+	void terminate();
 	void setTime(qint64 _time);
 	void setOpened(bool _opened);
 	void setPlaying(bool _playing);

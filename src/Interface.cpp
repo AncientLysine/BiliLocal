@@ -383,6 +383,8 @@ void Interface::resizeEvent(QResizeEvent *e)
 	}
 	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
 	me->move((w-me->width())/2,(h-me->height())/2+40);
+	menu->terminate();
+	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
@@ -456,6 +458,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		e->acceptProposedAction();
 	}
+	QWidget::dragEnterEvent(e);
 }
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)

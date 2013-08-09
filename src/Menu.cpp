@@ -430,6 +430,13 @@ void Menu::push()
 	}
 }
 
+void Menu::terminate()
+{
+	if(animation->state()!=QAbstractAnimation::Stopped){
+		animation->setCurrentTime(animation->totalDuration());
+	}
+}
+
 void Menu::setFile(QString _file)
 {
 	QFileInfo file(_file);

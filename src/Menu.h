@@ -77,6 +77,7 @@ signals:
 public slots:
 	void pop();
 	void push();
+	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);
 	void setDanmaku(QString _code);

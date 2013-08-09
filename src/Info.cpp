@@ -175,6 +175,13 @@ void Info::push()
 	}
 }
 
+void Info::terminate()
+{
+	if(animation->state()!=QAbstractAnimation::Stopped){
+		animation->setCurrentTime(animation->totalDuration());
+	}
+}
+
 void Info::setTime(qint64 _time)
 {
 	if(!sliding){

@@ -57,7 +57,6 @@ public:
 	QMap<int,QString> getSubtitles();
 	void setFrame(bool force=false);
 	void draw(QPainter *painter,QRect rect);
-	QMutex *getMutex(){return &mutex;}
 	static VPlayer *instance(){return ins;}
 
 private:
@@ -85,7 +84,7 @@ signals:
 	void ended();
 	void decoded();
 	void jumped(qint64 _time);
-	void rendered(QPixmap _frame);
+	void rendered();
 
 public slots:
 	void play();
@@ -96,7 +95,7 @@ public slots:
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void setSubTitle(int _track);
-	void emitFrame(QPixmap _frame);
+	void emitFrame();
 
 };
 
