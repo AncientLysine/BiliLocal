@@ -38,6 +38,16 @@ bool Comment::operator ==(const Comment &o) const
 	return mode==o.mode&&color==o.color&&sender==o.sender&&string==o.string&&time==o.time&&date==o.date;
 }
 
+uint qHash(const Comment &key,uint seed)
+{
+	uint h=0;
+	h+=qHash(key.mode,seed);
+	h+=qHash(key.color,seed);
+	h+=qHash(key.sender,seed);
+	h+=qHash(key.string,seed);
+	return h;
+}
+
 void Utils::setBack(QWidget *widget,QColor color)
 {
 	QPalette options;

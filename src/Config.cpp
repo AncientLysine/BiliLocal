@@ -336,17 +336,15 @@ Config::Config(QWidget *parent,int index):
 		tab->addTab(widget[4],tr("License"));
 	}
 	tab->setCurrentIndex(index);
-}
-
-Config::~Config()
-{
-	Shield::shieldR.clear();
-	Shield::shieldU.clear();
-	for(QString item:rm->stringList()){
-		Shield::shieldR.append(QRegExp(item));
-	}
-	for(QString item:sm->stringList()){
-		Shield::shieldU.append(item);
-	}
-	Shield::cacheS.clear();
+	connect(this,&QDialog::finished,[this](){
+		Shield::shieldR.clear();
+		Shield::shieldU.clear();
+		for(QString item:rm->stringList()){
+			Shield::shieldR.append(QRegExp(item));
+		}
+		for(QString item:sm->stringList()){
+			Shield::shieldU.append(item);
+		}
+		Shield::cacheS.clear();
+	});
 }

@@ -56,10 +56,19 @@ static void display(void *opaque,void *)
 	player->setFrame();
 }
 
+static void log(void *,int,const libvlc_log_t *,const char *fmt,va_list args)
+{
+	char *string=new char[1024];
+	vsprintf(string,fmt,args);
+	//qDebug()<<string;
+	delete []string;
+}
+
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
 	vlc=libvlc_new(0,NULL);
+	libvlc_log_set(vlc,log,NULL);
 	m=NULL;
 	mp=NULL;
 	swsctx=NULL;
@@ -165,8 +174,8 @@ QMap<int,QString> VPlayer::getSubtitles()
 
 void VPlayer::setFrame(bool force)
 {
-	mutex.lock();
 	if(state!=Pause||force){
+		mutex.lock();
 		if(dstSize!=guiSize){
 			dstSize=guiSize;
 			avpicture_free (dstFrame);
@@ -180,9 +189,6 @@ void VPlayer::setFrame(bool force)
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		mutex.unlock();
 		emit rendered();
-	}
-	else{
-		mutex.unlock();
 	}
 }
 

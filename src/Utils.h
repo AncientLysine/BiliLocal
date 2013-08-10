@@ -43,6 +43,8 @@ struct Comment
 	bool operator ==(const Comment &o) const;
 };
 
+uint qHash(const Comment &key,uint seed=0);
+
 namespace{
 template<class T>
 T fromJsonValue(QJsonValue v)

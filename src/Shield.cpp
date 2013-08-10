@@ -32,16 +32,6 @@ QList<QRegExp> Shield::shieldR;
 QList<QString> Shield::shieldC;
 QCache<Comment,bool> Shield::cacheS;
 
-uint qHash(const Comment &key,uint seed=0)
-{
-	uint h=0;
-	h+=qHash(key.mode,seed);
-	h+=qHash(key.color,seed);
-	h+=qHash(key.sender,seed);
-	h+=qHash(key.string,seed);
-	return h;
-}
-
 void Shield::init()
 {
 	QJsonArray u=Utils::getConfig<QJsonArray>("/Shield/User");

@@ -36,7 +36,6 @@ class Config:public QDialog
 	Q_OBJECT
 public:
 	explicit Config(QWidget *parent=0,int index=0);
-	~Config();
 
 private:
 	QTabWidget *tab;
