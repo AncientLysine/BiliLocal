@@ -199,11 +199,12 @@ Menu::Menu(QWidget *parent) :
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
+			Printer::instance()->append(QString("[Danmaku]Error %1").arg(code));
 			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(code));
 		};
 
 		auto bi=[](const QByteArray &data){
-			QStringList l=QString(data).simplified().split("<d p=\"");
+			QStringList l=QString(data).split("<d p=\"");
 			l.removeFirst();
 			QList<Comment> list;
 			for(QString &item:l){
@@ -245,6 +246,7 @@ Menu::Menu(QWidget *parent) :
 		};
 
 		QString url=reply->url().url();
+		Printer::instance()->append(QString("[Danmaku]%1").arg(url));
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
@@ -252,12 +254,15 @@ Menu::Menu(QWidget *parent) :
 				reply->manager()->get(QNetworkRequest(redirect));
 			}
 			else if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
+				QList<Comment> load;
 				if(url.endsWith("xml")){
-					Danmaku::instance()->appendToPool(Record(url,bi(reply->readAll())));
+					load=bi(reply->readAll());
 				}
 				if(url.endsWith("json")){
-					Danmaku::instance()->appendToPool(Record(url,ac(reply->readAll())));
+					load=ac(reply->readAll());
 				}
+				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.size()));
+				Danmaku::instance()->appendToPool(Record(url,load));
 			}
 			else if(url.startsWith("http://www.bilibili.tv/")){
 				bool flag=true;

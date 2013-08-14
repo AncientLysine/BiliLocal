@@ -34,12 +34,12 @@ Interface::Interface(QWidget *parent):
 	setMouseTracking(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
+	printer=new Printer(this);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	poster=new Poster(this);
-	poster->hide();
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -388,6 +388,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
+	printer->setGeometry(10,10,qBound<int>(400,w/2.5,500),100);
 	QWidget::resizeEvent(e);
 }
 

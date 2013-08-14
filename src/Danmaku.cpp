@@ -31,7 +31,6 @@ Danmaku *Danmaku::ins=NULL;
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
-	setSize(QSize(960,540));
 	cur=time=0;
 	ins=this;
 	qsrand(QTime::currentTime().msec());
@@ -186,7 +185,7 @@ void Danmaku::clearCurrent()
 void Danmaku::parse(int flag)
 {
 	if((flag&0x1)>0){
-		qSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
+		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
 		jumpToTime(time);
 	}
 	if((flag&0x2)>0){

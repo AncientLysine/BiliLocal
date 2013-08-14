@@ -80,6 +80,7 @@ Poster::Poster(QWidget *parent) :
 			commentL->setText("");
 		}
 	});
+	hide();
 }
 
 bool Poster::isValid()

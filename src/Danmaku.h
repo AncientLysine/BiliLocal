@@ -27,9 +27,9 @@
 #ifndef DANMAKU_H
 #define DANMAKU_H
 
+#include <QtQml>
 #include <QtGui>
 #include <QtCore>
-#include <QtScript>
 #include "Utils.h"
 #include "Shield.h"
 
@@ -70,7 +70,7 @@ private:
 	QTime last;
 	QSize size;
 	qint64 time;
-	QScriptEngine engine;
+	QJSEngine engine;
 	QList<Record> pool;
 	QList<Static> current[5];
 	QVector<const Comment *> danmaku;

@@ -33,6 +33,7 @@
 #include <QtNetwork>
 #include "Utils.h"
 #include "Search.h"
+#include "Printer.h"
 #include "Danmaku.h"
 
 class Menu:public QWidget

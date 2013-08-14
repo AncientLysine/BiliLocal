@@ -3,7 +3,7 @@ QT += \
     gui \
     widgets \
     network \
-    script
+    qml
 
 TARGET = BiliLocal
 
@@ -23,7 +23,8 @@ SOURCES += \
     src/Shield.cpp \
     src/Poster.cpp \
     src/Config.cpp \
-    src/Editor.cpp
+    src/Editor.cpp \
+    src/Printer.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -36,7 +37,8 @@ HEADERS  += \
     src/Shield.h \
     src/Poster.h \
     src/Config.h \
-    src/Editor.h
+    src/Editor.h \
+    src/Printer.h
 
 LIBS += \
     -lvlc \

@@ -56,12 +56,14 @@ static void display(void *opaque,void *)
 	player->setFrame();
 }
 
-static void log(void *,int,const libvlc_log_t *,const char *fmt,va_list args)
+static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list args)
 {
-	char *string=new char[1024];
-	vsprintf(string,fmt,args);
-	//qDebug()<<string;
-	delete []string;
+	if(level>=4){
+		char *string=new char[1024];
+		vsprintf(string,fmt,args);
+		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
+		delete []string;
+	}
 }
 
 VPlayer::VPlayer(QObject *parent) :
@@ -94,9 +96,11 @@ VPlayer::~VPlayer()
 	}
 	if(srcFrame){
 		avpicture_free(srcFrame);
+		delete srcFrame;
 	}
 	if(dstFrame){
 		avpicture_free(dstFrame);
+		delete dstFrame;
 	}
 }
 

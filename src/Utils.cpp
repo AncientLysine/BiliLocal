@@ -30,7 +30,7 @@ QJsonObject Utils::config;
 
 bool Comment::operator < (const Comment &o) const
 {
-	return time==o.time?string<o.string:time<o.time;
+	return time<o.time;
 }
 
 bool Comment::operator ==(const Comment &o) const

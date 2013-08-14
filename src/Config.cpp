@@ -142,7 +142,7 @@ Config::Config(QWidget *parent,int index):
 		stay->addItem(tr("default"));
 		stay->addItem(tr("stay on top"));
 		stay->setCurrentIndex(Utils::getConfig("/Interface/Top",false));
-		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
+		connect<void (QComboBox::*)(int)>(stay,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig<bool>("/Interface/Top",i);
 		});
 		t->addWidget(stay);

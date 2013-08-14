@@ -31,20 +31,23 @@ Widget::Widget(QWidget *parent,QString trans):
 {
 	scale=0;
 	length=100;
-	pool=Danmaku::instance()->getPool();
-	for(auto &line:pool){
-		qSort(line.danmaku);
-	}
-	resize(width(),pool.count()*length);
 	current=VPlayer::instance()->getTime();
 	duration=VPlayer::instance()->getDuration();
-	if(duration==-1){
-		for(auto &line:pool){
-			qint64 t=line.danmaku.last().time+5000-line.delay;
-			duration=duration>t?duration:t;
+	const QList<Record> &pool=Danmaku::instance()->getPool();
+	for(const Record &line:pool){
+		bool f=true;
+		qint64 t;
+		for(const Comment &c:line.danmaku){
+			t=f?c.time:qMax(c.time,t);
+			f=false;
+		}
+		if(!f){
+			t+=5000-line.delay;
+			duration=qMax(duration,t);
 		}
 	}
 	magnet={0,current};
+	resize(width(),pool.count()*length);
 }
 
 void Widget::paintEvent(QPaintEvent *e)
@@ -55,7 +58,7 @@ void Widget::paintEvent(QPaintEvent *e)
 	int l=e->rect().bottom()/length+1;
 	int s=point.isNull()?-1:point.y()/length;
 	for(int i=e->rect().top()/length;i<l;++i){
-		const Record &r=pool[i];
+		const Record &r=Danmaku::instance()->getPool()[i];
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		QStringList text;
@@ -146,10 +149,6 @@ void Widget::delayRecord(int index,qint64 delay)
 	for(Comment &c:r.danmaku){
 		c.time+=delay;
 	}
-	pool[index]=r;
-	for(auto &line:pool){
-		qSort(line.danmaku);
-	}
 	update(0,index*length,width(),length);
 }
 
@@ -180,7 +179,8 @@ Editor::~Editor()
 	Danmaku::instance()->parse(0x1);
 }
 
-void Editor::resizeEvent(QResizeEvent *)
+void Editor::resizeEvent(QResizeEvent *e)
 {
 	Utils::delayExec(0,[this](){widget->resize(scroll->viewport()->width(),widget->height());});
+	QDialog::resizeEvent(e);
 }
