@@ -269,7 +269,7 @@ void Danmaku::appendToPool(const Record &record)
 	QSet<Comment> set=append->danmaku.toSet();
 	for(Comment c:record.danmaku){
 		if(!set.contains(c)){
-			c.time+=append->delay;
+			c.time+=append->delay-record.delay;
 			set.insert(c);
 			append->danmaku.append(c);
 			danmaku.append(&append->danmaku.last());

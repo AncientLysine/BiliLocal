@@ -120,6 +120,7 @@ Interface::Interface(QWidget *parent):
 			}
 			sub->addActions(group->actions());
 		}
+		snapA->setEnabled(true);
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::ended,[this](){
@@ -130,6 +131,7 @@ Interface::Interface(QWidget *parent):
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		info->setDuration(-1);
+		snapA->setEnabled(false);
 		sub->clear();
 		sub->setEnabled(false);
 		rat->defaultAction()->trigger();
@@ -188,6 +190,24 @@ Interface::Interface(QWidget *parent):
 		Shield::cacheS.clear();
 		danmaku->parse(0x0);
 		danmaku->clearCurrent();
+	});
+
+	snapA=new QAction(tr("Snapshot"),this);
+	snapA->setEnabled(false);
+	snapA->setShortcut(QKeySequence("Ctrl+P"));
+	addAction(snapA);
+	connect(snapA,&QAction::triggered,[this](){
+		QPixmap buffer(size());
+		QPainter painter(&buffer);
+		vplayer->draw(&painter,rect());
+		danmaku->draw(&painter,false);
+		QDir::current().mkdir("snapshot");
+		QString path="./snapshot/snap_%1.png";
+		path=path.arg(QDateTime::currentDateTime().toString("MM-dd-hh-mm-ss"));
+		if(!buffer.save(path)){
+			path.clear();
+		}
+		Printer::instance()->append(QString("[VPlayer]%1").arg(path.isEmpty()?"Snapshotting Failed":path));
 	});
 
 	confA=new QAction(tr("Config"),this);
@@ -257,6 +277,7 @@ Interface::Interface(QWidget *parent):
 	top->addMenu(sub);
 	top->addMenu(sca);
 	top->addMenu(rat);
+	top->addAction(snapA);
 	top->addAction(confA);
 	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);

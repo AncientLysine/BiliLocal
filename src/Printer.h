@@ -45,6 +45,7 @@ private:
 	int ioo;
 	QTimer *timer;
 	QTimer *delay;
+	QTextStream stream;
 	QList<QStaticText> list;
 	QGraphicsOpacityEffect *effect;
 	static Printer *ins;

@@ -29,9 +29,7 @@
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
 {
-	resize(540,450);
 	setWindowTitle(tr("Config"));
-	Utils::setCenter(this);
 	auto outer=new QGridLayout(this);
 	tab=new QTabWidget(this);
 	outer->addWidget(tab);
@@ -347,4 +345,6 @@ Config::Config(QWidget *parent,int index):
 		}
 		Shield::cacheS.clear();
 	});
+	resize(540,outer->minimumSize().height());
+	Utils::setCenter(this);
 }

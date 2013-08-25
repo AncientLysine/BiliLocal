@@ -71,6 +71,8 @@ Printer::Printer(QWidget *parent):
 	f.setPointSize(10);
 	setFont(f);
 	hide();
+	stream.setDevice(new QFile("Log.txt",this));
+	stream.device()->open(QIODevice::Append|QIODevice::Text);
 }
 
 void Printer::paintEvent(QPaintEvent *e)
@@ -96,6 +98,7 @@ void Printer::process(QString content)
 		list.prepend(QStaticText(content));
 		update();
 		delay->start(8000);
+		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content).trimmed()<<endl;
 	}
 }
 

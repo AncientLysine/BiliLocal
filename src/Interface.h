@@ -58,6 +58,7 @@ private:
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
+	QAction *snapA;
 	QMenu *top;
 	QMenu *sub;
 	QMenu *rat;

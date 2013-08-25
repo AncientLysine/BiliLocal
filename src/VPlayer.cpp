@@ -58,7 +58,7 @@ static void display(void *opaque,void *)
 
 static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list args)
 {
-	if(level>=4){
+	if(level>0){
 		char *string=new char[1024];
 		vsprintf(string,fmt,args);
 		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
