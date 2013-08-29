@@ -185,6 +185,12 @@ void Danmaku::clearCurrent()
 void Danmaku::parse(int flag)
 {
 	if((flag&0x1)>0){
+		danmaku.clear();
+		for(const auto &record:pool){
+			for(const auto &comment:record.danmaku){
+				danmaku.append(&comment);
+			}
+		}
 		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
 		jumpToTime(time);
 	}
@@ -272,7 +278,6 @@ void Danmaku::appendToPool(const Record &record)
 			c.time+=append->delay-record.delay;
 			set.insert(c);
 			append->danmaku.append(c);
-			danmaku.append(&append->danmaku.last());
 		}
 	}
 	parse(0x1|0x2);

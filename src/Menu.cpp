@@ -131,7 +131,7 @@ Menu::Menu(QWidget *parent) :
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
-	Utils::delayExec(0,[this](){setPower(Utils::getConfig("/Danmaku/Power",0));});
+	Utils::delayExec(0,[this](){setPower(Utils::getConfig("/Danmaku/Power",80));});
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -445,10 +445,21 @@ void Menu::terminate()
 void Menu::setFile(QString _file)
 {
 	QFileInfo file(_file);
+	fileL->setText(file.fileName());
 	Utils::setConfig("/Playing/Path",file.absolutePath());
-	_file=file.absoluteFilePath();
-	fileL->setText(_file);
-	emit open(QDir::toNativeSeparators(_file));
+	emit open(QDir::toNativeSeparators(file.absoluteFilePath()));
+	if(Utils::getConfig("/Danmaku/Local",false)&&Danmaku::instance()->rowCount()==0){
+		bool only=Utils::getConfig("/Playing/Clear",true);
+		for(const QFileInfo &info:file.dir().entryInfoList()){
+			QString suffix=info.suffix();
+			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){
+				setDanmaku(info.absoluteFilePath());
+				if(only){
+					break;
+				}
+			}
+		}
+	}
 }
 
 void Menu::setPower(qint16 fps)

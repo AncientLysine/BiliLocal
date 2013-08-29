@@ -409,7 +409,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
-	printer->setGeometry(10,10,qBound<int>(400,w/2.5,500),100);
+	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
 

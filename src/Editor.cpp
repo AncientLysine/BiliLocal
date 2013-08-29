@@ -48,6 +48,18 @@ Widget::Widget(QWidget *parent,QString trans):
 	}
 	magnet={0,current};
 	resize(width(),pool.count()*length);
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
+		int i=p.y()/length;
+		QMenu menu(this);
+		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
+			auto &p=Danmaku::instance()->getPool();
+			p.removeAt(i);
+			resize(width(),p.count()*length);
+			parentWidget()->update();
+		});
+		menu.exec(mapToGlobal(p));
+	});
 }
 
 void Widget::paintEvent(QPaintEvent *e)

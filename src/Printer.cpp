@@ -79,12 +79,20 @@ void Printer::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
-	auto iter=list.begin();
 	painter.fillRect(rect(),QColor(0,0,0,20));
 	painter.setPen(Qt::white);
-	for(int h=10;h<=height()-20&&iter!=list.end();++iter){
+	auto iter=list.begin();
+	int h=5,w=width()-20;
+	for(;iter!=list.end();++iter){
+		if(iter->textWidth()!=w){
+			iter->setTextWidth(w);
+		}
+		int i=iter->size().height();
+		if(h+i>height()-5){
+			break;
+		}
 		painter.drawStaticText(10,h,*iter);
-		h+=iter->size().height();
+		h+=i;
 	}
 	painter.end();
 	list.erase(iter,list.end());
