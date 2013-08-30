@@ -33,7 +33,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 	auto keywdLayout=new QHBoxLayout;
 	statusL=new QLabel(tr("Ready"),this);
 	if(Utils::getConfig("/Playing/Appkey",QString("0"))=="0"){
-		statusL->setText(tr("<font color=red>Empty Appkey<font>"));
+		QString warning=tr("<font color=red>Empty Appkey<font>");
+		statusL->setText(warning);
+		QMessageBox::warning(parentWidget(),tr("Warning"),warning);
+		Config config(parentWidget(),1);
+		config.exec();
+		Danmaku::instance()->parse(0x2);
 	}
 	pageTxL=new QLabel(tr("Page"),this);
 	pageNuL=new QLabel(this);

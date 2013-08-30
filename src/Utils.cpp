@@ -85,7 +85,15 @@ void Utils::saveConfig()
 {
 	QFile conf("./Config.txt");
 	conf.open(QIODevice::WriteOnly|QIODevice::Text);
-	conf.write(QJsonDocument(config).toJson());
+	QString buffer(QJsonDocument(config).toJson());
+	QRegExp regexp(": [\\d|\\.]+");
+	int cur=0;
+	while((cur=regexp.indexIn(buffer,cur))!=-1){
+		QString cap=regexp.cap();
+		buffer.replace(cap,QString(": %1").arg(cap.mid(2).toDouble()));
+		cur+=regexp.matchedLength();
+	}
+	conf.write(buffer.toUtf8());
 	conf.close();
 }
 

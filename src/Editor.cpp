@@ -26,8 +26,8 @@
 
 #include "Editor.h"
 
-Widget::Widget(QWidget *parent,QString trans):
-	QWidget(parent),translation(trans)
+Editor::Widget::Widget(QWidget *parent):
+	QWidget(parent)
 {
 	scale=0;
 	length=100;
@@ -52,7 +52,7 @@ Widget::Widget(QWidget *parent,QString trans):
 	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
 		int i=p.y()/length;
 		QMenu menu(this);
-		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
+		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
 			p.removeAt(i);
 			resize(width(),p.count()*length);
@@ -62,7 +62,7 @@ Widget::Widget(QWidget *parent,QString trans):
 	});
 }
 
-void Widget::paintEvent(QPaintEvent *e)
+void Editor::Widget::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
@@ -75,7 +75,7 @@ void Widget::paintEvent(QPaintEvent *e)
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		QStringList text;
 		text<<QFileInfo(r.source).fileName();
-		text<<translation.arg(r.delay/1000);
+		text<<Editor::tr("Delay: %1s").arg(r.delay/1000);
 		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
 		int m=0,d=5*duration/w;
 		QHash<int,int> c;
@@ -112,7 +112,7 @@ void Widget::paintEvent(QPaintEvent *e)
 	QWidget::paintEvent(e);
 }
 
-void Widget::wheelEvent(QWheelEvent *e)
+void Editor::Widget::wheelEvent(QWheelEvent *e)
 {
 	int i=e->pos().y()/length;
 	scale+=e->angleDelta().y();
@@ -127,7 +127,7 @@ void Widget::wheelEvent(QWheelEvent *e)
 	QWidget::wheelEvent(e);
 }
 
-void Widget::mouseMoveEvent(QMouseEvent *e)
+void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
 {
 	if(point.isNull()){
 		point=e->pos();
@@ -137,7 +137,7 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 	}
 }
 
-void Widget::mouseReleaseEvent(QMouseEvent *e)
+void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
 		int w=width()-100;
@@ -154,7 +154,7 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 	point=QPoint();
 }
 
-void Widget::delayRecord(int index,qint64 delay)
+void Editor::Widget::delayRecord(int index,qint64 delay)
 {
 	auto &r=Danmaku::instance()->getPool()[index];
 	r.delay+=delay;
@@ -169,7 +169,7 @@ Editor::Editor(QWidget *parent):
 {
 	layout=new QGridLayout(this);
 	scroll=new QScrollArea(this);
-	widget=new Widget(this,tr("Delay: %1s"));
+	widget=new Widget(this);
 	layout->addWidget(scroll);
 	scroll->setWidget(widget);
 	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

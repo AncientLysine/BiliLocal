@@ -32,6 +32,8 @@
 #include <QtWidgets>
 #include <QtNetwork>
 #include "Utils.h"
+#include "Config.h"
+#include "Danmaku.h"
 
 class Search:public QDialog
 {

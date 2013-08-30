@@ -217,12 +217,17 @@
 <context>
     <name>Editor</name>
     <message>
-        <location filename="../src/Editor.cpp" line="160"/>
+        <location filename="../src/Editor.cpp" line="55"/>
+        <source>Delete</source>
+        <translation>删除</translation>
+    </message>
+    <message>
+        <location filename="../src/Editor.cpp" line="78"/>
         <source>Delay: %1s</source>
         <translation>延遲: %1s</translation>
     </message>
     <message>
-        <location filename="../src/Editor.cpp" line="167"/>
+        <location filename="../src/Editor.cpp" line="179"/>
         <source>Editor</source>
         <translation>編輯</translation>
     </message>
@@ -459,14 +464,14 @@
 <context>
     <name>Search</name>
     <message>
-        <location filename="../src/Search.cpp" line="49"/>
-        <location filename="../src/Search.cpp" line="83"/>
+        <location filename="../src/Search.cpp" line="54"/>
+        <location filename="../src/Search.cpp" line="88"/>
         <source>Search</source>
         <translation>搜尋</translation>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="34"/>
-        <location filename="../src/Search.cpp" line="257"/>
+        <location filename="../src/Search.cpp" line="262"/>
         <source>Ready</source>
         <translation>就緒</translation>
     </message>
@@ -476,152 +481,153 @@
         <translation>&lt;font color=red&gt;空Appkey&lt;font&gt;</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="38"/>
+        <location filename="../src/Search.cpp" line="43"/>
         <source>Page</source>
         <translation>頁碼</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>default</source>
         <translation>默認</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>pubdate</source>
         <translation>發布日期</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>senddate</source>
         <translation>修改日期</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>ranklevel</source>
         <translation>相關度</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>click</source>
         <translation>點擊</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>scores</source>
         <translation>評論數</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>danmaku</source>
         <translation>彈幕數</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="45"/>
+        <location filename="../src/Search.cpp" line="50"/>
         <source>stow</source>
         <translation>收藏數</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="55"/>
+        <location filename="../src/Search.cpp" line="60"/>
         <source>Goto</source>
         <translation>跳轉</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Title</source>
         <translation>標題</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Typename</source>
         <translation>分類</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Author</source>
         <translation>UP主</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Cover</source>
         <translation>封面</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="87"/>
+        <location filename="../src/Search.cpp" line="92"/>
         <source>Danmaku</source>
         <translation>彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="104"/>
-        <location filename="../src/Search.cpp" line="114"/>
-        <location filename="../src/Search.cpp" line="117"/>
-        <location filename="../src/Search.cpp" line="120"/>
-        <location filename="../src/Search.cpp" line="140"/>
+        <location filename="../src/Search.cpp" line="38"/>
+        <location filename="../src/Search.cpp" line="109"/>
+        <location filename="../src/Search.cpp" line="119"/>
+        <location filename="../src/Search.cpp" line="122"/>
+        <location filename="../src/Search.cpp" line="125"/>
+        <location filename="../src/Search.cpp" line="145"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="104"/>
-        <location filename="../src/Search.cpp" line="117"/>
+        <location filename="../src/Search.cpp" line="109"/>
+        <location filename="../src/Search.cpp" line="122"/>
         <source>A request is pending.</source>
         <translation>網絡請求進行中。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="114"/>
+        <location filename="../src/Search.cpp" line="119"/>
         <source>No search in progress.</source>
         <translation>沒有正在進行中的搜尋。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="120"/>
+        <location filename="../src/Search.cpp" line="125"/>
         <source>Page num out of range.</source>
         <translation>頁碼超出範圍。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="140"/>
+        <location filename="../src/Search.cpp" line="145"/>
         <source>No video has been chosen.</source>
         <translation>沒有視頻被選擇。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="242"/>
+        <location filename="../src/Search.cpp" line="247"/>
         <source>Requesting</source>
         <translation>請求中</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="188"/>
+        <location filename="../src/Search.cpp" line="193"/>
         <source>Finished</source>
         <translation>已完成</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="56"/>
+        <location filename="../src/Search.cpp" line="61"/>
         <source>PgUp</source>
         <translation>上一頁</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="57"/>
+        <location filename="../src/Search.cpp" line="62"/>
         <source>PgDn</source>
         <translation>下一頁</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="75"/>
+        <location filename="../src/Search.cpp" line="80"/>
         <source>Confirm</source>
         <translation>確認</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="156"/>
+        <location filename="../src/Search.cpp" line="161"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="155"/>
+        <location filename="../src/Search.cpp" line="160"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="76"/>
+        <location filename="../src/Search.cpp" line="81"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>

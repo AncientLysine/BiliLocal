@@ -43,6 +43,15 @@ struct Comment
 	bool operator ==(const Comment &o) const;
 };
 
+struct Record
+{
+	qint64 delay;
+	QString source;
+	QList<Comment> danmaku;
+	Record(QString s,const QList<Comment> &d=QList<Comment>(),qint64 l=0):
+		delay(l),source(s),danmaku(d){}
+};
+
 uint qHash(const Comment &key,uint seed=0);
 
 namespace{

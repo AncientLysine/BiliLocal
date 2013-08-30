@@ -33,22 +33,6 @@
 #include "Utils.h"
 #include "Shield.h"
 
-struct Static
-{
-	double life;
-	double speed;
-	QRectF rect;
-	QPixmap text;
-};
-
-struct Record
-{
-	qint64 delay;
-	QString source;
-	QList<Comment> danmaku;
-	Record(QString s,const QList<Comment> &d=QList<Comment>(),qint64 l=0):delay(l),source(s),danmaku(d){}
-};
-
 class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
@@ -72,6 +56,13 @@ private:
 	qint64 time;
 	QJSEngine engine;
 	QList<Record> pool;
+	struct Static
+	{
+		double life;
+		double speed;
+		QRectF rect;
+		QPixmap text;
+	};
 	QList<Static> current[5];
 	QVector<const Comment *> danmaku;
 	static Danmaku *ins;
