@@ -32,7 +32,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 	auto outerLayout=new QVBoxLayout;
 	auto keywdLayout=new QHBoxLayout;
 	statusL=new QLabel(tr("Ready"),this);
-	if(Utils::getConfig("/Playing/Appkey",QString("0"))=="0"){
+	if(Utils::getConfig("/Playing/Appkey",QString()).isEmpty()){
 		QString warning=tr("<font color=red>Empty Appkey<font>");
 		statusL->setText(warning);
 		QMessageBox::warning(parentWidget(),tr("Warning"),warning);

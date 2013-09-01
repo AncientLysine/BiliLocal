@@ -39,8 +39,14 @@ struct Comment
 	qint64 date;
 	QString sender;
 	QString string;
-	bool operator < (const Comment &o) const;
-	bool operator ==(const Comment &o) const;
+	inline bool operator < (const Comment &o) const
+	{
+		return time<o.time;
+	}
+	inline bool operator ==(const Comment &o) const
+	{
+		return mode==o.mode&&font==o.font&&color==o.color&&sender==o.sender&&string==o.string&&time==o.time&&date==o.date;
+	}
 };
 
 struct Record
@@ -52,7 +58,17 @@ struct Record
 		delay(l),source(s),danmaku(d){}
 };
 
-uint qHash(const Comment &key,uint seed=0);
+inline uint qHash(const Comment &key,uint seed=0)
+{
+	uint h=qHash(key.mode,seed);
+	h=(h<<1)^qHash(key.font,seed);
+	h=(h<<1)^qHash(key.color,seed);
+	h=(h<<1)^qHash(key.time,seed);
+	h=(h<<1)^qHash(key.date,seed);
+	h=(h<<1)^qHash(key.sender,seed);
+	h=(h<<1)^qHash(key.string,seed);
+	return h;
+}
 
 namespace{
 template<class T>

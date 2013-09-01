@@ -282,9 +282,9 @@ Config::Config(QWidget *parent,int index):
 		lines->addLayout(s);
 
 		limit[0]=new QLineEdit(widget[2]);
-		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",5)));
+		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",0.005)));
 		connect(limit[0],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Shield/Limit",limit[0]->text().toInt());
+			Utils::setConfig("/Shield/Limit",limit[0]->text().toDouble());
 		});
 		auto a=new QHBoxLayout;
 		a->addWidget(limit[0]);
