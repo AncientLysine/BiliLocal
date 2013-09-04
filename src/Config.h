@@ -50,7 +50,8 @@ private:
 	//Interface
 	QGroupBox *ui[5];
 	QComboBox *font;
-	QComboBox *stay;
+	QCheckBox *stay;
+	QCheckBox *less;
 	QLineEdit *size;
 	QLineEdit *jump;
 	QLineEdit *appk;

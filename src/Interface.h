@@ -63,6 +63,9 @@ private:
 	QMenu *sub;
 	QMenu *rat;
 	QMenu *sca;
+	QPoint pre;
+	QPoint sta;
+	QPoint wgd;
 	QPixmap background;
 
 	Menu *menu;
@@ -77,6 +80,7 @@ private:
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 

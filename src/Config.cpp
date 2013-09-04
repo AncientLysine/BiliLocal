@@ -136,14 +136,18 @@ Config::Config(QWidget *parent,int index):
 		lines->addWidget(ui[1]);
 
 		auto t=new QHBoxLayout;
-		stay=new QComboBox(widget[1]);
-		stay->addItem(tr("default"));
-		stay->addItem(tr("stay on top"));
-		stay->setCurrentIndex(Utils::getConfig("/Interface/Top",false));
-		connect<void (QComboBox::*)(int)>(stay,&QComboBox::currentIndexChanged,[this](int i){
-			Utils::setConfig<bool>("/Interface/Top",i);
+		stay=new QCheckBox(tr("stay on top"),widget[1]);
+		stay->setChecked(Utils::getConfig("/Interface/Top",false));
+		connect(stay,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig<bool>("/Interface/Top",state==Qt::Checked);
 		});
 		t->addWidget(stay);
+		less=new QCheckBox(tr("frameless"),widget[1]);
+		less->setChecked(Utils::getConfig("/Interface/Frameless",false));
+		connect(less,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig<bool>("/Interface/Frameless",state==Qt::Checked);
+		});
+		t->addWidget(less);
 		ui[2]=new QGroupBox(tr("window flag"),widget[1]);
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
@@ -315,8 +319,7 @@ Config::Config(QWidget *parent,int index):
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
 		thanks=new QTextEdit(widget[3]);
 		thanks->setReadOnly(true);
-		thanks->setAcceptRichText(true);
-		thanks->setText(t.readAll());
+		thanks->setText(QString(t.readAll()).replace("\n","<br>"));
 		w->addWidget(thanks);
 		tab->addTab(widget[3],tr("Thanks"));
 	}
@@ -328,8 +331,7 @@ Config::Config(QWidget *parent,int index):
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
 		license=new QTextEdit(widget[4]);
 		license->setReadOnly(true);
-		license->setAcceptRichText(true);
-		license->setText(l.readAll());
+		license->setText(QString("<center><font size=\"2\">%1</font></center>").arg(QString(l.readAll()).replace("\n","<br>")));
 		w->addWidget(license);
 		tab->addTab(widget[4],tr("License"));
 	}

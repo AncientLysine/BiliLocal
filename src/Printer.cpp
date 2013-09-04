@@ -81,18 +81,16 @@ void Printer::paintEvent(QPaintEvent *e)
 	painter.begin(this);
 	painter.fillRect(rect(),QColor(0,0,0,20));
 	painter.setPen(Qt::white);
+	int flag=Qt::AlignLeft|Qt::AlignTop|Qt::TextWordWrap;
 	auto iter=list.begin();
-	int h=5,w=width()-20;
+	QRect rect(5,5,width()-10,height()-10);
 	for(;iter!=list.end();++iter){
-		if(iter->textWidth()!=w){
-			iter->setTextWidth(w);
-		}
-		int i=iter->size().height();
-		if(h+i>height()-5){
+		QRect bound=fontMetrics().boundingRect(rect,flag,*iter);
+		if(bound.bottom()>rect.bottom()){
 			break;
 		}
-		painter.drawStaticText(10,h,*iter);
-		h+=i;
+		painter.drawText(rect,flag,*iter,&bound);
+		rect.setTop(bound.bottom());
 	}
 	painter.end();
 	list.erase(iter,list.end());
@@ -103,7 +101,7 @@ void Printer::process(QString content)
 {
 	if(Utils::getConfig("/Interface/Debug",false)){
 		fadeIn();
-		list.prepend(QStaticText(content));
+		list.prepend(content);
 		update();
 		delay->start(8000);
 		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content).trimmed()<<endl;

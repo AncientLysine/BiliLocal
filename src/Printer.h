@@ -46,7 +46,7 @@ private:
 	QTimer *timer;
 	QTimer *delay;
 	QTextStream stream;
-	QList<QStaticText> list;
+	QStringList list;
 	QGraphicsOpacityEffect *effect;
 	static Printer *ins;
 	void paintEvent(QPaintEvent *e);

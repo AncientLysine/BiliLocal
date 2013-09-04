@@ -31,7 +31,6 @@ Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
 	setAcceptDrops(true);
-	setMouseTracking(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	printer=new Printer(this);
@@ -58,21 +57,63 @@ Interface::Interface(QWidget *parent):
 	timer->start(200);
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
-		QPoint pos=this->mapFromGlobal(QCursor::pos());
+		QPoint cur=mapFromGlobal(QCursor::pos());
+		int x=cur.x(),y=cur.y();
 		if(isActiveWindow()){
-			if(pos.x()<-100){
+			if(x<-100){
 				menu->push();
 				setFocus();
 			}
-			if(pos.x()>width()+100){
+			if(x>0&&x<50){
+				menu->pop();
+			}
+			if(x>250){
+				menu->push();
+				if(!info->isPopped()){
+					setFocus();
+				}
+			}
+			if(x<width()-250){
+				info->push();
+				if(!menu->isPopped()){
+					setFocus();
+				}
+			}
+			if(x>width()-50&&x<width()){
+				info->pop();
+			}
+			if(x>width()+100){
 				info->push();
 				setFocus();
 			}
-			if(pos.y()<-50||pos.y()>height()+50){
+			if(y<-50||y>height()+50){
 				menu->push();
 				info->push();
 				poster->fadeOut();
 				setFocus();
+			}
+			if(x>200&&x<width()-200){
+				if(y>height()-40&&poster->isValid()){
+					poster->fadeIn();
+				}
+				if(y<height()-60){
+					poster->fadeOut();
+				}
+			}
+			else{
+				poster->fadeOut();
+			}
+			if(cur!=pre){
+				pre=cur;
+				if(!menu->isPopped()&&!info->isPopped()){
+					if(cursor().shape()==Qt::BlankCursor){
+						unsetCursor();
+					}
+					delay->start(2000);
+				}
+				else{
+					delay->stop();
+				}
 			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
@@ -292,6 +333,9 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	if(Utils::getConfig("/Interface/Frameless",false)){
+		setWindowFlags(windowFlags()|Qt::FramelessWindowHint);
+	}
 	setFocus();
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 }
@@ -435,44 +479,20 @@ void Interface::keyPressEvent(QKeyEvent *e)
 
 void Interface::mouseMoveEvent(QMouseEvent *e)
 {
-	if(isActiveWindow()){
-		int x=e->pos().x(),y=e->pos().y();
-		if(x<50){
-			menu->pop();
-		}
-		if(x>250){
-			menu->push();
-			setFocus();
-		}
-		if(x>width()-50){
-			info->pop();
-		}
-		if(x<width()-250){
-			info->push();
-			setFocus();
-		}
-		if(x>220&&x<width()-220&&y>50&&y<height()-50){
-			if(cursor().shape()==Qt::BlankCursor){
-				unsetCursor();
-			}
-			delay->start(2000);
-		}
-		else{
-			delay->stop();
-		}
-		if(x>200&&x<width()-200){
-			if(y>height()-40&&poster->isValid()){
-				poster->fadeIn();
-			}
-			if(y<height()-60){
-				poster->fadeOut();
-			}
-		}
-		else{
-			poster->fadeOut();
-		}
+	if(sta.isNull()){
+		sta=e->globalPos();
+		wgd=pos();
+	}
+	else if(Utils::getConfig("/Interface/Frameless",false)){
+		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
+}
+
+void Interface::mouseReleaseEvent(QMouseEvent *e)
+{
+	sta=QPoint();
+	QWidget::mouseReleaseEvent(e);
 }
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)
