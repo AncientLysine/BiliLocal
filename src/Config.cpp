@@ -319,7 +319,7 @@ Config::Config(QWidget *parent,int index):
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
 		thanks=new QTextEdit(widget[3]);
 		thanks->setReadOnly(true);
-		thanks->setText(QString(t.readAll()).replace("\n","<br>"));
+		thanks->setText(t.readAll());
 		w->addWidget(thanks);
 		tab->addTab(widget[3],tr("Thanks"));
 	}
@@ -331,7 +331,7 @@ Config::Config(QWidget *parent,int index):
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
 		license=new QTextEdit(widget[4]);
 		license->setReadOnly(true);
-		license->setText(QString("<center><font size=\"2\">%1</font></center>").arg(QString(l.readAll()).replace("\n","<br>")));
+		license->setText(l.readAll());
 		w->addWidget(license);
 		tab->addTab(widget[4],tr("License"));
 	}

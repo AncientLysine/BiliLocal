@@ -115,6 +115,16 @@ Interface::Interface(QWidget *parent):
 					delay->stop();
 				}
 			}
+			if(Utils::getConfig("/Interface/Frameless",false)){
+				QRect r=rect();
+				r.setTopLeft(r.bottomRight()-QPoint(5,5));
+				if(r.contains(cur)){
+					setCursor(Qt::SizeFDiagCursor);
+				}
+				else if(sta.isNull()){
+					unsetCursor();
+				}
+			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
@@ -481,10 +491,25 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 {
 	if(sta.isNull()){
 		sta=e->globalPos();
-		wgd=pos();
+		if(cursor().shape()!=Qt::SizeFDiagCursor){
+			wgd=pos();
+		}
 	}
 	else if(Utils::getConfig("/Interface/Frameless",false)){
-		move(wgd+e->globalPos()-sta);
+		if(wgd.isNull()){
+			QRect g=geometry();
+			g.setBottomRight(e->globalPos());
+			setGeometry(g);
+			if(menu->isPopped()){
+				menu->update();
+			}
+			if(info->isPopped()){
+				info->update();
+			}
+		}
+		else{
+			move(wgd+e->globalPos()-sta);
+		}
 	}
 	QWidget::mouseMoveEvent(e);
 }
@@ -492,6 +517,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
 	sta=QPoint();
+	wgd=QPoint();
 	QWidget::mouseReleaseEvent(e);
 }
 
