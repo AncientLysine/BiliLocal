@@ -27,27 +27,11 @@
 #ifndef DANMAKU_H
 #define DANMAKU_H
 
+#include <QtQml>
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include <QtNetwork>
-#include <QtScript>
 #include "Utils.h"
 #include "Shield.h"
-
-struct Static
-{
-	double life;
-	double speed;
-	QRectF rect;
-	QPixmap text;
-};
-
-struct Record
-{
-	qint64 delay;
-	QList<Comment> danmaku;
-};
 
 class Danmaku:public QAbstractItemModel
 {
@@ -62,7 +46,7 @@ public:
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	qint64 getTime(){return time;}
-	QMap<QString,Record> &getPool(){return pool;}
+	QList<Record> &getPool(){return pool;}
 	static Danmaku *instance(){return ins;}
 
 private:
@@ -70,10 +54,17 @@ private:
 	QTime last;
 	QSize size;
 	qint64 time;
-	QScriptEngine engine;
+	QJSEngine engine;
+	QList<Record> pool;
+	struct Static
+	{
+		double life;
+		double speed;
+		QRectF rect;
+		QPixmap text;
+	};
 	QList<Static> current[5];
-	QMap<QString,Record> pool;
-	QVector<Comment *> danmaku;
+	QVector<const Comment *> danmaku;
 	static Danmaku *ins;
 
 public slots:
@@ -81,11 +72,12 @@ public slots:
 	void clearPool();
 	void clearCurrent();
 	void parse(int flag=0);
-	void setDm(QString dm);
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
+	void appendToPool(const Record &record);
+	void appendToCurrent(const Comment &comment);
 };
 
 #endif // DANMAKU_H

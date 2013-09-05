@@ -36,6 +36,7 @@
 #include "Utils.h"
 #include "Poster.h"
 #include "Config.h"
+#include "Printer.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -57,15 +58,20 @@ private:
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
+	QAction *snapA;
 	QMenu *top;
 	QMenu *sub;
 	QMenu *rat;
 	QMenu *sca;
+	QPoint pre;
+	QPoint sta;
+	QPoint wgd;
 	QPixmap background;
 
 	Menu *menu;
 	Info *info;
 	Poster *poster;
+	Printer *printer;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
 
@@ -74,6 +80,7 @@ private:
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 

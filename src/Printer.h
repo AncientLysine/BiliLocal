@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Editor.h
-*   Time:        2013/06/30
+*   Filename:    Printer.h
+*   Time:        2013/08/14
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,46 +24,41 @@
 *
 =========================================================================*/
 
-#ifndef EDITOR_H
-#define EDITOR_H
+#ifndef PRINTER_H
+#define PRINTER_H
 
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Danmaku.h"
-#include "VPlayer.h"
+#include "Utils.h"
 
-class Editor:public QDialog
+class Printer:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Editor(QWidget *parent=0);
-	~Editor();
+	explicit Printer(QWidget *parent=0);
+	bool isShown(){return ioo!=0;}
+	void append(QString content){emit receive(content);}
+	static Printer *instance(){return ins;}
 
 private:
-	int state;
-	class Widget:public QWidget
-	{
-	public:
-		explicit Widget(QWidget *parent=0);
+	int ioo;
+	QTimer *timer;
+	QTimer *delay;
+	QTextStream stream;
+	QStringList list;
+	QGraphicsOpacityEffect *effect;
+	static Printer *ins;
+	void paintEvent(QPaintEvent *e);
 
-	private:
-		int scale;
-		int length;
-		QPoint point;
-		qint64 current;
-		qint64 duration;
-		QList<qint64> magnet;
-		void paintEvent(QPaintEvent *e);
-		void wheelEvent(QWheelEvent *e);
-		void mouseMoveEvent(QMouseEvent *e);
-		void mouseReleaseEvent(QMouseEvent *e);
-		void delayRecord(int index,qint64 delay);
-	};
-	Widget *widget;
-	QGridLayout *layout;
-	QScrollArea *scroll;
-	void resizeEvent(QResizeEvent *e);
+signals:
+	void receive(QString content);
+
+public slots:
+	void process(QString content);
+	void fadeIn();
+	void fadeOut();
+	
 };
 
-#endif // EDITOR_H
+#endif // PRINTER_H

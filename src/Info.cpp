@@ -72,10 +72,13 @@ Info::Info(QWidget *parent):
 	stopB=new QPushButton(this);
 	playB->setGeometry(QRect(10,15,25,25));
 	stopB->setGeometry(QRect(40,15,25,25));
-	playB->setIcon(QIcon(":/Picture/play.png"));
-	stopB->setIcon(QIcon(":/Picture/stop.png"));
-	playA=new QAction(QIcon(":/Picture/play.png"),tr("Play"),this);
-	stopA=new QAction(QIcon(":/Picture/stop.png"),tr("Stop"),this);
+	playI=QIcon(":/Picture/play.png");
+	stopI=QIcon(":/Picture/stop.png");
+	playB->setIcon(playI);
+	stopB->setIcon(stopI);
+	pauseI=QIcon(":/Picture/pause.png");
+	playA=new QAction(playI,tr("Play"),this);
+	stopA=new QAction(stopI,tr("Stop"),this);
 	connect(playA,&QAction::triggered,[this](){
 		if(opened){
 			setPlaying(!playing);
@@ -100,12 +103,12 @@ Info::Info(QWidget *parent):
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
 	danmV->setModel(Danmaku::instance());
-	danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
-	danmV->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
-	danmV->horizontalHeader()->setHighlightSections(false);
-	connect(danmV->model(),&QAbstractItemModel::layoutChanged,[this](){
-		danmV->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
-	});
+	QHeaderView *header=danmV->horizontalHeader();
+	header->setSectionResizeMode(0,QHeaderView::Fixed);
+	header->setSectionResizeMode(1,QHeaderView::Stretch);
+	header->setHighlightSections(false);
+	resizeHeader();
+	connect(Danmaku::instance(),&QAbstractItemModel::layoutChanged,this,&Info::resizeHeader);
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
 		QModelIndex index=danmV->currentIndex();
@@ -113,7 +116,7 @@ Info::Info(QWidget *parent):
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::shieldU;
 				QString sender=index.data(Qt::UserRole).toString();
-				if(!list.contains(sender)){
+				if(!list.contains(sender)&&!sender.isEmpty()){
 					list.append(sender);
 				}
 				Shield::cacheS.clear();
@@ -175,6 +178,38 @@ void Info::push()
 	}
 }
 
+void Info::terminate()
+{
+	if(animation->state()!=QAbstractAnimation::Stopped){
+		animation->setCurrentTime(animation->totalDuration());
+	}
+}
+
+void Info::resizeHeader()
+{
+	Danmaku *d=Danmaku::instance();
+	QStringList list;
+	list.append(d->headerData(0,Qt::Horizontal,Qt::DisplayRole).toString());
+	int c=d->rowCount()-1,i;
+	for(i=0;i<=c;++i){
+		if(d->data(d->index(i,0),Qt::ForegroundRole).value<QColor>()!=Qt::red){
+			list.append(d->data(d->index(i,0),Qt::DisplayRole).toString());
+			break;
+		}
+	}
+	for(i=c;i>=0;--i){
+		if(d->data(d->index(i,0),Qt::ForegroundRole).value<QColor>()!=Qt::red){
+			list.append(d->data(d->index(i,0),Qt::DisplayRole).toString());
+			break;
+		}
+	}
+	int m=0;
+	for(QString item:list){
+		m=qMax(m,danmV->fontMetrics().width(item)+8);
+	}
+	danmV->horizontalHeader()->resizeSection(0,m);
+}
+
 void Info::setTime(qint64 _time)
 {
 	if(!sliding){
@@ -205,8 +240,8 @@ void Info::setOpened(bool _opened)
 void Info::setPlaying(bool _playing)
 {
 	playing=_playing;
-	playB->setIcon(QIcon(playing?":/Picture/pause.png":":/Picture/play.png"));
-	playA->setIcon(QIcon(playing?":/Picture/pause.png":":/Picture/play.png"));
+	playB->setIcon(playing?pauseI:playI);
+	playA->setIcon(playing?pauseI:playI);
 	playA->setText(playing?tr("Pause"):tr("Play"));
 }
 
