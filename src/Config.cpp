@@ -1,11 +1,35 @@
+/*=======================================================================
+*
+*   Copyright (C) 2013 Lysine.
+*
+*   Filename:    Config.cpp
+*   Time:        2013/06/17
+*   Author:      Lysine
+*
+*   Lysine is a student majoring in Software Engineering
+*   from the School of Software, SUN YAT-SEN UNIVERSITY.
+*
+*   This program is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+
+*   You should have received a copy of the GNU General Public License
+*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*
+=========================================================================*/
+
 #include "Config.h"
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
 {
-	resize(540,450);
 	setWindowTitle(tr("Config"));
-	Utils::setCenter(this);
 	auto outer=new QGridLayout(this);
 	tab=new QTabWidget(this);
 	outer->addWidget(tab);
@@ -44,12 +68,13 @@ Config::Config(QWidget *parent,int index):
 
 		auto l=new QHBoxLayout;
 		play[1]=new QLineEdit(widget[0]);
-		play[1]->setText(QString::number(Utils::getConfig("/Danmaku/Life",5),'f',2));
+		play[1]->setText(Utils::getConfig("/Danmaku/Life",QString("5")));
 		connect(play[1],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Danmaku/Life",play[1]->text().toDouble());
+			Utils::setConfig("/Danmaku/Life",play[1]->text());
 		});
 		l->addWidget(play[1]);
 		box[2]=new QGroupBox(tr("life time"),widget[0]);
+		box[2]->setToolTip(tr("%{width} means the width of an danmaku"));
 		box[2]->setLayout(l);
 		list->addWidget(box[2]);
 
@@ -67,10 +92,11 @@ Config::Config(QWidget *parent,int index):
 		auto g=new QHBoxLayout;
 		effect=new QComboBox(widget[0]);
 		effect->addItem(tr("Stroke"));
+		effect->addItem(tr("Stroke")+"&"+tr("Bold"));
 		effect->addItem(tr("Projection"));
-		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",0));
-		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
-		connect(effect,signal,[this](int i){
+		effect->addItem(tr("Projection")+"&"+tr("Bold"));
+		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",1));
+		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig("/Danmaku/Effect",i);
 		});
 		g->addWidget(effect);
@@ -110,15 +136,18 @@ Config::Config(QWidget *parent,int index):
 		lines->addWidget(ui[1]);
 
 		auto t=new QHBoxLayout;
-		stay=new QComboBox(widget[1]);
-		stay->addItem(tr("default"));
-		stay->addItem(tr("stay on top"));
-		stay->setCurrentIndex(Utils::getConfig("/Interface/Top",false));
-		void (QComboBox::*signal)(int)=&QComboBox::currentIndexChanged;
-		connect(stay,signal,[this](int i){
-			Utils::setConfig<bool>("/Interface/Top",i);
+		stay=new QCheckBox(tr("stay on top"),widget[1]);
+		stay->setChecked(Utils::getConfig("/Interface/Top",false));
+		connect(stay,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig<bool>("/Interface/Top",state==Qt::Checked);
 		});
 		t->addWidget(stay);
+		less=new QCheckBox(tr("frameless"),widget[1]);
+		less->setChecked(Utils::getConfig("/Interface/Frameless",false));
+		connect(less,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig<bool>("/Interface/Frameless",state==Qt::Checked);
+		});
+		t->addWidget(less);
 		ui[2]=new QGroupBox(tr("window flag"),widget[1]);
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
@@ -133,6 +162,17 @@ Config::Config(QWidget *parent,int index):
 		ui[3]=new QGroupBox(tr("skip time"),widget[1]);
 		ui[3]->setLayout(j);
 		lines->addWidget(ui[3]);
+
+		auto k=new QHBoxLayout;
+		appk=new QLineEdit(widget[1]);
+		appk->setText(Utils::getConfig("/Playing/Appkey",QString()));
+		connect(appk,&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Playing/Appkey",appk->text());
+		});
+		k->addWidget(appk);
+		ui[4]=new QGroupBox(tr("bilibili appkey"),widget[1]);
+		ui[4]->setLayout(k);
+		lines->addWidget(ui[4]);
 
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
@@ -176,6 +216,7 @@ Config::Config(QWidget *parent,int index):
 			if(!edit->text().isEmpty()){
 				rm->insertRow(rm->rowCount());
 				rm->setData(rm->index(rm->rowCount()-1),edit->text());
+				edit->clear();
 			}
 		});
 		connect(action[1],&QAction::triggered,[this](){
@@ -245,9 +286,9 @@ Config::Config(QWidget *parent,int index):
 		lines->addLayout(s);
 
 		limit[0]=new QLineEdit(widget[2]);
-		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",5)));
+		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",0.005)));
 		connect(limit[0],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Shield/Limit",limit[0]->text().toInt());
+			Utils::setConfig("/Shield/Limit",limit[0]->text().toDouble());
 		});
 		auto a=new QHBoxLayout;
 		a->addWidget(limit[0]);
@@ -278,8 +319,7 @@ Config::Config(QWidget *parent,int index):
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
 		thanks=new QTextEdit(widget[3]);
 		thanks->setReadOnly(true);
-		thanks->setAcceptRichText(true);
-		thanks->setText(t.readAll());
+		thanks->setText(QString(t.readAll()).replace("\n","<br>"));
 		w->addWidget(thanks);
 		tab->addTab(widget[3],tr("Thanks"));
 	}
@@ -291,23 +331,22 @@ Config::Config(QWidget *parent,int index):
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
 		license=new QTextEdit(widget[4]);
 		license->setReadOnly(true);
-		license->setAcceptRichText(true);
-		license->setText(l.readAll());
+		license->setText(QString("<center><font size=\"2\">%1</font></center>").arg(QString(l.readAll()).replace("\n","<br>")));
 		w->addWidget(license);
 		tab->addTab(widget[4],tr("License"));
 	}
 	tab->setCurrentIndex(index);
-}
-
-Config::~Config()
-{
-	Shield::shieldR.clear();
-	Shield::shieldU.clear();
-	for(QString item:rm->stringList()){
-		Shield::shieldR.append(QRegExp(item));
-	}
-	for(QString item:sm->stringList()){
-		Shield::shieldU.append(item);
-	}
-	Shield::cacheS.clear();
+	connect(this,&QDialog::finished,[this](){
+		Shield::shieldR.clear();
+		Shield::shieldU.clear();
+		for(QString item:rm->stringList()){
+			Shield::shieldR.append(QRegExp(item));
+		}
+		for(QString item:sm->stringList()){
+			Shield::shieldU.append(item);
+		}
+		Shield::cacheS.clear();
+	});
+	resize(540,outer->minimumSize().height());
+	Utils::setCenter(this);
 }

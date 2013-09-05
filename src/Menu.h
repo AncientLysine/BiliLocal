@@ -30,8 +30,11 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 #include "Utils.h"
 #include "Search.h"
+#include "Printer.h"
+#include "Danmaku.h"
 
 class Menu:public QWidget
 {
@@ -43,11 +46,10 @@ public:
 private:
 	bool isPop;
 	bool isTurn;
-	bool isLocal;
-	QString lastPath;
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QLineEdit *sechL;
+	QCompleter *danmC;
 	QPushButton *fileB;
 	QPushButton *danmB;
 	QPushButton *sechB;
@@ -67,18 +69,19 @@ private:
 	QLabel *fontT;
 	QComboBox *fontC;
 	QPropertyAnimation *animation;
+	QNetworkAccessManager *manager;
 
 signals:
 	void open(QString file);
-	void load(QString danm);
 	void power(qint16 _power);
 
 public slots:
 	void pop();
 	void push();
-	void setDm(QString _file);
+	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);
+	void setDanmaku(QString _code);
 	
 };
 

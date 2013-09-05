@@ -26,42 +26,56 @@
 
 #include "Editor.h"
 
-Widget::Widget(QWidget *parent,QString trans):
-	QWidget(parent),translation(trans)
+Editor::Widget::Widget(QWidget *parent):
+	QWidget(parent)
 {
 	scale=0;
 	length=100;
-	pool=Danmaku::instance()->getPool();
-	for(auto &line:pool){
-		qSort(line.danmaku);
-	}
-	resize(width(),pool.count()*length);
 	current=VPlayer::instance()->getTime();
 	duration=VPlayer::instance()->getDuration();
-	if(duration==-1){
-		for(auto &line:pool){
-			qint64 t=line.danmaku.last().time+5000-line.delay;
-			duration=duration>t?duration:t;
+	const QList<Record> &pool=Danmaku::instance()->getPool();
+	for(const Record &line:pool){
+		bool f=true;
+		qint64 t;
+		for(const Comment &c:line.danmaku){
+			t=f?c.time:qMax(c.time,t);
+			f=false;
+		}
+		if(!f){
+			t+=5000-line.delay;
+			duration=qMax(duration,t);
 		}
 	}
 	magnet={0,current};
+	resize(width(),pool.count()*length);
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
+		int i=p.y()/length;
+		QMenu menu(this);
+		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
+			auto &p=Danmaku::instance()->getPool();
+			p.removeAt(i);
+			resize(width(),p.count()*length);
+			parentWidget()->update();
+		});
+		menu.exec(mapToGlobal(p));
+	});
 }
 
-void Widget::paintEvent(QPaintEvent *e)
+void Editor::Widget::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
 	painter.fillRect(rect(),Qt::gray);
-	const QList<QString> &keys=pool.keys();
 	int l=e->rect().bottom()/length+1;
 	int s=point.isNull()?-1:point.y()/length;
 	for(int i=e->rect().top()/length;i<l;++i){
-		const Record &r=pool[keys[i]];
+		const Record &r=Danmaku::instance()->getPool()[i];
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		QStringList text;
-		text<<QFileInfo(keys[i]).fileName();
-		text<<translation.arg(r.delay/1000);
+		text<<QFileInfo(r.source).fileName();
+		text<<Editor::tr("Delay: %1s").arg(r.delay/1000);
 		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
 		int m=0,d=5*duration/w;
 		QHash<int,int> c;
@@ -98,13 +112,12 @@ void Widget::paintEvent(QPaintEvent *e)
 	QWidget::paintEvent(e);
 }
 
-void Widget::wheelEvent(QWheelEvent *e)
+void Editor::Widget::wheelEvent(QWheelEvent *e)
 {
 	int i=e->pos().y()/length;
 	scale+=e->angleDelta().y();
 	if(qAbs(scale)>=120){
-		auto &p=Danmaku::instance()->getPool();
-		auto &r=p[p.keys()[i]];
+		auto &r=Danmaku::instance()->getPool()[i];
 		qint64 d=(r.delay/1000)*1000;
 		d+=scale>0?-1000:1000;
 		d-=r.delay;
@@ -114,7 +127,7 @@ void Widget::wheelEvent(QWheelEvent *e)
 	QWidget::wheelEvent(e);
 }
 
-void Widget::mouseMoveEvent(QMouseEvent *e)
+void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
 {
 	if(point.isNull()){
 		point=e->pos();
@@ -124,12 +137,11 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 	}
 }
 
-void Widget::mouseReleaseEvent(QMouseEvent *e)
+void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
 		int w=width()-100;
-		auto &p=Danmaku::instance()->getPool();
-		auto &r=p[p.keys()[point.y()/length]];
+		auto &r=Danmaku::instance()->getPool()[point.y()/length];
 		qint64 d=(e->x()-point.x())*duration/w;
 		for(qint64 p:magnet){
 			if(qAbs(d+r.delay-p)<5*duration/w){
@@ -142,17 +154,12 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 	point=QPoint();
 }
 
-void Widget::delayRecord(int index,qint64 delay)
+void Editor::Widget::delayRecord(int index,qint64 delay)
 {
-	auto &p=Danmaku::instance()->getPool();
-	auto &r=p[p.keys()[index]];
+	auto &r=Danmaku::instance()->getPool()[index];
 	r.delay+=delay;
 	for(Comment &c:r.danmaku){
 		c.time+=delay;
-	}
-	pool=p;
-	for(auto &line:pool){
-		qSort(line.danmaku);
 	}
 	update(0,index*length,width(),length);
 }
@@ -162,7 +169,7 @@ Editor::Editor(QWidget *parent):
 {
 	layout=new QGridLayout(this);
 	scroll=new QScrollArea(this);
-	widget=new Widget(this,tr("Delay: %1s"));
+	widget=new Widget(this);
 	layout->addWidget(scroll);
 	scroll->setWidget(widget);
 	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -184,7 +191,8 @@ Editor::~Editor()
 	Danmaku::instance()->parse(0x1);
 }
 
-void Editor::resizeEvent(QResizeEvent *)
+void Editor::resizeEvent(QResizeEvent *e)
 {
 	Utils::delayExec(0,[this](){widget->resize(scroll->viewport()->width(),widget->height());});
+	QDialog::resizeEvent(e);
 }

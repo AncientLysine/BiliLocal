@@ -28,6 +28,7 @@
 #ifndef POSTER_H
 #define POSTER_H
 
+#include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
 #include "Utils.h"
