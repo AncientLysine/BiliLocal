@@ -60,14 +60,6 @@ Interface::Interface(QWidget *parent):
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
 		if(isActiveWindow()){
-			if(Utils::getConfig("/Interface/Frameless",false)){
-				if((rect().bottomRight()-cur).manhattanLength()<10){
-					setCursor(Qt::SizeFDiagCursor);
-				}
-				else if(sta.isNull()){
-					unsetCursor();
-				}
-			}
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
@@ -79,7 +71,7 @@ Interface::Interface(QWidget *parent):
 					menu->push();
 					setFocus();
 				}
-				if(cursor().shape()==Qt::ArrowCursor&&x>0&&x<50){
+				if(x>0&&x<50){
 					menu->pop();
 				}
 				if(x>250){
@@ -94,7 +86,7 @@ Interface::Interface(QWidget *parent):
 						setFocus();
 					}
 				}
-				if(cursor().shape()==Qt::ArrowCursor&&x>w-50&&x<w){
+				if(x>w-50&&x<w){
 					info->pop();
 				}
 				if(x>w+100){
@@ -340,11 +332,11 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
+	if(Utils::getConfig("/Interface/Frameless",false)){
+		setWindowFlags(Qt::CustomizeWindowHint);
+	}
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
-	}
-	if(Utils::getConfig("/Interface/Frameless",false)){
-		setWindowFlags(windowFlags()|Qt::FramelessWindowHint);
 	}
 	setFocus();
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
@@ -491,31 +483,17 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 {
 	if(sta.isNull()){
 		sta=e->globalPos();
-		if(cursor().shape()!=Qt::SizeFDiagCursor){
-			wgd=pos();
-		}
+		wgd=pos();
 	}
 	else if(Utils::getConfig("/Interface/Frameless",false)){
-		if(wgd.isNull()){
-			resize(e->x(),e->y());
-			if(menu->isPopped()){
-				menu->update();
-			}
-			if(info->isPopped()){
-				info->update();
-			}
-		}
-		else{
-			move(wgd+e->globalPos()-sta);
-		}
+		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
 }
 
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
-	sta=QPoint();
-	wgd=QPoint();
+	sta=wgd=QPoint();
 	QWidget::mouseReleaseEvent(e);
 }
 

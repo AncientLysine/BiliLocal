@@ -71,8 +71,10 @@ Printer::Printer(QWidget *parent):
 	f.setPointSize(10);
 	setFont(f);
 	hide();
-	stream.setDevice(new QFile("Log.txt",this));
-	stream.device()->open(QIODevice::Append|QIODevice::Text);
+	if(Utils::getConfig("/Interface/Debug",false)){
+		stream.setDevice(new QFile("Log.txt",this));
+		stream.device()->open(QIODevice::Append|QIODevice::Text);
+	}
 }
 
 void Printer::paintEvent(QPaintEvent *e)
