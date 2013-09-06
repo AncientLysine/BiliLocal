@@ -58,50 +58,60 @@ Interface::Interface(QWidget *parent):
 	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
-		int x=cur.x(),y=cur.y();
+		int x=cur.x(),y=cur.y(),w=width(),h=height();
 		if(isActiveWindow()){
-			if(x<-100){
-				menu->push();
-				setFocus();
-			}
-			if(x>0&&x<50){
-				menu->pop();
-			}
-			if(x>250){
-				menu->push();
-				if(!info->isPopped()){
-					setFocus();
+			if(Utils::getConfig("/Interface/Frameless",false)){
+				if((rect().bottomRight()-cur).manhattanLength()<10){
+					setCursor(Qt::SizeFDiagCursor);
+				}
+				else if(sta.isNull()){
+					unsetCursor();
 				}
 			}
-			if(x<width()-250){
-				info->push();
-				if(!menu->isPopped()){
-					setFocus();
-				}
-			}
-			if(x>width()-50&&x<width()){
-				info->pop();
-			}
-			if(x>width()+100){
-				info->push();
-				setFocus();
-			}
-			if(y<-50||y>height()+50){
+			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
 				poster->fadeOut();
 				setFocus();
-			}
-			if(x>200&&x<width()-200){
-				if(y>height()-40&&poster->isValid()){
-					poster->fadeIn();
-				}
-				if(y<height()-60){
-					poster->fadeOut();
-				}
 			}
 			else{
-				poster->fadeOut();
+				if(x<-100){
+					menu->push();
+					setFocus();
+				}
+				if(cursor().shape()==Qt::ArrowCursor&&x>0&&x<50){
+					menu->pop();
+				}
+				if(x>250){
+					menu->push();
+					if(!info->isPopped()){
+						setFocus();
+					}
+				}
+				if(x<w-250){
+					info->push();
+					if(!menu->isPopped()){
+						setFocus();
+					}
+				}
+				if(cursor().shape()==Qt::ArrowCursor&&x>w-50&&x<w){
+					info->pop();
+				}
+				if(x>w+100){
+					info->push();
+					setFocus();
+				}
+				if(x>200&&x<w-200){
+					if(y>h-40&&poster->isValid()){
+						poster->fadeIn();
+					}
+					if(y<h-60){
+						poster->fadeOut();
+					}
+				}
+				else{
+					poster->fadeOut();
+				}
 			}
 			if(cur!=pre){
 				pre=cur;
@@ -113,16 +123,6 @@ Interface::Interface(QWidget *parent):
 				}
 				else{
 					delay->stop();
-				}
-			}
-			if(Utils::getConfig("/Interface/Frameless",false)){
-				QRect r=rect();
-				r.setTopLeft(r.bottomRight()-QPoint(5,5));
-				if(r.contains(cur)){
-					setCursor(Qt::SizeFDiagCursor);
-				}
-				else if(sta.isNull()){
-					unsetCursor();
 				}
 			}
 		}
@@ -211,7 +211,7 @@ Interface::Interface(QWidget *parent):
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
 	addAction(quitA);
-	connect(quitA,&QAction::triggered,this,&QWidget::close);
+	connect(quitA,&QAction::triggered,&QApplication::quit);
 
 	fullA=new QAction(tr("Full Screen"),this);
 	fullA->setCheckable(true);
@@ -497,9 +497,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	else if(Utils::getConfig("/Interface/Frameless",false)){
 		if(wgd.isNull()){
-			QRect g=geometry();
-			g.setBottomRight(e->globalPos());
-			setGeometry(g);
+			resize(e->x(),e->y());
 			if(menu->isPopped()){
 				menu->update();
 			}
