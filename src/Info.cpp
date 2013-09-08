@@ -116,25 +116,27 @@ Info::Info(QWidget *parent):
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::shieldU;
 				QString sender=index.data(Qt::UserRole).toString();
-				if(!list.contains(sender)&&!sender.isEmpty()){
+				if(!sender.isEmpty()&&!list.contains(sender)){
 					list.append(sender);
 				}
-				Shield::cacheS.clear();
+				Danmaku::instance()->parse(0x4);
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(parentWidget(),2);
 			config.exec();
-			Danmaku::instance()->parse(0x2);
+			Danmaku::instance()->parse(0x2|0x4);
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
 				Editor editor(parentWidget());
 				editor.exec();
+				Danmaku::instance()->parse(0x1|0x2|0x4);
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
 				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
+				Danmaku::instance()->parse(0x2|0x4);
 			});
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 				QString filter=tr("Danmaku files (*.json)");

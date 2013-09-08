@@ -230,8 +230,7 @@ Interface::Interface(QWidget *parent):
 	addAction(toggA);
 	connect(toggA,&QAction::toggled,[this](bool b){
 		Shield::block[5]=b;
-		Shield::cacheS.clear();
-		danmaku->parse(0x0);
+		danmaku->parse(0x4);
 		danmaku->clearCurrent();
 	});
 
@@ -259,7 +258,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
-		danmaku->parse(0x2);
+		danmaku->parse(0x2|0x4);
 	});
 
 	top=new QMenu(this);

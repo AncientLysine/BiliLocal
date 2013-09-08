@@ -345,7 +345,6 @@ Config::Config(QWidget *parent,int index):
 		for(QString item:sm->stringList()){
 			Shield::shieldU.append(item);
 		}
-		Shield::cacheS.clear();
 	});
 	resize(540,outer->minimumSize().height());
 	Utils::setCenter(this);

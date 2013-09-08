@@ -64,6 +64,7 @@ private:
 		QPixmap text;
 	};
 	QList<Static> current[5];
+	QHash<Comment,bool> cache;
 	QVector<const Comment *> danmaku;
 	static Danmaku *ins;
 

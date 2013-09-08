@@ -188,7 +188,6 @@ Editor::~Editor()
 	if(state==VPlayer::Play){
 		VPlayer::instance()->play();
 	}
-	Danmaku::instance()->parse(0x1);
 }
 
 void Editor::resizeEvent(QResizeEvent *e)
