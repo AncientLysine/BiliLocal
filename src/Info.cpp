@@ -137,6 +137,7 @@ Info::Info(QWidget *parent):
 				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
 				Danmaku::instance()->parse(0x2|0x4);
+				parentWidget()->update();
 			});
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 				QString filter=tr("Danmaku files (*.json)");

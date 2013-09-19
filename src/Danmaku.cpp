@@ -198,7 +198,7 @@ void Danmaku::parse(int flag)
 		Shield::shieldC.clear();
 		double l=Utils::getConfig("/Shield/Limit",0.005);
 		if(l!=0){
-			l*=danmaku.size();
+			l=qMax<int>(4,l*danmaku.size());
 			QHash<QString,int> c;
 			for(const Comment *com:danmaku){
 				QString clean=com->string;

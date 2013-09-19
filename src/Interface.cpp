@@ -232,6 +232,7 @@ Interface::Interface(QWidget *parent):
 		Shield::block[5]=b;
 		danmaku->parse(0x4);
 		danmaku->clearCurrent();
+		update();
 	});
 
 	snapA=new QAction(tr("Snapshot"),this);
