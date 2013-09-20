@@ -71,7 +71,7 @@ Interface::Interface(QWidget *parent):
 					menu->push();
 					setFocus();
 				}
-				if(x>0&&x<50){
+				if(x>=0&&x<50){
 					menu->pop();
 				}
 				if(x>250){
@@ -86,7 +86,7 @@ Interface::Interface(QWidget *parent):
 						setFocus();
 					}
 				}
-				if(x>w-50&&x<w){
+				if(x>w-50&&x<=w){
 					info->pop();
 				}
 				if(x>w+100){
@@ -177,10 +177,11 @@ Interface::Interface(QWidget *parent):
 		snapA->setEnabled(false);
 		sub->clear();
 		sub->setEnabled(false);
-		rat->defaultAction()->trigger();
+		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
+		vplayer->setRatio(0);
 		if(!isFullScreen()){
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
@@ -292,7 +293,12 @@ Interface::Interface(QWidget *parent):
 			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
 		QSize n=vplayer->getSize(VPlayer::Scaled);
-		setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+		if(!isFullScreen()){
+			setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+		}
+		else{
+			vplayer->setSize(size());
+		}
 	});
 
 	sca=new QMenu(tr("Scale"),top);

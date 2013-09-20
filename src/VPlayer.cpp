@@ -265,7 +265,7 @@ void VPlayer::setSize(QSize _size)
 	if(state==Play||state==Pause){
 		mutex.lock();
 		if(ratio>0){
-			int w=qMax<int>(_size.width(),_size.height()*ratio);
+			int w=qMin<int>(_size.width(),_size.height()*ratio);
 			guiSize=QSize(w,w/ratio);
 		}
 		else{
