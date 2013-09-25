@@ -32,9 +32,32 @@ Editor::Widget::Widget(QWidget *parent):
 	scale=0;
 	length=100;
 	current=VPlayer::instance()->getTime();
+	magnet={0,current};
+	load();
+	setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
+		int i=p.y()/length;
+		QMenu menu(this);
+		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
+			auto &p=Danmaku::instance()->getPool();
+			p.removeAt(i);
+			Danmaku::instance()->parse(0x1|0x2|0x4);
+		});
+		menu.exec(mapToGlobal(p));
+	});
+	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Widget::load);
+}
+
+void Editor::Widget::load()
+{
 	duration=VPlayer::instance()->getDuration();
 	const QList<Record> &pool=Danmaku::instance()->getPool();
-	for(const Record &line:pool){
+	for(QLineEdit *iter:time){
+		delete iter;
+	}
+	time.clear();
+	for(int i=0;i<pool.size();++i){
+		const Record &line=pool[i];
 		bool f=true;
 		qint64 t;
 		for(const Comment &c:line.danmaku){
@@ -45,21 +68,26 @@ Editor::Widget::Widget(QWidget *parent):
 			t+=5000-line.delay;
 			duration=qMax(duration,t);
 		}
-	}
-	magnet={0,current};
-	resize(width(),pool.count()*length);
-	setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
-		int i=p.y()/length;
-		QMenu menu(this);
-		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
-			auto &p=Danmaku::instance()->getPool();
-			p.removeAt(i);
-			resize(width(),p.count()*length);
-			parentWidget()->update();
+		QLineEdit *edit=new QLineEdit(Editor::tr("Delay: %1s").arg(line.delay/1000),this);
+		edit->setGeometry(0,73+i*length,98,25);
+		edit->setFrame(false);
+		edit->setAlignment(Qt::AlignCenter);
+		edit->show();
+		connect(edit,&QLineEdit::editingFinished,[this,edit](){
+			int index=time.indexOf(edit);
+			QRegExp regexp("-?\\d+");
+			const Record &r=Danmaku::instance()->getPool()[index];
+			if(regexp.indexIn(edit->text())!=-1){
+				delayRecord(index,regexp.cap().toInt()*1000-r.delay);
+			}
+			else{
+				edit->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
+			}
 		});
-		menu.exec(mapToGlobal(p));
-	});
+		time.append(edit);
+	}
+	resize(width(),pool.count()*length);
+	parentWidget()->update();
 }
 
 void Editor::Widget::paintEvent(QPaintEvent *e)
@@ -73,10 +101,7 @@ void Editor::Widget::paintEvent(QPaintEvent *e)
 		const Record &r=Danmaku::instance()->getPool()[i];
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
-		QStringList text;
-		text<<QFileInfo(r.source).fileName();
-		text<<Editor::tr("Delay: %1s").arg(r.delay/1000);
-		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
+		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,QFileInfo(r.source).fileName());
 		int m=0,d=5*duration/w;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
@@ -162,6 +187,7 @@ void Editor::Widget::delayRecord(int index,qint64 delay)
 		c.time+=delay;
 	}
 	update(0,index*length,width(),length);
+	time[index]->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
 }
 
 Editor::Editor(QWidget *parent):

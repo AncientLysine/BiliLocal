@@ -54,6 +54,8 @@ private:
 		qint64 current;
 		qint64 duration;
 		QList<qint64> magnet;
+		QList<QLineEdit *> time;
+		void load();
 		void paintEvent(QPaintEvent *e);
 		void wheelEvent(QWheelEvent *e);
 		void mouseMoveEvent(QMouseEvent *e);
