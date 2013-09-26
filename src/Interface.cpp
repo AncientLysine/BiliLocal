@@ -451,7 +451,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		sta=e->globalPos();
 		wgd=pos();
 	}
-	else if(Utils::getConfig("/Interface/Frameless",false)){
+	else if(Utils::getConfig("/Interface/Frameless",false)&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
