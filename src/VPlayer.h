@@ -44,7 +44,7 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause,Invalid,Source,Scaled,Destinate};
+	enum {Stop,Play,Pause,Source,Scaled,Destinate};
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
@@ -80,15 +80,15 @@ private:
 	static VPlayer *ins;
 
 signals:
-	void opened();
+	void begin();
+	void reach();
 	void paused();
-	void ended();
-	void decoded();
+	void decode();
 	void jumped(qint64 _time);
-	void rendered();
 
 public slots:
 	void play();
+	void open();
 	void stop();
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
@@ -96,8 +96,6 @@ public slots:
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void setSubTitle(int _track);
-	void emitFrame();
-
 };
 
 #endif // VPLAYER_H

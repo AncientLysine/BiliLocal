@@ -37,7 +37,7 @@ Info::Info(QWidget *parent):
 	updating=false;
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
-	duration=100;
+	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
 	animation->setEasingCurve(QEasingCurve::OutCubic);
@@ -58,7 +58,7 @@ Info::Info(QWidget *parent):
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
-		if(!updating){
+		if(duration!=-1&&!updating){
 			emit time(duration*_time/400);
 		}
 	});
@@ -255,7 +255,7 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,400);
 	}
 	else{
-		duration=100;
+		duration=-1;
 		timeS->setValue(0);
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");

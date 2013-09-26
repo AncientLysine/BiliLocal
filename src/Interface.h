@@ -84,6 +84,11 @@ private:
 	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 
+private slots:
+	void decode();
+	void begin();
+	void reach();
+
 };
 
 #endif // INTERFACE_H

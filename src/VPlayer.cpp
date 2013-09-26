@@ -43,17 +43,15 @@ void avpicture_free(AVPicture *picture)
 	av_free(picture->data[0]);
 }
 
-static void *lock(void *opaque,void **planes)
+static void *lock(void *,void **planes)
 {
-	VPlayer *player=static_cast<VPlayer *>(opaque);
-	*planes=player->getSrc();
+	*planes=VPlayer::instance()->getSrc();
 	return NULL;
 }
 
-static void display(void *opaque,void *)
+static void display(void *,void *)
 {
-	VPlayer *player=static_cast<VPlayer *>(opaque);
-	player->setFrame();
+	VPlayer::instance()->setFrame();
 }
 
 static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list args)
@@ -64,6 +62,16 @@ static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list ar
 		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
 		delete []string;
 	}
+}
+
+static void begincb(const struct libvlc_event_t *,void *)
+{
+	VPlayer::instance()->open();
+}
+
+static void reachcb(const struct libvlc_event_t *,void *)
+{
+	VPlayer::instance()->stop();
 }
 
 VPlayer::VPlayer(QObject *parent) :
@@ -79,17 +87,15 @@ VPlayer::VPlayer(QObject *parent) :
 	state=Stop;
 	ratio=0;
 	ins=this;
-	connect(this,SIGNAL(rendered()),this,SLOT(emitFrame()));
 }
 
 VPlayer::~VPlayer()
 {
-	libvlc_release(vlc);
-	if(m){
-		libvlc_media_release(m);
-	}
 	if(mp){
 		libvlc_media_player_release(mp);
+	}
+	if(m){
+		libvlc_media_release(m);
 	}
 	if(swsctx){
 		sws_freeContext(swsctx);
@@ -102,6 +108,7 @@ VPlayer::~VPlayer()
 		avpicture_free(dstFrame);
 		delete dstFrame;
 	}
+	libvlc_release(vlc);
 }
 
 uchar *VPlayer::getSrc()
@@ -192,7 +199,7 @@ void VPlayer::setFrame(bool force)
 		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		mutex.unlock();
-		emit rendered();
+		emit decode();
 	}
 }
 
@@ -230,7 +237,7 @@ void VPlayer::play()
 			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
 			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
-			libvlc_video_set_callbacks(mp,lock,NULL,display,this);
+			libvlc_video_set_callbacks(mp,lock,NULL,display,NULL);
 			libvlc_media_player_play(mp);
 		}
 		else{
@@ -246,17 +253,21 @@ void VPlayer::play()
 	}
 }
 
+void VPlayer::open()
+{
+	if(mp&&state==Stop){
+		state=Play;
+		emit begin();
+	}
+}
+
 void VPlayer::stop()
 {
-	if(mp){
-		if(state!=Stop){
-			state=Invalid;
-			libvlc_media_player_stop(mp);
-			qApp->processEvents();
-			state=Stop;
-			frame=QPixmap();
-			emit ended();
-		}
+	if(mp&&state!=Stop){
+		libvlc_media_player_stop(mp);
+		state=Stop;
+		frame=QPixmap();
+		emit reach();
 	}
 }
 
@@ -273,12 +284,10 @@ void VPlayer::setSize(QSize _size)
 		}
 		guiSize/=4;
 		guiSize*=4;
-		if(guiSize!=dstSize&&state==Pause){
-			mutex.unlock();
+		bool flag=guiSize!=dstSize&&state==Pause;
+		mutex.unlock();
+		if(flag){
 			setFrame(true);
-		}
-		else{
-			mutex.unlock();
 		}
 	}
 }
@@ -286,7 +295,6 @@ void VPlayer::setSize(QSize _size)
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
-		_time=qBound<qint64>(0,_time,getDuration()-500);
 		libvlc_media_player_set_time(mp,_time);
 		emit jumped(_time);
 	}
@@ -304,6 +312,11 @@ void VPlayer::setFile(QString _file)
 	m=libvlc_media_new_path(vlc,_file.toUtf8());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
+		if(mp){
+			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
+			libvlc_event_attach(man,libvlc_MediaPlayerPlaying   ,&begincb,NULL);
+			libvlc_event_attach(man,libvlc_MediaPlayerEndReached,&reachcb,NULL);
+		}
 	}
 }
 
@@ -323,24 +336,5 @@ void VPlayer::setSubTitle(int _track)
 {
 	if(mp){
 		libvlc_video_set_spu(mp,_track);
-	}
-}
-
-void VPlayer::emitFrame()
-{
-	if(state==Stop){
-		state=Play;
-		emit opened();
-	}
-	if(state==Play){
-		emit decoded();
-		if(getDuration()-getTime()<500){
-			if(Utils::getConfig("/Playing/Loop",false)){
-				setTime(0);
-			}
-			else{
-				stop();
-			}
-		}
 	}
 }

@@ -103,10 +103,11 @@ void Printer::process(QString content)
 {
 	if(Utils::getConfig("/Interface/Debug",false)){
 		fadeIn();
+		content=content.trimmed();
 		list.prepend(content);
 		update();
 		delay->start(8000);
-		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content).trimmed()<<endl;
+		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content)<<endl;
 	}
 }
 

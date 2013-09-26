@@ -42,10 +42,10 @@ private:
 	QWidget *widget[5];
 
 	//Playing
-	QGroupBox *box[5];
+	QGroupBox *box[6];
 	QCheckBox *danm[2];
 	QComboBox *effect;
-	QLineEdit *play[3];
+	QLineEdit *play[4];
 
 	//Interface
 	QGroupBox *ui[5];
@@ -53,8 +53,9 @@ private:
 	QCheckBox *stay;
 	QCheckBox *less;
 	QLineEdit *size;
-	QLineEdit *jump;
+	QLineEdit *back;
 	QLineEdit *appk;
+	QPushButton *open;
 
 	//Shiled
 	QLineEdit *edit;

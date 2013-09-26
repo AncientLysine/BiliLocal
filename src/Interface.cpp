@@ -134,60 +134,10 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
-	connect(vplayer,&VPlayer::opened,[this](){
-		Utils::setBack(this,Qt::black);
-		info->setDuration(vplayer->getDuration());
-		info->setOpened(true);
-		tv->hide();
-		me->hide();
-		vplayer->setVolume(Utils::getConfig("/Playing/Volume",100));
-		if(isFullScreen()){
-			vplayer->setSize(size());
-		}
-		else{
-			sca->setEnabled(true);
-			setCenter(vplayer->getSize(),false);
-		}
-		sub->clear();
-		if(!vplayer->getSubtitles().isEmpty()){
-			sub->setEnabled(true);
-			QActionGroup *group=new QActionGroup(sub);
-			group->setExclusive(true);
-			int current=vplayer->getSubtitle();
-			QMap<int,QString> map=vplayer->getSubtitles();
-			for(auto iter=map.begin();iter!=map.end();++iter){
-				QAction *action=group->addAction(iter.value());
-				action->setCheckable(true);
-				action->setData(iter.key());
-				action->setChecked(current==iter.key());
-			}
-			sub->addActions(group->actions());
-		}
-		snapA->setEnabled(true);
-		rat->setEnabled(true);
-	});
-	connect(vplayer,&VPlayer::ended,[this](){
-		setPalette(QPalette());
-		info->setOpened(false);
-		tv->show();
-		me->show();
-		danmaku->resetTime();
-		danmaku->clearCurrent();
-		info->setDuration(-1);
-		snapA->setEnabled(false);
-		sub->clear();
-		sub->setEnabled(false);
-		rat->defaultAction()->setChecked(true);
-		rat->setEnabled(false);
-		sca->defaultAction()->setChecked(true);
-		sca->setEnabled(false);
-		vplayer->setRatio(0);
-		if(!isFullScreen()){
-			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
-		}
-	});
+	connect(vplayer,SIGNAL(begin()),this,SLOT(begin()));
+	connect(vplayer,SIGNAL(reach()),this,SLOT(reach()));
+	connect(vplayer,SIGNAL(decode()),this,SLOT(decode()));
 	connect(vplayer,SIGNAL(paused()),this,SLOT(update()));
-	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -196,7 +146,17 @@ Interface::Interface(QWidget *parent):
 		else
 			power->stop();
 	});
-	connect(info,&Info::time,vplayer,&VPlayer::setTime);
+	connect(info,&Info::time,[this](qint64 time){
+		if(vplayer->getDuration()-time<1000&&Utils::getConfig("/Playing/Loop",false)){
+			vplayer->setTime(0);
+		}
+		else if(time==vplayer->getDuration()){
+			vplayer->stop();
+		}
+		else{
+			vplayer->setTime(time);
+		}
+	});
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
 	connect(info,&Info::volume,vplayer,&VPlayer::setVolume);
@@ -517,4 +477,70 @@ void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);
+}
+
+void Interface::decode()
+{
+	if(!power->isActive()){
+		update();
+	}
+	if(vplayer->getDuration()-vplayer->getTime()<1000&&Utils::getConfig("/Playing/Loop",false)){
+		vplayer->setTime(0);
+	}
+}
+
+void Interface::begin()
+{
+	Utils::setBack(this,Qt::black);
+	info->setDuration(vplayer->getDuration());
+	info->setOpened(true);
+	tv->hide();
+	me->hide();
+	vplayer->setVolume(Utils::getConfig("/Playing/Volume",100));
+	if(isFullScreen()){
+		vplayer->setSize(size());
+	}
+	else{
+		sca->setEnabled(true);
+		setCenter(vplayer->getSize(),false);
+	}
+	sub->clear();
+	if(!vplayer->getSubtitles().isEmpty()){
+		sub->setEnabled(true);
+		QActionGroup *group=new QActionGroup(sub);
+		group->setExclusive(true);
+		int current=vplayer->getSubtitle();
+		QMap<int,QString> map=vplayer->getSubtitles();
+		for(auto iter=map.begin();iter!=map.end();++iter){
+			QAction *action=group->addAction(iter.value());
+			action->setCheckable(true);
+			action->setData(iter.key());
+			action->setChecked(current==iter.key());
+		}
+		sub->addActions(group->actions());
+	}
+	snapA->setEnabled(true);
+	rat->setEnabled(true);
+}
+
+void Interface::reach()
+{
+	setPalette(QPalette());
+	info->setOpened(false);
+	tv->show();
+	me->show();
+	danmaku->resetTime();
+	danmaku->clearCurrent();
+	info->setDuration(-1);
+	snapA->setEnabled(false);
+	sub->clear();
+	sub->setEnabled(false);
+	rat->defaultAction()->setChecked(true);
+	rat->setEnabled(false);
+	sca->defaultAction()->setChecked(true);
+	sca->setEnabled(false);
+	vplayer->setRatio(0);
+	if(!isFullScreen()){
+		setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
+	}
 }
