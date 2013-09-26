@@ -428,8 +428,6 @@ void Danmaku::appendToCurrent(const Comment &comment)
 			break;
 		case 1:
 			draw(edge,QPoint(2,2));
-			draw(edge,QPoint(1,2));
-			draw(edge,QPoint(2,1));
 			draw(edge,QPoint(1,1));
 			break;
 		}
