@@ -42,8 +42,9 @@ private:
 	QWidget *widget[5];
 
 	//Playing
-	QGroupBox *box[6];
+	QGroupBox *box[7];
 	QCheckBox *danm[2];
+	QComboBox *dmfont;
 	QComboBox *effect;
 	QLineEdit *play[4];
 

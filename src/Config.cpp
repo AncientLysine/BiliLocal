@@ -116,7 +116,22 @@ Config::Config(QWidget *parent,int index):
 		g->addWidget(effect);
 		box[5]=new QGroupBox(tr("Style"),widget[0]);
 		box[5]->setLayout(g);
-		list->addWidget(box[5]);
+
+		auto f=new QHBoxLayout;
+		dmfont=new QComboBox(widget[0]);
+		dmfont->addItems(QFontDatabase().families());
+		dmfont->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
+		connect(dmfont,&QComboBox::currentTextChanged,[this](QString _font){
+			Utils::setConfig("/Danmaku/Font",_font);
+		});
+		f->addWidget(dmfont);
+		box[6]=new QGroupBox(tr("Font"),widget[0]);
+		box[6]->setLayout(f);
+
+		auto v=new QHBoxLayout;
+		v->addWidget(box[5]);
+		v->addWidget(box[6]);
+		list->addLayout(v);
 
 		list->addStretch(10);
 		tab->addTab(widget[0],tr("Playing"));
@@ -178,7 +193,7 @@ Config::Config(QWidget *parent,int index):
 		open->setFixedWidth(50);
 		connect(open,&QPushButton::clicked,[this](){
 			QString path=QFileInfo(back->text()).absolutePath();
-			QString file=QFileDialog::getOpenFileName(this,tr("Open File"),path.isEmpty()?QDir::currentPath():path);
+			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path.isEmpty()?QDir::currentPath():path);
 			if(!file.isEmpty()){
 				back->setText(file);
 			}
