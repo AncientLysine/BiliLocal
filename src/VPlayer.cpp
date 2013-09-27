@@ -26,7 +26,7 @@
 
 #include "VPlayer.h"
 
-VPlayer*VPlayer::ins=NULL;
+VPlayer *VPlayer::ins=NULL;
 
 int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
 {
@@ -43,13 +43,13 @@ void avpicture_free(AVPicture *picture)
 	av_free(picture->data[0]);
 }
 
-static void *lock(void *,void **planes)
+static void *lck(void *,void **planes)
 {
 	*planes=VPlayer::instance()->getSrc();
 	return NULL;
 }
 
-static void display(void *,void *)
+static void dsp(void *,void *)
 {
 	VPlayer::instance()->setFrame();
 }
@@ -64,14 +64,14 @@ static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list ar
 	}
 }
 
-static void begincb(const struct libvlc_event_t *,void *)
+static void sta(const struct libvlc_event_t *,void *)
 {
-	VPlayer::instance()->open();
+	QMetaObject::invokeMethod(VPlayer::instance(),"open");
 }
 
-static void reachcb(const struct libvlc_event_t *,void *)
+static void end(const struct libvlc_event_t *,void *)
 {
-	VPlayer::instance()->stop();
+	QMetaObject::invokeMethod(VPlayer::instance(),"stop");
 }
 
 VPlayer::VPlayer(QObject *parent) :
@@ -237,7 +237,7 @@ void VPlayer::play()
 			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
 			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
-			libvlc_video_set_callbacks(mp,lock,NULL,display,NULL);
+			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
 		}
 		else{
@@ -314,8 +314,8 @@ void VPlayer::setFile(QString _file)
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
-			libvlc_event_attach(man,libvlc_MediaPlayerPlaying   ,&begincb,NULL);
-			libvlc_event_attach(man,libvlc_MediaPlayerEndReached,&reachcb,NULL);
+			libvlc_event_attach(man,libvlc_MediaPlayerPlaying   ,sta,NULL);
+			libvlc_event_attach(man,libvlc_MediaPlayerEndReached,end,NULL);
 		}
 	}
 }
