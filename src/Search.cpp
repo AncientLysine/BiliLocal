@@ -249,7 +249,7 @@ void Search::getData(int pageNum)
 	QNetworkRequest request;
 	QString order[]={"default","pubdate","senddate","ranklevel","click","scores","dm","stow"};
 	QString apiUrl("http://api.bilibili.tv/search?type=json&appkey=%1&keyword=%2&page=%3&order=%4");
-	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString("0"))).arg(key).arg(pageNum).arg(order[orderC->currentIndex()])));
+	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString())).arg(key).arg(pageNum).arg(order[orderC->currentIndex()])));
 	manager->get(request);
 }
 

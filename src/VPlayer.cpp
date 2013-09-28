@@ -121,6 +121,26 @@ uchar *VPlayer::getDst()
 	return (uchar *)*dstFrame->data;
 }
 
+int VPlayer::getState()
+{
+	return state;
+}
+
+int VPlayer::getSubtitle()
+{
+	return mp?libvlc_video_get_spu(mp):-1;
+}
+
+qint64 VPlayer::getTime()
+{
+	return state==Stop?-1:libvlc_media_player_get_time(mp);
+}
+
+qint64 VPlayer::getDuration()
+{
+	return mp?libvlc_media_player_get_length(mp):-1;
+}
+
 QSize VPlayer::getSize(int t)
 {
 	switch(t){
@@ -143,26 +163,6 @@ QSize VPlayer::getSize(int t)
 		return srcSize;
 	}
 	}
-}
-
-qint64 VPlayer::getTime()
-{
-	return state==Stop?-1:libvlc_media_player_get_time(mp);
-}
-
-int VPlayer::getState()
-{
-	return state;
-}
-
-int VPlayer::getSubtitle()
-{
-	return mp?libvlc_video_get_spu(mp):-1;
-}
-
-qint64 VPlayer::getDuration()
-{
-	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
 QMap<int,QString> VPlayer::getSubtitles()
@@ -200,9 +200,7 @@ void VPlayer::setFrame(bool force)
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		mutex.unlock();
 		emit decode();
-		if(getDuration()-getTime()<500&&Utils::getConfig("/Playing/Loop",false)){
-			QMetaObject::invokeMethod(this,"setTime",Q_ARG(qint64,0));
-		}
+		QMetaObject::invokeMethod(this,"setLoop");
 	}
 }
 
@@ -271,6 +269,13 @@ void VPlayer::stop()
 		state=Stop;
 		frame=QPixmap();
 		emit reach();
+	}
+}
+
+void VPlayer::setLoop()
+{
+	if(getDuration()-getTime()<500&&Utils::getConfig("/Playing/Loop",false)){
+		setTime(0);
 	}
 }
 

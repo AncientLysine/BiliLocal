@@ -50,11 +50,11 @@ public:
 	~VPlayer();
 	uchar *getSrc();
 	uchar *getDst();
-	qint64 getTime();
 	int getState();
-	QSize getSize(int t=Source);
 	int getSubtitle();
+	qint64 getTime();
 	qint64 getDuration();
+	QSize getSize(int t=Source);
 	QMap<int,QString> getSubtitles();
 	void setFrame(bool force=false);
 	void draw(QPainter *painter,QRect rect);
@@ -90,6 +90,7 @@ public slots:
 	void play();
 	void open();
 	void stop();
+	void setLoop();
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void setFile(QString _file);
