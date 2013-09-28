@@ -200,6 +200,9 @@ void VPlayer::setFrame(bool force)
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		mutex.unlock();
 		emit decode();
+		if(getDuration()-getTime()<500&&Utils::getConfig("/Playing/Loop",false)){
+			QMetaObject::invokeMethod(this,"setTime",Q_ARG(qint64,0));
+		}
 	}
 }
 

@@ -63,7 +63,6 @@ Printer::Printer(QWidget *parent):
 		}
 	});
 	connect(delay,&QTimer::timeout,this,&Printer::fadeOut);
-	connect(this,SIGNAL(receive(QString)),this,SLOT(process(QString)));
 	effect=new QGraphicsOpacityEffect(this);
 	effect->setOpacity(0.0);
 	setGraphicsEffect(effect);
