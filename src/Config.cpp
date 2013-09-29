@@ -183,7 +183,6 @@ Config::Config(QWidget *parent,int index):
 
 		auto b=new QHBoxLayout;
 		back=new QLineEdit(widget[1]);
-		back->setReadOnly(true);
 		back->setText(Utils::getConfig("/Interface/Background",QString()));
 		connect(back,&QLineEdit::textChanged,[this](){
 			Utils::setConfig("/Interface/Background",back->text());

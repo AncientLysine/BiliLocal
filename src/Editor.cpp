@@ -149,6 +149,7 @@ void Editor::Widget::wheelEvent(QWheelEvent *e)
 		scale=0;
 	}
 	QWidget::wheelEvent(e);
+	e->accept();
 }
 
 void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
