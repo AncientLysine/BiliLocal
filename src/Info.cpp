@@ -129,9 +129,13 @@ Info::Info(QWidget *parent):
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-				Editor editor(parentWidget());
-				editor.exec();
+				int state=VPlayer::instance()->getState();
+				if(state==VPlayer::Play) VPlayer::instance()->play();
+				Editor *editor=new Editor(parentWidget());
+				editor->exec();
+				delete editor;
 				Danmaku::instance()->parse(0x1|0x2|0x4);
+				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
 				Danmaku::instance()->clearPool();

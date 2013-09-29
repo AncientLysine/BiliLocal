@@ -32,7 +32,6 @@ Editor::Widget::Widget(QWidget *parent):
 	scale=0;
 	length=100;
 	current=VPlayer::instance()->getTime();
-	magnet={0,current};
 	load();
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
@@ -65,8 +64,7 @@ void Editor::Widget::load()
 			f=false;
 		}
 		if(!f){
-			t+=5000-line.delay;
-			duration=qMax(duration,t);
+			duration=qMax(duration,t-line.delay);
 		}
 		QLineEdit *edit=new QLineEdit(Editor::tr("Delay: %1s").arg(line.delay/1000),this);
 		edit->setGeometry(0,73+i*length,98,25);
@@ -86,6 +84,7 @@ void Editor::Widget::load()
 		});
 		time.append(edit);
 	}
+	magnet={0,current,duration};
 	resize(width(),pool.count()*length);
 	parentWidget()->update();
 }
@@ -102,7 +101,7 @@ void Editor::Widget::paintEvent(QPaintEvent *e)
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
 		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,QFileInfo(r.source).fileName());
-		int m=0,d=5*duration/w;
+		int m=0,d=duration/(w/5)+1;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
 			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
@@ -169,7 +168,7 @@ void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
 		auto &r=Danmaku::instance()->getPool()[point.y()/length];
 		qint64 d=(e->x()-point.x())*duration/w;
 		for(qint64 p:magnet){
-			if(qAbs(d+r.delay-p)<5*duration/w){
+			if(qAbs(d+r.delay-p)<duration/(w/5)+1){
 				d=p-r.delay;
 				break;
 			}
@@ -199,21 +198,10 @@ Editor::Editor(QWidget *parent):
 	layout->addWidget(scroll);
 	scroll->setWidget(widget);
 	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	state=VPlayer::instance()->getState();
 	resize(640,450);
 	setMinimumSize(300,200);
 	setWindowTitle(tr("Editor"));
-	if(state==VPlayer::Play){
-		VPlayer::instance()->play();
-	}
 	Utils::setCenter(this);
-}
-
-Editor::~Editor()
-{
-	if(state==VPlayer::Play){
-		VPlayer::instance()->play();
-	}
 }
 
 void Editor::resizeEvent(QResizeEvent *e)

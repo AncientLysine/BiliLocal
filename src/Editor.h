@@ -38,10 +38,8 @@ class Editor:public QDialog
 	Q_OBJECT
 public:
 	explicit Editor(QWidget *parent=0);
-	~Editor();
 
 private:
-	int state;
 	class Widget:public QWidget
 	{
 	public:
