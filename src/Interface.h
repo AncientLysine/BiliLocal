@@ -34,7 +34,6 @@
 #include "Menu.h"
 #include "Info.h"
 #include "Utils.h"
-#include "Poster.h"
 #include "Config.h"
 #include "Printer.h"
 #include "VPlayer.h"
@@ -70,7 +69,6 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Poster *poster;
 	Printer *printer;
 	VPlayer *vplayer;
 	Danmaku *danmaku;

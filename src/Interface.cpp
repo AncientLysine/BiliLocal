@@ -38,7 +38,6 @@ Interface::Interface(QWidget *parent):
 	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	poster=new Poster(this);
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -63,7 +62,6 @@ Interface::Interface(QWidget *parent):
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
-				poster->fadeOut();
 				setFocus();
 			}
 			else{
@@ -92,17 +90,6 @@ Interface::Interface(QWidget *parent):
 				if(x>w+100){
 					info->push();
 					setFocus();
-				}
-				if(x>200&&x<w-200){
-					if(y>h-40&&poster->isValid()){
-						poster->fadeIn();
-					}
-					if(y<h-60){
-						poster->fadeOut();
-					}
-				}
-				else{
-					poster->fadeOut();
 				}
 			}
 			if(cur!=pre){
@@ -476,7 +463,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
-	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
 	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
