@@ -359,7 +359,9 @@ void Interface::setCenter(QSize _s,bool f)
 	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
 	QRect s=QApplication::desktop()->screenGeometry(this);
 	QRect t=f?s:geometry();
-	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	if((windowFlags()&Qt::CustomizeWindowHint)==0){
+		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	}
 	bool flag=true;
 	if(r.width()>=s.width()||r.height()>=s.height()){
 		if(isVisible()){
