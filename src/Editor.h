@@ -38,10 +38,8 @@ class Editor:public QDialog
 	Q_OBJECT
 public:
 	explicit Editor(QWidget *parent=0);
-	~Editor();
 
 private:
-	int state;
 	class Widget:public QWidget
 	{
 	public:
@@ -54,6 +52,8 @@ private:
 		qint64 current;
 		qint64 duration;
 		QList<qint64> magnet;
+		QList<QLineEdit *> time;
+		void load();
 		void paintEvent(QPaintEvent *e);
 		void wheelEvent(QWheelEvent *e);
 		void mouseMoveEvent(QMouseEvent *e);

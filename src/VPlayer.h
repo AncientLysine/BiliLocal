@@ -44,17 +44,17 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause,Invalid,Source,Scaled,Destinate};
+	enum {Stop,Play,Pause,Source,Scaled,Destinate};
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
 	uchar *getSrc();
 	uchar *getDst();
-	qint64 getTime();
 	int getState();
-	QSize getSize(int t=Source);
 	int getSubtitle();
+	qint64 getTime();
 	qint64 getDuration();
+	QSize getSize(int t=Source);
 	QMap<int,QString> getSubtitles();
 	void setFrame(bool force=false);
 	void draw(QPainter *painter,QRect rect);
@@ -80,24 +80,23 @@ private:
 	static VPlayer *ins;
 
 signals:
-	void opened();
+	void begin();
+	void reach();
 	void paused();
-	void ended();
-	void decoded();
+	void decode();
 	void jumped(qint64 _time);
-	void rendered();
 
 public slots:
 	void play();
+	void open();
 	void stop();
+	void setLoop();
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void setSubTitle(int _track);
-	void emitFrame();
-
 };
 
 #endif // VPLAYER_H

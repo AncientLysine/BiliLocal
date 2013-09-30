@@ -186,16 +186,7 @@ Menu::Menu(QWidget *parent) :
 	connect(loopC,&QCheckBox::stateChanged,[this](int state){
 		Utils::setConfig("/Playing/Loop",state==Qt::Checked);
 	});
-	fontT=new QLabel(this);
-	fontT->setText(tr("Font"));
-	fontT->setGeometry(QRect(10,345,50,25));
-	fontC=new QComboBox(this);
-	fontC->setGeometry(QRect(100,345,90,25));
-	fontC->addItems(QFontDatabase().families());
-	fontC->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
-	connect(fontC,&QComboBox::currentTextChanged,[this](QString _font){
-		Utils::setConfig("/Danmaku/Font",_font);
-	});
+
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");

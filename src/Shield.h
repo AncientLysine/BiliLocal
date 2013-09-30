@@ -38,13 +38,9 @@ public:
 	static QList<QString> shieldU;
 	static QList<QRegExp> shieldR;
 	static QList<QString> shieldC;
-	static QCache<Comment,bool> cacheS;
 	static void init();
 	static void free();
 	static bool isBlocked(const Comment &comment);
-
-private:
-	static bool judge(const Comment &comment);
 };
 
 #endif // SHIELD_H

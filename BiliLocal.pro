@@ -21,7 +21,6 @@ SOURCES += \
     src/Search.cpp \
     src/Utils.cpp \
     src/Shield.cpp \
-    src/Poster.cpp \
     src/Config.cpp \
     src/Editor.cpp \
     src/Printer.cpp
@@ -35,7 +34,6 @@ HEADERS  += \
     src/Search.h \
     src/Utils.h \
     src/Shield.h \
-    src/Poster.h \
     src/Config.h \
     src/Editor.h \
     src/Printer.h

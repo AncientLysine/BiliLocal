@@ -30,7 +30,6 @@ bool Shield::block[6];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
 QList<QString> Shield::shieldC;
-QCache<Comment,bool> Shield::cacheS;
 
 void Shield::init()
 {
@@ -47,7 +46,6 @@ void Shield::init()
 		block[i]=group&1;
 		group=group>>1;
 	}
-	cacheS.setMaxCost(2000);
 }
 
 void Shield::free()
@@ -69,16 +67,6 @@ void Shield::free()
 }
 
 bool Shield::isBlocked(const Comment &comment)
-{
-	bool *blocked;
-	if((blocked=cacheS.object(comment))==NULL){
-		blocked=new bool(judge(comment));
-		cacheS.insert(comment,blocked);
-	}
-	return *blocked;
-}
-
-bool Shield::judge(const Comment &comment)
 {
 	if(block[Whole]||comment.mode>5
 			||(comment.mode==1&&block[Slide])
@@ -105,9 +93,9 @@ bool Shield::judge(const Comment &comment)
 			return true;
 		}
 	}
+	QString clean=comment.string;
+	clean.remove(QRegExp("\\W"));
 	for(const QString &c:shieldC){
-		QString clean=comment.string;
-		clean.remove(QRegExp("\\W"));
 		if(clean.indexOf(c)!=-1){
 			return true;
 		}

@@ -87,7 +87,21 @@ Config::Config(QWidget *parent,int index):
 		e->addWidget(play[2]);
 		box[3]=new QGroupBox(tr("force scale"),widget[0]);
 		box[3]->setLayout(e);
-		list->addWidget(box[3]);
+
+		auto j=new QHBoxLayout;
+		play[3]=new QLineEdit(widget[0]);
+		play[3]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
+		connect(play[3],&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Playing/Interval",play[3]->text().toDouble());
+		});
+		j->addWidget(play[3]);
+		box[4]=new QGroupBox(tr("skip time"),widget[0]);
+		box[4]->setLayout(j);
+
+		auto o=new QHBoxLayout;
+		o->addWidget(box[3]);
+		o->addWidget(box[4]);
+		list->addLayout(o);
 
 		auto g=new QHBoxLayout;
 		effect=new QComboBox(widget[0]);
@@ -100,9 +114,24 @@ Config::Config(QWidget *parent,int index):
 			Utils::setConfig("/Danmaku/Effect",i);
 		});
 		g->addWidget(effect);
-		box[4]=new QGroupBox(tr("Style"),widget[0]);
-		box[4]->setLayout(g);
-		list->addWidget(box[4]);
+		box[5]=new QGroupBox(tr("Style"),widget[0]);
+		box[5]->setLayout(g);
+
+		auto f=new QHBoxLayout;
+		dmfont=new QComboBox(widget[0]);
+		dmfont->addItems(QFontDatabase().families());
+		dmfont->setCurrentText(Utils::getConfig("/Danmaku/Font",QFont().family()));
+		connect(dmfont,&QComboBox::currentTextChanged,[this](QString _font){
+			Utils::setConfig("/Danmaku/Font",_font);
+		});
+		f->addWidget(dmfont);
+		box[6]=new QGroupBox(tr("Font"),widget[0]);
+		box[6]->setLayout(f);
+
+		auto v=new QHBoxLayout;
+		v->addWidget(box[5]);
+		v->addWidget(box[6]);
+		list->addLayout(v);
 
 		list->addStretch(10);
 		tab->addTab(widget[0],tr("Playing"));
@@ -152,15 +181,25 @@ Config::Config(QWidget *parent,int index):
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
 
-		auto j=new QHBoxLayout;
-		jump=new QLineEdit(widget[1]);
-		jump->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
-		connect(jump,&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Playing/Interval",jump->text().toDouble());
+		auto b=new QHBoxLayout;
+		back=new QLineEdit(widget[1]);
+		back->setText(Utils::getConfig("/Interface/Background",QString()));
+		connect(back,&QLineEdit::textChanged,[this](){
+			Utils::setConfig("/Interface/Background",back->text());
 		});
-		j->addWidget(jump);
-		ui[3]=new QGroupBox(tr("skip time"),widget[1]);
-		ui[3]->setLayout(j);
+		b->addWidget(back);
+		open=new QPushButton(tr("choose"),widget[1]);
+		open->setFixedWidth(50);
+		connect(open,&QPushButton::clicked,[this](){
+			QString path=QFileInfo(back->text()).absolutePath();
+			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path.isEmpty()?QDir::currentPath():path);
+			if(!file.isEmpty()){
+				back->setText(file);
+			}
+		});
+		b->addWidget(open);
+		ui[3]=new QGroupBox(tr("background"),widget[1]);
+		ui[3]->setLayout(b);
 		lines->addWidget(ui[3]);
 
 		auto k=new QHBoxLayout;
@@ -345,7 +384,6 @@ Config::Config(QWidget *parent,int index):
 		for(QString item:sm->stringList()){
 			Shield::shieldU.append(item);
 		}
-		Shield::cacheS.clear();
 	});
 	resize(540,outer->minimumSize().height());
 	Utils::setCenter(this);
