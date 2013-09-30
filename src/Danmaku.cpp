@@ -77,7 +77,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 {
 	if(index.isValid()){
 		const Comment &comment=*danmaku[index.row()];
-		if(Shield::isBlocked(comment)){
+		if(cache[comment]){
 			if(index.column()==0){
 				if(role==Qt::DisplayRole){
 					return tr("Blocked");
@@ -169,9 +169,9 @@ void Danmaku::resetTime()
 
 void Danmaku::clearPool()
 {
+	clearCurrent();
 	pool.clear();
 	danmaku.clear();
-	Shield::cacheS.clear();
 	emit layoutChanged();
 }
 
@@ -198,7 +198,7 @@ void Danmaku::parse(int flag)
 		Shield::shieldC.clear();
 		double l=Utils::getConfig("/Shield/Limit",0.005);
 		if(l!=0){
-			l*=danmaku.size();
+			l=qMax<int>(4,l*danmaku.size());
 			QHash<QString,int> c;
 			for(const Comment *com:danmaku){
 				QString clean=com->string;
@@ -210,6 +210,12 @@ void Danmaku::parse(int flag)
 					Shield::shieldC.append(k);
 				}
 			}
+		}
+	}
+	if((flag&0x4)>0){
+		cache.clear();
+		for(const Comment *c:danmaku){
+			cache[*c]=Shield::isBlocked(*c);
 		}
 	}
 	emit layoutChanged();
@@ -225,8 +231,9 @@ void Danmaku::setTime(qint64 _time)
 	time=_time;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment &comment=*danmaku[cur];
-		if(!Shield::isBlocked(comment)){
+		if(!cache[comment]){
 			appendToCurrent(comment);
+			qApp->processEvents();
 		}
 	}
 }
@@ -281,7 +288,7 @@ void Danmaku::appendToPool(const Record &record)
 			append->danmaku.append(c);
 		}
 	}
-	parse(0x1|0x2);
+	parse(0x1|0x2|0x4);
 }
 
 void Danmaku::appendToCurrent(const Comment &comment)
@@ -319,7 +326,6 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	if(comment.mode==1&&l!=0&&current[0].size()>l){
 		return;
 	}
-	qApp->processEvents();
 	QFont font;
 	font.setBold(Utils::getConfig("/Danmaku/Effect",1)%2);
 	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
@@ -422,6 +428,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 			break;
 		case 1:
 			draw(edge,QPoint(2,2));
+			draw(edge,QPoint(1,1));
 			break;
 		}
 		draw(color,QPoint(0,0));

@@ -33,12 +33,11 @@ Interface::Interface(QWidget *parent):
 	setAcceptDrops(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
-	printer=new Printer(this);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
+	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	poster=new Poster(this);
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -60,18 +59,9 @@ Interface::Interface(QWidget *parent):
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
 		if(isActiveWindow()){
-			if(Utils::getConfig("/Interface/Frameless",false)){
-				if((rect().bottomRight()-cur).manhattanLength()<10){
-					setCursor(Qt::SizeFDiagCursor);
-				}
-				else if(sta.isNull()){
-					unsetCursor();
-				}
-			}
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
-				poster->fadeOut();
 				setFocus();
 			}
 			else{
@@ -79,7 +69,7 @@ Interface::Interface(QWidget *parent):
 					menu->push();
 					setFocus();
 				}
-				if(cursor().shape()==Qt::ArrowCursor&&x>0&&x<50){
+				if(x>=0&&x<50){
 					menu->pop();
 				}
 				if(x>250){
@@ -94,23 +84,12 @@ Interface::Interface(QWidget *parent):
 						setFocus();
 					}
 				}
-				if(cursor().shape()==Qt::ArrowCursor&&x>w-50&&x<w){
+				if(x>w-50&&x<=w){
 					info->pop();
 				}
 				if(x>w+100){
 					info->push();
 					setFocus();
-				}
-				if(x>200&&x<w-200){
-					if(y>h-40&&poster->isValid()){
-						poster->fadeIn();
-					}
-					if(y<h-60){
-						poster->fadeOut();
-					}
-				}
-				else{
-					poster->fadeOut();
 				}
 			}
 			if(cur!=pre){
@@ -142,7 +121,7 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
-	connect(vplayer,&VPlayer::opened,[this](){
+	connect(vplayer,&VPlayer::begin,[this](){
 		Utils::setBack(this,Qt::black);
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
@@ -174,7 +153,7 @@ Interface::Interface(QWidget *parent):
 		snapA->setEnabled(true);
 		rat->setEnabled(true);
 	});
-	connect(vplayer,&VPlayer::ended,[this](){
+	connect(vplayer,&VPlayer::reach,[this](){
 		setPalette(QPalette());
 		info->setOpened(false);
 		tv->show();
@@ -185,16 +164,21 @@ Interface::Interface(QWidget *parent):
 		snapA->setEnabled(false);
 		sub->clear();
 		sub->setEnabled(false);
-		rat->defaultAction()->trigger();
+		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
+		vplayer->setRatio(0);
 		if(!isFullScreen()){
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
 	});
-	connect(vplayer,SIGNAL(paused()),this,SLOT(update()));
-	connect(vplayer,&VPlayer::decoded,[this](){if(!power->isActive()){update();}});
+	connect(vplayer,&VPlayer::decode,[this](){
+		if(!power->isActive()){
+			update();
+		}
+	});
+	connect(vplayer,&VPlayer::paused,[this](){update();});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -203,7 +187,19 @@ Interface::Interface(QWidget *parent):
 		else
 			power->stop();
 	});
-	connect(info,&Info::time,vplayer,&VPlayer::setTime);
+	connect(info,&Info::time,[this](qint64 time){
+		if(vplayer->getDuration()==time){
+			if(Utils::getConfig("/Playing/Loop",false)){
+				vplayer->setTime(0);
+			}
+			else{
+				vplayer->stop();
+			}
+		}
+		else{
+			vplayer->setTime(time);
+		}
+	});
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
 	connect(info,&Info::volume,vplayer,&VPlayer::setVolume);
@@ -238,9 +234,9 @@ Interface::Interface(QWidget *parent):
 	addAction(toggA);
 	connect(toggA,&QAction::toggled,[this](bool b){
 		Shield::block[5]=b;
-		Shield::cacheS.clear();
-		danmaku->parse(0x0);
+		danmaku->parse(0x4);
 		danmaku->clearCurrent();
+		update();
 	});
 
 	snapA=new QAction(tr("Snapshot"),this);
@@ -267,7 +263,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
-		danmaku->parse(0x2);
+		danmaku->parse(0x2|0x4);
 	});
 
 	top=new QMenu(this);
@@ -300,7 +296,12 @@ Interface::Interface(QWidget *parent):
 			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
 		QSize n=vplayer->getSize(VPlayer::Scaled);
-		setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+		if(!isFullScreen()){
+			setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+		}
+		else{
+			vplayer->setSize(size());
+		}
 	});
 
 	sca=new QMenu(tr("Scale"),top);
@@ -340,11 +341,11 @@ Interface::Interface(QWidget *parent):
 			top->exec(mapToGlobal(p));
 		}
 	});
+	if(Utils::getConfig("/Interface/Frameless",false)){
+		setWindowFlags(Qt::CustomizeWindowHint);
+	}
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
-	}
-	if(Utils::getConfig("/Interface/Frameless",false)){
-		setWindowFlags(windowFlags()|Qt::FramelessWindowHint);
 	}
 	setFocus();
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
@@ -358,7 +359,9 @@ void Interface::setCenter(QSize _s,bool f)
 	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
 	QRect s=QApplication::desktop()->screenGeometry(this);
 	QRect t=f?s:geometry();
-	s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	if((windowFlags()&Qt::CustomizeWindowHint)==0){
+		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	}
 	bool flag=true;
 	if(r.width()>=s.width()||r.height()>=s.height()){
 		if(isVisible()){
@@ -462,7 +465,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
-	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
 	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
@@ -491,31 +493,17 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 {
 	if(sta.isNull()){
 		sta=e->globalPos();
-		if(cursor().shape()!=Qt::SizeFDiagCursor){
-			wgd=pos();
-		}
+		wgd=pos();
 	}
-	else if(Utils::getConfig("/Interface/Frameless",false)){
-		if(wgd.isNull()){
-			resize(e->x(),e->y());
-			if(menu->isPopped()){
-				menu->update();
-			}
-			if(info->isPopped()){
-				info->update();
-			}
-		}
-		else{
-			move(wgd+e->globalPos()-sta);
-		}
+	else if(Utils::getConfig("/Interface/Frameless",false)&&!isFullScreen()){
+		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
 }
 
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
-	sta=QPoint();
-	wgd=QPoint();
+	sta=wgd=QPoint();
 	QWidget::mouseReleaseEvent(e);
 }
 

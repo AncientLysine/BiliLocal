@@ -38,7 +38,7 @@ class Printer:public QWidget
 public:
 	explicit Printer(QWidget *parent=0);
 	bool isShown(){return ioo!=0;}
-	void append(QString content){emit receive(content);}
+	void append(QString content){QMetaObject::invokeMethod(this,"process",Q_ARG(QString,content));}
 	static Printer *instance(){return ins;}
 
 private:
@@ -50,9 +50,6 @@ private:
 	QGraphicsOpacityEffect *effect;
 	static Printer *ins;
 	void paintEvent(QPaintEvent *e);
-
-signals:
-	void receive(QString content);
 
 public slots:
 	void process(QString content);

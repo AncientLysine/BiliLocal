@@ -37,7 +37,7 @@ Info::Info(QWidget *parent):
 	updating=false;
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
-	duration=100;
+	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
 	animation->setEasingCurve(QEasingCurve::OutCubic);
@@ -58,7 +58,7 @@ Info::Info(QWidget *parent):
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
-		if(!updating){
+		if(duration!=-1&&!updating){
 			emit time(duration*_time/400);
 		}
 	});
@@ -116,25 +116,32 @@ Info::Info(QWidget *parent):
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
 				QList<QString> &list=Shield::shieldU;
 				QString sender=index.data(Qt::UserRole).toString();
-				if(!list.contains(sender)&&!sender.isEmpty()){
+				if(!sender.isEmpty()&&!list.contains(sender)){
 					list.append(sender);
 				}
-				Shield::cacheS.clear();
+				Danmaku::instance()->parse(0x4);
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(parentWidget(),2);
 			config.exec();
-			Danmaku::instance()->parse(0x2);
+			Danmaku::instance()->parse(0x2|0x4);
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-				Editor editor(parentWidget());
-				editor.exec();
+				int state=VPlayer::instance()->getState();
+				if(state==VPlayer::Play) VPlayer::instance()->play();
+				Editor *editor=new Editor(parentWidget());
+				editor->exec();
+				delete editor;
+				Danmaku::instance()->parse(0x1|0x2|0x4);
+				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
 				Danmaku::instance()->clearPool();
 				danmV->setCurrentIndex(QModelIndex());
+				Danmaku::instance()->parse(0x2|0x4);
+				parentWidget()->update();
 			});
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 				QString filter=tr("Danmaku files (*.json)");
@@ -252,7 +259,7 @@ void Info::setDuration(qint64 _duration)
 		timeS->setRange(0,400);
 	}
 	else{
-		duration=100;
+		duration=-1;
 		timeS->setValue(0);
 		timeS->setRange(0,0);
 		durT->setText("00:00/00:00");

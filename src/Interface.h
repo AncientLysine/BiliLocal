@@ -34,7 +34,6 @@
 #include "Menu.h"
 #include "Info.h"
 #include "Utils.h"
-#include "Poster.h"
 #include "Config.h"
 #include "Printer.h"
 #include "VPlayer.h"
@@ -45,7 +44,7 @@ class Interface:public QWidget
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	void setCenter(QSize s,bool f);
+	void setCenter(QSize   s,bool f);
 	void setCenter(QString s,bool f);
 
 private:
@@ -70,7 +69,6 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Poster *poster;
 	Printer *printer;
 	VPlayer *vplayer;
 	Danmaku *danmaku;

@@ -32,22 +32,7 @@ Editor::Widget::Widget(QWidget *parent):
 	scale=0;
 	length=100;
 	current=VPlayer::instance()->getTime();
-	duration=VPlayer::instance()->getDuration();
-	const QList<Record> &pool=Danmaku::instance()->getPool();
-	for(const Record &line:pool){
-		bool f=true;
-		qint64 t;
-		for(const Comment &c:line.danmaku){
-			t=f?c.time:qMax(c.time,t);
-			f=false;
-		}
-		if(!f){
-			t+=5000-line.delay;
-			duration=qMax(duration,t);
-		}
-	}
-	magnet={0,current};
-	resize(width(),pool.count()*length);
+	load();
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
 		int i=p.y()/length;
@@ -55,11 +40,53 @@ Editor::Widget::Widget(QWidget *parent):
 		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
 			p.removeAt(i);
-			resize(width(),p.count()*length);
-			parentWidget()->update();
+			Danmaku::instance()->parse(0x1|0x2|0x4);
 		});
 		menu.exec(mapToGlobal(p));
 	});
+	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Widget::load);
+}
+
+void Editor::Widget::load()
+{
+	duration=VPlayer::instance()->getDuration();
+	const QList<Record> &pool=Danmaku::instance()->getPool();
+	for(QLineEdit *iter:time){
+		delete iter;
+	}
+	time.clear();
+	for(int i=0;i<pool.size();++i){
+		const Record &line=pool[i];
+		bool f=true;
+		qint64 t;
+		for(const Comment &c:line.danmaku){
+			t=f?c.time:qMax(c.time,t);
+			f=false;
+		}
+		if(!f){
+			duration=qMax(duration,t-line.delay);
+		}
+		QLineEdit *edit=new QLineEdit(Editor::tr("Delay: %1s").arg(line.delay/1000),this);
+		edit->setGeometry(0,73+i*length,98,25);
+		edit->setFrame(false);
+		edit->setAlignment(Qt::AlignCenter);
+		edit->show();
+		connect(edit,&QLineEdit::editingFinished,[this,edit](){
+			int index=time.indexOf(edit);
+			QRegExp regexp("-?\\d+");
+			const Record &r=Danmaku::instance()->getPool()[index];
+			if(regexp.indexIn(edit->text())!=-1){
+				delayRecord(index,regexp.cap().toInt()*1000-r.delay);
+			}
+			else{
+				edit->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
+			}
+		});
+		time.append(edit);
+	}
+	magnet={0,current,duration};
+	resize(width(),pool.count()*length);
+	parentWidget()->update();
 }
 
 void Editor::Widget::paintEvent(QPaintEvent *e)
@@ -73,11 +100,8 @@ void Editor::Widget::paintEvent(QPaintEvent *e)
 		const Record &r=Danmaku::instance()->getPool()[i];
 		int w=width()-100,h=i*length;
 		painter.fillRect(0,h,100-2,length-2,Qt::white);
-		QStringList text;
-		text<<QFileInfo(r.source).fileName();
-		text<<Editor::tr("Delay: %1s").arg(r.delay/1000);
-		painter.drawText(0,h,100-2,length-2,Qt::AlignCenter|Qt::TextWordWrap,text.join("\n"));
-		int m=0,d=5*duration/w;
+		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,QFileInfo(r.source).fileName());
+		int m=0,d=duration/(w/5)+1;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
 			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
@@ -125,6 +149,7 @@ void Editor::Widget::wheelEvent(QWheelEvent *e)
 		scale=0;
 	}
 	QWidget::wheelEvent(e);
+	e->accept();
 }
 
 void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
@@ -144,7 +169,7 @@ void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
 		auto &r=Danmaku::instance()->getPool()[point.y()/length];
 		qint64 d=(e->x()-point.x())*duration/w;
 		for(qint64 p:magnet){
-			if(qAbs(d+r.delay-p)<5*duration/w){
+			if(qAbs(d+r.delay-p)<duration/(w/5)+1){
 				d=p-r.delay;
 				break;
 			}
@@ -162,6 +187,7 @@ void Editor::Widget::delayRecord(int index,qint64 delay)
 		c.time+=delay;
 	}
 	update(0,index*length,width(),length);
+	time[index]->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
 }
 
 Editor::Editor(QWidget *parent):
@@ -173,22 +199,10 @@ Editor::Editor(QWidget *parent):
 	layout->addWidget(scroll);
 	scroll->setWidget(widget);
 	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	state=VPlayer::instance()->getState();
 	resize(640,450);
 	setMinimumSize(300,200);
 	setWindowTitle(tr("Editor"));
-	if(state==VPlayer::Play){
-		VPlayer::instance()->play();
-	}
 	Utils::setCenter(this);
-}
-
-Editor::~Editor()
-{
-	if(state==VPlayer::Play){
-		VPlayer::instance()->play();
-	}
-	Danmaku::instance()->parse(0x1);
 }
 
 void Editor::resizeEvent(QResizeEvent *e)

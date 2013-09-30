@@ -38,7 +38,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		QMessageBox::warning(parentWidget(),tr("Warning"),warning);
 		Config config(parentWidget(),1);
 		config.exec();
-		Danmaku::instance()->parse(0x2);
+		Danmaku::instance()->parse(0x2|0x4);
 	}
 	pageTxL=new QLabel(tr("Page"),this);
 	pageNuL=new QLabel(this);
@@ -171,8 +171,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 						pageNum=json["page"].toDouble();
 						pageNuL->setText(QString("/%1").arg(pageNum));
 					}
-					for(QJsonValue record:json["result"].toObject()){
-						QJsonObject item=record.toObject();
+					QJsonObject map=json["result"].toObject();
+					for(int i=0;i<map.count();++i){
+						QJsonObject item=map[QString::number(i)].toObject();
 						if(item["type"].toString()==QString("video")){
 							QStringList content={
 								"",
@@ -246,9 +247,9 @@ void Search::getData(int pageNum)
 	isWaiting=true;
 	statusL->setText(tr("Requesting"));
 	QNetworkRequest request;
-	QString order[]={"default","pubdate","senddate","ranklevel","click","scores","damku","stow"};
+	QString order[]={"default","pubdate","senddate","ranklevel","click","scores","dm","stow"};
 	QString apiUrl("http://api.bilibili.tv/search?type=json&appkey=%1&keyword=%2&page=%3&order=%4");
-	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString("0"))).arg(key).arg(pageNum).arg(order[orderC->currentIndex()])));
+	request.setUrl(QUrl(apiUrl.arg(Utils::getConfig("/Playing/Appkey",QString())).arg(key).arg(pageNum).arg(order[orderC->currentIndex()])));
 	manager->get(request);
 }
 

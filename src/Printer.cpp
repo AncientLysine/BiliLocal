@@ -63,7 +63,6 @@ Printer::Printer(QWidget *parent):
 		}
 	});
 	connect(delay,&QTimer::timeout,this,&Printer::fadeOut);
-	connect(this,SIGNAL(receive(QString)),this,SLOT(process(QString)));
 	effect=new QGraphicsOpacityEffect(this);
 	effect->setOpacity(0.0);
 	setGraphicsEffect(effect);
@@ -71,8 +70,10 @@ Printer::Printer(QWidget *parent):
 	f.setPointSize(10);
 	setFont(f);
 	hide();
-	stream.setDevice(new QFile("Log.txt",this));
-	stream.device()->open(QIODevice::Append|QIODevice::Text);
+	if(Utils::getConfig("/Interface/Debug",false)){
+		stream.setDevice(new QFile("Log.txt",this));
+		stream.device()->open(QIODevice::Append|QIODevice::Text);
+	}
 }
 
 void Printer::paintEvent(QPaintEvent *e)
@@ -101,10 +102,11 @@ void Printer::process(QString content)
 {
 	if(Utils::getConfig("/Interface/Debug",false)){
 		fadeIn();
+		content=content.trimmed();
 		list.prepend(content);
 		update();
 		delay->start(8000);
-		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content).trimmed()<<endl;
+		stream<<(QString("[%1]").arg(QTime::currentTime().toString("hh:mm:ss.zzz"))+content)<<endl;
 	}
 }
 
