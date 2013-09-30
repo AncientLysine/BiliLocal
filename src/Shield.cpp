@@ -93,9 +93,9 @@ bool Shield::isBlocked(const Comment &comment)
 			return true;
 		}
 	}
+	QString clean=comment.string;
+	clean.remove(QRegExp("\\W"));
 	for(const QString &c:shieldC){
-		QString clean=comment.string;
-		clean.remove(QRegExp("\\W"));
 		if(clean.indexOf(c)!=-1){
 			return true;
 		}

@@ -106,7 +106,7 @@ void Printer::process(QString content)
 		list.prepend(content);
 		update();
 		delay->start(8000);
-		stream<<(QString("[%1]").arg(QDateTime::currentDateTime().toString("hh:mm:ss.zzz"))+content)<<endl;
+		stream<<(QString("[%1]").arg(QTime::currentTime().toString("hh:mm:ss.zzz"))+content)<<endl;
 	}
 }
 

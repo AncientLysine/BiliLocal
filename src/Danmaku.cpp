@@ -233,6 +233,7 @@ void Danmaku::setTime(qint64 _time)
 		const Comment &comment=*danmaku[cur];
 		if(!cache[comment]){
 			appendToCurrent(comment);
+			qApp->processEvents();
 		}
 	}
 }
@@ -325,7 +326,6 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	if(comment.mode==1&&l!=0&&current[0].size()>l){
 		return;
 	}
-	qApp->processEvents();
 	QFont font;
 	font.setBold(Utils::getConfig("/Danmaku/Effect",1)%2);
 	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
