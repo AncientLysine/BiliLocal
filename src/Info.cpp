@@ -108,14 +108,13 @@ Info::Info(QWidget *parent):
 	header->setSectionResizeMode(1,QHeaderView::Stretch);
 	header->setHighlightSections(false);
 	resizeHeader();
-	connect(Danmaku::instance(),&QAbstractItemModel::layoutChanged,this,&Info::resizeHeader);
+	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Info::resizeHeader);
 	connect(danmV,&QWidget::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
-		QModelIndex index=danmV->currentIndex();
-		if(index.isValid()){
-			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this,index](){
+		if(danmV->currentIndex().isValid()){
+			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this](){
 				QList<QString> &list=Shield::shieldU;
-				QString sender=index.data(Qt::UserRole).toString();
+				QString sender=danmV->currentIndex().data(Qt::UserRole).toString();
 				if(!sender.isEmpty()&&!list.contains(sender)){
 					list.append(sender);
 				}
@@ -139,8 +138,6 @@ Info::Info(QWidget *parent):
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
 				Danmaku::instance()->clearPool();
-				danmV->setCurrentIndex(QModelIndex());
-				Danmaku::instance()->parse(0x2|0x4);
 				parentWidget()->update();
 			});
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){

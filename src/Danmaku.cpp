@@ -172,7 +172,7 @@ void Danmaku::clearPool()
 	clearCurrent();
 	pool.clear();
 	danmaku.clear();
-	emit layoutChanged();
+	parse(0x1|0x2|0x4);
 }
 
 void Danmaku::clearCurrent()
@@ -185,6 +185,7 @@ void Danmaku::clearCurrent()
 void Danmaku::parse(int flag)
 {
 	if((flag&0x1)>0){
+		beginResetModel();
 		danmaku.clear();
 		for(const auto &record:pool){
 			for(const auto &comment:record.danmaku){
@@ -193,6 +194,7 @@ void Danmaku::parse(int flag)
 		}
 		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
 		jumpToTime(time);
+		endResetModel();
 	}
 	if((flag&0x2)>0){
 		Shield::shieldC.clear();
