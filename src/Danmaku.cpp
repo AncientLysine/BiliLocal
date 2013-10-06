@@ -28,6 +28,110 @@
 
 Danmaku *Danmaku::ins=NULL;
 
+static double evaluate(QString exp)
+{
+	auto Operator=[](QChar o){
+		switch(o.toLatin1())
+		{
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+			return 1;
+		default:
+			return 0;
+		}
+	};
+
+	auto Priority=[](QChar o){
+		switch(o.toLatin1())
+		{
+		case '(':
+			return 1;
+		case '+':
+		case '-':
+			return 2;
+		case '*':
+		case '/':
+			return 3;
+		default:
+			return 0;
+		}
+	};
+
+	QString pst;
+	QStack<QChar> opt;
+	int i=0;
+	opt.push('#');
+	while(i<exp.length()){
+		if(exp[i].isDigit()||exp[i]=='.'){
+			pst.append(exp[i]);
+		}
+		else if(exp[i]=='('){
+			opt.push(exp[i]);
+		}
+		else if(exp[i]==')'){
+			while(opt.top()!='('){
+				pst.append(opt.pop());
+			}
+			opt.pop();
+		}
+		else if(Operator(exp[i])){
+			pst.append(' ');
+			while(Priority(exp[i])<=Priority(opt.top())){
+				pst.append(opt.pop());
+			}
+			opt.push(exp[i]);
+		}
+		i++;
+	}
+	while(!opt.isEmpty()){
+		pst.append(opt.pop());
+	}
+	QStack<double> num;
+	i=0;
+	while(pst[i]!='#'){
+		if(pst[i].isDigit()||pst[i]=='.'){
+			double n=0;
+			while(pst[i].isDigit()){
+				n=n*10+pst[i++].toLatin1()-'0';
+			}
+			if(pst[i]=='.'){
+				++i;
+				double d=1;
+				while(pst[i].isDigit()){
+					n+=(d/=10)*(pst[i++].toLatin1()-'0');
+				}
+			}
+			num.push(n);
+		}
+		else if(pst[i]==' '){
+			i++;
+		}
+		else if(pst[i]=='+'){
+			double r=num.pop(),l=num.pop();
+			num.push(l+r);
+			i++;
+		}
+		else if(pst[i]=='-'){
+			double r=num.pop(),l=num.pop();
+			num.push(l-r);
+			i++;
+		}
+		else if(pst[i]=='*'){
+			double r=num.pop(),l=num.pop();
+			num.push(l*r);
+			i++;
+		}
+		else if(pst[i]=='/'){
+			double r=num.pop(),l=num.pop();
+			num.push(l/r);
+			i++;
+		}
+	}
+	return num.top();
+}
+
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
@@ -343,7 +447,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	{
 		QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		render.speed=engine.evaluate(exp).toNumber();
+		render.speed=evaluate(exp);
 		render.rect=QRectF(QPointF(0,0),bound);
 		render.rect.moveLeft(size.width());
 		int limit=size.height()-(sub?80:0)-render.rect.height();
@@ -366,7 +470,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	{
 		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		render.life=engine.evaluate(exp).toNumber();
+		render.life=evaluate(exp);
 		render.rect=QRectF(QPointF(0,0),bound);
 		render.rect.moveCenter(QPoint(size.width()/2,0));
 		int limit=render.rect.height();
@@ -389,7 +493,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	{
 		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		render.life=engine.evaluate(exp).toNumber();
+		render.life=evaluate(exp);
 		render.rect=QRectF(QPointF(0,0),bound);
 		render.rect.moveCenter(QPoint(size.width()/2,0));
 		int limit=size.height()-(sub?80:0)-render.rect.height();

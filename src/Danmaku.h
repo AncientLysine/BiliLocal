@@ -27,11 +27,11 @@
 #ifndef DANMAKU_H
 #define DANMAKU_H
 
-#include <QtQml>
 #include <QtGui>
 #include <QtCore>
 #include "Utils.h"
 #include "Shield.h"
+#include "Printer.h"
 
 class Danmaku:public QAbstractItemModel
 {
@@ -54,7 +54,6 @@ private:
 	QTime last;
 	QSize size;
 	qint64 time;
-	QJSEngine engine;
 	QList<Record> pool;
 	struct Static
 	{

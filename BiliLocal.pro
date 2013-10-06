@@ -3,7 +3,6 @@ QT += \
     gui \
     widgets \
     network \
-    qml
 
 TARGET = BiliLocal
 
