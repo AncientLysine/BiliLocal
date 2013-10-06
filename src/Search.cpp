@@ -196,7 +196,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 				}
 				else{
 					if(json["error"].toString()=="overspeed"){
-						Utils::delayExec(2000,[this](){getData(pageCur);});
+						QPointer<Search> ptr(this);
+						Utils::delayExec(2000,[ptr](){
+							if(!ptr.isNull()){
+								ptr->getData(ptr->pageCur);
+							}
+						});
 						isWaiting=true;
 					}
 					else{
