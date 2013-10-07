@@ -45,10 +45,8 @@ public:
 
 private:
 	bool isPop;
-	bool isTurn;
 	bool opened;
 	bool playing;
-	bool sliding;
 	bool updating;
 	qint64 duration;
 

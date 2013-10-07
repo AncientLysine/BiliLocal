@@ -33,7 +33,6 @@ Info::Info(QWidget *parent):
 	isPop=false;
 	opened=false;
 	playing=false;
-	sliding=false;
 	updating=false;
 	setAutoFillBackground(true);
 	Utils::setBack(this,Qt::white);
@@ -62,8 +61,6 @@ Info::Info(QWidget *parent):
 			emit time(duration*_time/400);
 		}
 	});
-	connect(timeS,&QSlider::sliderPressed, [this](){sliding=true;});
-	connect(timeS,&QSlider::sliderReleased,[this](){sliding=false;});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
 		Utils::setConfig("Playing/Volume",_volm);
 		emit volume(_volm);
@@ -216,10 +213,10 @@ void Info::resizeHeader()
 
 void Info::setTime(qint64 _time)
 {
-	if(!sliding){
-		updating=true;
+	if(!timeS->isSliderDown()){
+		updating=1;
 		timeS->setValue(_time*400/duration);
-		updating=false;
+		updating=0;
 	}
 	int c=_time/1000;
 	int s=duration/1000;
