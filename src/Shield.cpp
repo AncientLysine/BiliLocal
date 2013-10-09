@@ -29,7 +29,6 @@
 bool Shield::block[6];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
-QList<QString> Shield::shieldC;
 
 void Shield::init()
 {
@@ -83,20 +82,11 @@ bool Shield::isBlocked(const Comment &comment)
 			return true;
 		}
 	}
-	for(const QString &n:shieldU){
-		if(n==comment.sender){
-			return true;
-		}
+	if(shieldU.contains(comment.sender)){
+		return true;
 	}
 	for(const QRegExp &r:shieldR){
 		if(r.indexIn(comment.string)!=-1){
-			return true;
-		}
-	}
-	QString clean=comment.string;
-	clean.remove(QRegExp("\\W"));
-	for(const QString &c:shieldC){
-		if(clean.indexOf(c)!=-1){
 			return true;
 		}
 	}

@@ -75,6 +75,7 @@ signals:
 public slots:
 	void pop();
 	void push();
+	void trigger();
 	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);

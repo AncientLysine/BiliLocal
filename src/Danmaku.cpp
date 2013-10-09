@@ -316,7 +316,7 @@ void Danmaku::clearPool()
 	clearCurrent();
 	pool.clear();
 	danmaku.clear();
-	parse(0x1|0x2|0x4);
+	parse(0x1|0x2);
 }
 
 void Danmaku::clearCurrent()
@@ -341,27 +341,37 @@ void Danmaku::parse(int flag)
 		endResetModel();
 	}
 	if((flag&0x2)>0){
-		Shield::shieldC.clear();
-		double l=Utils::getConfig("/Shield/Limit",0.005);
+		cache.clear();
+		QSet<QString> set;
+		int l=Utils::getConfig("/Shield/Limit",5);
+		QVector<QString> clean;
 		if(l!=0){
-			l=qMax<int>(4,l*danmaku.size());
-			QHash<QString,int> c;
-			for(const Comment *com:danmaku){
-				QString clean=com->string;
-				clean.remove(QRegExp("\\W"));
-				c[clean]=c.value(clean,0)+1;
+			QRegExp r("\\W");
+			for(const Comment *c:danmaku){
+				clean.append(QString(c->string).remove(r));
 			}
-			for(const QString &k:c.keys()){
-				if(!k.isEmpty()&&c[k]>l){
-					Shield::shieldC.append(k);
+			QHash<QString,int> count;
+			int sta=0,end=sta;
+			while(end!=danmaku.size()){
+				while(danmaku[sta]->time+10000<danmaku[end]->time){
+					if(--count[clean[sta]]==0){
+						count.remove(clean[sta]);
+					}
+					++sta;
+				}
+				if(++count[clean[end]]>l){
+					set.insert(clean[end]);
+				}
+				if(++end%50==0){
+					qApp->processEvents();
 				}
 			}
 		}
-	}
-	if((flag&0x4)>0){
-		cache.clear();
-		for(const Comment *c:danmaku){
-			cache[*c]=Shield::isBlocked(*c);
+		for(int i=0;i<danmaku.size();++i){
+			cache[*danmaku[i]]=(l==0?false:set.contains(clean[i]))||Shield::isBlocked(*danmaku[i]);
+			if(i%50==0){
+				qApp->processEvents();
+			}
 		}
 	}
 	emit layoutChanged();
@@ -434,7 +444,7 @@ void Danmaku::appendToPool(const Record &record)
 			append->danmaku.append(c);
 		}
 	}
-	parse(0x1|0x2|0x4);
+	parse(0x1|0x2);
 }
 
 void Danmaku::appendToCurrent(const Comment &comment)

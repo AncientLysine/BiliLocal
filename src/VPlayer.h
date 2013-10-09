@@ -82,7 +82,6 @@ private:
 signals:
 	void begin();
 	void reach();
-	void paused();
 	void decode();
 	void jumped(qint64 _time);
 

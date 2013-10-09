@@ -40,7 +40,7 @@ Editor::Widget::Widget(QWidget *parent):
 		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
 			p.removeAt(i);
-			Danmaku::instance()->parse(0x1|0x2|0x4);
+			Danmaku::instance()->parse(0x1|0x2);
 		});
 		menu.exec(mapToGlobal(p));
 	});

@@ -37,7 +37,6 @@ public:
 	static bool block[6];
 	static QList<QString> shieldU;
 	static QList<QRegExp> shieldR;
-	static QList<QString> shieldC;
 	static void init();
 	static void free();
 	static bool isBlocked(const Comment &comment);

@@ -150,7 +150,6 @@ Interface::Interface(QWidget *parent):
 			}
 			sub->addActions(group->actions());
 		}
-		snapA->setEnabled(true);
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
@@ -161,7 +160,6 @@ Interface::Interface(QWidget *parent):
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		info->setDuration(-1);
-		snapA->setEnabled(false);
 		sub->clear();
 		sub->setEnabled(false);
 		rat->defaultAction()->setChecked(true);
@@ -178,7 +176,6 @@ Interface::Interface(QWidget *parent):
 			update();
 		}
 	});
-	connect(vplayer,&VPlayer::paused,[this](){update();});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -234,27 +231,9 @@ Interface::Interface(QWidget *parent):
 	addAction(toggA);
 	connect(toggA,&QAction::toggled,[this](bool b){
 		Shield::block[5]=b;
-		danmaku->parse(0x4);
+		danmaku->parse(0x2);
 		danmaku->clearCurrent();
 		update();
-	});
-
-	snapA=new QAction(tr("Snapshot"),this);
-	snapA->setEnabled(false);
-	snapA->setShortcut(QKeySequence("Ctrl+P"));
-	addAction(snapA);
-	connect(snapA,&QAction::triggered,[this](){
-		QPixmap buffer(size());
-		QPainter painter(&buffer);
-		vplayer->draw(&painter,rect());
-		danmaku->draw(&painter,false);
-		QDir::current().mkdir("snapshot");
-		QString path="./snapshot/snap_%1.png";
-		path=path.arg(QDateTime::currentDateTime().toString("MM-dd-hh-mm-ss"));
-		if(!buffer.save(path)){
-			path.clear();
-		}
-		Printer::instance()->append(QString("[VPlayer]%1").arg(path.isEmpty()?"Snapshotting Failed":path));
 	});
 
 	confA=new QAction(tr("Config"),this);
@@ -263,7 +242,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
-		danmaku->parse(0x2|0x4);
+		danmaku->parse(0x2);
 	});
 
 	top=new QMenu(this);
@@ -329,7 +308,6 @@ Interface::Interface(QWidget *parent):
 	top->addMenu(sub);
 	top->addMenu(sca);
 	top->addMenu(rat);
-	top->addAction(snapA);
 	top->addAction(confA);
 	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
@@ -430,23 +408,6 @@ void Interface::paintEvent(QPaintEvent *e)
 	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
-	painter.setRenderHint(QPainter::Antialiasing);
-	if(vplayer->getState()==VPlayer::Pause){
-		painter.setPen(QPen(QBrush(),0));
-		QRect r=rect();
-		double l=((r.bottomLeft()-r.center())*0.1).manhattanLength();
-		QRect s(r.bottomLeft()+QPoint(0.5*l,-1.5*l),QSize(l,l));
-		painter.setBrush(QBrush(QColor(0,0,0,80)));
-		painter.drawRoundedRect(s,5,5);
-		QPolygon p;
-		double h=l/4;
-		QPoint c=s.center()+QPoint(0.2*h,0);
-		p.append(c+QPoint(h,0));
-		p.append(c+QPoint(-h,+h));
-		p.append(c+QPoint(-h,-h));
-		painter.setBrush(QBrush(QColor(255,255,255,100)));
-		painter.drawPolygon(p);
-	}
 	painter.end();
 	QWidget::paintEvent(e);
 }

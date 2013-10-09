@@ -38,7 +38,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		QMessageBox::warning(parentWidget(),tr("Warning"),warning);
 		Config config(parentWidget(),1);
 		config.exec();
-		Danmaku::instance()->parse(0x2|0x4);
+		Danmaku::instance()->parse(0x2);
 	}
 	pageTxL=new QLabel(tr("Page"),this);
 	pageNuL=new QLabel(this);
@@ -225,10 +225,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 			error(reply->error());
 		}
 	});
-
-	auto quitSC=new QShortcut(this);
-	quitSC->setKey(QString("Ctrl+Q"));
-	connect(quitSC,&QShortcut::activated,this,&QWidget::close);
 }
 
 void Search::setKey(QString _key)

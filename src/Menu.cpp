@@ -190,7 +190,7 @@ Menu::Menu(QWidget *parent) :
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
-			Printer::instance()->append(QString("[Danmaku]Error %1").arg(code));
+			Printer::instance()->append(QString("[Danmaku]error %1").arg(code));
 			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(code));
 		};
 
@@ -252,8 +252,8 @@ Menu::Menu(QWidget *parent) :
 				if(url.endsWith("json")){
 					load=ac(reply->readAll());
 				}
-				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.size()));
 				Danmaku::instance()->appendToPool(Record(url,load));
+				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.size()));
 			}
 			else if(url.startsWith("http://www.bilibili.tv/")){
 				bool flag=true;

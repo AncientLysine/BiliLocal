@@ -115,13 +115,13 @@ Info::Info(QWidget *parent):
 				if(!sender.isEmpty()&&!list.contains(sender)){
 					list.append(sender);
 				}
-				Danmaku::instance()->parse(0x4);
+				Danmaku::instance()->parse(0x2);
 			});
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(parentWidget(),2);
 			config.exec();
-			Danmaku::instance()->parse(0x2|0x4);
+			Danmaku::instance()->parse(0x2);
 		});
 		if(danmV->model()->rowCount()){
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
@@ -130,7 +130,7 @@ Info::Info(QWidget *parent):
 				Editor *editor=new Editor(parentWidget());
 				editor->exec();
 				delete editor;
-				Danmaku::instance()->parse(0x1|0x2|0x4);
+				Danmaku::instance()->parse(0x1|0x2);
 				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
@@ -177,6 +177,11 @@ void Info::push()
 		isPop=false;
 		parentWidget()->setFocus();
 	}
+}
+
+void Info::trigger()
+{
+	playA->trigger();
 }
 
 void Info::terminate()

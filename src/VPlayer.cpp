@@ -243,13 +243,7 @@ void VPlayer::play()
 		}
 		else{
 			libvlc_media_player_pause(mp);
-			if(state==Play){
-				state=Pause;
-				emit paused();
-			}
-			else{
-				state=Play;
-			}
+			state=state==Play?Pause:Play;
 		}
 	}
 }
