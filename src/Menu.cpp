@@ -314,7 +314,7 @@ Menu::Menu(QWidget *parent) :
 					if(url.indexOf("_")==-1){
 						int sta;
 						if((sta=video.indexOf("<div id=\"area-pager\""))!=-1){
-							int len=video.indexOf("<a id=\"pager-more\"",sta)-sta+1;
+							int len=video.indexOf("</div>",sta)-sta+1;
 							len=len<0?0:len;
 							QString select=video.mid(sta,len);
 							QRegExp regex("href\\=\"[^\"]+");
