@@ -32,8 +32,6 @@
 #include <QtWidgets>
 #include <QtNetwork>
 #include "Utils.h"
-#include "Config.h"
-#include "Danmaku.h"
 
 class Search:public QDialog
 {
@@ -50,6 +48,7 @@ private:
 	QLineEdit *keywE;
 	QLineEdit *pageE;
 	QComboBox *orderC;
+	QComboBox *sitesC;
 	QPushButton *okB;
 	QPushButton *ccB;
 	QPushButton *searchB;
@@ -62,6 +61,11 @@ private:
 
 	QString key;
 	QString aid;
+
+	static QVector<const char *> AcOrder;
+	static QVector<const char *> BiOrder;
+	static QHash<int,QString> AcFunChannel;
+
 	int pageNum=-1;
 	int pageCur=-1;
 	bool isWaiting=false;
@@ -70,6 +74,7 @@ private:
 
 public slots:
 	void setKey(QString _key);
+	void setSite();
 	void startSearch();
 	void clearSearch();
 

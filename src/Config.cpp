@@ -202,17 +202,6 @@ Config::Config(QWidget *parent,int index):
 		ui[3]->setLayout(b);
 		lines->addWidget(ui[3]);
 
-		auto k=new QHBoxLayout;
-		appk=new QLineEdit(widget[1]);
-		appk->setText(Utils::getConfig("/Playing/Appkey",QString()));
-		connect(appk,&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Playing/Appkey",appk->text());
-		});
-		k->addWidget(appk);
-		ui[4]=new QGroupBox(tr("bilibili appkey"),widget[1]);
-		ui[4]->setLayout(k);
-		lines->addWidget(ui[4]);
-
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
 	}

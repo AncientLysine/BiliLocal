@@ -100,7 +100,7 @@ Menu::Menu(QWidget *parent) :
 			searchBox.setKey(sechL->text());
 		}
 		if(searchBox.exec()) {
-			setDanmaku("av"+searchBox.getAid());
+			setDanmaku(searchBox.getAid());
 		}
 		sechL->setText(searchBox.getKey());
 	});
