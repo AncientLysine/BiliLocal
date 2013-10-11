@@ -186,7 +186,7 @@ QMap<int,QString> VPlayer::getSubtitles()
 void VPlayer::setFrame(bool force)
 {
 	if(state!=Pause||force){
-		mutex.lock();
+		size.lock();
 		if(dstSize!=guiSize){
 			dstSize=guiSize;
 			avpicture_free (dstFrame);
@@ -197,8 +197,10 @@ void VPlayer::setFrame(bool force)
 									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
 									SWS_FAST_BILINEAR,NULL,NULL,NULL);
 		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
+		size.unlock();
+		data.lock();
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
-		mutex.unlock();
+		data.unlock();
 		emit decode();
 		QMetaObject::invokeMethod(this,"setLoop");
 	}
@@ -206,9 +208,9 @@ void VPlayer::setFrame(bool force)
 
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
-	mutex.lock();
+	data.lock();
 	painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
-	mutex.unlock();
+	data.unlock();
 }
 
 void VPlayer::play()
@@ -276,7 +278,7 @@ void VPlayer::setLoop()
 void VPlayer::setSize(QSize _size)
 {
 	if(state==Play||state==Pause){
-		mutex.lock();
+		size.lock();
 		if(ratio>0){
 			int w=qMin<int>(_size.width(),_size.height()*ratio);
 			guiSize=QSize(w,w/ratio);
@@ -287,7 +289,7 @@ void VPlayer::setSize(QSize _size)
 		guiSize/=4;
 		guiSize*=4;
 		bool flag=guiSize!=dstSize&&state==Pause;
-		mutex.unlock();
+		size.unlock();
 		if(flag){
 			setFrame(true);
 		}

@@ -63,7 +63,8 @@ public:
 private:
 	int state;
 	double ratio;
-	QMutex mutex;
+	QMutex data;
+	QMutex size;
 	QSize srcSize;
 	QSize dstSize;
 	QSize guiSize;

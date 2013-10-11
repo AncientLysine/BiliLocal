@@ -48,6 +48,14 @@ static void setDefaultFont()
 	qApp->setFont(f);
 }
 
+static void setToolTipBase()
+{
+	QPalette tip=qApp->palette();
+	tip.setColor(QPalette::Inactive,QPalette::ToolTipBase,Qt::white);
+	qApp->setPalette(tip);
+	QToolTip::setPalette(tip);
+}
+
 int main(int argc,char *argv[])
 {
 	QApplication::setStyle("Fusion");
@@ -63,6 +71,7 @@ int main(int argc,char *argv[])
 	Utils::loadConfig();
 	Shield::init();
 	setDefaultFont();
+	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
 		Shield::free();
 		Utils::saveConfig();

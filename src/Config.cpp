@@ -109,7 +109,9 @@ Config::Config(QWidget *parent,int index):
 		effect->addItem(tr("Stroke")+"&"+tr("Bold"));
 		effect->addItem(tr("Projection"));
 		effect->addItem(tr("Projection")+"&"+tr("Bold"));
-		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",1));
+		effect->addItem(tr("Shadow"));
+		effect->addItem(tr("Shadow")+"&"+tr("Bold"));
+		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",5));
 		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig("/Danmaku/Effect",i);
 		});

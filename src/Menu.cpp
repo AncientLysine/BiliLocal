@@ -101,6 +101,9 @@ Menu::Menu(QWidget *parent) :
 		}
 		if(searchBox.exec()) {
 			setDanmaku(searchBox.getAid());
+			if(!rect().contains(mapFromGlobal(QCursor::pos()))){
+				QCursor::setPos(danmB->mapToGlobal(danmB->rect().center()));
+			}
 		}
 		sechL->setText(searchBox.getKey());
 	});
@@ -439,8 +442,8 @@ void Menu::setFile(QString _file)
 	fileL->setText(file.fileName());
 	Utils::setConfig("/Playing/Path",file.absolutePath());
 	emit open(QDir::toNativeSeparators(file.absoluteFilePath()));
-	if(Utils::getConfig("/Danmaku/Local",false)&&Danmaku::instance()->rowCount()==0){
-		bool only=Utils::getConfig("/Playing/Clear",true);
+	bool only=Utils::getConfig("/Playing/Clear",true);
+	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){
 			QString suffix=info.suffix();
 			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){

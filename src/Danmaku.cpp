@@ -263,7 +263,15 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			return Qt::AlignCenter;
 		}
 		if(role==Qt::UserRole){
-			return comment.sender;
+			QJsonObject c;
+			c["mode"]=comment.mode;
+			c["font"]=comment.font;
+			c["time"]=(double)comment.time;
+			c["date"]=(double)comment.date;
+			c["color"]=comment.color;
+			c["sender"]=comment.sender;
+			c["string"]=comment.string;
+			return c;
 		}
 	}
 	return QVariant();
@@ -447,6 +455,57 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
+class QPixmapFilterPrivate;
+class Q_WIDGETS_EXPORT QPixmapFilter : public QObject
+{
+	Q_OBJECT
+	Q_DECLARE_PRIVATE(QPixmapFilter)
+public:
+	virtual ~QPixmapFilter() = 0;
+
+	enum FilterType {
+		ConvolutionFilter,
+		ColorizeFilter,
+		DropShadowFilter,
+		BlurFilter,
+
+		UserFilter = 1024
+	};
+
+	FilterType type() const;
+
+	virtual QRectF boundingRectFor(const QRectF &rect) const;
+
+	virtual void draw(QPainter *painter, const QPointF &p, const QPixmap &src, const QRectF &srcRect = QRectF()) const = 0;
+
+protected:
+	QPixmapFilter(QPixmapFilterPrivate &d, FilterType type, QObject *parent);
+	QPixmapFilter(FilterType type, QObject *parent);
+};
+class QPixmapDropShadowFilterPrivate;
+class Q_WIDGETS_EXPORT QPixmapDropShadowFilter : public QPixmapFilter
+{
+	Q_OBJECT
+	Q_DECLARE_PRIVATE(QPixmapDropShadowFilter)
+
+public:
+	QPixmapDropShadowFilter(QObject *parent = 0);
+	~QPixmapDropShadowFilter();
+
+	QRectF boundingRectFor(const QRectF &rect) const;
+	void draw(QPainter *p, const QPointF &pos, const QPixmap &px, const QRectF &src = QRectF()) const;
+
+	qreal blurRadius() const;
+	void setBlurRadius(qreal radius);
+
+	QColor color() const;
+	void setColor(const QColor &color);
+
+	QPointF offset() const;
+	void setOffset(const QPointF &offset);
+	inline void setOffset(qreal dx, qreal dy) { setOffset(QPointF(dx, dy)); }
+};
+
 void Danmaku::appendToCurrent(const Comment &comment)
 {
 	auto intersects=[](const Static &first,const Static &second){
@@ -483,7 +542,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 		return;
 	}
 	QFont font;
-	font.setBold(Utils::getConfig("/Danmaku/Effect",1)%2);
+	font.setBold(Utils::getConfig("/Danmaku/Effect",5)%2);
 	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
 	font.setPixelSize(Utils::getConfig("/Danmaku/Scale",1.0)*comment.font);
 	QStaticText text;
@@ -580,21 +639,38 @@ void Danmaku::appendToCurrent(const Comment &comment)
 			painter.drawStaticText(p+=QPoint(2,2),text);
 		};
 		int color=comment.color;
-		QColor edge=qGray(color)<50?Qt::white:Qt::black;
-		switch(Utils::getConfig("/Danmaku/Effect",1)/2){
+		QColor edge=qGray(color)<30?Qt::white:Qt::black;
+		switch(Utils::getConfig("/Danmaku/Effect",5)/2){
 		case 0:
 			draw(edge,QPoint(+1,0));
 			draw(edge,QPoint(-1,0));
 			draw(edge,QPoint(0,+1));
 			draw(edge,QPoint(0,-1));
+			draw(color,QPoint(0,0));
+			painter.end();
 			break;
 		case 1:
 			draw(edge,QPoint(2,2));
 			draw(edge,QPoint(1,1));
+			draw(color,QPoint(0,0));
+			painter.end();
+			break;
+		case 2:
+		{
+			draw(color,QPoint(0,0));
+			painter.end();
+			QPixmap src=fst;
+			fst.fill(Qt::transparent);
+			painter.begin(&fst);
+			QPixmapDropShadowFilter f(this);
+			f.setColor(edge);
+			f.setOffset(0,0);
+			f.setBlurRadius(5);
+			f.draw(&painter,QPointF(),src);
+			painter.end();
 			break;
 		}
-		draw(color,QPoint(0,0));
-		painter.end();
+		}
 		QPixmap sec(bound);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
