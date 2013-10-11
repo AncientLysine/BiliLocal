@@ -373,6 +373,7 @@ Config::Config(QWidget *parent,int index):
 		}
 		Shield::shieldU=sm->stringList();
 	});
+	setMinimumWidth(540);
 	resize(540,outer->minimumSize().height());
 	Utils::setCenter(this);
 }

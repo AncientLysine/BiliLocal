@@ -281,7 +281,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						row->setText(4,item.mid(sta,end-sta));
 						sta=end+8;
 						end=item.indexOf("</div>",sta);
-						row->setText(3,item.mid(sta,end-sta).remove(QRegularExpression("<.*>")));
+						row->setText(3,item.mid(sta,end-sta).remove(QRegularExpression("<.*?>")));
 						sta=item.indexOf("class=\"upper\"",end);
 						sta=item.indexOf("\">",sta)+2;
 						end=item.indexOf("</a>",sta);

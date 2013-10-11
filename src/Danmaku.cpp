@@ -647,30 +647,34 @@ void Danmaku::appendToCurrent(const Comment &comment)
 			draw(edge,QPoint(0,+1));
 			draw(edge,QPoint(0,-1));
 			draw(color,QPoint(0,0));
-			painter.end();
 			break;
 		case 1:
 			draw(edge,QPoint(2,2));
 			draw(edge,QPoint(1,1));
 			draw(color,QPoint(0,0));
-			painter.end();
 			break;
 		case 2:
 		{
 			draw(color,QPoint(0,0));
 			painter.end();
-			QPixmap src=fst;
-			fst.fill(Qt::transparent);
-			painter.begin(&fst);
+			QPixmap src;
 			QPixmapDropShadowFilter f(this);
 			f.setColor(edge);
 			f.setOffset(0,0);
-			f.setBlurRadius(5);
+			f.setBlurRadius(4);
+			src=fst;
+			fst.fill(Qt::transparent);
+			painter.begin(&fst);
 			f.draw(&painter,QPointF(),src);
 			painter.end();
+			src=fst;
+			fst.fill(Qt::transparent);
+			painter.begin(&fst);
+			f.draw(&painter,QPointF(),src);
 			break;
 		}
 		}
+		painter.end();
 		QPixmap sec(bound);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
