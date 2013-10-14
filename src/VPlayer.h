@@ -44,7 +44,7 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause,Source,Scaled,Destinate};
+	enum {Stop,Play,Pause,Loop,Source,Scaled,Destinate};
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
@@ -83,14 +83,15 @@ private:
 signals:
 	void begin();
 	void reach();
+	void reset();
 	void decode();
 	void jumped(qint64 _time);
 
 public slots:
 	void play();
-	void open();
 	void stop();
-	void setLoop();
+	void open();
+	void free();
 	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void setFile(QString _file);

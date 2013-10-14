@@ -31,9 +31,9 @@ Menu::Menu(QWidget *parent) :
 	QWidget(parent)
 {
 	isPop=false;
-	isTurn=false;
+	isStay=false;
 	setAutoFillBackground(true);
-	Utils::setBack(this,Qt::white);
+	Utils::setGround(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
@@ -101,9 +101,7 @@ Menu::Menu(QWidget *parent) :
 		}
 		if(searchBox.exec()) {
 			setDanmaku(searchBox.getAid());
-			if(!rect().contains(mapFromGlobal(QCursor::pos()))){
-				QCursor::setPos(danmB->mapToGlobal(danmB->rect().center()));
-			}
+			isStay=true;
 		}
 		sechL->setText(searchBox.getKey());
 	});
@@ -134,7 +132,7 @@ Menu::Menu(QWidget *parent) :
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
-	Utils::delayExec(0,[this](){setPower(Utils::getConfig("/Danmaku/Power",80));});
+	Utils::delayExec(this,0,[this](){setPower(Utils::getConfig("/Danmaku/Power",80));});
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -150,7 +148,7 @@ Menu::Menu(QWidget *parent) :
 	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
 	localC->setGeometry(QRect(168,240,25,25));
-	Utils::delayExec(0,[this](){localC->setChecked(Utils::getConfig("/Danmaku/Local",false));});
+	Utils::delayExec(this,0,[this](){localC->setChecked(Utils::getConfig("/Danmaku/Local",false));});
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		if(state==Qt::Checked){
 			danmL->setText("");
@@ -192,9 +190,9 @@ Menu::Menu(QWidget *parent) :
 
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
-			QString info=tr("Network error occurred, error code: %1");
-			Printer::instance()->append(QString("[Danmaku]error %1").arg(code));
-			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(code));
+			isStay=false;
+			Printer::instance()->append(QString("[Danmaku]network error %1").arg(code));
+			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(code));
 		};
 
 		auto bi=[](const QByteArray &data){
@@ -246,8 +244,10 @@ Menu::Menu(QWidget *parent) :
 			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(redirect.isValid()){
 				reply->manager()->get(QNetworkRequest(redirect));
+				return;
 			}
-			else if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
+			isStay=false;
+			if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
 				QList<Comment> load;
 				if(url.endsWith("xml")){
 					load=bi(reply->readAll());
@@ -393,7 +393,7 @@ Menu::Menu(QWidget *parent) :
 		}
 	});
 	if(QApplication::arguments().count()>=2){
-		Utils::delayExec(0,[this](){
+		Utils::delayExec(this,0,[this](){
 			for(QString file:QApplication::arguments().mid(1)){
 				if(file.endsWith(".xml")||file.endsWith(".json")){
 					setDanmaku(file);
@@ -416,16 +416,13 @@ void Menu::pop()
 	}
 }
 
-void Menu::push()
+void Menu::push(bool force)
 {
-	if(isPop&&animation->state()==QAbstractAnimation::Stopped){
+	if(isPop&&animation->state()==QAbstractAnimation::Stopped&&((!isStay&&danmC->popup()->isHidden())||force)){
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()-QPoint(200,0));
 		animation->start();
 		isPop=false;
-		parentWidget()->setFocus();
-		dynamic_cast<QStandardItemModel *>(danmC->model())->clear();
-		danmC->complete();
 	}
 }
 

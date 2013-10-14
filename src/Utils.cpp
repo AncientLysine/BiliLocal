@@ -28,13 +28,6 @@
 
 QJsonObject Utils::config;
 
-void Utils::setBack(QWidget *widget,QColor color)
-{
-	QPalette options;
-	options.setColor(QPalette::Window,color);
-	widget->setPalette(options);
-}
-
 void Utils::setCenter(QWidget *widget)
 {
 	QPoint center;
@@ -51,6 +44,13 @@ void Utils::setCenter(QWidget *widget)
 	QRect rect=widget->geometry();
 	rect.moveCenter(center);
 	widget->setGeometry(rect);
+}
+
+void Utils::setGround(QWidget *widget,QColor color)
+{
+	QPalette palette=widget->palette();
+	palette.setColor(QPalette::Window,color);
+	widget->setPalette(palette);
 }
 
 void Utils::loadConfig()

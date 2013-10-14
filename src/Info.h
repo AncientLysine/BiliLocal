@@ -45,6 +45,7 @@ public:
 
 private:
 	bool isPop;
+	bool isStay;
 	bool opened;
 	bool playing;
 	bool updating;
@@ -74,7 +75,7 @@ signals:
 	
 public slots:
 	void pop();
-	void push();
+	void push(bool force=false);
 	void trigger();
 	void terminate();
 	void resizeHeader();

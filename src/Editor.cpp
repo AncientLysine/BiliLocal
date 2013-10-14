@@ -207,6 +207,6 @@ Editor::Editor(QWidget *parent):
 
 void Editor::resizeEvent(QResizeEvent *e)
 {
-	Utils::delayExec(0,[this](){widget->resize(scroll->viewport()->width(),widget->height());});
+	Utils::delayExec(this,0,[this](){widget->resize(scroll->viewport()->width(),widget->height());});
 	QDialog::resizeEvent(e);
 }

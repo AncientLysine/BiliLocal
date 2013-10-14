@@ -71,7 +71,7 @@ static void sta(const struct libvlc_event_t *,void *)
 
 static void end(const struct libvlc_event_t *,void *)
 {
-	QMetaObject::invokeMethod(VPlayer::instance(),"stop");
+	QMetaObject::invokeMethod(VPlayer::instance(),"free");
 }
 
 VPlayer::VPlayer(QObject *parent) :
@@ -202,7 +202,6 @@ void VPlayer::setFrame(bool force)
 		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		data.unlock();
 		emit decode();
-		QMetaObject::invokeMethod(this,"setLoop");
 	}
 }
 
@@ -250,14 +249,6 @@ void VPlayer::play()
 	}
 }
 
-void VPlayer::open()
-{
-	if(mp&&state==Stop){
-		state=Play;
-		emit begin();
-	}
-}
-
 void VPlayer::stop()
 {
 	if(mp&&state!=Stop){
@@ -268,10 +259,32 @@ void VPlayer::stop()
 	}
 }
 
-void VPlayer::setLoop()
+void VPlayer::open()
 {
-	if(getDuration()-getTime()<500&&Utils::getConfig("/Playing/Loop",false)){
-		setTime(0);
+	if(mp){
+		if(state==Stop){
+			state=Play;
+			emit begin();
+		}
+		if(state==Loop){
+			state=Play;
+			emit reset();
+		}
+	}
+}
+
+void VPlayer::free()
+{
+	if(Utils::getConfig("/Playing/Loop",false)){
+		int t=getSubtitle();
+		libvlc_media_player_stop(mp);
+		state=Loop;
+		libvlc_media_player_play(mp);
+		emit jumped(0);
+		Utils::delayExec(this,&VPlayer::reset,[=](){setSubTitle(t);});
+	}
+	else{
+		stop();
 	}
 }
 

@@ -122,7 +122,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::begin,[this](){
-		Utils::setBack(this,Qt::black);
+		Utils::setGround(this,Qt::black);
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
 		tv->hide();
@@ -464,6 +464,9 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
+	menu->push(true);
+	info->push(true);
+	setFocus();
 	sta=wgd=QPoint();
 	QWidget::mouseReleaseEvent(e);
 }

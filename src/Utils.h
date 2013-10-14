@@ -93,18 +93,29 @@ QJsonObject fromJsonValue(QJsonValue v)
 class Utils
 {
 public:
-	static void setBack(QWidget *widget,QColor color);
 	static void setCenter(QWidget *widget);
+	static void setGround(QWidget *widget,QColor color);
 
-	template<class Func>
-	static void delayExec(int time,Func func)
+	template<class Sender,class Func>
+	static void delayExec(Sender *parent,int time,Func func)
 	{
-		QTimer *delay=new QTimer;
+		QTimer *delay=new QTimer(parent);
 		delay->setSingleShot(true);
 		delay->start(time);
 		delay->connect(delay,&QTimer::timeout,[=](){
 			func();
 			delay->deleteLater();
+		});
+	}
+
+	template<class Sender,class Wait,class Func>
+	static void delayExec(Sender *parent,Wait wait,Func func)
+	{
+		QMetaObject::Connection *connect=new QMetaObject::Connection;
+		*connect=QObject::connect(parent,wait,[=](){
+			func();
+			QObject::disconnect(*connect);
+			delete connect;
 		});
 	}
 

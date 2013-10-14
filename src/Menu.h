@@ -45,7 +45,7 @@ public:
 
 private:
 	bool isPop;
-	bool isTurn;
+	bool isStay;
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QLineEdit *sechL;
@@ -75,7 +75,7 @@ signals:
 
 public slots:
 	void pop();
-	void push();
+	void push(bool force=false);
 	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);

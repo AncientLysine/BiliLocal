@@ -31,11 +31,12 @@ Info::Info(QWidget *parent):
 	QWidget(parent)
 {
 	isPop=false;
+	isStay=false;
 	opened=false;
 	playing=false;
 	updating=false;
 	setAutoFillBackground(true);
-	Utils::setBack(this,Qt::white);
+	Utils::setGround(this,Qt::white);
 	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
@@ -152,7 +153,9 @@ Info::Info(QWidget *parent):
 				}
 			});
 		}
+		isStay=1;
 		menu.exec(danmV->viewport()->mapToGlobal(p));
+		isStay=0;
 	});
 }
 
@@ -171,14 +174,13 @@ void Info::pop()
 	}
 }
 
-void Info::push()
+void Info::push(bool force)
 {
-	if(isPop&&animation->state()==QAbstractAnimation::Stopped){
+	if(isPop&&animation->state()==QAbstractAnimation::Stopped&&(!isStay||force)){
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()+QPoint(200,0));
 		animation->start();
 		isPop=false;
-		parentWidget()->setFocus();
 	}
 }
 
