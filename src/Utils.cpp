@@ -53,6 +53,23 @@ void Utils::setGround(QWidget *widget,QColor color)
 	widget->setPalette(palette);
 }
 
+QString Utils::split(QString text,int width)
+{
+	QStringList result;
+	QTextBoundaryFinder finder(QTextBoundaryFinder::Word,text);
+	int sta=0,lst=0,end;
+	while((end=finder.toNextBoundary())!=-1){
+		QString line=text.mid(sta,end-sta);
+		if(qApp->fontMetrics().width(line)>width){
+			result.append(line);
+			sta=lst;
+		}
+		lst=end;
+	}
+	result.append(text.mid(sta));
+	return result.join('\n');
+}
+
 void Utils::loadConfig()
 {
 	QFile conf("./Config.txt");

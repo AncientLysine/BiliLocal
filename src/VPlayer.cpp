@@ -312,7 +312,7 @@ void VPlayer::setSize(QSize _size)
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
-		libvlc_media_player_set_time(mp,_time);
+		libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 		emit jumped(_time);
 	}
 }

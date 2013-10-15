@@ -241,6 +241,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 			clearSearch();
 			isWaiting=false;
 		};
+
+		auto trans=[](QString html){
+			QTextDocument document;
+			document.setHtml(html);
+			return document.toPlainText();
+		};
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
 			if(url.startsWith("http://www.bilibili.tv")){
@@ -259,7 +265,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				QStringList ary=data.split("<li class=\"l\">",QString::SkipEmptyParts);
 				if(ary.size()>=2){
 					QString &item=ary.last();
-					item.truncate(item.indexOf("</li>")+5);
+					item.truncate(item.lastIndexOf("</li>")+5);
 					ary.removeFirst();
 				}
 				for(QString item:ary){
@@ -290,6 +296,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 						row->setText(1,iter.next().captured());
 						iter.next();
 						row->setText(2,iter.next().captured());
+						sta=item.indexOf("class=\"intro\">",end)+14;
+						end=item.indexOf("</div>",sta);
+						row->setToolTip(3,Utils::split(trans(item.mid(sta,end-sta)),400));
 					}
 				}
 				statusL->setText(tr("Finished"));
@@ -317,6 +326,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 						row->setData(0,Qt::UserRole,item["url"].toString().mid(3));
 						row->setSizeHint(0,QSize(120,92));
+						row->setToolTip(3,Utils::split(trans(item["description"].toString()),400));
 						QNetworkRequest request(QUrl(item["titleImg"].toString()));
 						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
 						reply->manager()->get(request);

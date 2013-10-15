@@ -95,6 +95,7 @@ class Utils
 public:
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
+	static QString split(QString text,int width);
 
 	template<class Sender,class Func>
 	static void delayExec(Sender *parent,int time,Func func)
