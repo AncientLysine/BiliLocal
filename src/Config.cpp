@@ -212,10 +212,15 @@ Config::Config(QWidget *parent,int index):
 		input[1]->setEchoMode(QLineEdit::Password);
 		input[2]=new QLineEdit(widget[1]);
 		input[2]->setPlaceholderText(tr("Identifier"));
+		connect(input[2],&QLineEdit::textEdited,[this](QString text){
+			input[2]->setText(text.toUpper());
+		});
 		l->addWidget(input[0]);
 		l->addWidget(input[1]);
 		l->addWidget(input[2]);
 		image=new QLabel(widget[1]);
+		image->setFixedWidth(100);
+		image->setAlignment(Qt::AlignCenter);
 		l->addWidget(image);
 		manager=new QNetworkAccessManager(this);
 		manager->setCookieJar(Cookie::instance());
@@ -227,11 +232,15 @@ Config::Config(QWidget *parent,int index):
 			input[2]->setEnabled(false);
 			login->setEnabled(false);
 		};
-		QNetworkReply *test=manager->get(QNetworkRequest(QUrl(QString("https://secure.bilibili.tv/login"))));
+		QNetworkReply *test=manager->get(QNetworkRequest(QUrl(QString("http://interface.bilibili.tv/nav.js"))));
 		connect(test,&QNetworkReply::finished,[=](){
 			bool flag=true;
 			if(test->error()==QNetworkReply::NoError){
-				if(QString(test->readAll()).indexOf("login?act=exit")!=-1){
+				QString page(test->readAll());
+				int sta=page.indexOf("title=\"");
+				if(sta!=-1){
+					sta+=7;
+					input[0]->setText(page.mid(sta,page.indexOf("\"",sta)-sta));
 					flag=false;
 				}
 			}
