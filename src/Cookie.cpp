@@ -40,10 +40,9 @@ void Cookie::init()
 		read>>l;
 		char d[l];
 		read.readRawData(d,l);
-		all.append(QNetworkCookie::parseCookies(d));
+		all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
 	}
 	data.setAllCookies(all);
-	qDebug()<<all;
 }
 
 void Cookie::free()
@@ -60,7 +59,6 @@ void Cookie::free()
 	QFile file("Cookie.bin");
 	file.open(QIODevice::WriteOnly);
 	file.write(qCompress(buff));
-	qDebug()<<all;
 }
 
 Cookie::Cookie(QObject *parent):

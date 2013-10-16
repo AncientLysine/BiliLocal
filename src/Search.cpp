@@ -294,7 +294,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						sta=item.indexOf("\">",sta)+2;
 						end=item.indexOf("</a>",sta);
 						row->setText(5,trans(item.mid(sta,end-sta)));
-						auto iter=QRegularExpression("\\d+").globalMatch(item.mid(end));
+						auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(end));
 						row->setText(1,iter.next().captured());
 						iter.next();
 						row->setText(2,iter.next().captured());

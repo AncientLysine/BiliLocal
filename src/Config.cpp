@@ -209,38 +209,75 @@ Config::Config(QWidget *parent,int index):
 		input[0]->setPlaceholderText(tr("Username"));
 		input[1]=new QLineEdit(widget[1]);
 		input[1]->setPlaceholderText(tr("Password"));
+		input[1]->setEchoMode(QLineEdit::Password);
 		input[2]=new QLineEdit(widget[1]);
 		input[2]->setPlaceholderText(tr("Identifier"));
 		l->addWidget(input[0]);
 		l->addWidget(input[1]);
 		l->addWidget(input[2]);
 		image=new QLabel(widget[1]);
-		Utils::delayExec(this,0,[this](){
-			QUrl url("https://secure.bilibili.tv/captcha");
-			QUrlQuery query;
-			query.addQueryItem("r",QString::number(qrand()/(double)RAND_MAX));
-			url.setQuery(query);
-			QNetworkReply *reply=manager->get(QNetworkRequest(url));
-			connect(reply,&QNetworkReply::finished,[=](){
-				if(reply->error()==QNetworkReply::NoError){
-					QPixmap pixmap;
-					pixmap.loadFromData(reply->readAll());
-					if(!pixmap.isNull()){
-						image->setPixmap(pixmap);
-					}
-				}
-			});
-		});
 		l->addWidget(image);
-		login=new QPushButton("login",widget[1]);
-		login->setFixedWidth(50);
-		connect(login,&QPushButton::clicked,[this](){
-			;
-		});
-		l->addWidget(login);
 		manager=new QNetworkAccessManager(this);
 		manager->setCookieJar(Cookie::instance());
 		Cookie::instance()->setParent(NULL);
+		auto logged=[this](){
+			image->setText(tr("Logged"));
+			input[0]->setEnabled(false);
+			input[1]->setEnabled(false);
+			input[2]->setEnabled(false);
+			login->setEnabled(false);
+		};
+		QNetworkReply *test=manager->get(QNetworkRequest(QUrl(QString("https://secure.bilibili.tv/login"))));
+		connect(test,&QNetworkReply::finished,[=](){
+			bool flag=true;
+			if(test->error()==QNetworkReply::NoError){
+				if(QString(test->readAll()).indexOf("login?act=exit")!=-1){
+					flag=false;
+				}
+			}
+			if(flag){
+				QNetworkReply *code=manager->get(QNetworkRequest(QUrl(QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX))));
+				connect(code,&QNetworkReply::finished,[=](){
+					if(code->error()==QNetworkReply::NoError){
+						QPixmap pixmap;
+						pixmap.loadFromData(code->readAll());
+						if(!pixmap.isNull()){
+							image->setPixmap(pixmap);
+						}
+					}
+				});
+			}
+			else{
+				logged();
+			}
+		});
+		login=new QPushButton(tr("login"),widget[1]);
+		login->setFixedWidth(50);
+		connect(login,&QPushButton::clicked,[=](){
+			QUrlQuery query;
+			query.addQueryItem("act","login");
+			query.addQueryItem("userid",input[0]->text());
+			query.addQueryItem("pwd",input[1]->text());
+			query.addQueryItem("vdcode",input[2]->text().toUpper());
+			query.addQueryItem("keeptime","2592000");
+			QByteArray data=query.query().toUtf8();
+			QNetworkRequest request(QUrl("https://secure.bilibili.tv/login"));
+			request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
+			request.setHeader(QNetworkRequest::ContentLengthHeader,data.length());
+			QNetworkReply *reply=manager->post(request,data);
+			connect(reply,&QNetworkReply::finished,[=](){
+				bool flag=false;
+				if(reply->error()==QNetworkReply::NoError){
+					if(QString(reply->readAll()).indexOf("document.write")!=-1){
+						flag=true;
+					}
+				}
+				if(flag){
+					logged();
+				}
+			});
+		});
+		l->addWidget(login);
 		ui[4]=new QGroupBox(tr("login"),widget[1]);
 		ui[4]->setLayout(l);
 		lines->addWidget(ui[4]);
