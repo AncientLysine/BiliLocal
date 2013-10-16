@@ -207,9 +207,12 @@ void VPlayer::setFrame(bool force)
 
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
-	data.lock();
-	painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
-	data.unlock();
+	if(state!=Stop){
+		painter->fillRect(rect,Qt::black);
+		data.lock();
+		painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
+		data.unlock();
+	}
 }
 
 void VPlayer::play()

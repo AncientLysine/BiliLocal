@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Shield.h"
+#include "Cookie.h"
 #include "Interface.h"
 #include <QApplication>
 
@@ -70,9 +71,11 @@ int main(int argc,char *argv[])
 	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
 	Shield::init();
+	Cookie::init();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
+		Cookie::free();
 		Shield::free();
 		Utils::saveConfig();
 	});

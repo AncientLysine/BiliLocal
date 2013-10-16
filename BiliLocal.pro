@@ -22,7 +22,8 @@ SOURCES += \
     src/Shield.cpp \
     src/Config.cpp \
     src/Editor.cpp \
-    src/Printer.cpp
+    src/Printer.cpp \
+    src/Cookie.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -35,7 +36,8 @@ HEADERS  += \
     src/Shield.h \
     src/Config.h \
     src/Editor.h \
-    src/Printer.h
+    src/Printer.h \
+    src/Cookie.h
 
 LIBS += \
     -lvlc \

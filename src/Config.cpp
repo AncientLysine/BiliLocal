@@ -204,6 +204,47 @@ Config::Config(QWidget *parent,int index):
 		ui[3]->setLayout(b);
 		lines->addWidget(ui[3]);
 
+		auto l=new QHBoxLayout;
+		input[0]=new QLineEdit(widget[1]);
+		input[0]->setPlaceholderText(tr("Username"));
+		input[1]=new QLineEdit(widget[1]);
+		input[1]->setPlaceholderText(tr("Password"));
+		input[2]=new QLineEdit(widget[1]);
+		input[2]->setPlaceholderText(tr("Identifier"));
+		l->addWidget(input[0]);
+		l->addWidget(input[1]);
+		l->addWidget(input[2]);
+		image=new QLabel(widget[1]);
+		Utils::delayExec(this,0,[this](){
+			QUrl url("https://secure.bilibili.tv/captcha");
+			QUrlQuery query;
+			query.addQueryItem("r",QString::number(qrand()/(double)RAND_MAX));
+			url.setQuery(query);
+			QNetworkReply *reply=manager->get(QNetworkRequest(url));
+			connect(reply,&QNetworkReply::finished,[=](){
+				if(reply->error()==QNetworkReply::NoError){
+					QPixmap pixmap;
+					pixmap.loadFromData(reply->readAll());
+					if(!pixmap.isNull()){
+						image->setPixmap(pixmap);
+					}
+				}
+			});
+		});
+		l->addWidget(image);
+		login=new QPushButton("login",widget[1]);
+		login->setFixedWidth(50);
+		connect(login,&QPushButton::clicked,[this](){
+			;
+		});
+		l->addWidget(login);
+		manager=new QNetworkAccessManager(this);
+		manager->setCookieJar(Cookie::instance());
+		Cookie::instance()->setParent(NULL);
+		ui[4]=new QGroupBox(tr("login"),widget[1]);
+		ui[4]->setLayout(l);
+		lines->addWidget(ui[4]);
+
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
 	}

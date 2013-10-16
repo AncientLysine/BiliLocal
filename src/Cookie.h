@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Config.h
-*   Time:        2013/06/17
+*   Filename:    Cookie.h
+*   Time:        2013/10/17
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,62 +24,24 @@
 *
 =========================================================================*/
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef COOKIE_H
+#define COOKIE_H
 
 #include <QtCore>
-#include <QtWidgets>
 #include <QtNetwork>
-#include "Shield.h"
-#include "Cookie.h"
 
-class Config:public QDialog
+class Cookie:public QNetworkCookieJar
 {
 	Q_OBJECT
 public:
-	explicit Config(QWidget *parent=0,int index=0);
+	Cookie(QObject *parent=0);
+	static void init();
+	static void free();
+	static Cookie *instance(){return &data;}
 
 private:
-	QTabWidget *tab;
-	QWidget *widget[5];
+	static Cookie data;
 
-	//Playing
-	QGroupBox *box[7];
-	QCheckBox *danm[2];
-	QComboBox *dmfont;
-	QComboBox *effect;
-	QLineEdit *play[4];
-
-	//Interface
-	QGroupBox *ui[5];
-	QComboBox *font;
-	QCheckBox *stay;
-	QCheckBox *less;
-	QLineEdit *size;
-	QLineEdit *back;
-	QPushButton *open;
-	QLabel *image;
-	QLineEdit *input[3];
-	QPushButton *login;
-	QNetworkAccessManager *manager;
-
-	//Shiled
-	QLineEdit *edit;
-	QCheckBox *check[6];
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[3];
-	QPushButton *button[2];
-	QLineEdit *limit[2];
-	QGroupBox *label[2];
-
-	//Thanks
-	QTextEdit *thanks;
-
-	//License
-	QTextEdit *license;
 };
 
-#endif // CONFIG_H
+#endif // COOKIE_H

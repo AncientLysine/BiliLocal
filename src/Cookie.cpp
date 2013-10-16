@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Config.h
-*   Time:        2013/06/17
+*   Filename:    Cookie.cpp
+*   Time:        2013/10/17
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,62 +24,46 @@
 *
 =========================================================================*/
 
-#ifndef CONFIG_H
-#define CONFIG_H
-
-#include <QtCore>
-#include <QtWidgets>
-#include <QtNetwork>
-#include "Shield.h"
 #include "Cookie.h"
 
-class Config:public QDialog
+Cookie Cookie::data;
+
+void Cookie::init()
 {
-	Q_OBJECT
-public:
-	explicit Config(QWidget *parent=0,int index=0);
+	QFile file("Cookie.bin");
+	file.open(QIODevice::ReadOnly);
+	QDataStream read(qUncompress(file.readAll()));
+	QList<QNetworkCookie> all;
+	int n,l;
+	read>>n;
+	for(int i=0;i<n;++i){
+		read>>l;
+		char d[l];
+		read.readRawData(d,l);
+		all.append(QNetworkCookie::parseCookies(d));
+	}
+	data.setAllCookies(all);
+	qDebug()<<all;
+}
 
-private:
-	QTabWidget *tab;
-	QWidget *widget[5];
+void Cookie::free()
+{
+	QByteArray buff;
+	QDataStream save(&buff,QIODevice::WriteOnly);
+	const QList<QNetworkCookie> &all=data.allCookies();
+	save<<all.count();
+	for(const QNetworkCookie &iter:all){
+		QByteArray d=iter.toRawForm();
+		save<<d.size();
+		save.writeRawData(d.data(),d.size());
+	}
+	QFile file("Cookie.bin");
+	file.open(QIODevice::WriteOnly);
+	file.write(qCompress(buff));
+	qDebug()<<all;
+}
 
-	//Playing
-	QGroupBox *box[7];
-	QCheckBox *danm[2];
-	QComboBox *dmfont;
-	QComboBox *effect;
-	QLineEdit *play[4];
-
-	//Interface
-	QGroupBox *ui[5];
-	QComboBox *font;
-	QCheckBox *stay;
-	QCheckBox *less;
-	QLineEdit *size;
-	QLineEdit *back;
-	QPushButton *open;
-	QLabel *image;
-	QLineEdit *input[3];
-	QPushButton *login;
-	QNetworkAccessManager *manager;
-
-	//Shiled
-	QLineEdit *edit;
-	QCheckBox *check[6];
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[3];
-	QPushButton *button[2];
-	QLineEdit *limit[2];
-	QGroupBox *label[2];
-
-	//Thanks
-	QTextEdit *thanks;
-
-	//License
-	QTextEdit *license;
-};
-
-#endif // CONFIG_H
+Cookie::Cookie(QObject *parent):
+	QNetworkCookieJar(parent)
+{
+}

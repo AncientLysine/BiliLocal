@@ -397,15 +397,11 @@ void Interface::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
-	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 	if(vplayer->getState()==VPlayer::Stop){
 		QRect to=rect();
 		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
 		to.moveCenter(rect().center());
 		painter.drawPixmap(to,background);
-	}
-	else{
-		painter.fillRect(rect(),Qt::black);
 	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);

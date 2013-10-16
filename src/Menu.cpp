@@ -35,6 +35,8 @@ Menu::Menu(QWidget *parent) :
 	setAutoFillBackground(true);
 	Utils::setGround(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
+	manager->setCookieJar(Cookie::instance());
+	Cookie::instance()->setParent(NULL);
 	animation=new QPropertyAnimation(this,"pos",this);
 	animation->setDuration(200);
 	animation->setEasingCurve(QEasingCurve::OutCubic);

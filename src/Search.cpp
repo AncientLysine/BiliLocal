@@ -234,6 +234,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	manager=new QNetworkAccessManager(this);
 	manager->setCache(cache);
+	manager->setCookieJar(Cookie::instance());
+	Cookie::instance()->setParent(NULL);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
