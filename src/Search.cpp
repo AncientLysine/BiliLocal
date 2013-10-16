@@ -284,14 +284,14 @@ Search::Search(QWidget *parent):QDialog(parent)
 						reply->manager()->get(request);
 						sta=item.indexOf("<span>[",end)+7;
 						end=item.indexOf("]</span>",sta);
-						row->setText(4,item.mid(sta,end-sta));
+						row->setText(4,trans(item.mid(sta,end-sta)));
 						sta=end+8;
 						end=item.indexOf("</div>",sta);
-						row->setText(3,item.mid(sta,end-sta).remove(QRegularExpression("<.*?>")));
+						row->setText(3,trans(item.mid(sta,end-sta)));
 						sta=item.indexOf("class=\"upper\"",end);
 						sta=item.indexOf("\">",sta)+2;
 						end=item.indexOf("</a>",sta);
-						row->setText(5,item.mid(sta,end-sta));
+						row->setText(5,trans(item.mid(sta,end-sta)));
 						auto iter=QRegularExpression("\\d+").globalMatch(item.mid(end));
 						row->setText(1,iter.next().captured());
 						iter.next();
@@ -319,9 +319,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 							"",
 							QString::number(item["views"].toDouble()),
 							QString::number(item["comments"].toDouble()),
-							item["title"].toString(),
+							trans(item["title"].toString()),
 							AcFunChannel[item["channelId"].toDouble()],
-							item["username"].toString()
+							trans(item["username"].toString())
 						};
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 						row->setData(0,Qt::UserRole,item["url"].toString().mid(3));

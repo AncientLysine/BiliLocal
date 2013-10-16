@@ -122,7 +122,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::begin,[this](){
-		Utils::setGround(this,Qt::black);
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
 		tv->hide();
@@ -153,7 +152,6 @@ Interface::Interface(QWidget *parent):
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
-		setPalette(QPalette());
 		info->setOpened(false);
 		tv->show();
 		me->show();
@@ -406,6 +404,9 @@ void Interface::paintEvent(QPaintEvent *e)
 		to.moveCenter(rect().center());
 		painter.drawPixmap(to,background);
 	}
+	else{
+		painter.fillRect(rect(),Qt::black);
+	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
 	painter.end();
@@ -464,9 +465,11 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
-	menu->push(true);
-	info->push(true);
-	setFocus();
+	if(!menu->geometry().contains(e->pos())&&!info->geometry().contains(e->pos())){
+		menu->push(true);
+		info->push(true);
+		setFocus();
+	}
 	sta=wgd=QPoint();
 	QWidget::mouseReleaseEvent(e);
 }
