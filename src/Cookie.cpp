@@ -31,6 +31,7 @@ Cookie Cookie::data;
 void Cookie::init()
 {
 	QFile file("Cookie.bin");
+	if(!file.exists()) return;
 	file.open(QIODevice::ReadOnly);
 	QDataStream read(qUncompress(file.readAll()));
 	QList<QNetworkCookie> all;
@@ -59,9 +60,4 @@ void Cookie::free()
 	QFile file("Cookie.bin");
 	file.open(QIODevice::WriteOnly);
 	file.write(qCompress(buff));
-}
-
-Cookie::Cookie(QObject *parent):
-	QNetworkCookieJar(parent)
-{
 }

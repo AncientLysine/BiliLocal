@@ -29,6 +29,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
 struct Comment
 {
@@ -156,6 +157,13 @@ public:
 			cur=pre;
 		}
 		config=cur;
+	}
+
+	template<class Func>
+	static void getReply(QNetworkAccessManager *manager,const QNetworkRequest &request,Func func)
+	{
+		QNetworkReply *reply=manager->get(request);
+		reply->connect(reply,&QNetworkReply::finished,[reply,func](){func(reply);});
 	}
 
 	static void loadConfig();

@@ -192,6 +192,7 @@ Config::Config(QWidget *parent,int index):
 		b->addWidget(back);
 		open=new QPushButton(tr("choose"),widget[1]);
 		open->setFixedWidth(50);
+		open->setFocusPolicy(Qt::NoFocus);
 		connect(open,&QPushButton::clicked,[this](){
 			QString path=QFileInfo(back->text()).absolutePath();
 			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path.isEmpty()?QDir::currentPath():path);
@@ -229,14 +230,16 @@ Config::Config(QWidget *parent,int index):
 			image->setText(tr("Logged"));
 			input[0]->setEnabled(false);
 			input[1]->setEnabled(false);
+			input[1]->clear();
 			input[2]->setEnabled(false);
+			input[2]->clear();
 			login->setEnabled(false);
 		};
-		QNetworkReply *test=manager->get(QNetworkRequest(QUrl(QString("http://interface.bilibili.tv/nav.js"))));
-		connect(test,&QNetworkReply::finished,[=](){
+		QString url("http://interface.bilibili.tv/nav.js");
+		Utils::getReply(manager,QNetworkRequest(url),[logged,this](QNetworkReply *reply){
 			bool flag=true;
-			if(test->error()==QNetworkReply::NoError){
-				QString page(test->readAll());
+			if(reply->error()==QNetworkReply::NoError){
+				QString page(reply->readAll());
 				int sta=page.indexOf("title=\"");
 				if(sta!=-1){
 					sta+=7;
@@ -245,11 +248,11 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 			if(flag){
-				QNetworkReply *code=manager->get(QNetworkRequest(QUrl(QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX))));
-				connect(code,&QNetworkReply::finished,[=](){
-					if(code->error()==QNetworkReply::NoError){
+				QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
+				Utils::getReply(manager,QNetworkRequest(url),[this](QNetworkReply *reply){
+					if(reply->error()==QNetworkReply::NoError){
 						QPixmap pixmap;
-						pixmap.loadFromData(code->readAll());
+						pixmap.loadFromData(reply->readAll());
 						if(!pixmap.isNull()){
 							image->setPixmap(pixmap);
 						}
@@ -263,11 +266,16 @@ Config::Config(QWidget *parent,int index):
 		login=new QPushButton(tr("login"),widget[1]);
 		login->setFixedWidth(50);
 		connect(login,&QPushButton::clicked,[=](){
+			for(QLineEdit *iter:input){
+				if(iter->text().isEmpty()){
+					return;
+				}
+			}
 			QUrlQuery query;
 			query.addQueryItem("act","login");
 			query.addQueryItem("userid",input[0]->text());
 			query.addQueryItem("pwd",input[1]->text());
-			query.addQueryItem("vdcode",input[2]->text().toUpper());
+			query.addQueryItem("vdcode",input[2]->text());
 			query.addQueryItem("keeptime","2592000");
 			QByteArray data=query.query().toUtf8();
 			QNetworkRequest request(QUrl("https://secure.bilibili.tv/login"));
@@ -277,8 +285,13 @@ Config::Config(QWidget *parent,int index):
 			connect(reply,&QNetworkReply::finished,[=](){
 				bool flag=false;
 				if(reply->error()==QNetworkReply::NoError){
-					if(QString(reply->readAll()).indexOf("document.write")!=-1){
+					QString page(reply->readAll());
+					if(page.indexOf("http://www.bilibili.tv/")!=-1){
 						flag=true;
+					}
+					else{
+						int sta=page.indexOf("document.write(\"")+16;
+						QMessageBox::warning(parentWidget(),tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
 					}
 				}
 				if(flag){

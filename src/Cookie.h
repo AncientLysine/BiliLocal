@@ -34,7 +34,6 @@ class Cookie:public QNetworkCookieJar
 {
 	Q_OBJECT
 public:
-	Cookie(QObject *parent=0);
 	static void init();
 	static void free();
 	static Cookie *instance(){return &data;}

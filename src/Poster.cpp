@@ -90,6 +90,7 @@ Poster::Poster(QWidget *parent) :
 	layout->addWidget(commentL);
 	commentB=new QPushButton(tr("Post"),this);
 	commentB->setFixedWidth(55);
+	commentB->setToolTip("毁灭地喷射白光!da!");
 	layout->addWidget(commentB);
 	commentA=new QAction(this);
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
