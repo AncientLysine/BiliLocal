@@ -36,7 +36,7 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
-class Poster : public QWidget
+class Poster:public QWidget
 {
 	Q_OBJECT
 public:
@@ -50,14 +50,19 @@ public slots:
 	void fadeOut();
 
 private:
-	QLineEdit *commentL;
-	QPushButton *commentB;
 	QAction *commentA;
+	QLineEdit *commentL;
+	QComboBox *commentM;
+	QPushButton *commentC;
+	QPushButton *commentB;
 	QNetworkAccessManager *manager;
 	int ioo;
 	QTimer *timer;
 	QGraphicsOpacityEffect *effect;
+	static QHash<int,int> mode;
 	QString getCid();
+	QColor getColor();
+	void setColor(QColor color);
 };
 
 #endif // POSTER_H

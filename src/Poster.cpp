@@ -27,6 +27,12 @@
 
 #include "Poster.h"
 
+QHash<int,int> Poster::mode={
+	{0,5},
+	{1,1},
+	{2,4}
+};
+
 Poster::Poster(QWidget *parent) :
 	QWidget(parent)
 {
@@ -64,19 +70,22 @@ Poster::Poster(QWidget *parent) :
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
-		int error=reply->error();
-		if(error==QNetworkReply::NoError){
-			error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
-		}
-		if(error!=QNetworkReply::NoError){
-			QString info=tr("Network error occurred, error code: %1");
-			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
-		}
-	});
 	auto layout=new QHBoxLayout(this);
 	layout->setMargin(0);
 	layout->setSpacing(0);
+	commentM=new QComboBox(this);
+	commentM->addItems(QStringList({tr("Top"),tr("Slide"),tr("Bottom")}));
+	commentM->setCurrentIndex(1);
+	commentM->setFixedWidth(commentM->sizeHint().width());
+	layout->addWidget(commentM);
+	commentC=new QPushButton(this);
+	commentC->setFixedWidth(25);
+	setColor(Qt::white);
+	connect(commentC,&QPushButton::clicked,[this](){
+		QColor color=QColorDialog::getColor(getColor(),parentWidget());
+		if(color.isValid()) setColor(color);
+	});
+	layout->addWidget(commentC);
 	commentL=new QLineEdit(this);
 	layout->addWidget(commentL);
 	commentB=new QPushButton(tr("Post"),this);
@@ -103,19 +112,38 @@ void Poster::postComment(QString comment)
 {
 	QString cid=getCid();
 	if(!cid.isEmpty()){
+		Comment c;
+		c.mode=mode[commentM->currentIndex()];
+		c.font=25;
+		c.time=qMax<qint64>(0,VPlayer::instance()->getTime());
+		c.color=getColor().rgb()&0xFFFFFF;
+		c.string=comment;
 		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
 		params.addQueryItem("cid",cid);
 		params.addQueryItem("date",QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 		params.addQueryItem("pool","0");
-		params.addQueryItem("playTime",QString::number(qMax<qint64>(0,VPlayer::instance()->getTime())/1000.0,'f',4));
-		params.addQueryItem("color","16777215");
-		params.addQueryItem("fontsize","25");
-		params.addQueryItem("message",comment);
+		params.addQueryItem("playTime",QString::number(c.time/1000.0,'f',4));
+		params.addQueryItem("color",QString::number(c.color));
+		params.addQueryItem("fontsize",QString::number(c.font));
+		params.addQueryItem("message",c.string);
 		params.addQueryItem("rnd",QString::number(qrand()));
-		params.addQueryItem("mode","1");
-		manager->post(request,QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_"));
+		params.addQueryItem("mode",QString::number(c.mode));
+		QNetworkReply *reply=manager->post(request,QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_"));
+		connect(reply,&QNetworkReply::finished,[=](){
+			int error=reply->error();
+			if(error==QNetworkReply::NoError){
+				error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+			}
+			if(error!=QNetworkReply::NoError){
+				QString info=tr("Network error occurred, error code: %1");
+				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
+			}
+			else{
+				Danmaku::instance()->appendToCurrent(c);
+			}
+		});
 	}
 	else{
 		QMessageBox::warning(this,tr("Warning"),tr("Empty cid."));
@@ -149,3 +177,13 @@ QString Poster::getCid()
 	return QString();
 }
 
+QColor Poster::getColor()
+{
+	QString sheet=commentC->styleSheet();
+	return QColor(sheet.mid(sheet.indexOf('#')));
+}
+
+void Poster::setColor(QColor color)
+{
+	commentC->setStyleSheet(QString("background-color:%1").arg(color.name()));
+}

@@ -476,27 +476,42 @@
 <context>
     <name>Poster</name>
     <message>
-        <location filename="../src/Poster.cpp" line="73"/>
+        <location filename="../src/Poster.cpp" line="79"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="74"/>
+        <location filename="../src/Poster.cpp" line="80"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="78"/>
+        <location filename="../src/Poster.cpp" line="87"/>
+        <source>Top</source>
+        <translation>顶端</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="87"/>
+        <source>Slide</source>
+        <translation>滑动</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="87"/>
+        <source>Bottom</source>
+        <translation>底端</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="101"/>
         <source>Post</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="122"/>
+        <location filename="../src/Poster.cpp" line="140"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/Poster.cpp" line="122"/>
+        <location filename="../src/Poster.cpp" line="140"/>
         <source>Empty cid.</source>
         <translation>空cid。</translation>
     </message>
