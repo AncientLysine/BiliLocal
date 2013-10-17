@@ -145,101 +145,101 @@
         <translation>验证码</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="244"/>
+        <location filename="../src/Config.cpp" line="229"/>
         <source>Logged</source>
         <translation>已登录</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="251"/>
-        <location filename="../src/Config.cpp" line="270"/>
+        <location filename="../src/Config.cpp" line="263"/>
+        <location filename="../src/Config.cpp" line="290"/>
         <source>login</source>
         <translation>登录</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="275"/>
+        <location filename="../src/Config.cpp" line="295"/>
         <source>Interface</source>
         <translation>界面</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Top</source>
         <translation>顶端</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Bottom</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Slide</source>
         <translation>滑动</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Guest</source>
         <translation>游客</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Color</source>
         <translation>彩色</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="280"/>
+        <location filename="../src/Config.cpp" line="300"/>
         <source>Whole</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="307"/>
-        <location filename="../src/Config.cpp" line="362"/>
+        <location filename="../src/Config.cpp" line="327"/>
+        <location filename="../src/Config.cpp" line="382"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="308"/>
-        <location filename="../src/Config.cpp" line="363"/>
+        <location filename="../src/Config.cpp" line="328"/>
+        <location filename="../src/Config.cpp" line="383"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="309"/>
+        <location filename="../src/Config.cpp" line="329"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="328"/>
+        <location filename="../src/Config.cpp" line="348"/>
         <source>Import File</source>
         <translation>导入文件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="392"/>
+        <location filename="../src/Config.cpp" line="412"/>
         <source>limit of the same</source>
         <translation>允许重复数量</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="393"/>
-        <location filename="../src/Config.cpp" line="405"/>
+        <location filename="../src/Config.cpp" line="413"/>
+        <location filename="../src/Config.cpp" line="425"/>
         <source>0 means disabled</source>
         <translation>0表示禁用</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="404"/>
+        <location filename="../src/Config.cpp" line="424"/>
         <source>limit of density</source>
         <translation>同屏密度限制</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="409"/>
+        <location filename="../src/Config.cpp" line="429"/>
         <source>Shield</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="421"/>
+        <location filename="../src/Config.cpp" line="441"/>
         <source>Thanks</source>
         <translation>感谢</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="433"/>
+        <location filename="../src/Config.cpp" line="453"/>
         <source>License</source>
         <translation>许可</translation>
     </message>
@@ -349,43 +349,43 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="202"/>
+        <location filename="../src/Interface.cpp" line="215"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="207"/>
+        <location filename="../src/Interface.cpp" line="220"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="225"/>
+        <location filename="../src/Interface.cpp" line="238"/>
         <source>Block All</source>
         <translation>关闭弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="237"/>
+        <location filename="../src/Interface.cpp" line="250"/>
         <source>Config</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="247"/>
+        <location filename="../src/Interface.cpp" line="260"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="254"/>
+        <location filename="../src/Interface.cpp" line="267"/>
         <source>Ratio</source>
         <translation>宽高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="257"/>
-        <location filename="../src/Interface.cpp" line="268"/>
+        <location filename="../src/Interface.cpp" line="270"/>
+        <location filename="../src/Interface.cpp" line="281"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="284"/>
+        <location filename="../src/Interface.cpp" line="297"/>
         <source>Scale</source>
         <translation>缩放</translation>
     </message>
@@ -471,6 +471,34 @@
         <location filename="../src/Menu.cpp" line="197"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
+    </message>
+</context>
+<context>
+    <name>Poster</name>
+    <message>
+        <location filename="../src/Poster.cpp" line="73"/>
+        <source>Network error occurred, error code: %1</source>
+        <translation>出现网络错误，错误代码：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="74"/>
+        <source>Network Error</source>
+        <translation>网络错误</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="78"/>
+        <source>Post</source>
+        <translation>发送</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="122"/>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../src/Poster.cpp" line="122"/>
+        <source>Empty cid.</source>
+        <translation>空cid。</translation>
     </message>
 </context>
 <context>

@@ -2,10 +2,10 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Interface.h
-*   Time:        2013/03/18
-*   Author:      Lysine
-*   Contributor: Chaserhkj
+*   Filename:    Poster.h
+*   Time:        2013/05/23
+*   Author:      zhengdanwei
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,64 +25,39 @@
 *
 =========================================================================*/
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#ifndef POSTER_H
+#define POSTER_H
 
-#include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Menu.h"
-#include "Info.h"
+#include <QtNetwork>
 #include "Utils.h"
-#include "Config.h"
-#include "Printer.h"
-#include "Poster.h"
-#include "VPlayer.h"
+#include "Cookie.h"
 #include "Danmaku.h"
+#include "VPlayer.h"
 
-class Interface:public QWidget
+class Poster : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Interface(QWidget *parent=0);
-	void setCenter(QSize   s,bool f);
-	void setCenter(QString s,bool f);
+	explicit Poster(QWidget *parent = 0);
+	bool isValid();
+	bool isShown(){return ioo==2;}
+
+public slots:
+	void postComment(QString comment);
+	void fadeIn();
+	void fadeOut();
 
 private:
-	QLabel *tv;
-	QLabel *me;
+	QLineEdit *commentL;
+	QPushButton *commentB;
+	QAction *commentA;
+	QNetworkAccessManager *manager;
+	int ioo;
 	QTimer *timer;
-	QTimer *power;
-	QTimer *delay;
-	QAction *quitA;
-	QAction *fullA;
-	QAction *confA;
-	QAction *toggA;
-	QMenu *top;
-	QMenu *sub;
-	QMenu *rat;
-	QMenu *sca;
-	QPoint pre;
-	QPoint sta;
-	QPoint wgd;
-	QPixmap background;
-
-	Menu *menu;
-	Info *info;
-	Poster *poster;
-	Printer *printer;
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-
-	void dropEvent(QDropEvent *e);
-	void paintEvent(QPaintEvent *e);
-	void resizeEvent(QResizeEvent *e);
-	void keyPressEvent(QKeyEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-
+	QGraphicsOpacityEffect *effect;
+	QString getCid();
 };
 
-#endif // INTERFACE_H
+#endif // POSTER_H
