@@ -134,7 +134,7 @@ Menu::Menu(QWidget *parent) :
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
-	Utils::delayExec(this,0,[this](){setPower(Utils::getConfig("/Danmaku/Power",80));});
+	Utils::delayExec(this,0,[this](){setPower(Utils::getConfig("/Danmaku/Power",100));});
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -250,15 +250,16 @@ Menu::Menu(QWidget *parent) :
 			}
 			isStay=false;
 			if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
-				QList<Comment> load;
+				Record load;
+				load.source=url;
 				if(url.endsWith("xml")){
-					load=bi(reply->readAll());
+					load.danmaku=bi(reply->readAll());
 				}
 				if(url.endsWith("json")){
-					load=ac(reply->readAll());
+					load.danmaku=ac(reply->readAll());
 				}
-				Danmaku::instance()->appendToPool(Record(url,load));
-				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.size()));
+				Danmaku::instance()->appendToPool(load);
+				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.danmaku.size()));
 			}
 			else if(url.startsWith("http://www.bilibili.tv/")){
 				bool flag=true;
@@ -394,18 +395,6 @@ Menu::Menu(QWidget *parent) :
 			error(reply->error());
 		}
 	});
-	if(QApplication::arguments().count()>=2){
-		Utils::delayExec(this,0,[this](){
-			for(QString file:QApplication::arguments().mid(1)){
-				if(file.endsWith(".xml")||file.endsWith(".json")){
-					setDanmaku(file);
-				}
-				else{
-					setFile(file);
-				}
-			}
-		});
-	}
 }
 
 void Menu::pop()
@@ -465,6 +454,20 @@ void Menu::setPower(qint16 fps)
 		powerL->setText(QString::number(fps));
 	}
 	emit power(fps==0?-1:1000/fps);
+}
+
+void Menu::openLocal(QString _file)
+{
+	QFileInfo info(_file);
+	if(info.exists()){
+		QString suffix=info.suffix();
+		if(suffix=="xml"||suffix=="json"){
+			setDanmaku(_file);
+		}
+		else{
+			setFile(_file);
+		}
+	}
 }
 
 void Menu::setDanmaku(QString _code)

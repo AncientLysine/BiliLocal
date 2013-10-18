@@ -93,6 +93,7 @@ Poster::Poster(QWidget *parent) :
 	commentB->setToolTip("毁灭地喷射白光!da!");
 	layout->addWidget(commentB);
 	commentA=new QAction(this);
+	commentA->setShortcut(QKeySequence("Ctrl+Enter"));
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
 	connect(commentL,&QLineEdit::returnPressed,commentA,&QAction::trigger);
 	connect(commentA,&QAction::triggered,[this](){

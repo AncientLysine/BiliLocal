@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Danmaku.h"
+#include <unordered_set>
 
 Danmaku *Danmaku::ins=NULL;
 
@@ -221,7 +222,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 {
 	if(index.isValid()){
 		const Comment &comment=*danmaku[index.row()];
-		if(cache[comment]){
+		if(comment.blocked){
 			if(index.column()==0){
 				if(role==Qt::DisplayRole){
 					return tr("Blocked");
@@ -339,17 +340,16 @@ void Danmaku::parse(int flag)
 	if((flag&0x1)>0){
 		beginResetModel();
 		danmaku.clear();
-		for(const auto &record:pool){
-			for(const auto &comment:record.danmaku){
+		for(Record &record:pool){
+			for(Comment &comment:record.danmaku){
 				danmaku.append(&comment);
 			}
 		}
-		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return *f<*s;});
+		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return f->time<s->time;});
 		jumpToTime(time);
 		endResetModel();
 	}
 	if((flag&0x2)>0){
-		cache.clear();
 		QSet<QString> set;
 		int l=Utils::getConfig("/Shield/Limit",5);
 		QVector<QString> clean;
@@ -376,7 +376,7 @@ void Danmaku::parse(int flag)
 			}
 		}
 		for(int i=0;i<danmaku.size();++i){
-			cache[*danmaku[i]]=(l==0?false:set.contains(clean[i]))||Shield::isBlocked(*danmaku[i]);
+			danmaku[i]->blocked=(l==0?false:set.contains(clean[i]))||Shield::isBlocked(*danmaku[i]);
 			if(i%50==0){
 				qApp->processEvents();
 			}
@@ -395,7 +395,7 @@ void Danmaku::setTime(qint64 _time)
 	time=_time;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment &comment=*danmaku[cur];
-		if(!cache[comment]){
+		if(!comment.blocked){
 			appendToCurrent(comment);
 			qApp->processEvents();
 		}
@@ -431,6 +431,35 @@ void Danmaku::saveToFile(QString _file)
 	f.close();
 }
 
+namespace std
+{
+template<>
+class hash<Comment>
+{
+public:
+	inline uint operator ()(const Comment &c) const
+	{
+		uint h=qHash(c.mode);
+		h=(h<<1)^qHash(c.font);
+		h=(h<<1)^qHash(c.color);
+		h=(h<<1)^qHash(c.time);
+		h=(h<<1)^qHash(c.date);
+		h=(h<<1)^qHash(c.sender);
+		h=(h<<1)^qHash(c.string);
+		return h;
+	}
+};
+template<>
+class equal_to<Comment>
+{
+public:
+	inline bool operator ()(const Comment &f,const Comment &s) const
+	{
+		return f.mode==s.mode&&f.font==s.font&&f.color==s.color&&f.sender==s.sender&&f.string==s.string&&f.time==s.time&&f.date==s.date;
+	}
+};
+}
+
 void Danmaku::appendToPool(const Record &record)
 {
 	Record *append=NULL;
@@ -441,12 +470,16 @@ void Danmaku::appendToPool(const Record &record)
 		}
 	}
 	if(append==NULL){
-		pool.append(Record(record.source,QList<Comment>(),Utils::getConfig("/Playing/Delay",false)?time:0));
+		Record r;
+		r.source=record.source;
+		r.delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		pool.append(r);
 		append=&pool.last();
 	}
-	QSet<Comment> set=append->danmaku.toSet();
+	const auto &d=append->danmaku;
+	std::unordered_set<Comment> set(d.begin(),d.end());
 	for(Comment c:record.danmaku){
-		if(!set.contains(c)){
+		if(set.count(c)==0){
 			c.time+=append->delay-record.delay;
 			set.insert(c);
 			append->danmaku.append(c);

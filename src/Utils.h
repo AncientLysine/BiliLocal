@@ -33,43 +33,22 @@
 
 struct Comment
 {
-	int mode;
-	int font;
-	int color;
-	qint64 time;
-	qint64 date;
+	int mode=0;
+	int font=0;
+	int color=0;
+	qint64 time=0;
+	qint64 date=0;
 	QString sender;
 	QString string;
-	inline bool operator < (const Comment &o) const
-	{
-		return time<o.time;
-	}
-	inline bool operator ==(const Comment &o) const
-	{
-		return mode==o.mode&&font==o.font&&color==o.color&&sender==o.sender&&string==o.string&&time==o.time&&date==o.date;
-	}
+	bool blocked=false;
 };
 
 struct Record
 {
-	qint64 delay;
+	qint64 delay=0;
 	QString source;
 	QList<Comment> danmaku;
-	Record(QString s,const QList<Comment> &d=QList<Comment>(),qint64 l=0):
-		delay(l),source(s),danmaku(d){}
 };
-
-inline uint qHash(const Comment &key,uint seed=0)
-{
-	uint h=qHash(key.mode,seed);
-	h=(h<<1)^qHash(key.font,seed);
-	h=(h<<1)^qHash(key.color,seed);
-	h=(h<<1)^qHash(key.time,seed);
-	h=(h<<1)^qHash(key.date,seed);
-	h=(h<<1)^qHash(key.sender,seed);
-	h=(h<<1)^qHash(key.string,seed);
-	return h;
-}
 
 namespace{
 template<class T>
@@ -96,7 +75,7 @@ class Utils
 public:
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
-	static QString split(QString text,int width);
+	static QString splitString(QString text,int width);
 
 	template<class Sender,class Func>
 	static void delayExec(Sender *parent,int time,Func func)

@@ -38,6 +38,8 @@ class Danmaku:public QAbstractItemModel
 	Q_OBJECT
 public:
 	explicit Danmaku(QObject *parent=0);
+	qint64 getTime(){return time;}
+	QList<Record> &getPool(){return pool;}
 	void draw(QPainter *painter,bool move=true);
 	QVariant data(const QModelIndex &index,int role) const;
 	int rowCount(const QModelIndex &parent=QModelIndex()) const;
@@ -45,8 +47,6 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	qint64 getTime(){return time;}
-	QList<Record> &getPool(){return pool;}
 	static Danmaku *instance(){return ins;}
 
 private:
@@ -63,8 +63,7 @@ private:
 		QPixmap text;
 	};
 	QList<Static> current[5];
-	QHash<Comment,bool> cache;
-	QVector<const Comment *> danmaku;
+	QVector<Comment *> danmaku;
 	static Danmaku *ins;
 
 public slots:

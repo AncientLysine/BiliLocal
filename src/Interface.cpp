@@ -33,6 +33,7 @@ Interface::Interface(QWidget *parent):
 	setAcceptDrops(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
+	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	printer=new Printer(this);
@@ -181,6 +182,7 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
+		update();
 	});
 	connect(vplayer,&VPlayer::decode,[this](){
 		if(!power->isActive()){
@@ -336,8 +338,14 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	if(QApplication::arguments().count()>=2){
+		Utils::delayExec(this,0,[this](){
+			for(const QString &file:QApplication::arguments().mid(1)){
+				menu->openLocal(file);
+			}
+		});
+	}
 	setFocus();
-	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 }
 
 void Interface::setCenter(QSize _s,bool f)
@@ -390,18 +398,8 @@ void Interface::setCenter(QString s,bool f)
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
-		QString drop(e->mimeData()->data("text/uri-list"));
-		QStringList list=drop.split('\n');
-		for(QString &item:list){
-			QString file=QUrl(item).toLocalFile().trimmed();
-			if(QFile::exists(file)){
-				if(file.endsWith(".xml")||file.endsWith(".json")){
-					menu->setDanmaku(file);
-				}
-				else{
-					menu->setFile(file);
-				}
-			}
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+			menu->openLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}
 }
@@ -410,6 +408,7 @@ void Interface::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
+	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 	if(vplayer->getState()==VPlayer::Stop){
 		QRect to=rect();
 		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
@@ -494,7 +493,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isPopped()&&!info->isPopped()){
+	if(!menu->isPopped()&&!info->isPopped()&&!poster->isShown()){
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);

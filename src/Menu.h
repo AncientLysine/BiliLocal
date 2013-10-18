@@ -80,6 +80,7 @@ public slots:
 	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);
+	void openLocal(QString _file);
 	void setDanmaku(QString _code);
 	
 };

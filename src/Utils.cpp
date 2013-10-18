@@ -53,7 +53,7 @@ void Utils::setGround(QWidget *widget,QColor color)
 	widget->setPalette(palette);
 }
 
-QString Utils::split(QString text,int width)
+QString Utils::splitString(QString text,int width)
 {
 	QStringList result;
 	QTextBoundaryFinder finder(QTextBoundaryFinder::Word,text);
