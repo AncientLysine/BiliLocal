@@ -24,7 +24,8 @@ SOURCES += \
     src/Editor.cpp \
     src/Printer.cpp \
     src/Cookie.cpp \
-    src/Poster.cpp
+    src/Poster.cpp \
+    src/Graphic.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -39,7 +40,8 @@ HEADERS  += \
     src/Editor.h \
     src/Printer.h \
     src/Cookie.h \
-    src/Poster.h
+    src/Poster.h \
+    src/Graphic.h
 
 LIBS += \
     -lvlc \

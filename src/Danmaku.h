@@ -31,7 +31,7 @@
 #include <QtCore>
 #include "Utils.h"
 #include "Shield.h"
-#include "Printer.h"
+#include "Graphic.h"
 
 class Danmaku:public QAbstractItemModel
 {
@@ -55,15 +55,8 @@ private:
 	QSize size;
 	qint64 time;
 	QList<Record> pool;
-	struct Static
-	{
-		double life;
-		double speed;
-		QRectF rect;
-		QPixmap text;
-	};
-	QList<Static> current[5];
-	QVector<Comment *> danmaku;
+	QList<Graphic *> current;
+	QList<Comment *> danmaku;
 	static Danmaku *ins;
 
 public slots:

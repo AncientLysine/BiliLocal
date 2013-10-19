@@ -29,150 +29,6 @@
 
 Danmaku *Danmaku::ins=NULL;
 
-template<class T>
-class Stack
-{
-public:
-	inline T &top()
-	{
-		if(isEmpty()){
-			QT_THROW("Empty");
-		}
-		return stk.top();
-	}
-
-	inline T pop()
-	{
-		if(isEmpty()){
-			QT_THROW("Empty");
-		}
-		return stk.pop();
-	}
-
-	inline void push(const T &i)
-	{
-		stk.push(i);
-	}
-
-	inline bool isEmpty()
-	{
-		return stk.isEmpty();
-	}
-
-private:
-	QStack<T> stk;
-};
-
-static double evaluate(QString exp)
-{
-	auto Operator=[](QChar o){
-		switch(o.toLatin1())
-		{
-		case '+':
-		case '-':
-		case '*':
-		case '/':
-			return 1;
-		default:
-			return 0;
-		}
-	};
-
-	auto Priority=[](QChar o){
-		switch(o.toLatin1())
-		{
-		case '(':
-			return 1;
-		case '+':
-		case '-':
-			return 2;
-		case '*':
-		case '/':
-			return 3;
-		default:
-			return 0;
-		}
-	};
-
-	QT_TRY{
-		QString pst;
-		Stack<QChar> opt;
-		int i=0;
-		opt.push('#');
-		while(i<exp.length()){
-			if(exp[i].isDigit()||exp[i]=='.'){
-				pst.append(exp[i]);
-			}
-			else if(exp[i]=='('){
-				opt.push(exp[i]);
-			}
-			else if(exp[i]==')'){
-				while(opt.top()!='('){
-					pst.append(opt.pop());
-				}
-				opt.pop();
-			}
-			else if(Operator(exp[i])){
-				pst.append(' ');
-				while(Priority(exp[i])<=Priority(opt.top())){
-					pst.append(opt.pop());
-				}
-				opt.push(exp[i]);
-			}
-			i++;
-		}
-		while(!opt.isEmpty()){
-			pst.append(opt.pop());
-		}
-		Stack<double> num;
-		i=0;
-		while(pst[i]!='#'){
-			if(pst[i].isDigit()||pst[i]=='.'){
-				double n=0;
-				while(pst[i].isDigit()){
-					n=n*10+pst[i++].toLatin1()-'0';
-				}
-				if(pst[i]=='.'){
-					++i;
-					double d=1;
-					while(pst[i].isDigit()){
-						n+=(d/=10)*(pst[i++].toLatin1()-'0');
-					}
-				}
-				num.push(n);
-			}
-			else if(pst[i]==' '){
-				i++;
-			}
-			else if(pst[i]=='+'){
-				double r=num.pop(),l=num.pop();
-				num.push(l+r);
-				i++;
-			}
-			else if(pst[i]=='-'){
-				double r=num.pop(),l=num.pop();
-				num.push(l-r);
-				i++;
-			}
-			else if(pst[i]=='*'){
-				double r=num.pop(),l=num.pop();
-				num.push(l*r);
-				i++;
-			}
-			else if(pst[i]=='/'){
-				double r=num.pop(),l=num.pop();
-				num.push(l/r);
-				i++;
-			}
-		}
-		return num.top();
-	}
-	QT_CATCH(...){
-		Printer::instance()->append(QString("[Dnamaku]error while evaluating \"%1\"").arg(exp));
-		return 0;
-	}
-}
-
 Danmaku::Danmaku(QObject *parent) :
 	QAbstractItemModel(parent)
 {
@@ -189,31 +45,13 @@ void Danmaku::draw(QPainter *painter,bool move)
 		etime=etime>50?0:etime;
 	}
 	last.start();
-	for(int index=0;index<5;++index){
-		for(auto iter=current[index].begin();iter!=current[index].end();){
-			Static &render=*iter;
-			bool invalid=false;
-			switch(index){
-			case 0:
-				render.rect.moveLeft(render.rect.left()-render.speed*etime/1000.0);
-				if(render.rect.right()<0){
-					invalid=true;
-				}
-				break;
-			case 3:
-			case 4:
-				render.life-=etime/1000.0;
-				if(render.life<=0){
-					invalid=true;
-				}
-			}
-			if(invalid){
-				iter=current[index].erase(iter);
-			}
-			else{
-				++iter;
-				painter->drawPixmap(render.rect.topLeft(),render.text);
-			}
+	for(auto iter=current.begin();iter!=current.end();){
+		if((*iter)->move(etime)){
+			(*iter++)->draw(painter);
+		}
+		else{
+			delete *iter;
+			iter=current.erase(iter);
 		}
 	}
 }
@@ -330,9 +168,10 @@ void Danmaku::clearPool()
 
 void Danmaku::clearCurrent()
 {
-	for(QList<Static> &iter:current){
-		iter.clear();
+	for(Graphic *iter:current){
+		delete iter;
 	}
+	current.clear();
 }
 
 void Danmaku::parse(int flag)
@@ -488,233 +327,17 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
-class QPixmapFilterPrivate;
-class Q_WIDGETS_EXPORT QPixmapFilter : public QObject
-{
-	Q_OBJECT
-	Q_DECLARE_PRIVATE(QPixmapFilter)
-public:
-	virtual ~QPixmapFilter() = 0;
-
-	enum FilterType {
-		ConvolutionFilter,
-		ColorizeFilter,
-		DropShadowFilter,
-		BlurFilter,
-
-		UserFilter = 1024
-	};
-
-	FilterType type() const;
-
-	virtual QRectF boundingRectFor(const QRectF &rect) const;
-
-	virtual void draw(QPainter *painter, const QPointF &p, const QPixmap &src, const QRectF &srcRect = QRectF()) const = 0;
-
-protected:
-	QPixmapFilter(QPixmapFilterPrivate &d, FilterType type, QObject *parent);
-	QPixmapFilter(FilterType type, QObject *parent);
-};
-class QPixmapDropShadowFilterPrivate;
-class Q_WIDGETS_EXPORT QPixmapDropShadowFilter : public QPixmapFilter
-{
-	Q_OBJECT
-	Q_DECLARE_PRIVATE(QPixmapDropShadowFilter)
-
-public:
-	QPixmapDropShadowFilter(QObject *parent = 0);
-	~QPixmapDropShadowFilter();
-
-	QRectF boundingRectFor(const QRectF &rect) const;
-	void draw(QPainter *p, const QPointF &pos, const QPixmap &px, const QRectF &src = QRectF()) const;
-
-	qreal blurRadius() const;
-	void setBlurRadius(qreal radius);
-
-	QColor color() const;
-	void setColor(const QColor &color);
-
-	QPointF offset() const;
-	void setOffset(const QPointF &offset);
-	inline void setOffset(qreal dx, qreal dy) { setOffset(QPointF(dx, dy)); }
-};
-
 void Danmaku::appendToCurrent(const Comment &comment)
 {
-	auto intersects=[](const Static &first,const Static &second){
-		if(first.rect.intersects(second.rect)){
-			return true;
-		}
-		int ft=first.rect.top();
-		int fb=first.rect.bottom();
-		int st=second.rect.top();
-		int sb=second.rect.bottom();
-		bool sameHeight=false;
-		if(st>=ft&&st<=fb){
-			sameHeight=true;
-		}
-		if(sb<=fb&&sb>=ft){
-			sameHeight=true;
-		}
-		if(st<=ft&&sb>=fb){
-			sameHeight=true;
-		}
-		if(sameHeight){
-			int fr,sl;
-			fr=first.rect.right()/first.speed;
-			sl=second.rect.left()/second.speed;
-			return fr>=sl;
-		}
-		else{
-			return false;
-		}
-	};
-
-	int l=Utils::getConfig("/Shield/Density",80);
-	if(comment.mode==1&&l!=0&&current[0].size()>l){
-		return;
-	}
-	QFont font;
-	font.setBold(Utils::getConfig("/Danmaku/Effect",5)%2);
-	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
-	font.setPixelSize(Utils::getConfig("/Danmaku/Scale",1.0)*comment.font);
-	QStaticText text;
-	text.setText(QString(comment.string).replace("/n","\n").replace("\n","<br>"));
-	text.prepare(QTransform(),font);
-	QSize bound=text.size().toSize()+QSize(4,4);
-	bool sub=Utils::getConfig("/Danmaku/Protect",false),flag=false;
-	Static render;
 	switch(comment.mode){
 	case 1:
-	{
-		QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
-		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		if((render.speed=evaluate(exp))==0){
-			break;
-		}
-		render.rect=QRectF(QPointF(0,0),bound);
-		render.rect.moveLeft(size.width());
-		int limit=size.height()-(sub?80:0)-render.rect.height();
-		for(int height=5;height<limit;height+=10){
-			flag=true;
-			render.rect.moveTop(height);
-			for(Static &iter:current[0]){
-				if(intersects(iter,render)){
-					flag=false;
-					break;
-				}
-			}
-			if(flag){
-				break;
-			}
-		}
+		new Mode1(comment,current,size);
 		break;
-	}
 	case 4:
-	{
-		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
-		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		if((render.life=evaluate(exp))==0){
-			break;
-		}
-		render.rect=QRectF(QPointF(0,0),bound);
-		render.rect.moveCenter(QPoint(size.width()/2,0));
-		int limit=render.rect.height();
-		for(int height=size.height()-(sub?size.height()/10:5);height>limit;height-=10){
-			flag=true;
-			render.rect.moveBottom(height);
-			for(Static &iter:current[3]){
-				if(iter.rect.intersects(render.rect)){
-					flag=false;
-					break;
-				}
-			}
-			if(flag){
-				break;
-			}
-		}
+		new Mode4(comment,current,size);
 		break;
-	}
 	case 5:
-	{
-		QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
-		exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-		if((render.life=evaluate(exp))==0){
-			break;
-		}
-		render.rect=QRectF(QPointF(0,0),bound);
-		render.rect.moveCenter(QPoint(size.width()/2,0));
-		int limit=size.height()-(sub?80:0)-render.rect.height();
-		for(int height=5;height<limit;height+=10){
-			flag=true;
-			render.rect.moveTop(height);
-			for(Static &iter:current[4]){
-				if(iter.rect.intersects(render.rect)){
-					flag=false;
-					break;
-				}
-			}
-			if(flag){
-				break;
-			}
-		}
+		new Mode5(comment,current,size);
 		break;
-	}
-	}
-	if(flag){
-		QPixmap fst(bound);
-		fst.fill(Qt::transparent);
-		QPainter painter;
-		painter.begin(&fst);
-		painter.setFont(font);
-		auto draw=[&](QColor c,QPoint p){
-			painter.setPen(c);
-			painter.drawStaticText(p+=QPoint(2,2),text);
-		};
-		int color=comment.color;
-		QColor edge=qGray(color)<30?Qt::white:Qt::black;
-		switch(Utils::getConfig("/Danmaku/Effect",5)/2){
-		case 0:
-			draw(edge,QPoint(+1,0));
-			draw(edge,QPoint(-1,0));
-			draw(edge,QPoint(0,+1));
-			draw(edge,QPoint(0,-1));
-			draw(color,QPoint(0,0));
-			break;
-		case 1:
-			draw(edge,QPoint(2,2));
-			draw(edge,QPoint(1,1));
-			draw(color,QPoint(0,0));
-			break;
-		case 2:
-		{
-			draw(color,QPoint(0,0));
-			painter.end();
-			QPixmap src;
-			QPixmapDropShadowFilter f(this);
-			f.setColor(edge);
-			f.setOffset(0,0);
-			f.setBlurRadius(4);
-			src=fst;
-			fst.fill(Qt::transparent);
-			painter.begin(&fst);
-			f.draw(&painter,QPointF(),src);
-			painter.end();
-			src=fst;
-			fst.fill(Qt::transparent);
-			painter.begin(&fst);
-			f.draw(&painter,QPointF(),src);
-			break;
-		}
-		}
-		painter.end();
-		QPixmap sec(bound);
-		sec.fill(Qt::transparent);
-		painter.begin(&sec);
-		painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
-		painter.drawPixmap(QPoint(0,0),fst);
-		painter.end();
-		render.text=sec;
-		current[comment.mode-1].append(render);
 	}
 }
