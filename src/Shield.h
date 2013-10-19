@@ -33,7 +33,7 @@
 class Shield
 {
 public:
-	enum {Top,Bottom,Slide,Guest,Color,Whole};
+	enum {Top,Bottom,Slide,Guest,Advanced,Whole};
 	static bool block[6];
 	static QList<QString> shieldU;
 	static QList<QRegExp> shieldR;

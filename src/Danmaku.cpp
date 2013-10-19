@@ -93,10 +93,9 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			if(index.column()==1&&role==Qt::DisplayRole){
 				return QString(comment.string).remove("\n");
 			}
-
 		}
 		if(index.column()==1&&role==Qt::ToolTipRole){
-			return comment.string;
+			return Utils::splitString(comment.string,400);
 		}
 		if(index.column()==0&&role==Qt::TextAlignmentRole){
 			return Qt::AlignCenter;
@@ -331,7 +330,7 @@ void Danmaku::appendToPool(const Record &record)
 
 void Danmaku::appendToCurrent(const Comment &comment)
 {
-	Graphic *graphic;
+	Graphic *graphic=NULL;
 	switch(comment.mode){
 	case 1:
 		graphic=new Mode1(comment,current,size);
@@ -346,7 +345,7 @@ void Danmaku::appendToCurrent(const Comment &comment)
 		graphic=new Mode7(comment,current,size);
 		break;
 	}
-	if(graphic->getMode()==0){
+	if(graphic!=NULL&&graphic->getMode()==0){
 		delete graphic;
 	}
 }

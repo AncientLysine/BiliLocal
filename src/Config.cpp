@@ -310,8 +310,8 @@ Config::Config(QWidget *parent,int index):
 	//Shield
 	{
 		widget[2]=new QWidget(this);
-		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Color"),tr("Whole")};
-		auto lines=new QVBoxLayout(widget[2]);
+		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Advanced"),tr("Whole")};
+		auto grid=new QGridLayout(widget[2]);
 
 		auto g=new QHBoxLayout;
 		for(int i=0;i<6;++i){
@@ -323,8 +323,12 @@ Config::Config(QWidget *parent,int index):
 			});
 			g->addWidget(check[i]);
 		}
-		lines->addLayout(g);
+		grid->addLayout(g,0,0,1,4);
 
+		type=new QComboBox(widget[2]);
+		type->addItem(tr("Text"));
+		type->addItem(tr("User"));
+		type->setFixedWidth(type->sizeHint().width());
 		edit=new QLineEdit(widget[2]);
 		edit->setFixedHeight(25);
 		regexp=new QListView(widget[2]);
@@ -344,8 +348,9 @@ Config::Config(QWidget *parent,int index):
 		action[2]->setShortcut(QKeySequence("Ctrl+I"));
 		connect(action[0],&QAction::triggered,[this](){
 			if(!edit->text().isEmpty()){
-				rm->insertRow(rm->rowCount());
-				rm->setData(rm->index(rm->rowCount()-1),edit->text());
+				QStringListModel *m=type->currentIndex()==0?rm:sm;
+				m->insertRow(m->rowCount());
+				m->setData(m->index(m->rowCount()-1),edit->text());
 				edit->clear();
 			}
 		});
@@ -401,19 +406,13 @@ Config::Config(QWidget *parent,int index):
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
 		connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
 		widget[2]->setContextMenuPolicy(Qt::ActionsContextMenu);
-		auto l=new QVBoxLayout;
-		l->addWidget(edit);
-		l->addWidget(regexp);
-		auto r=new QVBoxLayout;
-		auto b=new QHBoxLayout;
-		b->addWidget(button[0]);
-		b->addWidget(button[1]);
-		r->addLayout(b);
-		r->addWidget(sender);
-		auto s=new QHBoxLayout;
-		s->addLayout(l,8);
-		s->addLayout(r,1);
-		lines->addLayout(s);
+
+		grid->addWidget(type,1,0);
+		grid->addWidget(edit,1,1);
+		grid->addWidget(button[0],1,2);
+		grid->addWidget(button[1],1,3);
+		grid->addWidget(regexp,2,0,1,2);
+		grid->addWidget(sender,2,2,1,2);
 
 		limit[0]=new QLineEdit(widget[2]);
 		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",5)));
@@ -425,7 +424,7 @@ Config::Config(QWidget *parent,int index):
 		label[0]=new QGroupBox(tr("limit of the same"),widget[2]);
 		label[0]->setToolTip(tr("0 means disabled"));
 		label[0]->setLayout(a);
-		lines->addWidget(label[0]);
+		grid->addWidget(label[0],3,0,1,4);
 
 		limit[1]=new QLineEdit(widget[2]);
 		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",80)));
@@ -437,7 +436,12 @@ Config::Config(QWidget *parent,int index):
 		label[1]=new QGroupBox(tr("limit of density"),widget[2]);
 		label[1]->setToolTip(tr("0 means disabled"));
 		label[1]->setLayout(d);
-		lines->addWidget(label[1]);
+		grid->addWidget(label[1],4,0,1,4);
+
+		grid->setColumnStretch(0,8);
+		grid->setColumnStretch(1,8);
+		grid->setColumnStretch(2,1);
+		grid->setColumnStretch(3,1);
 
 		tab->addTab(widget[2],tr("Shield"));
 	}
