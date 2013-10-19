@@ -135,6 +135,7 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
+	connect(danmaku,&Danmaku::currentCleared,[this](){update();});
 	connect(vplayer,&VPlayer::begin,[this](){
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
@@ -246,7 +247,6 @@ Interface::Interface(QWidget *parent):
 		Shield::block[5]=b;
 		danmaku->parse(0x2);
 		danmaku->clearCurrent();
-		update();
 	});
 
 	confA=new QAction(tr("Config"),this);

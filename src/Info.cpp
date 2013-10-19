@@ -137,10 +137,7 @@ Info::Info(QWidget *parent):
 				Danmaku::instance()->parse(0x1|0x2);
 				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
-			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
-				Danmaku::instance()->clearPool();
-				parentWidget()->update();
-			});
+			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 				QString filter=tr("Danmaku files (*.json)");
 				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());

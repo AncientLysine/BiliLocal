@@ -91,7 +91,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 				return time;
 			}
 			if(index.column()==1&&role==Qt::DisplayRole){
-				return comment.string;
+				return QString(comment.string).remove("\n");
 			}
 
 		}
@@ -172,6 +172,7 @@ void Danmaku::clearCurrent()
 		delete iter;
 	}
 	current.clear();
+	emit currentCleared();
 }
 
 void Danmaku::parse(int flag)
@@ -181,6 +182,7 @@ void Danmaku::parse(int flag)
 		danmaku.clear();
 		for(Record &record:pool){
 			for(Comment &comment:record.danmaku){
+				comment.string.replace("/n","\n");
 				danmaku.append(&comment);
 			}
 		}
@@ -329,15 +331,22 @@ void Danmaku::appendToPool(const Record &record)
 
 void Danmaku::appendToCurrent(const Comment &comment)
 {
+	Graphic *graphic;
 	switch(comment.mode){
 	case 1:
-		new Mode1(comment,current,size);
+		graphic=new Mode1(comment,current,size);
 		break;
 	case 4:
-		new Mode4(comment,current,size);
+		graphic=new Mode4(comment,current,size);
 		break;
 	case 5:
-		new Mode5(comment,current,size);
+		graphic=new Mode5(comment,current,size);
 		break;
+	case 7:
+		graphic=new Mode7(comment,current,size);
+		break;
+	}
+	if(graphic->getMode()==0){
+		delete graphic;
 	}
 }

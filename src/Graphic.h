@@ -43,7 +43,6 @@ public:
 
 protected:
 	int mode=0;
-	QPixmap cache;
 };
 
 class Mode1:public Graphic
@@ -57,6 +56,7 @@ public:
 private:
 	QRectF rect;
 	double speed;
+	QPixmap cache;
 };
 
 class Mode4:public Graphic
@@ -70,6 +70,7 @@ public:
 private:
 	QRectF rect;
 	double life;
+	QPixmap cache;
 };
 
 class Mode5:public Graphic
@@ -83,6 +84,29 @@ public:
 private:
 	QRectF rect;
 	double life;
+	QPixmap cache;
+};
+
+class Mode7:public Graphic
+{
+public:
+	Mode7(const Comment &comment,QList<Graphic *> &current,QSize size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	bool intersects(Graphic *other);
+
+private:
+	QPointF bPos;
+	QPointF ePos;
+	double bAlpha;
+	double eAlpha;
+	double zRotate;
+	double yRotate;
+	QPixmap cache;
+	double wait;
+	double stay;
+	double life;
+	double time=0;
 };
 
 #endif // GRAPHIC_H

@@ -71,8 +71,8 @@ private:
 	QNetworkAccessManager *manager;
 
 signals:
-	void open(QString file);
-	void power(qint16 _power);
+	void open(QString);
+	void power(qint16);
 
 public slots:
 	void pop();

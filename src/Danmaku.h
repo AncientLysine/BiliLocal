@@ -49,6 +49,9 @@ public:
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	static Danmaku *instance(){return ins;}
 
+signals:
+	void currentCleared();
+
 private:
 	int cur;
 	QTime last;

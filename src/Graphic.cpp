@@ -232,12 +232,11 @@ static QFont getFont(const Comment &comment)
 
 static QSize getSize(const Comment &comment,QFont font)
 {
-	return QFontMetrics(font).boundingRect(QString(comment.string).replace("/n","\n")).size()+QSize(4,4);
+	return QFontMetrics(font).boundingRect(QRect(),Qt::TextDontClip,comment.string).size()+QSize(4,4);
 }
 
-static QPixmap getCache(const Comment &comment)
+static QPixmap getCache(const Comment &comment,QFont font)
 {
-	QFont font=getFont(comment);
 	QSize bound=getSize(comment,font);
 	QStaticText text;
 	text.setText(QString(comment.string).replace("\n","<br>"));
@@ -305,7 +304,6 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 	if(comment.mode!=1){
 		return;
 	}
-	mode=1;
 	QSize bound=getSize(comment,getFont(comment));
 	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -325,7 +323,8 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			cache=getCache(comment);
+			mode=1;
+			cache=getCache(comment,getFont(comment));
 			current.append(this);
 			break;
 		}
@@ -366,7 +365,6 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 	if(comment.mode!=4){
 		return;
 	}
-	mode=4;
 	QSize bound=getSize(comment,getFont(comment));
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -387,7 +385,8 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			cache=getCache(comment);
+			mode=4;
+			cache=getCache(comment,getFont(comment));
 			current.append(this);
 			break;
 		}
@@ -417,10 +416,9 @@ bool Mode4::intersects(Graphic *other)
 
 Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 {
-	if(comment.mode!=4){
+	if(comment.mode!=5){
 		return;
 	}
-	mode=5;
 	QSize bound=getSize(comment,getFont(comment));
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -440,7 +438,8 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			cache=getCache(comment);
+			mode=5;
+			cache=getCache(comment,getFont(comment));
 			current.append(this);
 			break;
 		}
@@ -466,4 +465,64 @@ bool Mode5::intersects(Graphic *other)
 	const Mode5 &f=*this;
 	const Mode5 &s=*dynamic_cast<Mode5 *>(other);
 	return f.rect.intersects(s.rect);
+}
+
+Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
+{
+	if(comment.mode!=7){
+		return;
+	}
+	QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
+	if(data.size()!=14){
+		Printer::instance()->append(QString("[Danmaku]unknown or broken mode7 code %1").arg(comment.string));
+		return;
+	}
+	bPos=QPointF(data[0].toDouble(),data[1].toDouble());
+	ePos=QPointF(data[7].toDouble(),data[8].toDouble());
+	if(bPos.x()<1&&bPos.y()<1&&ePos.x()<1&&ePos.y()<1){
+		bPos.rx()*=size.width();
+		ePos.rx()*=size.width();
+		bPos.ry()*=size.height();
+		ePos.ry()*=size.height();
+	}
+	QStringList alpha=data[2].toString().split('-');
+	bAlpha=alpha[0].toDouble();
+	eAlpha=alpha[1].toDouble();
+	life=data[3].toDouble();
+	Comment c=comment;
+	c.string=data[4].toString();
+	QFont f=getFont(comment);
+	f.setFamily(data[12].toString());
+	cache=getCache(c,f);
+	zRotate=data[5].toDouble();
+	yRotate=data[6].toDouble();
+	wait=data[10].toDouble()/1000;
+	stay=life-wait-data[9].toDouble()/1000;
+	mode=7;
+	current.append(this);
+}
+
+bool Mode7::move(qint64 time)
+{
+	this->time+=time/1000.0;
+	return this->time<=life;
+}
+
+void Mode7::draw(QPainter *painter)
+{
+	QTransform rotate;
+	rotate.rotate(yRotate,Qt::YAxis);
+	rotate.rotate(zRotate,Qt::ZAxis);
+	QTransform trans=painter->transform();
+	painter->setTransform(rotate);
+	double aplha=painter->opacity();
+	painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
+	painter->drawPixmap(bPos+(ePos-bPos)*qBound<double>(0,(time-wait)/(life-stay),1),cache);
+	painter->setOpacity(aplha);
+	painter->setTransform(trans);
+}
+
+bool Mode7::intersects(Graphic *)
+{
+	return false;
 }

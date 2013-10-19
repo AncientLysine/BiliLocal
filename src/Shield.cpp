@@ -67,7 +67,7 @@ void Shield::free()
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(block[Whole]||comment.mode>5
+	if(block[Whole]||comment.mode==8
 			||(comment.mode==1&&block[Slide])
 			||(comment.mode==4&&block[Bottom])
 			||(comment.mode==5&&block[Top])
