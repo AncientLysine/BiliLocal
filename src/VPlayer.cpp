@@ -244,6 +244,7 @@ void VPlayer::play()
 			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
+			Utils::delayExec(this,&VPlayer::decode,[this](){setVolume(Utils::getConfig("/Playing/Volume",100));});
 		}
 		else{
 			libvlc_media_player_pause(mp);

@@ -141,7 +141,6 @@ Interface::Interface(QWidget *parent):
 		info->setOpened(true);
 		tv->hide();
 		me->hide();
-		vplayer->setVolume(Utils::getConfig("/Playing/Volume",100));
 		if(isFullScreen()){
 			vplayer->setSize(size());
 		}
