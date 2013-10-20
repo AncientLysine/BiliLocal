@@ -33,11 +33,13 @@ Interface::Interface(QWidget *parent):
 	setAcceptDrops(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
+	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
+	poster=new Poster(this);
 	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -62,6 +64,7 @@ Interface::Interface(QWidget *parent):
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
+				poster->fadeOut();
 				setFocus();
 			}
 			else{
@@ -74,13 +77,13 @@ Interface::Interface(QWidget *parent):
 				}
 				if(x>250){
 					menu->push();
-					if(!info->isPopped()){
+					if(!info->isPopped()&&!poster->isShown()){
 						setFocus();
 					}
 				}
 				if(x<w-250){
 					info->push();
-					if(!menu->isPopped()){
+					if(!menu->isPopped()&&!poster->isShown()){
 						setFocus();
 					}
 				}
@@ -90,6 +93,17 @@ Interface::Interface(QWidget *parent):
 				if(x>w+100){
 					info->push();
 					setFocus();
+				}
+				if(x>200&&x<w-200){
+					if(y>h-40&&poster->isValid()){
+						poster->fadeIn();
+					}
+					if(y<h-60){
+						poster->fadeOut();
+					}
+				}
+				else{
+					poster->fadeOut();
 				}
 			}
 			if(cur!=pre){
@@ -121,6 +135,7 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
+	connect(danmaku,SIGNAL(currentCleared()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::begin,[this](){
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
@@ -168,6 +183,7 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
 		}
+		update();
 	});
 	connect(vplayer,&VPlayer::decode,[this](){
 		if(!power->isActive()){
@@ -175,6 +191,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
+	connect(menu,&Menu::open,info,&Info::setFilePath);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
@@ -231,7 +248,6 @@ Interface::Interface(QWidget *parent):
 		Shield::block[5]=b;
 		danmaku->parse(0x2);
 		danmaku->clearCurrent();
-		update();
 	});
 
 	confA=new QAction(tr("Config"),this);
@@ -323,8 +339,14 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+	if(QApplication::arguments().count()>=2){
+		Utils::delayExec(this,0,[this](){
+			for(const QString &file:QApplication::arguments().mid(1)){
+				menu->openLocal(file);
+			}
+		});
+	}
 	setFocus();
-	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 }
 
 void Interface::setCenter(QSize _s,bool f)
@@ -377,18 +399,8 @@ void Interface::setCenter(QString s,bool f)
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
-		QString drop(e->mimeData()->data("text/uri-list"));
-		QStringList list=drop.split('\n');
-		for(QString &item:list){
-			QString file=QUrl(item).toLocalFile().trimmed();
-			if(QFile::exists(file)){
-				if(file.endsWith(".xml")||file.endsWith(".json")){
-					menu->setDanmaku(file);
-				}
-				else{
-					menu->setFile(file);
-				}
-			}
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+			menu->openLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}
 }
@@ -403,9 +415,6 @@ void Interface::paintEvent(QPaintEvent *e)
 		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
 		to.moveCenter(rect().center());
 		painter.drawPixmap(to,background);
-	}
-	else{
-		painter.fillRect(rect(),Qt::black);
 	}
 	vplayer->draw(&painter,rect());
 	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
@@ -427,6 +436,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
+	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
 	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
@@ -484,7 +494,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isPopped()&&!info->isPopped()){
+	if(!menu->isPopped()&&!info->isPopped()&&!poster->isShown()){
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);

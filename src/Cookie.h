@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Shield.h
-*   Time:        2013/05/20
+*   Filename:    Cookie.h
+*   Time:        2013/10/17
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,22 +24,23 @@
 *
 =========================================================================*/
 
-#ifndef SHIELD_H
-#define SHIELD_H
+#ifndef COOKIE_H
+#define COOKIE_H
 
 #include <QtCore>
-#include "Utils.h"
+#include <QtNetwork>
 
-class Shield
+class Cookie:public QNetworkCookieJar
 {
+	Q_OBJECT
 public:
-	enum {Top,Bottom,Slide,Guest,Advanced,Whole};
-	static bool block[6];
-	static QList<QString> shieldU;
-	static QList<QRegExp> shieldR;
 	static void init();
 	static void free();
-	static bool isBlocked(const Comment &comment);
+	static Cookie *instance(){return &data;}
+
+private:
+	static Cookie data;
+
 };
 
-#endif // SHIELD_H
+#endif // COOKIE_H

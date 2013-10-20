@@ -137,14 +137,13 @@ Info::Info(QWidget *parent):
 				Danmaku::instance()->parse(0x1|0x2);
 				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
-			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,[this](){
-				Danmaku::instance()->clearPool();
-				parentWidget()->update();
-			});
+			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-				QString filter=tr("Danmaku files (*.json)");
-				QString lastPath=Utils::getConfig("/Playing/Path",QDir::homePath());
-				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),lastPath,filter);
+				QString path=Utils::getConfig("/Playing/Path",QDir::homePath());
+				if(!filePath.isEmpty()){
+					path+='/'+QFileInfo(filePath).baseName()+".json";
+				}
+				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
 				if(!file.isEmpty()){
 					if(!file.endsWith(".json")){
 						file.append(".json");
@@ -254,6 +253,11 @@ void Info::setPlaying(bool _playing)
 	playB->setIcon(playing?pauseI:playI);
 	playA->setIcon(playing?pauseI:playI);
 	playA->setText(playing?tr("Pause"):tr("Play"));
+}
+
+void Info::setFilePath(QString _file)
+{
+	filePath=_file;
 }
 
 void Info::setDuration(qint64 _duration)

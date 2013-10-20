@@ -2,10 +2,10 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Info.h
-*   Time:        2013/04/05
-*   Author:      Lysine
-*   Contributor: Chaserhkj
+*   Filename:    Poster.h
+*   Time:        2013/05/23
+*   Author:      zhengdanwei
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,67 +25,44 @@
 *
 =========================================================================*/
 
-#ifndef INFO_H
-#define INFO_H
+#ifndef POSTER_H
+#define POSTER_H
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 #include "Utils.h"
-#include "Shield.h"
-#include "Config.h"
-#include "Editor.h"
+#include "Cookie.h"
 #include "Danmaku.h"
+#include "VPlayer.h"
 
-class Info:public QWidget
+class Poster:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Info(QWidget *parent=0);
-	bool isPopped(){return isPop;}
+	explicit Poster(QWidget *parent = 0);
+	bool isValid();
+	bool isShown(){return ioo==2;}
+
+public slots:
+	void postComment(QString comment);
+	void fadeIn();
+	void fadeOut();
 
 private:
-	bool isPop;
-	bool isStay;
-	bool opened;
-	bool playing;
-	bool updating;
-	qint64 duration;
-	QString filePath;
-
-	QLabel *durT;
-	QLabel *timeT;
-	QLabel *volmT;
-	QLabel *plfmT;
-	QSlider *timeS;
-	QSlider *volmS;
-	QLineEdit *plfmL;
-	QTableView *danmV;
-	QPushButton *playB;
-	QPushButton *stopB;
-	QPropertyAnimation *animation;
-	QAction *playA;
-	QAction *stopA;
-	QIcon playI,stopI,pauseI;
-	void resizeEvent(QResizeEvent *e);
-	
-signals:
-	void play();
-	void stop();
-	void time(qint64);
-	void volume(int);
-	
-public slots:
-	void pop();
-	void push(bool force=false);
-	void trigger();
-	void terminate();
-	void resizeHeader();
-	void setTime(qint64 _time);
-	void setOpened(bool _opened);
-	void setPlaying(bool _playing);
-	void setFilePath(QString _file);
-	void setDuration(qint64 _duration);
-	
+	QAction *commentA;
+	QLineEdit *commentL;
+	QComboBox *commentM;
+	QPushButton *commentC;
+	QPushButton *commentB;
+	QNetworkAccessManager *manager;
+	int ioo;
+	QTimer *timer;
+	QGraphicsOpacityEffect *effect;
+	static QHash<int,int> mode;
+	QString getCid();
+	QColor getColor();
+	void setColor(QColor color);
 };
 
-#endif // INFO_H
+#endif // POSTER_H

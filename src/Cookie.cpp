@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Shield.h
-*   Time:        2013/05/20
+*   Filename:    Cookie.cpp
+*   Time:        2013/10/17
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,22 +24,40 @@
 *
 =========================================================================*/
 
-#ifndef SHIELD_H
-#define SHIELD_H
+#include "Cookie.h"
 
-#include <QtCore>
-#include "Utils.h"
+Cookie Cookie::data;
 
-class Shield
+void Cookie::init()
 {
-public:
-	enum {Top,Bottom,Slide,Guest,Advanced,Whole};
-	static bool block[6];
-	static QList<QString> shieldU;
-	static QList<QRegExp> shieldR;
-	static void init();
-	static void free();
-	static bool isBlocked(const Comment &comment);
-};
+	QFile file("Cookie.bin");
+	if(!file.exists()) return;
+	file.open(QIODevice::ReadOnly);
+	QDataStream read(qUncompress(file.readAll()));
+	QList<QNetworkCookie> all;
+	int n,l;
+	read>>n;
+	for(int i=0;i<n;++i){
+		read>>l;
+		char d[l];
+		read.readRawData(d,l);
+		all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
+	}
+	data.setAllCookies(all);
+}
 
-#endif // SHIELD_H
+void Cookie::free()
+{
+	QByteArray buff;
+	QDataStream save(&buff,QIODevice::WriteOnly);
+	const QList<QNetworkCookie> &all=data.allCookies();
+	save<<all.count();
+	for(const QNetworkCookie &iter:all){
+		QByteArray d=iter.toRawForm();
+		save<<d.size();
+		save.writeRawData(d.data(),d.size());
+	}
+	QFile file("Cookie.bin");
+	file.open(QIODevice::WriteOnly);
+	file.write(qCompress(buff));
+}

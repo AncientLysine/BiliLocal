@@ -29,7 +29,9 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 #include "Shield.h"
+#include "Cookie.h"
 
 class Config:public QDialog
 {
@@ -49,22 +51,27 @@ private:
 	QLineEdit *play[4];
 
 	//Interface
-	QGroupBox *ui[4];
+	QGroupBox *ui[5];
 	QComboBox *font;
 	QCheckBox *stay;
 	QCheckBox *less;
 	QLineEdit *size;
 	QLineEdit *back;
 	QPushButton *open;
+	QLabel *image;
+	QLineEdit *input[3];
+	QPushButton *login;
+	QNetworkAccessManager *manager;
 
 	//Shiled
 	QLineEdit *edit;
 	QCheckBox *check[6];
+	QComboBox *type;
 	QListView *regexp;
 	QListView *sender;
 	QStringListModel *rm;
 	QStringListModel *sm;
-	QAction *action[3];
+	QAction *action[4];
 	QPushButton *button[2];
 	QLineEdit *limit[2];
 	QGroupBox *label[2];

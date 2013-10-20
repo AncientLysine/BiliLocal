@@ -33,6 +33,7 @@
 #include <QtNetwork>
 #include "Utils.h"
 #include "Search.h"
+#include "Cookie.h"
 #include "Printer.h"
 #include "Danmaku.h"
 
@@ -70,8 +71,8 @@ private:
 	QNetworkAccessManager *manager;
 
 signals:
-	void open(QString file);
-	void power(qint16 _power);
+	void open(QString);
+	void power(qint16);
 
 public slots:
 	void pop();
@@ -79,6 +80,7 @@ public slots:
 	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);
+	void openLocal(QString _file);
 	void setDanmaku(QString _code);
 	
 };

@@ -192,6 +192,7 @@ Config::Config(QWidget *parent,int index):
 		b->addWidget(back);
 		open=new QPushButton(tr("choose"),widget[1]);
 		open->setFixedWidth(50);
+		open->setFocusPolicy(Qt::NoFocus);
 		connect(open,&QPushButton::clicked,[this](){
 			QString path=QFileInfo(back->text()).absolutePath();
 			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path.isEmpty()?QDir::currentPath():path);
@@ -204,14 +205,113 @@ Config::Config(QWidget *parent,int index):
 		ui[3]->setLayout(b);
 		lines->addWidget(ui[3]);
 
+		auto l=new QHBoxLayout;
+		input[0]=new QLineEdit(widget[1]);
+		input[0]->setPlaceholderText(tr("Username"));
+		input[1]=new QLineEdit(widget[1]);
+		input[1]->setPlaceholderText(tr("Password"));
+		input[1]->setEchoMode(QLineEdit::Password);
+		input[2]=new QLineEdit(widget[1]);
+		input[2]->setPlaceholderText(tr("Identifier"));
+		connect(input[2],&QLineEdit::textEdited,[this](QString text){
+			input[2]->setText(text.toUpper());
+		});
+		l->addWidget(input[0]);
+		l->addWidget(input[1]);
+		l->addWidget(input[2]);
+		image=new QLabel(widget[1]);
+		image->setFixedWidth(100);
+		image->setAlignment(Qt::AlignCenter);
+		l->addWidget(image);
+		manager=new QNetworkAccessManager(this);
+		manager->setCookieJar(Cookie::instance());
+		Cookie::instance()->setParent(NULL);
+		auto logged=[this](){
+			image->setText(tr("Logged"));
+			input[0]->setEnabled(false);
+			input[1]->setEnabled(false);
+			input[1]->clear();
+			input[2]->setEnabled(false);
+			input[2]->clear();
+			login->setEnabled(false);
+		};
+		QString url("http://interface.bilibili.tv/nav.js");
+		Utils::getReply(manager,QNetworkRequest(url),[logged,this](QNetworkReply *reply){
+			bool flag=true;
+			if(reply->error()==QNetworkReply::NoError){
+				QString page(reply->readAll());
+				int sta=page.indexOf("title=\"");
+				if(sta!=-1){
+					sta+=7;
+					input[0]->setText(page.mid(sta,page.indexOf("\"",sta)-sta));
+					flag=false;
+				}
+			}
+			if(flag){
+				QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
+				Utils::getReply(manager,QNetworkRequest(url),[this](QNetworkReply *reply){
+					if(reply->error()==QNetworkReply::NoError){
+						QPixmap pixmap;
+						pixmap.loadFromData(reply->readAll());
+						if(!pixmap.isNull()){
+							image->setPixmap(pixmap);
+						}
+					}
+				});
+			}
+			else{
+				logged();
+			}
+		});
+		login=new QPushButton(tr("login"),widget[1]);
+		login->setFixedWidth(50);
+		connect(login,&QPushButton::clicked,[=](){
+			for(QLineEdit *iter:input){
+				if(iter->text().isEmpty()){
+					return;
+				}
+			}
+			QUrlQuery query;
+			query.addQueryItem("act","login");
+			query.addQueryItem("userid",input[0]->text());
+			query.addQueryItem("pwd",input[1]->text());
+			query.addQueryItem("vdcode",input[2]->text());
+			query.addQueryItem("keeptime","2592000");
+			QByteArray data=query.query().toUtf8();
+			QNetworkRequest request(QUrl("https://secure.bilibili.tv/login"));
+			request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
+			request.setHeader(QNetworkRequest::ContentLengthHeader,data.length());
+			QNetworkReply *reply=manager->post(request,data);
+			connect(reply,&QNetworkReply::finished,[=](){
+				bool flag=false;
+				if(reply->error()==QNetworkReply::NoError){
+					QString page(reply->readAll());
+					if(page.indexOf("http://www.bilibili.tv/")!=-1){
+						flag=true;
+					}
+					else{
+						int sta=page.indexOf("document.write(\"")+16;
+						QMessageBox::warning(parentWidget(),tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
+					}
+				}
+				if(flag){
+					logged();
+				}
+			});
+		});
+		l->addWidget(login);
+		ui[4]=new QGroupBox(tr("login"),widget[1]);
+		ui[4]->setLayout(l);
+		lines->addWidget(ui[4]);
+
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
 	}
 	//Shield
 	{
 		widget[2]=new QWidget(this);
-		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Color"),tr("Whole")};
-		auto lines=new QVBoxLayout(widget[2]);
+		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Advanced"),tr("Whole")};
+		auto grid=new QGridLayout(widget[2]);
 
 		auto g=new QHBoxLayout;
 		for(int i=0;i<6;++i){
@@ -223,14 +323,19 @@ Config::Config(QWidget *parent,int index):
 			});
 			g->addWidget(check[i]);
 		}
-		lines->addLayout(g);
+		grid->addLayout(g,0,0,1,4);
 
+		type=new QComboBox(widget[2]);
+		type->addItem(tr("Text"));
+		type->addItem(tr("User"));
 		edit=new QLineEdit(widget[2]);
 		edit->setFixedHeight(25);
 		regexp=new QListView(widget[2]);
 		sender=new QListView(widget[2]);
 		regexp->setModel(rm=new QStringListModel(regexp));
 		sender->setModel(sm=new QStringListModel(sender));
+		connect(regexp,&QListView::pressed,[this](QModelIndex){sender->setCurrentIndex(QModelIndex());});
+		connect(sender,&QListView::pressed,[this](QModelIndex){regexp->setCurrentIndex(QModelIndex());});
 		QStringList re;
 		for(const auto &item:Shield::shieldR){
 			re.append(item.pattern());
@@ -240,12 +345,15 @@ Config::Config(QWidget *parent,int index):
 		action[0]=new QAction(tr("Add"),widget[2]);
 		action[1]=new QAction(tr("Del"),widget[2]);
 		action[2]=new QAction(tr("Import"),widget[2]);
+		action[3]=new QAction(tr("Export"),widget[2]);
 		action[1]->setShortcut(QKeySequence("Del"));
 		action[2]->setShortcut(QKeySequence("Ctrl+I"));
+		action[3]->setShortcut(QKeySequence("Ctrl+E"));
 		connect(action[0],&QAction::triggered,[this](){
 			if(!edit->text().isEmpty()){
-				rm->insertRow(rm->rowCount());
-				rm->setData(rm->index(rm->rowCount()-1),edit->text());
+				QStringListModel *m=type->currentIndex()==0?rm:sm;
+				m->insertRow(m->rowCount());
+				m->setData(m->index(m->rowCount()-1),edit->text());
 				edit->clear();
 			}
 		});
@@ -290,30 +398,46 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 		});
+		connect(action[3],&QAction::triggered,[this](){
+			QString path=QFileDialog::getSaveFileName(parentWidget(),tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
+			if(!path.isEmpty()){
+				if(!path.endsWith(".xml")){
+					path.append(".xml");
+				}
+				QFile file(path);
+				file.open(QIODevice::WriteOnly|QIODevice::Text);
+				QTextStream stream(&file);
+				stream.setCodec("UTF-8");
+				stream<<"<filters>"<<endl;
+				for(const QString &iter:rm->stringList()){
+					stream<<"  <item enabled=\"true\">t="<<iter<<"</item>"<<endl;
+				}
+				for(const QString &iter:sm->stringList()){
+					stream<<"  <item enabled=\"true\">u="<<iter<<"</item>"<<endl;
+				}
+				stream<<"</filters>";
+			}
+		});
 		widget[2]->addAction(action[1]);
 		widget[2]->addAction(action[2]);
+		widget[2]->addAction(action[3]);
 		button[0]=new QPushButton(tr("Add"),widget[2]);
 		button[1]=new QPushButton(tr("Del"),widget[2]);
-		button[0]->setFixedHeight(25);
-		button[1]->setFixedHeight(25);
+		int width=qMax(button[0]->sizeHint().width(),button[1]->sizeHint().width());
+		button[0]->setFixedWidth(width);
+		button[1]->setFixedWidth(width);
 		button[0]->setFocusPolicy(Qt::NoFocus);
 		button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
 		connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
 		widget[2]->setContextMenuPolicy(Qt::ActionsContextMenu);
-		auto l=new QVBoxLayout;
-		l->addWidget(edit);
-		l->addWidget(regexp);
-		auto r=new QVBoxLayout;
-		auto b=new QHBoxLayout;
-		b->addWidget(button[0]);
-		b->addWidget(button[1]);
-		r->addLayout(b);
-		r->addWidget(sender);
-		auto s=new QHBoxLayout;
-		s->addLayout(l,8);
-		s->addLayout(r,1);
-		lines->addLayout(s);
+
+		grid->addWidget(type,1,0);
+		grid->addWidget(edit,1,1);
+		grid->addWidget(button[0],1,2);
+		grid->addWidget(button[1],1,3);
+		grid->addWidget(regexp,2,0,1,2);
+		grid->addWidget(sender,2,2,1,2);
 
 		limit[0]=new QLineEdit(widget[2]);
 		limit[0]->setText(QString::number(Utils::getConfig("/Shield/Limit",5)));
@@ -325,7 +449,7 @@ Config::Config(QWidget *parent,int index):
 		label[0]=new QGroupBox(tr("limit of the same"),widget[2]);
 		label[0]->setToolTip(tr("0 means disabled"));
 		label[0]->setLayout(a);
-		lines->addWidget(label[0]);
+		grid->addWidget(label[0],3,0,1,4);
 
 		limit[1]=new QLineEdit(widget[2]);
 		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",80)));
@@ -337,7 +461,7 @@ Config::Config(QWidget *parent,int index):
 		label[1]=new QGroupBox(tr("limit of density"),widget[2]);
 		label[1]->setToolTip(tr("0 means disabled"));
 		label[1]->setLayout(d);
-		lines->addWidget(label[1]);
+		grid->addWidget(label[1],4,0,1,4);
 
 		tab->addTab(widget[2],tr("Shield"));
 	}

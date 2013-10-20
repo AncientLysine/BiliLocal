@@ -67,11 +67,11 @@ void Shield::free()
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(block[Whole]||comment.mode>5
+	if(block[Whole]||comment.mode==6||comment.mode==8
 			||(comment.mode==1&&block[Slide])
 			||(comment.mode==4&&block[Bottom])
 			||(comment.mode==5&&block[Top])
-			||(comment.color!=Qt::white&&block[Color])){
+			||(comment.mode==7&&block[Advanced])){
 		return true;
 	}
 	if(block[Guest]){
