@@ -71,7 +71,7 @@ private:
 	QListView *sender;
 	QStringListModel *rm;
 	QStringListModel *sm;
-	QAction *action[3];
+	QAction *action[4];
 	QPushButton *button[2];
 	QLineEdit *limit[2];
 	QGroupBox *label[2];

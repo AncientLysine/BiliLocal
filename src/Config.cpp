@@ -328,13 +328,14 @@ Config::Config(QWidget *parent,int index):
 		type=new QComboBox(widget[2]);
 		type->addItem(tr("Text"));
 		type->addItem(tr("User"));
-		type->setFixedWidth(type->sizeHint().width());
 		edit=new QLineEdit(widget[2]);
 		edit->setFixedHeight(25);
 		regexp=new QListView(widget[2]);
 		sender=new QListView(widget[2]);
 		regexp->setModel(rm=new QStringListModel(regexp));
 		sender->setModel(sm=new QStringListModel(sender));
+		connect(regexp,&QListView::pressed,[this](QModelIndex){sender->setCurrentIndex(QModelIndex());});
+		connect(sender,&QListView::pressed,[this](QModelIndex){regexp->setCurrentIndex(QModelIndex());});
 		QStringList re;
 		for(const auto &item:Shield::shieldR){
 			re.append(item.pattern());
@@ -344,8 +345,10 @@ Config::Config(QWidget *parent,int index):
 		action[0]=new QAction(tr("Add"),widget[2]);
 		action[1]=new QAction(tr("Del"),widget[2]);
 		action[2]=new QAction(tr("Import"),widget[2]);
+		action[3]=new QAction(tr("Export"),widget[2]);
 		action[1]->setShortcut(QKeySequence("Del"));
 		action[2]->setShortcut(QKeySequence("Ctrl+I"));
+		action[3]->setShortcut(QKeySequence("Ctrl+E"));
 		connect(action[0],&QAction::triggered,[this](){
 			if(!edit->text().isEmpty()){
 				QStringListModel *m=type->currentIndex()==0?rm:sm;
@@ -395,12 +398,34 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 		});
+		connect(action[3],&QAction::triggered,[this](){
+			QString path=QFileDialog::getSaveFileName(parentWidget(),tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
+			if(!path.isEmpty()){
+				if(!path.endsWith(".xml")){
+					path.append(".xml");
+				}
+				QFile file(path);
+				file.open(QIODevice::WriteOnly|QIODevice::Text);
+				QTextStream stream(&file);
+				stream.setCodec("UTF-8");
+				stream<<"<filters>"<<endl;
+				for(const QString &iter:rm->stringList()){
+					stream<<"  <item enabled=\"true\">t="<<iter<<"</item>"<<endl;
+				}
+				for(const QString &iter:sm->stringList()){
+					stream<<"  <item enabled=\"true\">u="<<iter<<"</item>"<<endl;
+				}
+				stream<<"</filters>";
+			}
+		});
 		widget[2]->addAction(action[1]);
 		widget[2]->addAction(action[2]);
+		widget[2]->addAction(action[3]);
 		button[0]=new QPushButton(tr("Add"),widget[2]);
 		button[1]=new QPushButton(tr("Del"),widget[2]);
-		button[0]->setFixedHeight(25);
-		button[1]->setFixedHeight(25);
+		int width=qMax(button[0]->sizeHint().width(),button[1]->sizeHint().width());
+		button[0]->setFixedWidth(width);
+		button[1]->setFixedWidth(width);
 		button[0]->setFocusPolicy(Qt::NoFocus);
 		button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
@@ -437,11 +462,6 @@ Config::Config(QWidget *parent,int index):
 		label[1]->setToolTip(tr("0 means disabled"));
 		label[1]->setLayout(d);
 		grid->addWidget(label[1],4,0,1,4);
-
-		grid->setColumnStretch(0,8);
-		grid->setColumnStretch(1,8);
-		grid->setColumnStretch(2,1);
-		grid->setColumnStretch(3,1);
 
 		tab->addTab(widget[2],tr("Shield"));
 	}

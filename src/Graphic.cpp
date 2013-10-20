@@ -235,12 +235,16 @@ static QSize getSize(const Comment &comment,QFont font)
 	return QFontMetrics(font).boundingRect(QRect(),Qt::TextDontClip,comment.string).size()+QSize(4,4);
 }
 
-static QPixmap getCache(const Comment &comment,QFont font)
+static QPixmap getCache(const Comment &comment,QString family=QString(),bool effect=true,bool opaque=false)
 {
-	QSize bound=getSize(comment,font);
+	QFont font=getFont(comment);
+	if(!family.isEmpty()){
+		font.setFamily(family);
+	}
+	QSize size=getSize(comment,font);
 	QStaticText text;
 	text.setText(QString(comment.string).replace("\n","<br>"));
-	QPixmap fst(bound);
+	QPixmap fst(size);
 	fst.fill(Qt::transparent);
 	QPainter painter;
 	painter.begin(&fst);
@@ -249,50 +253,60 @@ static QPixmap getCache(const Comment &comment,QFont font)
 		painter.setPen(c);
 		painter.drawStaticText(p+=QPoint(2,2),text);
 	};
-	int color=comment.color;
-	QColor edge=qGray(color)<30?Qt::white:Qt::black;
-	switch(Utils::getConfig("/Danmaku/Effect",5)/2){
-	case 0:
-		draw(edge,QPoint(+1,0));
-		draw(edge,QPoint(-1,0));
-		draw(edge,QPoint(0,+1));
-		draw(edge,QPoint(0,-1));
-		draw(color,QPoint(0,0));
-		break;
-	case 1:
-		draw(edge,QPoint(2,2));
-		draw(edge,QPoint(1,1));
-		draw(color,QPoint(0,0));
-		break;
-	case 2:
-	{
-		draw(color,QPoint(0,0));
-		painter.end();
-		QPixmap src;
-		QPixmapDropShadowFilter f;
-		f.setColor(edge);
-		f.setOffset(0,0);
-		f.setBlurRadius(4);
-		src=fst;
-		fst.fill(Qt::transparent);
-		painter.begin(&fst);
-		f.draw(&painter,QPointF(),src);
-		painter.end();
-		src=fst;
-		fst.fill(Qt::transparent);
-		painter.begin(&fst);
-		f.draw(&painter,QPointF(),src);
-		break;
+	int base=comment.color;
+	if(effect){
+		QColor edge=qGray(base)<30?Qt::white:Qt::black;
+		switch(Utils::getConfig("/Danmaku/Effect",5)/2){
+		case 0:
+			draw(edge,QPoint(+1,0));
+			draw(edge,QPoint(-1,0));
+			draw(edge,QPoint(0,+1));
+			draw(edge,QPoint(0,-1));
+			draw(base,QPoint(0,0));
+			break;
+		case 1:
+			draw(edge,QPoint(2,2));
+			draw(edge,QPoint(1,1));
+			draw(base,QPoint(0,0));
+			break;
+		case 2:
+		{
+			draw(base,QPoint(0,0));
+			painter.end();
+			QPixmap src;
+			QPixmapDropShadowFilter f;
+			f.setColor(edge);
+			f.setOffset(0,0);
+			f.setBlurRadius(4);
+			src=fst;
+			fst.fill(Qt::transparent);
+			painter.begin(&fst);
+			f.draw(&painter,QPointF(),src);
+			painter.end();
+			src=fst;
+			fst.fill(Qt::transparent);
+			painter.begin(&fst);
+			f.draw(&painter,QPointF(),src);
+			break;
+		}
+		}
 	}
+	else{
+		draw(base,QPoint(0,0));
 	}
 	painter.end();
-	QPixmap sec(bound);
-	sec.fill(Qt::transparent);
-	painter.begin(&sec);
-	painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
-	painter.drawPixmap(QPoint(0,0),fst);
-	painter.end();
-	return sec;
+	if(opaque){
+		return fst;
+	}
+	else{
+		QPixmap sec(size);
+		sec.fill(Qt::transparent);
+		painter.begin(&sec);
+		painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
+		painter.drawPixmap(QPoint(0,0),fst);
+		painter.end();
+		return sec;
+	}
 }
 
 Graphic::~Graphic()
@@ -324,7 +338,7 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=1;
-			cache=getCache(comment,getFont(comment));
+			cache=getCache(comment);
 			current.append(this);
 			break;
 		}
@@ -356,8 +370,7 @@ bool Mode1::intersects(Graphic *other)
 	int fb=f.rect.bottom();
 	int st=s.rect.top();
 	int sb=s.rect.bottom();
-	bool sameHeight=(st>=ft&&st<=fb)||(sb<=fb&&sb>=ft)||(st<=ft&&sb>=fb);
-	return sameHeight&&f.rect.right()/f.speed>=s.rect.left()/s.speed;
+	return ((st>=ft&&st<=fb)||(sb<=fb&&sb>=ft)||(st<=ft&&sb>=fb))&&f.rect.right()/f.speed>=s.rect.left()/s.speed;
 }
 
 Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
@@ -386,7 +399,7 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=4;
-			cache=getCache(comment,getFont(comment));
+			cache=getCache(comment);
 			current.append(this);
 			break;
 		}
@@ -439,7 +452,7 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=5;
-			cache=getCache(comment,getFont(comment));
+			cache=getCache(comment);
 			current.append(this);
 			break;
 		}
@@ -477,8 +490,9 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 		Printer::instance()->append(QString("[Danmaku]unknown or broken mode7 code %1").arg(comment.string));
 		return;
 	}
-	bPos=QPointF(data[0].toDouble(),data[1].toDouble());
-	ePos=QPointF(data[7].toDouble(),data[8].toDouble());
+	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
+	bPos=QPointF(getDouble(0),getDouble(1));
+	ePos=QPointF(getDouble(7),getDouble(8));
 	if(bPos.x()<1&&bPos.y()<1&&ePos.x()<1&&ePos.y()<1){
 		bPos.rx()*=size.width();
 		ePos.rx()*=size.width();
@@ -488,16 +502,22 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	QStringList alpha=data[2].toString().split('-');
 	bAlpha=alpha[0].toDouble();
 	eAlpha=alpha[1].toDouble();
-	life=data[3].toDouble();
+	life=getDouble(3);
 	Comment c=comment;
 	c.string=data[4].toString();
-	QFont f=getFont(comment);
-	f.setFamily(data[12].toString());
-	cache=getCache(c,f);
-	zRotate=data[5].toDouble();
-	yRotate=data[6].toDouble();
-	wait=data[10].toDouble()/1000;
-	stay=life-wait-data[9].toDouble()/1000;
+	bool bold;
+	QJsonValue v=data[11];
+	if(v.isString()){
+		bold=v.toString()=="true";
+	}
+	else{
+		bold=v.toVariant().toBool();
+	}
+	cache=getCache(c,data[12].toString(),bold,true);
+	zRotate=getDouble(5);
+	yRotate=getDouble(6);
+	wait=getDouble(10)/1000;
+	stay=life-wait-getDouble(9)/1000;
 	mode=7;
 	current.append(this);
 }
@@ -510,14 +530,17 @@ bool Mode7::move(qint64 time)
 
 void Mode7::draw(QPainter *painter)
 {
+	QPointF cPos=bPos+(ePos-bPos)*qBound<double>(0,(time-wait)/(life-stay),1);
 	QTransform rotate;
+	rotate.translate(+cPos.x(),+cPos.y());
 	rotate.rotate(yRotate,Qt::YAxis);
 	rotate.rotate(zRotate,Qt::ZAxis);
-	QTransform trans=painter->transform();
+	rotate.translate(-cPos.x(),-cPos.y());
+	auto trans=painter->transform();
+	auto aplha=painter->opacity();
 	painter->setTransform(rotate);
-	double aplha=painter->opacity();
 	painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
-	painter->drawPixmap(bPos+(ePos-bPos)*qBound<double>(0,(time-wait)/(life-stay),1),cache);
+	painter->drawPixmap(cPos,cache);
 	painter->setOpacity(aplha);
 	painter->setTransform(trans);
 }

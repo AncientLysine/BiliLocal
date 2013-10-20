@@ -50,6 +50,7 @@ private:
 	bool playing;
 	bool updating;
 	qint64 duration;
+	QString filePath;
 
 	QLabel *durT;
 	QLabel *timeT;
@@ -82,6 +83,7 @@ public slots:
 	void setTime(qint64 _time);
 	void setOpened(bool _opened);
 	void setPlaying(bool _playing);
+	void setFilePath(QString _file);
 	void setDuration(qint64 _duration);
 	
 };

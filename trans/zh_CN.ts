@@ -206,55 +206,65 @@
         <translation>用户</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="344"/>
-        <location filename="../src/Config.cpp" line="400"/>
+        <location filename="../src/Config.cpp" line="345"/>
+        <location filename="../src/Config.cpp" line="424"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="345"/>
-        <location filename="../src/Config.cpp" line="401"/>
+        <location filename="../src/Config.cpp" line="346"/>
+        <location filename="../src/Config.cpp" line="425"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="346"/>
+        <location filename="../src/Config.cpp" line="347"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="366"/>
+        <location filename="../src/Config.cpp" line="348"/>
+        <source>Export</source>
+        <translation>导出</translation>
+    </message>
+    <message>
+        <location filename="../src/Config.cpp" line="369"/>
         <source>Import File</source>
         <translation>导入文件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="424"/>
+        <location filename="../src/Config.cpp" line="402"/>
+        <source>Export File</source>
+        <translation>导出文件</translation>
+    </message>
+    <message>
+        <location filename="../src/Config.cpp" line="449"/>
         <source>limit of the same</source>
         <translation>允许重复数量</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="425"/>
-        <location filename="../src/Config.cpp" line="437"/>
+        <location filename="../src/Config.cpp" line="450"/>
+        <location filename="../src/Config.cpp" line="462"/>
         <source>0 means disabled</source>
         <translation>0表示禁用</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="436"/>
+        <location filename="../src/Config.cpp" line="461"/>
         <source>limit of density</source>
         <translation>同屏密度限制</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="446"/>
+        <location filename="../src/Config.cpp" line="466"/>
         <source>Shield</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="458"/>
+        <location filename="../src/Config.cpp" line="478"/>
         <source>Thanks</source>
         <translation>感谢</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="470"/>
+        <location filename="../src/Config.cpp" line="490"/>
         <source>License</source>
         <translation>许可</translation>
     </message>
@@ -267,12 +277,12 @@
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="146"/>
+        <location filename="../src/Danmaku.cpp" line="145"/>
         <source>Time</source>
         <translation>时间</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="149"/>
+        <location filename="../src/Danmaku.cpp" line="148"/>
         <source>Comment</source>
         <translation>评论</translation>
     </message>
@@ -311,7 +321,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="78"/>
-        <location filename="../src/Info.cpp" line="253"/>
+        <location filename="../src/Info.cpp" line="255"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -346,17 +356,12 @@
         <translation>保存弹幕到文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="142"/>
-        <source>Danmaku files (*.json)</source>
-        <translation>弹幕文件 (*.json)</translation>
-    </message>
-    <message>
-        <location filename="../src/Info.cpp" line="144"/>
+        <location filename="../src/Info.cpp" line="146"/>
         <source>Save File</source>
         <translation>保存文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="253"/>
+        <location filename="../src/Info.cpp" line="255"/>
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
@@ -364,43 +369,43 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="218"/>
+        <location filename="../src/Interface.cpp" line="219"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="223"/>
+        <location filename="../src/Interface.cpp" line="224"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="241"/>
+        <location filename="../src/Interface.cpp" line="242"/>
         <source>Block All</source>
         <translation>关闭弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="252"/>
+        <location filename="../src/Interface.cpp" line="253"/>
         <source>Config</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="262"/>
+        <location filename="../src/Interface.cpp" line="263"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="269"/>
+        <location filename="../src/Interface.cpp" line="270"/>
         <source>Ratio</source>
         <translation>宽高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="272"/>
-        <location filename="../src/Interface.cpp" line="283"/>
+        <location filename="../src/Interface.cpp" line="273"/>
+        <location filename="../src/Interface.cpp" line="284"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="299"/>
+        <location filename="../src/Interface.cpp" line="300"/>
         <source>Scale</source>
         <translation>缩放</translation>
     </message>

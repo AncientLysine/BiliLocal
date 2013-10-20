@@ -135,7 +135,7 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
-	connect(danmaku,&Danmaku::currentCleared,[this](){update();});
+	connect(danmaku,SIGNAL(currentCleared()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::begin,[this](){
 		info->setDuration(vplayer->getDuration());
 		info->setOpened(true);
@@ -191,6 +191,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
+	connect(menu,&Menu::open,info,&Info::setFilePath);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
