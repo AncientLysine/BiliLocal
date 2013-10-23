@@ -26,7 +26,51 @@
 
 #include "Editor.h"
 
-Editor::Widget::Widget(QWidget *parent):
+namespace{
+class Resizer:public QObject
+{
+public:
+	Resizer(QWidget *src,QWidget *dst):
+		QObject(src),src(src),dst(dst)
+	{
+		src->installEventFilter(this);
+	}
+
+	bool eventFilter(QObject *o, QEvent *e)
+	{
+		if(e->type()==QEvent::Resize){
+			dst->resize(src->width(),dst->height());
+			return false;
+		}
+		else{
+			return QObject::eventFilter(o,e);
+		}
+	}
+
+private:
+	QWidget *src;
+	QWidget *dst;
+};
+}
+
+int Editor::exec(QWidget *parent)
+{
+	QDialog dialog(parent);
+	auto layout=new QGridLayout(&dialog);
+	auto scroll=new QScrollArea(&dialog);
+	auto widget=new Editor(&dialog);
+	new Resizer(scroll->viewport(),widget);
+	layout->addWidget(scroll);
+	scroll->setWidget(widget);
+	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	dialog.resize(640,450);
+	dialog.setMinimumSize(300,200);
+	dialog.setWindowTitle(tr("Editor"));
+	Utils::setCenter(&dialog);
+	return dialog.exec();
+}
+
+Editor::Editor(QWidget *parent):
 	QWidget(parent)
 {
 	scale=0;
@@ -34,20 +78,20 @@ Editor::Widget::Widget(QWidget *parent):
 	current=VPlayer::instance()->getTime();
 	load();
 	setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(this,&Widget::customContextMenuRequested,[this](QPoint p){
+	connect(this,&Editor::customContextMenuRequested,[this](QPoint p){
 		int i=p.y()/length;
 		QMenu menu(this);
-		connect(menu.addAction(Editor::tr("Delete")),&QAction::triggered,[this,i](){
+		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
 			p.removeAt(i);
 			Danmaku::instance()->parse(0x1|0x2);
 		});
 		menu.exec(mapToGlobal(p));
 	});
-	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Widget::load);
+	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Editor::load);
 }
 
-void Editor::Widget::load()
+void Editor::load()
 {
 	duration=VPlayer::instance()->getDuration();
 	const QList<Record> &pool=Danmaku::instance()->getPool();
@@ -66,7 +110,7 @@ void Editor::Widget::load()
 		if(!f){
 			duration=qMax(duration,t-line.delay);
 		}
-		QLineEdit *edit=new QLineEdit(Editor::tr("Delay: %1s").arg(line.delay/1000),this);
+		QLineEdit *edit=new QLineEdit(tr("Delay: %1s").arg(line.delay/1000),this);
 		edit->setGeometry(0,73+i*length,98,25);
 		edit->setFrame(false);
 		edit->setAlignment(Qt::AlignCenter);
@@ -79,7 +123,7 @@ void Editor::Widget::load()
 				delayRecord(index,regexp.cap().toInt()*1000-r.delay);
 			}
 			else{
-				edit->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
+				edit->setText(tr("Delay: %1s").arg(r.delay/1000));
 			}
 		});
 		time.append(edit);
@@ -89,7 +133,7 @@ void Editor::Widget::load()
 	parentWidget()->update();
 }
 
-void Editor::Widget::paintEvent(QPaintEvent *e)
+void Editor::paintEvent(QPaintEvent *e)
 {
 	QPainter painter;
 	painter.begin(this);
@@ -136,7 +180,7 @@ void Editor::Widget::paintEvent(QPaintEvent *e)
 	QWidget::paintEvent(e);
 }
 
-void Editor::Widget::wheelEvent(QWheelEvent *e)
+void Editor::wheelEvent(QWheelEvent *e)
 {
 	int i=e->pos().y()/length;
 	scale+=e->angleDelta().y();
@@ -152,7 +196,7 @@ void Editor::Widget::wheelEvent(QWheelEvent *e)
 	e->accept();
 }
 
-void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
+void Editor::mouseMoveEvent(QMouseEvent *e)
 {
 	if(point.isNull()){
 		point=e->pos();
@@ -162,7 +206,7 @@ void Editor::Widget::mouseMoveEvent(QMouseEvent *e)
 	}
 }
 
-void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
+void Editor::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!point.isNull()){
 		int w=width()-100;
@@ -179,7 +223,7 @@ void Editor::Widget::mouseReleaseEvent(QMouseEvent *e)
 	point=QPoint();
 }
 
-void Editor::Widget::delayRecord(int index,qint64 delay)
+void Editor::delayRecord(int index,qint64 delay)
 {
 	auto &r=Danmaku::instance()->getPool()[index];
 	r.delay+=delay;
@@ -187,26 +231,5 @@ void Editor::Widget::delayRecord(int index,qint64 delay)
 		c.time+=delay;
 	}
 	update(0,index*length,width(),length);
-	time[index]->setText(Editor::tr("Delay: %1s").arg(r.delay/1000));
-}
-
-Editor::Editor(QWidget *parent):
-	QDialog(parent)
-{
-	layout=new QGridLayout(this);
-	scroll=new QScrollArea(this);
-	widget=new Widget(this);
-	layout->addWidget(scroll);
-	scroll->setWidget(widget);
-	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	resize(640,450);
-	setMinimumSize(300,200);
-	setWindowTitle(tr("Editor"));
-	Utils::setCenter(this);
-}
-
-void Editor::resizeEvent(QResizeEvent *e)
-{
-	Utils::delayExec(this,0,[this](){widget->resize(scroll->viewport()->width(),widget->height());});
-	QDialog::resizeEvent(e);
+	time[index]->setText(tr("Delay: %1s").arg(r.delay/1000));
 }

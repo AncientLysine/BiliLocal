@@ -430,7 +430,10 @@ Config::Config(QWidget *parent,int index):
 		button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
 		connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
-		widget[2]->setContextMenuPolicy(Qt::ActionsContextMenu);
+		regexp->addActions(widget[2]->actions());
+		sender->addActions(widget[2]->actions());
+		regexp->setContextMenuPolicy(Qt::ActionsContextMenu);
+		sender->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 		grid->addWidget(type,1,0);
 		grid->addWidget(edit,1,1);

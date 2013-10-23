@@ -40,7 +40,7 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	poster=new Poster(this);
-	setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),true);
+	setCenter(QSize(),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
 	tv->setFixedSize(QSize(94,82));
@@ -106,17 +106,17 @@ Interface::Interface(QWidget *parent):
 					poster->fadeOut();
 				}
 			}
-			if(cur!=pre){
-				pre=cur;
-				if(!menu->isPopped()&&!info->isPopped()){
-					if(cursor().shape()==Qt::BlankCursor){
-						unsetCursor();
-					}
-					delay->start(2000);
+		}
+		if(cur!=pre){
+			pre=cur;
+			if(!menu->isPopped()&&!info->isPopped()){
+				if(cursor().shape()==Qt::BlankCursor){
+					unsetCursor();
 				}
-				else{
-					delay->stop();
-				}
+				delay->start(2000);
+			}
+			else{
+				delay->stop();
 			}
 		}
 		if(vplayer->getState()==VPlayer::Play){
@@ -180,7 +180,7 @@ Interface::Interface(QWidget *parent):
 		sca->setEnabled(false);
 		vplayer->setRatio(0);
 		if(!isFullScreen()){
-			setCenter(Utils::getConfig("/Interface/Size",QString("960,540")),false);
+			setCenter(QSize(),false);
 		}
 		update();
 	});
@@ -350,10 +350,15 @@ Interface::Interface(QWidget *parent):
 
 void Interface::setCenter(QSize _s,bool f)
 {
+	if(!_s.isValid()){
+		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
+		if(l.size()==2){
+			_s=QSize(l[0].toInt(),l[1].toInt());
+		}
+	}
 	QSize m=minimumSize();
-	int mw=m.width(),mh=m.height(),sw=_s.width(),sh=_s.height();
 	QRect r;
-	r.setSize(QSize(mw>sw?mw:sw,mh>sh?mh:sh));
+	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
 	QRect s=QApplication::desktop()->screenGeometry(this);
 	QRect t=f?s:geometry();
 	if((windowFlags()&Qt::CustomizeWindowHint)==0){
@@ -384,14 +389,6 @@ void Interface::setCenter(QSize _s,bool f)
 			r.moveRight(s.right());
 		}
 		setGeometry(r);
-	}
-}
-
-void Interface::setCenter(QString s,bool f)
-{
-	QStringList l=s.split(',',QString::SkipEmptyParts);
-	if(l.size()==2){
-		setCenter(QSize(l[0].toInt(),l[1].toInt()),f);
 	}
 }
 
@@ -426,35 +423,32 @@ void Interface::resizeEvent(QResizeEvent *e)
 	vplayer->setSize(e->size());
 	danmaku->setSize(e->size());
 	int w=e->size().width(),h=e->size().height();
-	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()){
-		Utils::setConfig("/Interface/Size",QString("%1,%2").arg(w).arg(h));
-	}
+	QMetaObject::invokeMethod(this,"saveSize",Qt::QueuedConnection);
 	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
 	me->move((w-me->width())/2,(h-me->height())/2+40);
 	menu->terminate();
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
-	poster->setGeometry((w-(w>940?540:w-400))/2,h-40,w>940?540:w-400,25);
+	poster->setGeometry(qMax(400,w-540)/2,h-40,qMin(540,w-400),25);
 	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
 
 void Interface::keyPressEvent(QKeyEvent *e)
 {
-	int key=e->key();
 	int jmp=Utils::getConfig("Playing/Interval",10)*1000;
-	if(key==Qt::Key_Escape&&isFullScreen()){
-		fullA->toggle();
-	}
-	if(key==Qt::Key_Left){
-		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()-jmp);
-		}
-	}
-	if(key==Qt::Key_Right){
+	switch(e->key()){
+	case Qt::Key_Left:
+		jmp=-jmp;
+	case Qt::Key_Right:
 		if(vplayer->getState()==VPlayer::Play){
 			vplayer->setTime(vplayer->getTime()+jmp);
+		}
+		break;
+	case Qt::Key_Escape:
+		if(isFullScreen()){
+			fullA->toggle();
 		}
 	}
 	QWidget::keyPressEvent(e);
@@ -466,7 +460,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		sta=e->globalPos();
 		wgd=pos();
 	}
-	else if(Utils::getConfig("/Interface/Frameless",false)&&!isFullScreen()){
+	else if((windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
@@ -497,4 +491,11 @@ void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);
+}
+
+void Interface::saveSize()
+{
+	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
+		Utils::setConfig("/Interface/Size",QString("%1,%2").arg(width()).arg(height()));
+	}
 }

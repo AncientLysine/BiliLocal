@@ -207,7 +207,7 @@ void Danmaku::parse(int flag)
 					}
 					++sta;
 				}
-				if(++count[clean[end]]>l){
+				if(++count[clean[end]]>l&&danmaku[end]->mode<=6){
 					set.insert(clean[end]);
 				}
 				if(++end%50==0){

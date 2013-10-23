@@ -33,37 +33,29 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
-class Editor:public QDialog
+
+class Editor:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Editor(QWidget *parent=0);
+	static int exec(QWidget *parent=0);
 
 private:
-	class Widget:public QWidget
-	{
-	public:
-		explicit Widget(QWidget *parent=0);
+	int scale;
+	int length;
+	QPoint point;
+	qint64 current;
+	qint64 duration;
+	QList<qint64> magnet;
+	QList<QLineEdit *> time;
 
-	private:
-		int scale;
-		int length;
-		QPoint point;
-		qint64 current;
-		qint64 duration;
-		QList<qint64> magnet;
-		QList<QLineEdit *> time;
-		void load();
-		void paintEvent(QPaintEvent *e);
-		void wheelEvent(QWheelEvent *e);
-		void mouseMoveEvent(QMouseEvent *e);
-		void mouseReleaseEvent(QMouseEvent *e);
-		void delayRecord(int index,qint64 delay);
-	};
-	Widget *widget;
-	QGridLayout *layout;
-	QScrollArea *scroll;
-	void resizeEvent(QResizeEvent *e);
+	Editor(QWidget *parent=0);
+	void load();
+	void paintEvent(QPaintEvent *e);
+	void wheelEvent(QWheelEvent *e);
+	void mouseMoveEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
+	void delayRecord(int index,qint64 delay);
 };
 
 #endif // EDITOR_H

@@ -505,15 +505,8 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	life=getDouble(3);
 	Comment c=comment;
 	c.string=data[4].toString();
-	bool bold;
 	QJsonValue v=data[11];
-	if(v.isString()){
-		bold=v.toString()=="true";
-	}
-	else{
-		bold=v.toVariant().toBool();
-	}
-	cache=getCache(c,data[12].toString(),bold,true);
+	cache=getCache(c,data[12].toString(),v.isString()?v.toString()=="true":v.toVariant().toBool(),true);
 	zRotate=getDouble(5);
 	yRotate=getDouble(6);
 	wait=getDouble(10)/1000;

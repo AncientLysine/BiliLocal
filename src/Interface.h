@@ -45,8 +45,7 @@ class Interface:public QWidget
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	void setCenter(QSize   s,bool f);
-	void setCenter(QString s,bool f);
+	void setCenter(QSize s,bool f);
 
 private:
 	QLabel *tv;
@@ -82,6 +81,9 @@ private:
 	void mouseReleaseEvent(QMouseEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
+
+private slots:
+	void saveSize();
 
 };
 

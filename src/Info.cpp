@@ -131,9 +131,7 @@ Info::Info(QWidget *parent):
 			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
 				int state=VPlayer::instance()->getState();
 				if(state==VPlayer::Play) VPlayer::instance()->play();
-				Editor *editor=new Editor(parentWidget());
-				editor->exec();
-				delete editor;
+				Editor::exec(parentWidget());
 				Danmaku::instance()->parse(0x1|0x2);
 				if(state==VPlayer::Play) VPlayer::instance()->play();
 			});
