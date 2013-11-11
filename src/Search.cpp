@@ -294,11 +294,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 						sta=item.indexOf("\">",sta)+2;
 						end=item.indexOf("</a>",sta);
 						row->setText(5,trans(item.mid(sta,end-sta)));
-						auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(end));
+						sta=item.indexOf("class=\"gk\"",end);
+						auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(sta));
 						row->setText(1,iter.next().captured());
 						iter.next();
 						row->setText(2,iter.next().captured());
-						sta=item.indexOf("class=\"intro\">",end)+14;
+						sta=item.indexOf("class=\"intro\">",sta)+14;
 						end=item.indexOf("</div>",sta);
 						row->setToolTip(3,Utils::splitString(trans(item.mid(sta,end-sta)),400));
 					}
