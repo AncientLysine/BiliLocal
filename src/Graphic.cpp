@@ -221,29 +221,37 @@ public:
 	inline void setOffset(qreal dx, qreal dy) { setOffset(QPointF(dx, dy)); }
 };
 
-static QFont getFont(const Comment &comment)
+static QFont getFont(int pixelSize,QString family=Utils::getConfig("/Danmaku/Font",QFont().family()))
 {
 	QFont font;
 	font.setBold(Utils::getConfig("/Danmaku/Effect",5)%2);
-	font.setFamily(Utils::getConfig("/Danmaku/Font",QFont().family()));
-	font.setPixelSize(Utils::getConfig("/Danmaku/Scale",1.0)*comment.font);
+	font.setFamily(family);
+	font.setPixelSize(pixelSize);
 	return font;
 }
 
-static QSize getSize(const Comment &comment,QFont font)
+static QSize getSize(QString string,QFont font)
 {
-	return QFontMetrics(font).boundingRect(QRect(),Qt::TextDontClip,comment.string).size()+QSize(4,4);
+	return QFontMetrics(font).boundingRect(QRect(),Qt::TextDontClip,string).size()+QSize(4,4);
 }
 
-static QPixmap getCache(const Comment &comment,QString family=QString(),bool effect=true,bool opaque=false)
+static double getScale(int mode,QSize size)
 {
-	QFont font=getFont(comment);
-	if(!family.isEmpty()){
-		font.setFamily(family);
-	}
-	QSize size=getSize(comment,font);
+	int scale=Utils::getConfig("/Danmaku/Scale",0x1);
+	if(mode<=6&&(scale&0x2)==0) return 1;
+	if(mode==7&&(scale&0x1)==0) return 0;
+	return qMin(size.width()/545.0,size.height()/388.0);
+}
+
+static QPixmap getCache(QString string,
+						int color,
+						QFont font,
+						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
+						double opacity=Utils::getConfig("/Danmaku/Alpha",1.0))
+{
+	QSize size=getSize(string,font);
 	QStaticText text;
-	text.setText(QString(comment.string).replace("\n","<br>"));
+	text.setText(string.replace("\n","<br>"));
 	QPixmap fst(size);
 	fst.fill(Qt::transparent);
 	QPainter painter;
@@ -253,56 +261,54 @@ static QPixmap getCache(const Comment &comment,QString family=QString(),bool eff
 		painter.setPen(c);
 		painter.drawStaticText(p+=QPoint(2,2),text);
 	};
-	int base=comment.color;
-	if(effect){
-		QColor edge=qGray(base)<30?Qt::white:Qt::black;
-		switch(Utils::getConfig("/Danmaku/Effect",5)/2){
-		case 0:
-			draw(edge,QPoint(+1,0));
-			draw(edge,QPoint(-1,0));
-			draw(edge,QPoint(0,+1));
-			draw(edge,QPoint(0,-1));
-			draw(base,QPoint(0,0));
-			break;
-		case 1:
-			draw(edge,QPoint(2,2));
-			draw(edge,QPoint(1,1));
-			draw(base,QPoint(0,0));
-			break;
-		case 2:
-		{
-			draw(base,QPoint(0,0));
-			painter.end();
-			QPixmap src;
-			QPixmapDropShadowFilter f;
-			f.setColor(edge);
-			f.setOffset(0,0);
-			f.setBlurRadius(4);
-			src=fst;
-			fst.fill(Qt::transparent);
-			painter.begin(&fst);
-			f.draw(&painter,QPointF(),src);
-			painter.end();
-			src=fst;
-			fst.fill(Qt::transparent);
-			painter.begin(&fst);
-			f.draw(&painter,QPointF(),src);
-			break;
-		}
-		}
-	}
-	else{
+	int base=color;
+	QColor edge=qGray(base)<30?Qt::white:Qt::black;
+	switch(effect){
+	case 0:
+		draw(edge,QPoint(+1,0));
+		draw(edge,QPoint(-1,0));
+		draw(edge,QPoint(0,+1));
+		draw(edge,QPoint(0,-1));
 		draw(base,QPoint(0,0));
+		break;
+	case 1:
+		draw(edge,QPoint(2,2));
+		draw(edge,QPoint(1,1));
+		draw(base,QPoint(0,0));
+		break;
+	case 2:
+	{
+		draw(base,QPoint(0,0));
+		painter.end();
+		QPixmap src;
+		QPixmapDropShadowFilter f;
+		f.setColor(edge);
+		f.setOffset(0,0);
+		f.setBlurRadius(4);
+		src=fst;
+		fst.fill(Qt::transparent);
+		painter.begin(&fst);
+		f.draw(&painter,QPointF(),src);
+		painter.end();
+		src=fst;
+		fst.fill(Qt::transparent);
+		painter.begin(&fst);
+		f.draw(&painter,QPointF(),src);
+		break;
+	}
+	default:
+		draw(base,QPoint(0,0));
+		break;
 	}
 	painter.end();
-	if(opaque){
+	if(opacity==1){
 		return fst;
 	}
 	else{
 		QPixmap sec(size);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
-		painter.setOpacity(Utils::getConfig("/Danmaku/Alpha",1.0));
+		painter.setOpacity(opacity);
 		painter.drawPixmap(QPoint(0,0),fst);
 		painter.end();
 		return sec;
@@ -318,7 +324,8 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 	if(comment.mode!=1){
 		return;
 	}
-	QSize bound=getSize(comment,getFont(comment));
+	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
 	if((speed=evaluate(exp))==0){
@@ -338,7 +345,7 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=1;
-			cache=getCache(comment);
+			cache=getCache(comment.string,comment.color,font);
 			current.append(this);
 			break;
 		}
@@ -378,7 +385,8 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 	if(comment.mode!=4){
 		return;
 	}
-	QSize bound=getSize(comment,getFont(comment));
+	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
 	if((life=evaluate(exp))==0){
@@ -399,7 +407,7 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=4;
-			cache=getCache(comment);
+			cache=getCache(comment.string,comment.color,font);
 			current.append(this);
 			break;
 		}
@@ -432,7 +440,8 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 	if(comment.mode!=5){
 		return;
 	}
-	QSize bound=getSize(comment,getFont(comment));
+	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
 	if((life=evaluate(exp))==0){
@@ -442,7 +451,7 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 	rect.moveCenter(QPoint(size.width()/2,0));
 	int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
 	for(int height=5;height<limit;height+=10){
-		rect.moveBottom(height);
+		rect.moveTop(height);
 		bool flag=true;
 		for(Graphic *iter:current){
 			if(intersects(iter)){
@@ -452,7 +461,7 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=5;
-			cache=getCache(comment);
+			cache=getCache(comment.string,comment.color,font);
 			current.append(this);
 			break;
 		}
@@ -491,22 +500,33 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 		return;
 	}
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
+	double scale=getScale(comment.mode,size);
 	bPos=QPointF(getDouble(0),getDouble(1));
 	ePos=QPointF(getDouble(7),getDouble(8));
+	int w=size.width(),h=size.height();
 	if(bPos.x()<1&&bPos.y()<1&&ePos.x()<1&&ePos.y()<1){
-		bPos.rx()*=size.width();
-		ePos.rx()*=size.width();
-		bPos.ry()*=size.height();
-		ePos.ry()*=size.height();
+		bPos.rx()*=w;
+		ePos.rx()*=w;
+		bPos.ry()*=h;
+		ePos.ry()*=h;
+		scale=1;
+	}
+	else if(scale==0){
+		scale=1;
+	}
+	else{
+		QPoint offset((w-545*scale)/2,(h-388*scale)/2);
+		bPos=bPos*scale+offset;
+		ePos=ePos*scale+offset;
 	}
 	QStringList alpha=data[2].toString().split('-');
 	bAlpha=alpha[0].toDouble();
 	eAlpha=alpha[1].toDouble();
 	life=getDouble(3);
-	Comment c=comment;
-	c.string=data[4].toString();
 	QJsonValue v=data[11];
-	cache=getCache(c,data[12].toString(),v.isString()?v.toString()=="true":v.toVariant().toBool(),true);
+	int font=scale?comment.font*scale:comment.font;
+	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
+	cache=getCache(data[4].toString(),comment.color,getFont(font,data[12].toString()),effect,1.0);
 	zRotate=getDouble(5);
 	yRotate=getDouble(6);
 	wait=getDouble(10)/1000;

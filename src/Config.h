@@ -46,9 +46,10 @@ private:
 	//Playing
 	QGroupBox *box[7];
 	QCheckBox *danm[2];
+	QCheckBox *scale[2];
 	QComboBox *dmfont;
 	QComboBox *effect;
-	QLineEdit *play[4];
+	QLineEdit *play[3];
 
 	//Interface
 	QGroupBox *ui[5];

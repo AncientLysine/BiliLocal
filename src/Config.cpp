@@ -79,28 +79,36 @@ Config::Config(QWidget *parent,int index):
 		list->addWidget(box[2]);
 
 		auto e=new QHBoxLayout;
-		play[2]=new QLineEdit(widget[0]);
-		play[2]->setText(QString::number(Utils::getConfig("/Danmaku/Scale",1.0),'f',2));
-		connect(play[2],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Danmaku/Scale",play[2]->text().toDouble());
-		});
-		e->addWidget(play[2]);
+		int state=Utils::getConfig("/Danmaku/Scale",0x1);
+		scale[0]=new QCheckBox(tr("ordinary"),widget[0]);
+		scale[0]->setChecked((state&0x2)>0);
+		scale[1]=new QCheckBox(tr("advanced"),widget[0]);
+		scale[1]->setChecked((state&0x1)>0);
+		auto slot=[this](){
+			int n=scale[0]->checkState()==Qt::Checked;
+			int a=scale[1]->checkState()==Qt::Checked;
+			Utils::setConfig("/Danmaku/Scale",(n<<1)+a);
+		};
+		connect(scale[0],&QCheckBox::stateChanged,slot);
+		connect(scale[1],&QCheckBox::stateChanged,slot);
+		e->addWidget(scale[0]);
+		e->addWidget(scale[1]);
 		box[3]=new QGroupBox(tr("force scale"),widget[0]);
 		box[3]->setLayout(e);
 
 		auto j=new QHBoxLayout;
-		play[3]=new QLineEdit(widget[0]);
-		play[3]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
-		connect(play[3],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Playing/Interval",play[3]->text().toDouble());
+		play[2]=new QLineEdit(widget[0]);
+		play[2]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
+		connect(play[2],&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Playing/Interval",play[2]->text().toDouble());
 		});
-		j->addWidget(play[3]);
+		j->addWidget(play[2]);
 		box[4]=new QGroupBox(tr("skip time"),widget[0]);
 		box[4]->setLayout(j);
 
 		auto o=new QHBoxLayout;
-		o->addWidget(box[3]);
-		o->addWidget(box[4]);
+		o->addWidget(box[3],1);
+		o->addWidget(box[4],1);
 		list->addLayout(o);
 
 		auto g=new QHBoxLayout;
@@ -194,8 +202,8 @@ Config::Config(QWidget *parent,int index):
 		open->setFixedWidth(50);
 		open->setFocusPolicy(Qt::NoFocus);
 		connect(open,&QPushButton::clicked,[this](){
-			QString path=QFileInfo(back->text()).absolutePath();
-			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path.isEmpty()?QDir::currentPath():path);
+			QString path=back->text().isEmpty()?QDir::currentPath():QFileInfo(back->text()).absolutePath();
+			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path);
 			if(!file.isEmpty()){
 				back->setText(file);
 			}
