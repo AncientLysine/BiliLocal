@@ -47,6 +47,7 @@ private:
 	QGroupBox *box[7];
 	QCheckBox *danm[2];
 	QCheckBox *scale[2];
+	QCheckBox *bold;
 	QComboBox *dmfont;
 	QComboBox *effect;
 	QLineEdit *play[3];

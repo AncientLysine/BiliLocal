@@ -26,6 +26,7 @@
 
 #include "Graphic.h"
 
+namespace{
 template<class T>
 class Stack
 {
@@ -169,6 +170,7 @@ static double evaluate(QString exp)
 		return 0;
 	}
 }
+}
 
 class QPixmapFilterPrivate;
 class Q_WIDGETS_EXPORT QPixmapFilter : public QObject
@@ -246,10 +248,10 @@ static double getScale(int mode,QSize size)
 static QPixmap getCache(QString string,
 						int color,
 						QFont font,
+						QSize size,
 						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
 						double opacity=Utils::getConfig("/Danmaku/Alpha",1.0))
 {
-	QSize size=getSize(string,font);
 	QStaticText text;
 	text.setText(string.replace("\n","<br>"));
 	QPixmap fst(size);
@@ -345,7 +347,7 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=1;
-			cache=getCache(comment.string,comment.color,font);
+			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
 		}
@@ -407,7 +409,7 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=4;
-			cache=getCache(comment.string,comment.color,font);
+			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
 		}
@@ -461,7 +463,7 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 		}
 		if(flag){
 			mode=5;
-			cache=getCache(comment.string,comment.color,font);
+			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
 		}
@@ -524,9 +526,10 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	eAlpha=alpha[1].toDouble();
 	life=getDouble(3);
 	QJsonValue v=data[11];
-	int font=scale?comment.font*scale:comment.font;
 	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
-	cache=getCache(data[4].toString(),comment.color,getFont(font,data[12].toString()),effect,1.0);
+	QFont font=getFont(scale?comment.font*scale:comment.font,data[12].toString());
+	QString string=data[4].toString();
+	cache=getCache(string,comment.color,font,getSize(string,font),effect,1.0);
 	zRotate=getDouble(5);
 	yRotate=getDouble(6);
 	wait=getDouble(10)/1000;
@@ -537,8 +540,7 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 
 bool Mode7::move(qint64 time)
 {
-	this->time+=time/1000.0;
-	return this->time<=life;
+	return (this->time+=time/1000.0)<=life;
 }
 
 void Mode7::draw(QPainter *painter)
@@ -549,13 +551,11 @@ void Mode7::draw(QPainter *painter)
 	rotate.rotate(yRotate,Qt::YAxis);
 	rotate.rotate(zRotate,Qt::ZAxis);
 	rotate.translate(-cPos.x(),-cPos.y());
-	auto trans=painter->transform();
-	auto aplha=painter->opacity();
+	painter->save();
 	painter->setTransform(rotate);
 	painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
 	painter->drawPixmap(cPos,cache);
-	painter->setOpacity(aplha);
-	painter->setTransform(trans);
+	painter->restore();
 }
 
 bool Mode7::intersects(Graphic *)

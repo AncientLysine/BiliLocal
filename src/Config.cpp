@@ -112,16 +112,20 @@ Config::Config(QWidget *parent,int index):
 		list->addLayout(o);
 
 		auto g=new QHBoxLayout;
+		int ef=Utils::getConfig("/Danmaku/Effect",5);
+		bold=new QCheckBox(tr("Bold"),widget[0]);
+		bold->setChecked(ef&1);
+		connect(bold,&QCheckBox::stateChanged,[this](int s){
+			Utils::setConfig("/Danmaku/Effect",(effect->currentIndex()<<1)|(int)(s==Qt::Checked));
+		});
+		g->addWidget(bold);
 		effect=new QComboBox(widget[0]);
 		effect->addItem(tr("Stroke"));
-		effect->addItem(tr("Stroke")+"&"+tr("Bold"));
 		effect->addItem(tr("Projection"));
-		effect->addItem(tr("Projection")+"&"+tr("Bold"));
 		effect->addItem(tr("Shadow"));
-		effect->addItem(tr("Shadow")+"&"+tr("Bold"));
-		effect->setCurrentIndex(Utils::getConfig("/Danmaku/Effect",5));
+		effect->setCurrentIndex(ef>>1);
 		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[this](int i){
-			Utils::setConfig("/Danmaku/Effect",i);
+			Utils::setConfig("/Danmaku/Effect",(i<<1)|(int)(bold->checkState()==Qt::Checked));
 		});
 		g->addWidget(effect);
 		box[5]=new QGroupBox(tr("Style"),widget[0]);
@@ -139,8 +143,8 @@ Config::Config(QWidget *parent,int index):
 		box[6]->setLayout(f);
 
 		auto v=new QHBoxLayout;
-		v->addWidget(box[5]);
-		v->addWidget(box[6]);
+		v->addWidget(box[5],1);
+		v->addWidget(box[6],1);
 		list->addLayout(v);
 
 		list->addStretch(10);

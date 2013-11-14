@@ -2,7 +2,7 @@ QT += \
     core \
     gui \
     widgets \
-    network \
+    network
 
 TARGET = BiliLocal
 
