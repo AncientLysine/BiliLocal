@@ -30,8 +30,6 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Danmaku.h"
-#include "VPlayer.h"
 
 
 class Editor:public QWidget

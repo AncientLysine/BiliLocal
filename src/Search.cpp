@@ -26,6 +26,8 @@
 =========================================================================*/
 
 #include "Search.h"
+#include "Utils.h"
+#include "Cookie.h"
 
 QHash<int,QString> Search::AcFunChannel={
 	{1,"动画"},

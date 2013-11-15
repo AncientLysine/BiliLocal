@@ -26,6 +26,10 @@
 =========================================================================*/
 
 #include "Poster.h"
+#include "Utils.h"
+#include "Cookie.h"
+#include "Danmaku.h"
+#include "VPlayer.h"
 
 QHash<int,int> Poster::mode={
 	{0,5},

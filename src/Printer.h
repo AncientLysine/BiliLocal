@@ -30,7 +30,6 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Utils.h"
 
 class Printer:public QWidget
 {

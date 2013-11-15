@@ -30,11 +30,6 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include "Utils.h"
-#include "Shield.h"
-#include "Config.h"
-#include "Editor.h"
-#include "Danmaku.h"
 
 class Info:public QWidget
 {

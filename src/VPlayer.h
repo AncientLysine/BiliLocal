@@ -29,8 +29,6 @@
 
 #include <QtGui>
 #include <QtCore>
-#include "Utils.h"
-#include "Printer.h"
 
 extern "C"
 {

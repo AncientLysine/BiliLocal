@@ -31,10 +31,6 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
-#include "Utils.h"
-#include "Cookie.h"
-#include "Danmaku.h"
-#include "VPlayer.h"
 
 class Poster:public QWidget
 {

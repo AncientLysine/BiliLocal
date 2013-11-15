@@ -25,6 +25,8 @@
 =========================================================================*/
 
 #include "Editor.h"
+#include "Danmaku.h"
+#include "VPlayer.h"
 
 namespace{
 class Resizer:public QObject

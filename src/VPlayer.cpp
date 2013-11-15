@@ -25,6 +25,8 @@
 =========================================================================*/
 
 #include "VPlayer.h"
+#include "Utils.h"
+#include "Printer.h"
 
 VPlayer *VPlayer::ins=NULL;
 

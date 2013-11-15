@@ -26,6 +26,9 @@
 =========================================================================*/
 
 #include "Interface.h"
+#include "Utils.h"
+#include "Shield.h"
+#include "Config.h"
 
 Interface::Interface(QWidget *parent):
 	QWidget(parent)

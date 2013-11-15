@@ -30,8 +30,6 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
-#include "Shield.h"
-#include "Cookie.h"
 
 class Config:public QDialog
 {

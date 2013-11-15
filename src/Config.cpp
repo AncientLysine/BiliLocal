@@ -25,6 +25,8 @@
 =========================================================================*/
 
 #include "Config.h"
+#include "Shield.h"
+#include "Cookie.h"
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)

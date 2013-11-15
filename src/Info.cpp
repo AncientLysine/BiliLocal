@@ -26,6 +26,12 @@
 =========================================================================*/
 
 #include "Info.h"
+#include "Utils.h"
+#include "Shield.h"
+#include "Config.h"
+#include "Editor.h"
+#include "Danmaku.h"
+#include "VPlayer.h"
 
 Info::Info(QWidget *parent):
 	QWidget(parent)

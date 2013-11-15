@@ -33,10 +33,8 @@
 #include <QtWidgets>
 #include "Menu.h"
 #include "Info.h"
-#include "Utils.h"
-#include "Config.h"
-#include "Printer.h"
 #include "Poster.h"
+#include "Printer.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -45,7 +43,6 @@ class Interface:public QWidget
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	void setCenter(QSize s,bool f);
 
 private:
 	QLabel *tv;
@@ -84,6 +81,7 @@ private:
 
 private slots:
 	void saveSize();
+	void setCenter(QSize s,bool f);
 
 };
 

@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Graphic.h"
+#include "Printer.h"
 
 namespace{
 template<class T>

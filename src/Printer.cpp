@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Printer.h"
+#include "Utils.h"
 
 Printer *Printer::ins=NULL;
 

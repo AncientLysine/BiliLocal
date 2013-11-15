@@ -26,6 +26,11 @@
 =========================================================================*/
 
 #include "Menu.h"
+#include "Utils.h"
+#include "Search.h"
+#include "Cookie.h"
+#include "Printer.h"
+#include "Danmaku.h"
 
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)

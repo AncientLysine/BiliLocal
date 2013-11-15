@@ -30,7 +30,6 @@
 #include <QtGui>
 #include <QtCore>
 #include "Utils.h"
-#include "Printer.h"
 
 class Graphic
 {

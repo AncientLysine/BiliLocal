@@ -25,15 +25,16 @@
 =========================================================================*/
 
 #include "Cookie.h"
+#include "Utils.h"
 
 Cookie Cookie::data;
 
 void Cookie::init()
 {
-	QFile file("Cookie.bin");
-	if(!file.exists()) return;
-	file.open(QIODevice::ReadOnly);
-	QDataStream read(qUncompress(file.readAll()));
+	QByteArray buff;
+	buff=Utils::getConfig("/Interface/Cookie",QString()).toUtf8();
+	buff=buff.isEmpty()?buff:qUncompress(QByteArray::fromBase64(buff));
+	QDataStream read(buff);
 	QList<QNetworkCookie> all;
 	int n,l;
 	read>>n;
@@ -57,7 +58,5 @@ void Cookie::free()
 		save<<d.size();
 		save.writeRawData(d.data(),d.size());
 	}
-	QFile file("Cookie.bin");
-	file.open(QIODevice::WriteOnly);
-	file.write(qCompress(buff));
+	Utils::setConfig("/Interface/Cookie",QString(qCompress(buff).toBase64()));
 }

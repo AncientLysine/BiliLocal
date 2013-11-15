@@ -31,8 +31,6 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
-#include "Utils.h"
-#include "Cookie.h"
 
 class Search:public QDialog
 {

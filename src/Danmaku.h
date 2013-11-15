@@ -30,7 +30,6 @@
 #include <QtGui>
 #include <QtCore>
 #include "Utils.h"
-#include "Shield.h"
 #include "Graphic.h"
 
 class Danmaku:public QAbstractItemModel
