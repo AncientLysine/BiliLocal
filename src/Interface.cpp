@@ -151,21 +151,32 @@ Interface::Interface(QWidget *parent):
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
-		sub->clear();
-		if(!vplayer->getSubtitles().isEmpty()){
-			sub->setEnabled(true);
-			QActionGroup *group=new QActionGroup(sub);
-			group->setExclusive(true);
-			int current=vplayer->getSubtitle();
-			QMap<int,QString> map=vplayer->getSubtitles();
-			for(auto iter=map.begin();iter!=map.end();++iter){
-				QAction *action=group->addAction(iter.value());
-				action->setCheckable(true);
-				action->setData(iter.key());
-				action->setChecked(current==iter.key());
+		int cur;
+		QMap<int,QString> map;
+		auto set=[&](QMenu *m){
+			m->clear();
+			if(!map.isEmpty()){
+				m->setEnabled(true);
+				QActionGroup *group=new QActionGroup(m);
+				group->setExclusive(true);
+				for(auto iter=map.begin();iter!=map.end();++iter){
+					QAction *action=group->addAction(iter.value());
+					action->setCheckable(true);
+					action->setData(iter.key());
+					action->setChecked(cur==iter.key());
+				}
+				m->addActions(group->actions());
 			}
-			sub->addActions(group->actions());
-		}
+		};
+		cur=vplayer->getSubtitle();
+		map=vplayer->getSubtitles();
+		set(sub);
+		cur=vplayer->getVideoTrack();
+		map=vplayer->getVideoTracks();
+		set(vid);
+		cur=vplayer->getAudioTrack();
+		map=vplayer->getAudioTracks();
+		set(aud);
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
@@ -177,6 +188,10 @@ Interface::Interface(QWidget *parent):
 		info->setDuration(-1);
 		sub->clear();
 		sub->setEnabled(false);
+		vid->clear();
+		vid->setEnabled(false);
+		aud->clear();
+		aud->setEnabled(false);
 		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
@@ -261,15 +276,28 @@ Interface::Interface(QWidget *parent):
 		danmaku->parse(0x2);
 	});
 
-	top=new QMenu(this);
-	sub=new QMenu(tr("Subtitle"),top);
+	sub=new QMenu(tr("Subtitle"),this);
 	sub->setEnabled(false);
 	connect(sub,&QMenu::triggered,[this](QAction *action){
 		vplayer->setSubTitle(action->data().toInt());
 	});
+	vid=new QMenu(tr("Video Track"),this);
+	vid->setEnabled(false);
+	connect(vid,&QMenu::triggered,[this](QAction *action){
+		vplayer->setVideoTrack(action->data().toInt());
+	});
+	aud=new QMenu(tr("Audio Track"),this);
+	aud->setEnabled(false);
+	connect(aud,&QMenu::triggered,[this](QAction *action){
+		vplayer->setAudioTrack(action->data().toInt());
+	});
+	tra=new QMenu(tr("Track"),this);
+	tra->addMenu(sub);
+	tra->addMenu(vid);
+	tra->addMenu(aud);
 
 	QActionGroup *g;
-	rat=new QMenu(tr("Ratio"),top);
+	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
 	g=new QActionGroup(rat);
 	rat->setDefaultAction(g->addAction(tr("Default")));
@@ -282,24 +310,26 @@ Interface::Interface(QWidget *parent):
 	rat->defaultAction()->setChecked(true);
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
-		QSize c=vplayer->getSize(VPlayer::Destinate);
-		if(action->text()==tr("Default")){
-			vplayer->setRatio(0);
-		}
-		else{
-			QStringList l=action->text().split(':');
-			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
-		}
-		QSize n=vplayer->getSize(VPlayer::Scaled);
-		if(!isFullScreen()){
-			setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
-		}
-		else{
-			vplayer->setSize(size());
+		if(vplayer->getSize().isValid()){
+			QSize c=vplayer->getSize(VPlayer::Destinate);
+			if(action->text()==tr("Default")){
+				vplayer->setRatio(0);
+			}
+			else{
+				QStringList l=action->text().split(':');
+				vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
+			}
+			QSize n=vplayer->getSize(VPlayer::Scaled);
+			if(!isFullScreen()){
+				setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
+			}
+			else{
+				vplayer->setSize(size());
+			}
 		}
 	});
 
-	sca=new QMenu(tr("Scale"),top);
+	sca=new QMenu(tr("Scale"),this);
 	sca->setEnabled(false);
 	g=new QActionGroup(sca);
 	g->addAction("1:4");
@@ -312,27 +342,45 @@ Interface::Interface(QWidget *parent):
 	sca->defaultAction()->setChecked(true);
 	sca->addActions(g->actions());
 	connect(sca,&QMenu::triggered,[this](QAction *action){
-		QStringList l=action->text().split(':');
-		QSize s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
-		setCenter(s,false);
+		if(vplayer->getSize().isValid()){
+			QStringList l=action->text().split(':');
+			QSize s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
+			setCenter(s,false);
+		}
 	});
 
-	top->addActions(info->actions());
-	top->addAction(fullA);
-	top->addAction(toggA);
-	top->addActions(menu->actions());
-	top->addMenu(sub);
-	top->addMenu(sca);
-	top->addMenu(rat);
-	top->addAction(confA);
-	top->addAction(quitA);
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
 		bool flag=true;
 		flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
 		flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
 		if(flag){
-			top->exec(mapToGlobal(p));
+			QMenu top(this);
+			const Comment *cur=danmaku->commentAt(p);
+			if(cur){
+				QAction *text=new QAction(&top);
+				top.addAction(text);
+				text->setText(top.fontMetrics().elidedText(cur->string,Qt::ElideRight,top.actionGeometry(text).width()));
+				connect(top.addAction(tr("Eliminate The Sender")),&QAction::triggered,[=](){
+					QList<QString> &list=Shield::shieldU;
+					QString sender=cur->sender;
+					if(!sender.isEmpty()&&!list.contains(sender)){
+						list.append(sender);
+					}
+					Danmaku::instance()->parse(0x2);
+				});
+				top.addSeparator();
+			}
+			top.addActions(info->actions());
+			top.addAction(fullA);
+			top.addAction(toggA);
+			top.addActions(menu->actions());
+			top.addMenu(tra);
+			top.addMenu(sca);
+			top.addMenu(rat);
+			top.addAction(confA);
+			top.addAction(quitA);
+			top.exec(mapToGlobal(p));
 		}
 	});
 	if(Utils::getConfig("/Interface/Frameless",false)){

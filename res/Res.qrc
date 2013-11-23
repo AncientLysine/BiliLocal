@@ -6,6 +6,7 @@
         <file>stop.png</file>
         <file>version.png</file>
         <file>icon.png</file>
+        <file>audio.png</file>
     </qresource>
     <qresource prefix="/Text">
         <file>COPYING</file>

@@ -46,6 +46,7 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
+	const Comment *commentAt(QPoint point) const;
 	static Danmaku *instance(){return ins;}
 
 signals:

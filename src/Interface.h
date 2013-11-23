@@ -54,8 +54,10 @@ private:
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
-	QMenu *top;
+	QMenu *tra;
 	QMenu *sub;
+	QMenu *vid;
+	QMenu *aud;
 	QMenu *rat;
 	QMenu *sca;
 	QPoint pre;

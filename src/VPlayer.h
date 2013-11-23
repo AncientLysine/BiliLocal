@@ -50,16 +50,21 @@ public:
 	uchar *getDst();
 	int getState();
 	int getSubtitle();
+	int getVideoTrack();
+	int getAudioTrack();
 	qint64 getTime();
 	qint64 getDuration();
 	QSize getSize(int t=Source);
 	QMap<int,QString> getSubtitles();
+	QMap<int,QString> getVideoTracks();
+	QMap<int,QString> getAudioTracks();
 	void setFrame(bool force=false);
 	void draw(QPainter *painter,QRect rect);
 	static VPlayer *instance(){return ins;}
 
 private:
 	int state;
+	bool soundOnly;
 	double ratio;
 	QMutex data;
 	QMutex size;
@@ -67,6 +72,8 @@ private:
 	QSize dstSize;
 	QSize guiSize;
 	QPixmap frame;
+	QPixmap audio;
+	QTimer *fake;
 
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
@@ -96,6 +103,8 @@ public slots:
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void setSubTitle(int _track);
+	void setVideoTrack(int _track);
+	void setAudioTrack(int _track);
 };
 
 #endif // VPLAYER_H

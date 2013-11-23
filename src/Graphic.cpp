@@ -347,7 +347,7 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			mode=1;
+			source=&comment;
 			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
@@ -409,7 +409,7 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			mode=4;
+			source=&comment;
 			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
@@ -463,7 +463,7 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,QSize size)
 			}
 		}
 		if(flag){
-			mode=5;
+			source=&comment;
 			cache=getCache(comment.string,comment.color,font,bound);
 			current.append(this);
 			break;
@@ -535,7 +535,7 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	yRotate=getDouble(6);
 	wait=getDouble(10)/1000;
 	stay=life-wait-getDouble(9)/1000;
-	mode=7;
+	source=&comment;
 	current.append(this);
 }
 

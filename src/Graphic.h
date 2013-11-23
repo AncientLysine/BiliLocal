@@ -37,11 +37,13 @@ public:
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
 	virtual bool intersects(Graphic *other)=0;
+	virtual QRectF currentRect(){return QRect();}
 	virtual ~Graphic();
-	int getMode(){return mode;}
+	int getMode(){return source?source->mode:0;}
+	const Comment *getSource(){return source;}
 
 protected:
-	int mode=0;
+	const Comment *source=NULL;
 };
 
 class Mode1:public Graphic
@@ -51,6 +53,7 @@ public:
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
 
 private:
 	QRectF rect;
@@ -65,6 +68,7 @@ public:
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
 
 private:
 	QRectF rect;
@@ -79,6 +83,7 @@ public:
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
 
 private:
 	QRectF rect;

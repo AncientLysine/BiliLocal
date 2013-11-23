@@ -88,6 +88,12 @@ VPlayer::VPlayer(QObject *parent) :
 	dstFrame=NULL;
 	state=Stop;
 	ratio=0;
+	soundOnly=false;
+	fake=new QTimer(this);
+	fake->setInterval(33);
+	fake->setTimerType(Qt::PreciseTimer);
+	connect(fake,&QTimer::timeout,this,&VPlayer::decode);
+	audio=QPixmap(":/Picture/audio.png");
 	ins=this;
 }
 
@@ -133,6 +139,16 @@ int VPlayer::getSubtitle()
 	return mp?libvlc_video_get_spu(mp):-1;
 }
 
+int VPlayer::getVideoTrack()
+{
+	return mp?libvlc_video_get_track(mp):-1;
+}
+
+int VPlayer::getAudioTrack()
+{
+	return mp?libvlc_audio_get_track(mp):-1;
+}
+
 qint64 VPlayer::getTime()
 {
 	return state==Stop?-1:libvlc_media_player_get_time(mp);
@@ -167,19 +183,47 @@ QSize VPlayer::getSize(int t)
 	}
 }
 
+static QMap<int,QString> transTracks(libvlc_track_description_t *iter)
+{
+	QMap<int,QString> map;
+	while(iter){
+		QString title=iter->psz_name;
+		title.replace("Track"  ,VPlayer::tr("Track"));
+		title.replace("Disable",VPlayer::tr("Disable"));
+		map[iter->i_id]=title;
+		iter=iter->p_next;
+	}
+	return map;
+}
+
 QMap<int,QString> VPlayer::getSubtitles()
 {
 	QMap<int,QString> map;
 	if(mp){
 		libvlc_track_description_t *list=libvlc_video_get_spu_description(mp);
-		libvlc_track_description_t *iter=list;
-		while(iter){
-			QString title=iter->psz_name;
-			title.replace("Track"  ,tr("Track"));
-			title.replace("Disable",tr("Disable"));
-			map[iter->i_id]=title;
-			iter=iter->p_next;
-		}
+		map=transTracks(list);
+		libvlc_track_description_list_release(list);
+	}
+	return map;
+}
+
+QMap<int,QString> VPlayer::getVideoTracks()
+{
+	QMap<int,QString> map;
+	if(mp){
+		libvlc_track_description_t *list=libvlc_video_get_track_description(mp);
+		map=transTracks(list);
+		libvlc_track_description_list_release(list);
+	}
+	return map;
+}
+
+QMap<int,QString> VPlayer::getAudioTracks()
+{
+	QMap<int,QString> map;
+	if(mp){
+		libvlc_track_description_t *list=libvlc_audio_get_track_description(mp);
+		map=transTracks(list);
 		libvlc_track_description_list_release(list);
 	}
 	return map;
@@ -211,9 +255,14 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 {
 	if(state!=Stop){
 		painter->fillRect(rect,Qt::black);
-		data.lock();
-		painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
-		data.unlock();
+		if(soundOnly){
+			painter->drawPixmap(rect.center()-QRect(QPoint(0,0),audio.size()).center(),audio);
+		}
+		else{
+			data.lock();
+			painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
+			data.unlock();
+		}
 	}
 }
 
@@ -224,15 +273,21 @@ void VPlayer::play()
 			libvlc_media_track_t **info;
 			libvlc_media_parse(m);
 			int n=libvlc_media_tracks_get(m,&info);
+			soundOnly=true;
+			dstSize=guiSize=srcSize=QSize();
 			for(int i=0;i<n;++i){
 				if(info[i]->i_type==libvlc_track_video){
 					libvlc_video_track_t *v=info[i]->video;
+					soundOnly=false;
 					double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
 					dstSize=guiSize=srcSize=QSize(v->i_width*r,v->i_height);
 					break;
 				}
 			}
 			libvlc_media_tracks_release(info,n);
+			if(soundOnly){
+				fake->start();
+			}
 			if(srcFrame){
 				avpicture_free(srcFrame);
 			}
@@ -261,6 +316,9 @@ void VPlayer::stop()
 		libvlc_media_player_stop(mp);
 		state=Stop;
 		frame=QPixmap();
+		if(soundOnly){
+			fake->stop();
+		}
 		emit reach();
 	}
 }
@@ -282,12 +340,16 @@ void VPlayer::open()
 void VPlayer::free()
 {
 	if(Utils::getConfig("/Playing/Loop",false)){
-		int t=getSubtitle();
+		int s=getSubtitle(),v=getVideoTrack(),a=getAudioTrack();
 		libvlc_media_player_stop(mp);
 		state=Loop;
 		libvlc_media_player_play(mp);
 		emit jumped(0);
-		Utils::delayExec(this,&VPlayer::reset,[=](){setSubTitle(t);});
+		Utils::delayExec(this,&VPlayer::reset,[=](){
+			setSubTitle(s);
+			setVideoTrack(v);
+			setAudioTrack(a);
+		});
 	}
 	else{
 		stop();
@@ -359,5 +421,28 @@ void VPlayer::setSubTitle(int _track)
 {
 	if(mp){
 		libvlc_video_set_spu(mp,_track);
+	}
+}
+
+void VPlayer::setVideoTrack(int _track)
+{
+	if(mp){
+		if(libvlc_video_set_track(mp,_track)==0){
+			if(_track==-1){
+				fake->start();
+				soundOnly=true;
+			}
+			else{
+				fake->stop();
+				soundOnly=false;
+			}
+		}
+	}
+}
+
+void VPlayer::setAudioTrack(int _track)
+{
+	if(mp){
+		libvlc_audio_set_track(mp,_track);
 	}
 }

@@ -103,6 +103,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(sechA,&QAction::triggered,[this](){
 		Search searchBox(parentWidget());
+		sechL->setText(sechL->text().simplified());
 		if(!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
 		}

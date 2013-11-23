@@ -102,15 +102,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			return Qt::AlignCenter;
 		}
 		if(role==Qt::UserRole){
-			QJsonObject c;
-			c["mode"]=comment.mode;
-			c["font"]=comment.font;
-			c["time"]=(double)comment.time;
-			c["date"]=(double)comment.date;
-			c["color"]=comment.color;
-			c["sender"]=comment.sender;
-			c["string"]=comment.string;
-			return c;
+			return (quintptr)&comment;
 		}
 	}
 	return QVariant();
@@ -150,6 +142,14 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 		}
 	}
 	return QVariant();
+}
+
+const Comment *Danmaku::commentAt(QPoint point) const
+{
+	for(Graphic *g:current){
+		if(g->currentRect().contains(point)) return g->getSource();
+	}
+	return NULL;
 }
 
 void Danmaku::resetTime()

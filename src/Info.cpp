@@ -114,14 +114,14 @@ Info::Info(QWidget *parent):
 	resizeHeader();
 	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Info::resizeHeader);
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
-		emit time(index.data(Qt::UserRole).toJsonObject()["time"].toDouble());
+		emit time(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
 	connect(danmV,&QTableView::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
 		if(danmV->currentIndex().isValid()){
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this](){
 				QList<QString> &list=Shield::shieldU;
-				QString sender=danmV->currentIndex().data(Qt::UserRole).toJsonObject()["sender"].toString();
+				QString sender=((Comment *)(danmV->currentIndex().data(Qt::UserRole).value<quintptr>()))->sender;
 				if(!sender.isEmpty()&&!list.contains(sender)){
 					list.append(sender);
 				}
