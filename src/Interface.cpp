@@ -151,6 +151,7 @@ Interface::Interface(QWidget *parent):
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
+		tra->setEnabled(true);
 		int cur;
 		QMap<int,QString> map;
 		auto set=[&](QMenu *m){
@@ -192,6 +193,7 @@ Interface::Interface(QWidget *parent):
 		vid->setEnabled(false);
 		aud->clear();
 		aud->setEnabled(false);
+		tra->setEnabled(false);
 		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
@@ -295,6 +297,7 @@ Interface::Interface(QWidget *parent):
 	tra->addMenu(sub);
 	tra->addMenu(vid);
 	tra->addMenu(aud);
+	tra->setEnabled(false);
 
 	QActionGroup *g;
 	rat=new QMenu(tr("Ratio"),this);
