@@ -31,12 +31,13 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
-#include "Menu.h"
-#include "Info.h"
-#include "Poster.h"
-#include "Printer.h"
-#include "VPlayer.h"
-#include "Danmaku.h"
+
+class Menu;
+class Info;
+class Poster;
+class Printer;
+class VPlayer;
+class Danmaku;
 
 class Interface:public QWidget
 {

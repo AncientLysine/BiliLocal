@@ -28,7 +28,8 @@
 #define SHIELD_H
 
 #include <QtCore>
-#include "Utils.h"
+
+class Comment;
 
 class Shield
 {

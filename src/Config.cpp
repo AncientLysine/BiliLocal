@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Config.h"
+#include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
 

@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
 #include "Interface.h"

@@ -26,6 +26,7 @@
 
 #include "Danmaku.h"
 #include "Shield.h"
+#include "Graphic.h"
 #include <unordered_set>
 
 Danmaku *Danmaku::ins=NULL;

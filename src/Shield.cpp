@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Shield.h"
+#include "Utils.h"
 
 bool Shield::block[6];
 QList<QString> Shield::shieldU;

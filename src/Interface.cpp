@@ -27,8 +27,14 @@
 
 #include "Interface.h"
 #include "Utils.h"
+#include "Menu.h"
+#include "Info.h"
+#include "Poster.h"
 #include "Shield.h"
 #include "Config.h"
+#include "Printer.h"
+#include "VPlayer.h"
+#include "Danmaku.h"
 
 Interface::Interface(QWidget *parent):
 	QWidget(parent)

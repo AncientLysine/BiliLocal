@@ -30,7 +30,8 @@
 #include <QtGui>
 #include <QtCore>
 #include "Utils.h"
-#include "Graphic.h"
+
+class Graphic;
 
 class Danmaku:public QAbstractItemModel
 {
