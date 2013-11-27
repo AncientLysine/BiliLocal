@@ -95,34 +95,36 @@ static QHash<int,QString> AcFunChannel()
 	return m;
 }
 
-static QStringList AcOrder()
+#define tr
+static QList<const char *> AcOrder()
 {
-	static QStringList l;
+	static QList<const char *> l;
 	if(l.isEmpty()){
-		l<<Search::tr("ranklevel")
-		<<Search::tr("click")
-		<<Search::tr("pubdate")
-		<<Search::tr("scores")
-		<<Search::tr("stow");
+		l<<tr("ranklevel")
+		<<tr("click")
+		<<tr("pubdate")
+		<<tr("scores")
+		<<tr("stow");
 	}
 	return l;
 }
 
-static QStringList BiOrder()
+static QList<const char *> BiOrder()
 {
-	static QStringList l;
+	static QList<const char *> l;
 	if(l.isEmpty()){
-		l<<Search::tr("default")
-		<<Search::tr("pubdate")
-		<<Search::tr("senddate")
-		<<Search::tr("ranklevel")
-		<<Search::tr("click")
-		<<Search::tr("scores")
-		<<Search::tr("dm")
-		<<Search::tr("stow");
+		l<<tr("default")
+		<<tr("pubdate")
+		<<tr("senddate")
+		<<tr("ranklevel")
+		<<tr("click")
+		<<tr("scores")
+		<<tr("dm")
+		<<tr("stow");
 	}
 	return l;
 }
+#undef tr
 
 Search::Search(QWidget *parent):QDialog(parent)
 {
@@ -392,11 +394,14 @@ void Search::setKey(QString _key)
 void Search::setSite()
 {
 	int s=sitesC->currentIndex();
-	QStringList header;
+	QStringList header,options;
 	header<<tr("Cover")<<tr("Play")<<(s==0?tr("Danmaku"):tr("Comment"))<<tr("Title")<<tr("Typename")<<tr("Author");
+	for(const char *i:s==0?BiOrder():AcOrder()){
+		options.append(tr(i));
+	}
 	isWaiting=true;
 	orderC->clear();
-	orderC->addItems(s==0?BiOrder():AcOrder());
+	orderC->addItems(options);
 	orderC->setCurrentIndex(0);
 	resultW->setHeaderLabels(header);
 	isWaiting=false;
