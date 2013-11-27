@@ -325,7 +325,8 @@ Config::Config(QWidget *parent,int index):
 	//Shield
 	{
 		widget[2]=new QWidget(this);
-		QStringList list={tr("Top"),tr("Bottom"),tr("Slide"),tr("Guest"),tr("Advanced"),tr("Whole")};
+		QStringList list;
+		list<<tr("Top")<<tr("Bottom")<<tr("Slide")<<tr("Guest")<<tr("Advanced")<<tr("Whole");
 		auto grid=new QGridLayout(widget[2]);
 
 		auto g=new QHBoxLayout;

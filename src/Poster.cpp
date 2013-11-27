@@ -31,11 +31,16 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
-QHash<int,int> Poster::mode={
-	{0,5},
-	{1,1},
-	{2,4}
-};
+static QHash<int,int> mode()
+{
+	static QHash<int,int> mode;
+	if(mode.isEmpty()){
+		mode[0]=5;
+		mode[1]=1;
+		mode[2]=4;
+	}
+	return mode;
+}
 
 Poster::Poster(QWidget *parent) :
 	QWidget(parent)
@@ -78,7 +83,7 @@ Poster::Poster(QWidget *parent) :
 	layout->setMargin(0);
 	layout->setSpacing(0);
 	commentM=new QComboBox(this);
-	commentM->addItems(QStringList({tr("Top"),tr("Slide"),tr("Bottom")}));
+	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
 	commentM->setFixedWidth(commentM->sizeHint().width());
 	layout->addWidget(commentM);
@@ -119,7 +124,7 @@ void Poster::postComment(QString comment)
 	QString cid=getCid();
 	if(!cid.isEmpty()){
 		Comment c;
-		c.mode=mode[commentM->currentIndex()];
+		c.mode=mode()[commentM->currentIndex()];
 		c.font=25;
 		c.time=qMax<qint64>(0,VPlayer::instance()->getTime());
 		c.color=getColor().rgb()&0xFFFFFF;

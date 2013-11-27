@@ -318,10 +318,6 @@ static QPixmap getCache(QString string,
 	}
 }
 
-Graphic::~Graphic()
-{
-}
-
 Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,QSize size)
 {
 	if(comment.mode!=1){
@@ -536,6 +532,7 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	wait=getDouble(10)/1000;
 	stay=life-wait-getDouble(9)/1000;
 	source=&comment;
+	time=0;
 	current.append(this);
 }
 

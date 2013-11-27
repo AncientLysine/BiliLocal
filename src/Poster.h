@@ -55,7 +55,6 @@ private:
 	int ioo;
 	QTimer *timer;
 	QGraphicsOpacityEffect *effect;
-	static QHash<int,int> mode;
 	QString getCid();
 	QColor getColor();
 	void setColor(QColor color);

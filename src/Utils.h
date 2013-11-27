@@ -31,23 +31,34 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
-struct Comment
+class Comment
 {
-	int mode=0;
-	int font=0;
-	int color=0;
-	qint64 time=0;
-	qint64 date=0;
+public:
+	int mode;
+	int font;
+	int color;
+	qint64 time;
+	qint64 date;
 	QString sender;
 	QString string;
-	bool blocked=false;
+	bool blocked;
+	Comment()
+	{
+		mode=font=color=time=date=0;
+		blocked=false;
+	}
 };
 
-struct Record
+class Record
 {
-	qint64 delay=0;
+public:
+	qint64 delay;
 	QString source;
 	QList<Comment> danmaku;
+	Record()
+	{
+		delay=0;
+	}
 };
 
 namespace{

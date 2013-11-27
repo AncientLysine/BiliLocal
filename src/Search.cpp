@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -29,80 +29,105 @@
 #include "Utils.h"
 #include "Cookie.h"
 
-QHash<int,QString> Search::AcFunChannel={
-	{1,"动画"},
-	{106,"动画短片"},
-	{107,"MAD·AMV"},
-	{108,"MMD·3D"},
-	{67,"新番连载"},
-	{109,"动画合集"},
-	{58,"音乐"},
-	{101,"演唱·乐器"},
-	{102,"宅舞"},
-	{103,"Vocaloid"},
-	{105,"流行音乐"},
-	{104,"ACG音乐"},
-	{59,"游戏"},
-	{83,"游戏集锦"},
-	{84,"实况解说"},
-	{71,"Flash游戏"},
-	{72,"Mugen"},
-	{85,"英雄联盟"},
-	{60,"娱乐"},
-	{86,"生活娱乐"},
-	{87,"鬼畜调教"},
-	{88,"萌宠"},
-	{89,"美食"},
-	{70,"科技"},
-	{90,"科普"},
-	{91,"数码"},
-	{92,"军事"},
-	{69,"体育"},
-	{93,"惊奇体育"},
-	{94,"足球"},
-	{95,"篮球"},
-	{68,"影视"},
-	{96,"电影"},
-	{97,"剧集"},
-	{98,"综艺"},
-	{99,"特摄·霹雳"},
-	{100,"纪录片"},
-	{63,"文章"},
-	{110,"文章综合"},
-	{73,"工作·情感"},
-	{74,"动漫文化"},
-	{75,"漫画·小说"},
-	{76,"页游资料"},
-	{77,"1区"},
-	{78,"21区"},
-	{79,"31区"},
-	{80,"41区"},
-	{81,"文章里区(不审)"},
-	{82,"视频里区(不审)"},
-	{42,"图库"}
-};
-#define tr
-QVector<const char *> Search::AcOrder={
-	tr("ranklevel"),
-	tr("click"),
-	tr("pubdate"),
-	tr("scores"),
-	tr("stow")
-};
-QVector<const char *> Search::BiOrder={
-	tr("default"),
-	tr("pubdate"),
-	tr("senddate"),
-	tr("ranklevel"),
-	tr("click"),
-	tr("scores"),
-	tr("dm"),
-	tr("stow")
-};
-#undef tr
+static QHash<int,QString> AcFunChannel()
+{
+	static QHash<int,QString> m;
+	if(m.isEmpty()){
+		QHash<int,const char *> c;
+		c[1]="动画";
+		c[42]="图库";
+		c[58]="音乐";
+		c[59]="游戏";
+		c[60]="娱乐";
+		c[63]="文章";
+		c[67]="新番连载";
+		c[68]="影视";
+		c[69]="体育";
+		c[70]="科技";
+		c[71]="Flash游戏";
+		c[72]="Mugen";
+		c[73]="工作·情感";
+		c[74]="动漫文化";
+		c[75]="漫画·小说";
+		c[76]="页游资料";
+		c[77]="1区";
+		c[78]="21区";
+		c[79]="31区";
+		c[80]="41区";
+		c[81]="文章里区(不审)";
+		c[82]="视频里区(不审)";
+		c[83]="游戏集锦";
+		c[84]="实况解说";
+		c[85]="英雄联盟";
+		c[86]="生活娱乐";
+		c[87]="鬼畜调教";
+		c[88]="萌宠";
+		c[89]="美食";
+		c[90]="科普";
+		c[91]="数码";
+		c[92]="军事";
+		c[93]="惊奇体育";
+		c[94]="足球";
+		c[95]="篮球";
+		c[96]="电影";
+		c[97]="剧集";
+		c[98]="综艺";
+		c[99]="特摄·霹雳";
+		c[100]="纪录片";
+		c[101]="演唱·乐器";
+		c[102]="宅舞";
+		c[103]="Vocaloid";
+		c[104]="ACG音乐";
+		c[105]="流行音乐";
+		c[106]="动画短片";
+		c[107]="MAD·AMV";
+		c[108]="MMD·3D";
+		c[109]="动画合集";
+		c[110]="文章综合";
+		for(auto i=c.begin();i!=c.end();++i){
+#ifdef Q_CC_MSVC
+			m.insert(i.key(),QString::fromLocal8Bit(i.value()));
+#else
+			m.insert(i.key(),i.value());
+#endif
+		}
+	}
+	return m;
+}
+
+static QStringList AcOrder()
+{
+	static QStringList l;
+	if(l.isEmpty()){
+		l<<Search::tr("ranklevel")
+		<<Search::tr("click")
+		<<Search::tr("pubdate")
+		<<Search::tr("scores")
+		<<Search::tr("stow");
+	}
+	return l;
+}
+
+static QStringList BiOrder()
+{
+	static QStringList l;
+	if(l.isEmpty()){
+		l<<Search::tr("default")
+		<<Search::tr("pubdate")
+		<<Search::tr("senddate")
+		<<Search::tr("ranklevel")
+		<<Search::tr("click")
+		<<Search::tr("scores")
+		<<Search::tr("dm")
+		<<Search::tr("stow");
+	}
+	return l;
+}
 
 Search::Search(QWidget *parent):QDialog(parent)
 {
+	pageNum=pageCur=-1;
+	isWaiting=false;
 	auto outerLayout=new QVBoxLayout;
 	auto keywdLayout=new QHBoxLayout;
 	statusL=new QLabel(tr("Ready"),this);
@@ -117,7 +142,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 	orderC=new QComboBox(this);
 	orderC->setEditable(false);
 	sitesC=new QComboBox(this);
-	QStringList sites={"Bilibili","AcFun"};
+	QStringList sites;
+	sites<<"Bilibili"<<"AcFun";
 	sitesC->addItems(sites);
 	sitesC->setEditable(false);
 	keywdLayout->addWidget(orderC);
@@ -320,14 +346,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 				for(int i=0;i<ary.count();++i){
 					QJsonObject item=ary[i].toObject();
 					if(item["url"].toString().startsWith("/v/")){
-						QStringList content={
-							"",
-							QString::number(item["views"].toDouble()),
-							QString::number(item["comments"].toDouble()),
-							trans(item["title"].toString()),
-							AcFunChannel[item["channelId"].toDouble()],
-							trans(item["username"].toString())
-						};
+						QStringList content;
+						content<<""<<QString::number(item["views"].toDouble())
+								<<QString::number(item["comments"].toDouble())
+								<<trans(item["title"].toString())
+								<<AcFunChannel()[item["channelId"].toDouble()]
+								<<trans(item["username"].toString());
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 						row->setData(0,Qt::UserRole,item["url"].toString().mid(3));
 						row->setSizeHint(0,QSize(120,92));
@@ -367,15 +391,12 @@ void Search::setKey(QString _key)
 
 void Search::setSite()
 {
-	QStringList orders;
 	int s=sitesC->currentIndex();
-	for(const char *iter:(s==0?BiOrder:AcOrder)){
-		orders.append(tr(iter));
-	}
-	QStringList header={tr("Cover"),tr("Play"),s==0?tr("Danmaku"):tr("Comment"),tr("Title"),tr("Typename"),tr("Author")};
+	QStringList header;
+	header<<tr("Cover")<<tr("Play")<<(s==0?tr("Danmaku"):tr("Comment"))<<tr("Title")<<tr("Typename")<<tr("Author");
 	isWaiting=true;
 	orderC->clear();
-	orderC->addItems(orders);
+	orderC->addItems(s==0?BiOrder():AcOrder());
 	orderC->setCurrentIndex(0);
 	resultW->setHeaderLabels(header);
 	isWaiting=false;
@@ -400,7 +421,7 @@ void Search::getData(int pageNum)
 		QUrlQuery query;
 		query.addQueryItem("keyword",key);
 		query.addQueryItem("page",QString::number(pageNum));
-		query.addQueryItem("orderby",BiOrder[orderC->currentIndex()]);
+		query.addQueryItem("orderby",BiOrder()[orderC->currentIndex()]);
 		query.addQueryItem("pagesize","20");
 		url.setQuery(query);
 	}

@@ -40,9 +40,10 @@ void Cookie::init()
 	read>>n;
 	for(int i=0;i<n;++i){
 		read>>l;
-		char d[l];
+		char *d=new char[l];
 		read.readRawData(d,l);
 		all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
+		delete []d;
 	}
 	data.setAllCookies(all);
 }

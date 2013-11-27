@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -60,7 +60,7 @@ static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list ar
 {
 	if(level>0){
 		char *string=new char[1024];
-		vsprintf(string,fmt,args);
+		vsprintf_s(string,1024,fmt,args);
 		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
 		delete []string;
 	}

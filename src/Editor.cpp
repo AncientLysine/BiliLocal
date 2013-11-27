@@ -130,7 +130,7 @@ void Editor::load()
 		});
 		time.append(edit);
 	}
-	magnet={0,current,duration};
+	magnet<<0<<current<<duration;
 	resize(width(),pool.count()*length);
 	parentWidget()->update();
 }

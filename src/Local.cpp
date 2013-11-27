@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -37,7 +37,11 @@ static void setDefaultFont()
 	def="文泉驿正黑";
 #endif
 #ifdef Q_OS_WIN
+#ifdef Q_CC_MSVC
+	def=QString::fromLocal8Bit("微软雅黑");
+#else
 	def="微软雅黑";
+#endif
 #endif
 #ifdef Q_OS_MAC
 	def="华文黑体";

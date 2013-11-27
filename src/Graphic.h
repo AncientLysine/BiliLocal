@@ -38,12 +38,13 @@ public:
 	virtual void draw(QPainter *painter)=0;
 	virtual bool intersects(Graphic *other)=0;
 	virtual QRectF currentRect(){return QRect();}
-	virtual ~Graphic();
+	virtual ~Graphic(){}
 	int getMode(){return source?source->mode:0;}
 	const Comment *getSource(){return source;}
 
 protected:
-	const Comment *source=NULL;
+	const Comment *source;
+	Graphic(){source=NULL;}
 };
 
 class Mode1:public Graphic
@@ -110,7 +111,7 @@ private:
 	double wait;
 	double stay;
 	double life;
-	double time=0;
+	double time;
 };
 
 #endif // GRAPHIC_H

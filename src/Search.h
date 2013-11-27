@@ -61,13 +61,9 @@ private:
 	QString key;
 	QString aid;
 
-	static QVector<const char *> AcOrder;
-	static QVector<const char *> BiOrder;
-	static QHash<int,QString> AcFunChannel;
-
-	int pageNum=-1;
-	int pageCur=-1;
-	bool isWaiting=false;
+	int pageNum;
+	int pageCur;
+	bool isWaiting;
 
 	void getData(int pageNum);
 
