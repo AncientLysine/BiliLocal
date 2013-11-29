@@ -41,7 +41,6 @@ Info::Info(QWidget *parent):
 	opened=false;
 	playing=false;
 	updating=false;
-	setAutoFillBackground(true);
 	Utils::setGround(this,Qt::white);
 	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
@@ -160,6 +159,16 @@ Info::Info(QWidget *parent):
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 		isStay=0;
 	});
+	connect(VPlayer::instance(),&VPlayer::begin,[this](){
+		opened=true;
+		setPlaying(true);
+		setDuration(VPlayer::instance()->getDuration());
+	});
+	connect(VPlayer::instance(),&VPlayer::reach,[this](){
+		opened=false;
+		setPlaying(false);
+		setDuration(-1);
+	});
 }
 
 void Info::resizeEvent(QResizeEvent *e)
@@ -243,12 +252,6 @@ void Info::setTime(qint64 _time)
 	t+='/';
 	t+=to(s/60)+':'+to(s%60);
 	durT->setText(t);
-}
-
-void Info::setOpened(bool _opened)
-{
-	opened=_opened;
-	setPlaying(opened);
 }
 
 void Info::setPlaying(bool _playing)

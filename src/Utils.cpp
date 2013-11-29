@@ -48,6 +48,7 @@ void Utils::setCenter(QWidget *widget)
 
 void Utils::setGround(QWidget *widget,QColor color)
 {
+	widget->setAutoFillBackground(true);
 	QPalette palette=widget->palette();
 	palette.setColor(QPalette::Window,color);
 	widget->setPalette(palette);

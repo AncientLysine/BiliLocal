@@ -37,7 +37,6 @@ Menu::Menu(QWidget *parent) :
 {
 	isPop=false;
 	isStay=false;
-	setAutoFillBackground(true);
 	Utils::setGround(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());

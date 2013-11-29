@@ -34,7 +34,7 @@
 
 class Menu;
 class Info;
-class Poster;
+class Panel;
 class Printer;
 class VPlayer;
 class Danmaku;
@@ -68,7 +68,7 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Poster *poster;
+	Panel *panel;
 	Printer *printer;
 	VPlayer *vplayer;
 	Danmaku *danmaku;

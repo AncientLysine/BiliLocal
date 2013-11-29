@@ -29,7 +29,7 @@
 #include "Utils.h"
 #include "Menu.h"
 #include "Info.h"
-#include "Poster.h"
+#include "Panel.h"
 #include "Shield.h"
 #include "Config.h"
 #include "Printer.h"
@@ -48,7 +48,7 @@ Interface::Interface(QWidget *parent):
 	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	poster=new Poster(this);
+	panel=new Panel(this);
 	setCenter(QSize(),true);
 	tv=new QLabel(this);
 	tv->setMovie(new QMovie(":/Picture/tv.gif"));
@@ -73,7 +73,7 @@ Interface::Interface(QWidget *parent):
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
-				poster->fadeOut();
+				panel->fadeOut();
 				setFocus();
 			}
 			else{
@@ -86,13 +86,13 @@ Interface::Interface(QWidget *parent):
 				}
 				if(x>250){
 					menu->push();
-					if(!info->isPopped()&&!poster->isShown()){
+					if(!info->isPopped()&&!panel->isShown()){
 						setFocus();
 					}
 				}
 				if(x<w-250){
 					info->push();
-					if(!menu->isPopped()&&!poster->isShown()){
+					if(!menu->isPopped()&&!panel->isShown()){
 						setFocus();
 					}
 				}
@@ -104,15 +104,15 @@ Interface::Interface(QWidget *parent):
 					setFocus();
 				}
 				if(x>200&&x<w-200){
-					if(y>h-40&&poster->isValid()){
-						poster->fadeIn();
+					if(y>h-65){
+						panel->fadeIn();
 					}
-					if(y<h-60){
-						poster->fadeOut();
+					if(y<h-85){
+						panel->fadeOut();
 					}
 				}
 				else{
-					poster->fadeOut();
+					panel->fadeOut();
 				}
 			}
 		}
@@ -131,6 +131,7 @@ Interface::Interface(QWidget *parent):
 		if(vplayer->getState()==VPlayer::Play){
 			qint64 time=vplayer->getTime();
 			info->setTime(time);
+			panel->setTime(time);
 			danmaku->setTime(time);
 		}
 	});
@@ -146,8 +147,6 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(danmaku,SIGNAL(currentCleared()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::begin,[this](){
-		info->setDuration(vplayer->getDuration());
-		info->setOpened(true);
 		tv->hide();
 		me->hide();
 		if(isFullScreen()){
@@ -187,12 +186,10 @@ Interface::Interface(QWidget *parent):
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
-		info->setOpened(false);
 		tv->show();
 		me->show();
 		danmaku->resetTime();
 		danmaku->clearCurrent();
-		info->setDuration(-1);
 		sub->clear();
 		sub->setEnabled(false);
 		vid->clear();
@@ -224,22 +221,11 @@ Interface::Interface(QWidget *parent):
 		else
 			power->stop();
 	});
-	connect(info,&Info::time,[this](qint64 time){
-		if(vplayer->getDuration()==time){
-			if(Utils::getConfig("/Playing/Loop",false)){
-				vplayer->setTime(0);
-			}
-			else{
-				vplayer->stop();
-			}
-		}
-		else{
-			vplayer->setTime(time);
-		}
-	});
+	connect(info,&Info::time,vplayer,&VPlayer::setTime);
 	connect(info,&Info::play,vplayer,&VPlayer::play);
 	connect(info,&Info::stop,vplayer,&VPlayer::stop);
 	connect(info,&Info::volume,vplayer,&VPlayer::setVolume);
+	connect(panel,&Panel::time,vplayer,&VPlayer::setTime);
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
@@ -490,7 +476,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
-	poster->setGeometry(qMax(400,w-540)/2,h-40,qMin(540,w-400),25);
+	panel->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
 	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
@@ -547,7 +533,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isPopped()&&!info->isPopped()&&!poster->isShown()){
+	if(!menu->isPopped()&&!info->isPopped()&&!panel->isShown()){
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);

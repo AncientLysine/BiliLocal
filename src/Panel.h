@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Poster.h
+*   Filename:    Panel.h
 *   Time:        2013/05/23
 *   Author:      zhengdanwei
 *   Contributor: Lysine
@@ -25,27 +25,37 @@
 *
 =========================================================================*/
 
-#ifndef POSTER_H
-#define POSTER_H
+#ifndef PANEL_H
+#define PANEL_H
 
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
 
-class Poster:public QWidget
+class Panel:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Poster(QWidget *parent = 0);
-	bool isValid();
+	explicit Panel(QWidget *parent = 0);
 	bool isShown(){return ioo==2;}
+	QColor getColor();
+
+signals:
+	void time(qint64);
 
 public slots:
-	void postComment(QString comment);
 	void fadeIn();
 	void fadeOut();
+	void setTime(qint64 _time);
+	void setColor(QColor color);
+	void postComment(QString comment);
+	void setDuration(qint64 _duration);
 
 private:
+	bool sliding;
+	bool updating;
+	qint64 duration;
+	QAbstractSlider *timeS;
 	QAction *commentA;
 	QLineEdit *commentL;
 	QComboBox *commentM;
@@ -55,9 +65,6 @@ private:
 	int ioo;
 	QTimer *timer;
 	QGraphicsOpacityEffect *effect;
-	QString getCid();
-	QColor getColor();
-	void setColor(QColor color);
 };
 
 #endif // POSTER_H

@@ -380,8 +380,18 @@ void VPlayer::setSize(QSize _size)
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
-		libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
-		emit jumped(_time);
+		if(getDuration()==_time){
+			if(Utils::getConfig("/Playing/Loop",false)){
+				setTime(0);
+			}
+			else{
+				stop();
+			}
+		}
+		else{
+			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
+			emit jumped(_time);
+		}
 	}
 }
 

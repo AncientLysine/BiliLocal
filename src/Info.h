@@ -76,7 +76,6 @@ public slots:
 	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);
-	void setOpened(bool _opened);
 	void setPlaying(bool _playing);
 	void setFilePath(QString _file);
 	void setDuration(qint64 _duration);

@@ -24,8 +24,8 @@ SOURCES += \
     src/Editor.cpp \
     src/Printer.cpp \
     src/Cookie.cpp \
-    src/Poster.cpp \
-    src/Graphic.cpp
+    src/Graphic.cpp \
+    src/Panel.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -40,8 +40,8 @@ HEADERS  += \
     src/Editor.h \
     src/Printer.h \
     src/Cookie.h \
-    src/Poster.h \
-    src/Graphic.h
+    src/Graphic.h \
+    src/Panel.h
 
 LIBS += \
     -lvlc \
@@ -58,9 +58,5 @@ TRANSLATIONS += \
     trans/zh_TW.ts
 
 win32 {
-RC_FILE = \
-    Icon.rc
-}
-macx {
-    QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc++
+RC_FILE = Windows.rc
 }
