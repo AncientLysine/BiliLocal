@@ -27,7 +27,7 @@
 #include "Shield.h"
 #include "Utils.h"
 
-bool Shield::block[6];
+bool Shield::block[8];
 QList<QString> Shield::shieldU;
 QList<QRegExp> Shield::shieldR;
 
@@ -42,7 +42,7 @@ void Shield::init()
 		shieldR.append(QRegExp(item.toString()));
 	}
 	int group=Utils::getConfig("/Shield/Group",0);
-	for(int i=5;i>=0;--i){
+	for(int i=7;i>=0;--i){
 		block[i]=group&1;
 		group=group>>1;
 	}
@@ -60,7 +60,7 @@ void Shield::free()
 	}
 	Utils::setConfig("/Shield/Regexp",r);
 	int g=0;
-	for(int i=0;i<6;++i){
+	for(int i=0;i<8;++i){
 		g=(g<<1)+block[i];
 	}
 	Utils::setConfig("/Shield/Group",g);
@@ -68,11 +68,13 @@ void Shield::free()
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(block[Whole]||comment.mode==6||comment.mode==8
+	if(block[Whole]||comment.mode==8
 			||(comment.mode==1&&block[Slide])
 			||(comment.mode==4&&block[Bottom])
 			||(comment.mode==5&&block[Top])
-			||(comment.mode==7&&block[Advanced])){
+			||(comment.mode==6&&block[Reverse])
+			||(comment.mode==7&&block[Advanced])
+			||(comment.color!=0xFFFFFF&&block[Color])){
 		return true;
 	}
 	if(block[Guest]){

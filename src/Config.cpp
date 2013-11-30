@@ -326,11 +326,11 @@ Config::Config(QWidget *parent,int index):
 	{
 		widget[2]=new QWidget(this);
 		QStringList list;
-		list<<tr("Top")<<tr("Bottom")<<tr("Slide")<<tr("Guest")<<tr("Advanced")<<tr("Whole");
+		list<<tr("Top")<<tr("Bottom")<<tr("Slide")<<tr("Reverse")<<tr("Guest")<<tr("Advanced")<<tr("Color")<<tr("Whole");
 		auto grid=new QGridLayout(widget[2]);
 
 		auto g=new QHBoxLayout;
-		for(int i=0;i<6;++i){
+		for(int i=0;i<8;++i){
 			check[i]=new QCheckBox(list[i],widget[2]);
 			check[i]->setFixedHeight(40);
 			check[i]->setChecked(Shield::block[i]);

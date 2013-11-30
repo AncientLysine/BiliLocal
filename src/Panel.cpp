@@ -236,13 +236,7 @@ Panel::Panel(QWidget *parent) :
 		setDuration(-1);
 	});
 	connect(Danmaku::instance(),&Danmaku::layoutChanged,[this](){
-		QString cid;
-		for(const Record &r:Danmaku::instance()->getPool()){
-			if(r.source.startsWith("http://comment.bilibili.tv/")){
-				cid=QFileInfo(r.source).baseName();
-				break;
-			}
-		}
+		QString cid=getCid();
 		commentL->setEnabled(!cid.isEmpty());
 		commentB->setEnabled(!cid.isEmpty());
 	});
@@ -292,13 +286,7 @@ void Panel::setColor(QColor color)
 
 void Panel::postComment(QString comment)
 {
-	QString cid;
-	for(const Record &r:Danmaku::instance()->getPool()){
-		if(r.source.startsWith("http://comment.bilibili.tv/")){
-			cid=QFileInfo(r.source).baseName();
-			break;
-		}
-	}
+	QString cid=getCid();
 	if(!cid.isEmpty()){
 		Comment c;
 		c.mode=mode()[commentM->currentIndex()];
@@ -349,4 +337,14 @@ void Panel::setDuration(qint64 _duration)
 		timeS->setValue(0);
 		timeS->setRange(0,0);
 	}
+}
+
+QString Panel::getCid()
+{
+	for(const Record &r:Danmaku::instance()->getPool()){
+		if(r.source.startsWith("http://comment.bilibili.tv/")){
+			return QFileInfo(r.source).baseName();
+		}
+	}
+	return QString();
 }

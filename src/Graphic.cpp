@@ -488,6 +488,67 @@ bool Mode5::intersects(Graphic *other)
 	return f.rect.intersects(s.rect);
 }
 
+Mode6::Mode6(const Comment &comment,QList<Graphic *> &current,QSize size)
+{
+	if(comment.mode!=6){
+		return;
+	}
+	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QSize bound=getSize(comment.string,font);
+	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	if((speed=evaluate(exp))==0){
+		return;
+	}
+	rect=QRectF(QPointF(0,0),bound);
+	rect.moveLeft(-bound.width());
+	int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
+	for(int height=5;height<limit;height+=10){
+		rect.moveTop(height);
+		bool flag=true;
+		for(Graphic *iter:current){
+			if(intersects(iter)){
+				flag=false;
+				break;
+			}
+		}
+		if(flag){
+			source=&comment;
+			cache=getCache(comment.string,comment.color,font,bound);
+			current.append(this);
+			break;
+		}
+	}
+}
+
+bool Mode6::move(qint64 time)
+{
+	rect.moveLeft(rect.left()+speed*time/1000.0);
+	return rect.right()>=0;
+}
+
+void Mode6::draw(QPainter *painter)
+{
+	painter->drawPixmap(rect.topLeft(),cache);
+}
+
+bool Mode6::intersects(Graphic *other)
+{
+	if(other->getMode()!=6){
+		return false;
+	}
+	const Mode6 &f=*dynamic_cast<Mode6 *>(other);
+	const Mode6 &s=*this;
+	if(f.rect.intersects(s.rect)){
+		return true;
+	}
+	int ft=f.rect.top();
+	int fb=f.rect.bottom();
+	int st=s.rect.top();
+	int sb=s.rect.bottom();
+	return ((st>=ft&&st<=fb)||(sb<=fb&&sb>=ft)||(st<=ft&&sb>=fb))&&f.rect.left()/f.speed>=s.rect.right()/s.speed;
+}
+
 Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 {
 	if(comment.mode!=7){

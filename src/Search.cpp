@@ -96,7 +96,7 @@ static QHash<int,QString> AcFunChannel()
 }
 
 #define tr
-static QList<const char *> AcOrder()
+QList<const char *> Search::AcOrder()
 {
 	static QList<const char *> l;
 	if(l.isEmpty()){
@@ -109,7 +109,7 @@ static QList<const char *> AcOrder()
 	return l;
 }
 
-static QList<const char *> BiOrder()
+QList<const char *> Search::BiOrder()
 {
 	static QList<const char *> l;
 	if(l.isEmpty()){

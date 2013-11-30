@@ -92,6 +92,21 @@ private:
 	QPixmap cache;
 };
 
+class Mode6:public Graphic
+{
+public:
+	Mode6(const Comment &comment,QList<Graphic *> &current,QSize size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	bool intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
+
+private:
+	QRectF rect;
+	double speed;
+	QPixmap cache;
+};
+
 class Mode7:public Graphic
 {
 public:

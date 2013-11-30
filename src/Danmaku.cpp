@@ -343,6 +343,9 @@ void Danmaku::appendToCurrent(const Comment &comment)
 	case 5:
 		graphic=new Mode5(comment,current,size);
 		break;
+	case 6:
+		graphic=new Mode6(comment,current,size);
+		break;
 	case 7:
 		graphic=new Mode7(comment,current,size);
 		break;

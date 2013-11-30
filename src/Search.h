@@ -66,6 +66,8 @@ private:
 	bool isWaiting;
 
 	void getData(int pageNum);
+	QList<const char *> AcOrder();
+	QList<const char *> BiOrder();
 
 public slots:
 	void setKey(QString _key);

@@ -34,8 +34,8 @@ class Comment;
 class Shield
 {
 public:
-	enum {Top,Bottom,Slide,Guest,Advanced,Whole};
-	static bool block[6];
+	enum {Top,Bottom,Slide,Reverse,Guest,Advanced,Color,Whole};
+	static bool block[8];
 	static QList<QString> shieldU;
 	static QList<QRegExp> shieldR;
 	static void init();

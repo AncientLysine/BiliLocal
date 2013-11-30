@@ -104,7 +104,7 @@ Interface::Interface(QWidget *parent):
 					setFocus();
 				}
 				if(x>200&&x<w-200){
-					if(y>h-65){
+					if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||panel->isValid())){
 						panel->fadeIn();
 					}
 					if(y<h-85){
@@ -156,33 +156,6 @@ Interface::Interface(QWidget *parent):
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
-		tra->setEnabled(true);
-		int cur;
-		QMap<int,QString> map;
-		auto set=[&](QMenu *m){
-			m->clear();
-			if(!map.isEmpty()){
-				m->setEnabled(true);
-				QActionGroup *group=new QActionGroup(m);
-				group->setExclusive(true);
-				for(auto iter=map.begin();iter!=map.end();++iter){
-					QAction *action=group->addAction(iter.value());
-					action->setCheckable(true);
-					action->setData(iter.key());
-					action->setChecked(cur==iter.key());
-				}
-				m->addActions(group->actions());
-			}
-		};
-		cur=vplayer->getSubtitle();
-		map=vplayer->getSubtitles();
-		set(sub);
-		cur=vplayer->getVideoTrack();
-		map=vplayer->getVideoTracks();
-		set(vid);
-		cur=vplayer->getAudioTrack();
-		map=vplayer->getAudioTracks();
-		set(aud);
 		rat->setEnabled(true);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
@@ -190,13 +163,6 @@ Interface::Interface(QWidget *parent):
 		me->show();
 		danmaku->resetTime();
 		danmaku->clearCurrent();
-		sub->clear();
-		sub->setEnabled(false);
-		vid->clear();
-		vid->setEnabled(false);
-		aud->clear();
-		aud->setEnabled(false);
-		tra->setEnabled(false);
 		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
@@ -250,17 +216,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
-	toggA=new QAction(tr("Block All"),this);
-	toggA->setCheckable(true);
-	toggA->setChecked(Shield::block[5]);
-	toggA->setShortcut(QKeySequence("Ctrl+T"));
-	addAction(toggA);
-	connect(toggA,&QAction::toggled,[this](bool b){
-		Shield::block[5]=b;
-		danmaku->parse(0x2);
-		danmaku->clearCurrent();
-	});
-
 	confA=new QAction(tr("Config"),this);
 	confA->setShortcut(QKeySequence("Ctrl+I"));
 	addAction(confA);
@@ -269,27 +224,6 @@ Interface::Interface(QWidget *parent):
 		config.exec();
 		danmaku->parse(0x2);
 	});
-
-	sub=new QMenu(tr("Subtitle"),this);
-	sub->setEnabled(false);
-	connect(sub,&QMenu::triggered,[this](QAction *action){
-		vplayer->setSubTitle(action->data().toInt());
-	});
-	vid=new QMenu(tr("Video Track"),this);
-	vid->setEnabled(false);
-	connect(vid,&QMenu::triggered,[this](QAction *action){
-		vplayer->setVideoTrack(action->data().toInt());
-	});
-	aud=new QMenu(tr("Audio Track"),this);
-	aud->setEnabled(false);
-	connect(aud,&QMenu::triggered,[this](QAction *action){
-		vplayer->setAudioTrack(action->data().toInt());
-	});
-	tra=new QMenu(tr("Track"),this);
-	tra->addMenu(sub);
-	tra->addMenu(vid);
-	tra->addMenu(aud);
-	tra->setEnabled(false);
 
 	QActionGroup *g;
 	rat=new QMenu(tr("Ratio"),this);
@@ -355,7 +289,12 @@ Interface::Interface(QWidget *parent):
 			if(cur){
 				QAction *text=new QAction(&top);
 				top.addAction(text);
-				text->setText(top.fontMetrics().elidedText(cur->string,Qt::ElideRight,top.actionGeometry(text).width()));
+				int w=top.actionGeometry(text).width()-24;
+				text->setText(top.fontMetrics().elidedText(cur->string,Qt::ElideRight,w));
+				top.addSeparator();
+				connect(top.addAction(tr("Copy")),&QAction::triggered,[=](){
+					qApp->clipboard()->setText(cur->string);
+				});
 				connect(top.addAction(tr("Eliminate The Sender")),&QAction::triggered,[=](){
 					QList<QString> &list=Shield::shieldU;
 					QString sender=cur->sender;
@@ -368,8 +307,31 @@ Interface::Interface(QWidget *parent):
 			}
 			top.addActions(info->actions());
 			top.addAction(fullA);
-			top.addAction(toggA);
+			QAction *tog=new QAction(tr("Block All"),this);
+			tog->setCheckable(true);
+			tog->setChecked(Shield::block[7]);
+			tog->setShortcut(QKeySequence("Ctrl+T"));
+			connect(tog,&QAction::toggled,[this](bool b){
+				Shield::block[7]=b;
+				danmaku->parse(0x2);
+				danmaku->clearCurrent();
+			});
+			top.addAction(tog);
 			top.addActions(menu->actions());
+			QMenu *sub=new QMenu(tr("Subtitle"),this);
+			QMenu *vid=new QMenu(tr("Video Track"),this);
+			QMenu *aud=new QMenu(tr("Audio Track"),this);
+			sub->addActions(vplayer->getSubtitles());
+			sub->setEnabled(!sub->isEmpty());
+			vid->addActions(vplayer->getVideoTracks());
+			vid->setEnabled(!vid->isEmpty());
+			aud->addActions(vplayer->getAudioTracks());
+			aud->setEnabled(!aud->isEmpty());
+			QMenu *tra=new QMenu(tr("Track"),this);
+			tra->addMenu(sub);
+			tra->addMenu(vid);
+			tra->addMenu(aud);
+			tra->setEnabled(vplayer->getState()!=VPlayer::Stop);
 			top.addMenu(tra);
 			top.addMenu(sca);
 			top.addMenu(rat);

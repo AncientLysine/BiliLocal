@@ -38,6 +38,7 @@ class Panel:public QWidget
 public:
 	explicit Panel(QWidget *parent = 0);
 	bool isShown(){return ioo==2;}
+	bool isValid(){return !getCid().isEmpty();}
 	QColor getColor();
 
 signals:
@@ -65,6 +66,7 @@ private:
 	int ioo;
 	QTimer *timer;
 	QGraphicsOpacityEffect *effect;
+	QString getCid();
 };
 
 #endif // POSTER_H
