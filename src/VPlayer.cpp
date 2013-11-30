@@ -60,7 +60,11 @@ static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list ar
 {
 	if(level>0){
 		char *string=new char[1024];
+#ifdef Q_CC_MSVC
 		vsprintf_s(string,1024,fmt,args);
+#else
+		vsprintf(string,fmt,args);
+#endif
 		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
 		delete []string;
 	}
