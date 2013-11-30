@@ -555,14 +555,15 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 		return;
 	}
 	QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
-	if(data.size()!=14){
+	int l;
+	if((l=data.size())<5){
 		Printer::instance()->append(QString("[Danmaku]unknown or broken mode7 code %1").arg(comment.string));
 		return;
 	}
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
 	double scale=getScale(comment.mode,size);
 	bPos=QPointF(getDouble(0),getDouble(1));
-	ePos=QPointF(getDouble(7),getDouble(8));
+	ePos=l<8?bPos:QPointF(getDouble(7),getDouble(8));
 	int w=size.width(),h=size.height();
 	if(bPos.x()<1&&bPos.y()<1&&ePos.x()<1&&ePos.y()<1){
 		bPos.rx()*=w;
@@ -583,15 +584,21 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,QSize size)
 	bAlpha=alpha[0].toDouble();
 	eAlpha=alpha[1].toDouble();
 	life=getDouble(3);
-	QJsonValue v=data[11];
+	QJsonValue v=l<12?QJsonValue(true):data[11];
 	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
-	QFont font=getFont(scale?comment.font*scale:comment.font,data[12].toString());
+	int scaled=scale?comment.font*scale:comment.font;
+#ifdef Q_CC_MSVC
+	QString defaultFont=QString::fromLocal8Bit("黑体");
+#else
+	QString defaultFont="黑体";
+#endif
+	QFont font=getFont(scaled,l<13?defaultFont:data[12].toString());
 	QString string=data[4].toString();
 	cache=getCache(string,comment.color,font,getSize(string,font),effect,1.0);
-	zRotate=getDouble(5);
-	yRotate=getDouble(6);
-	wait=getDouble(10)/1000;
-	stay=life-wait-getDouble(9)/1000;
+	zRotate=l<6?0:getDouble(5);
+	yRotate=l<7?0:getDouble(6);
+	wait=l<11?0:getDouble(10)/1000;
+	stay=l<10?0:life-wait-getDouble(9)/1000;
 	source=&comment;
 	time=0;
 	current.append(this);

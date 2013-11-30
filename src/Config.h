@@ -65,7 +65,7 @@ private:
 
 	//Shiled
 	QLineEdit *edit;
-	QCheckBox *check[6];
+	QCheckBox *check[8];
 	QComboBox *type;
 	QListView *regexp;
 	QListView *sender;
