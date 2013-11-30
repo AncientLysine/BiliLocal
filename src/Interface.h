@@ -56,10 +56,6 @@ private:
 	QAction *confA;
 	QMenu *rat;
 	QMenu *sca;
-	QPoint pre;
-	QPoint sta;
-	QPoint wgd;
-	QPixmap background;
 
 	Menu *menu;
 	Info *info;
@@ -67,6 +63,12 @@ private:
 	Printer *printer;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
+
+	QTime lst;
+	QPoint pre;
+	QPoint sta;
+	QPoint wgd;
+	QPixmap background;
 
 	void dropEvent(QDropEvent *e);
 	void paintEvent(QPaintEvent *e);

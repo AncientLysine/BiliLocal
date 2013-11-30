@@ -348,6 +348,8 @@ Config::Config(QWidget *parent,int index):
 		edit->setFixedHeight(25);
 		regexp=new QListView(widget[2]);
 		sender=new QListView(widget[2]);
+		regexp->setSelectionMode(QListView::ExtendedSelection);
+		sender->setSelectionMode(QListView::ExtendedSelection);
 		regexp->setModel(rm=new QStringListModel(regexp));
 		sender->setModel(sm=new QStringListModel(sender));
 		connect(regexp,&QListView::pressed,[this](QModelIndex){sender->setCurrentIndex(QModelIndex());});
@@ -374,11 +376,27 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[1],&QAction::triggered,[this](){
+			auto remove=[this](QListView *v){
+				QList<int> rows;
+				for(const QModelIndex &i:v->selectionModel()->selectedRows()){
+					rows.append(i.row());
+				}
+				qSort(rows);
+				while(!rows.isEmpty()){
+					int r=rows.takeFirst();
+					v->model()->removeRow(r);
+					for(int &i:rows){
+						if(i>r){
+							--i;
+						}
+					}
+				}
+			};
 			if(regexp->hasFocus()){
-				rm->removeRow(regexp->currentIndex().row());
+				remove(regexp);
 			}
 			if(sender->hasFocus()){
-				sm->removeRow(sender->currentIndex().row());
+				remove(sender);
 			}
 		});
 		connect(action[2],&QAction::triggered,[this](){

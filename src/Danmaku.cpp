@@ -39,16 +39,10 @@ Danmaku::Danmaku(QObject *parent) :
 	qsrand(QTime::currentTime().msec());
 }
 
-void Danmaku::draw(QPainter *painter,bool move)
+void Danmaku::draw(QPainter *painter,qint64 move)
 {
-	qint64 etime=0;
-	if(move&&!last.isNull()){
-		etime=last.elapsed();
-		etime=etime>50?0:etime;
-	}
-	last.start();
 	for(auto iter=current.begin();iter!=current.end();){
-		if((*iter)->move(etime)){
+		if((*iter)->move(move)){
 			(*iter++)->draw(painter);
 		}
 		else{
@@ -237,7 +231,8 @@ void Danmaku::setTime(qint64 _time)
 	time=_time;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment &comment=*danmaku[cur];
-		if(!comment.blocked){
+		int l=Utils::getConfig("/Shield/Density",80);
+		if(!comment.blocked&&(l==0||current.size()<l)){
 			appendToCurrent(comment);
 			qApp->processEvents();
 		}

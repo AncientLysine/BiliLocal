@@ -74,16 +74,15 @@ private:
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
 	QList<QAction *> audio;
-
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
-
 	SwsContext *swsctx;
 	AVPicture *srcFrame;
 	AVPicture *dstFrame;
-
 	static VPlayer *ins;
+
+	void setState(int _state);
 
 signals:
 	void begin();
@@ -91,6 +90,7 @@ signals:
 	void reset();
 	void decode();
 	void jumped(qint64 _time);
+	void stateChanged(int _state);
 
 public slots:
 	void play();

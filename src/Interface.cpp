@@ -179,6 +179,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
+	connect(vplayer,&VPlayer::stateChanged,[this](){lst=QTime();});
 	connect(menu,&Menu::open,info,&Info::setFilePath);
 	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
@@ -421,7 +422,14 @@ void Interface::paintEvent(QPaintEvent *e)
 		painter.drawPixmap(to,background);
 	}
 	vplayer->draw(&painter,rect());
-	danmaku->draw(&painter,vplayer->getState()==VPlayer::Play);
+	qint64 time=0;
+	if(!lst.isNull()){
+		time=lst.elapsed();
+	}
+	if(vplayer->getState()==VPlayer::Play){
+		lst.start();
+	}
+	danmaku->draw(&painter,time);
 	painter.end();
 	QWidget::paintEvent(e);
 }

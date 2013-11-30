@@ -100,8 +100,8 @@ Info::Info(QWidget *parent):
 	durT->setText("00:00/00:00");
 	danmV=new QTableView(this);
 	danmV->setWordWrap(false);
-	danmV->setSelectionMode(QAbstractItemView::SingleSelection);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
+	danmV->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -117,12 +117,25 @@ Info::Info(QWidget *parent):
 	});
 	connect(danmV,&QTableView::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
-		if(danmV->currentIndex().isValid()){
-			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[this](){
+		QList<const Comment *>selected;
+		for(const QModelIndex &index:danmV->selectionModel()->selectedRows()){
+			selected.append((Comment *)index.data(Qt::UserRole).value<quintptr>());
+		}
+		if(!selected.isEmpty()){
+			connect(menu.addAction(tr("Copy Danmaku")),&QAction::triggered,[&](){
+				QStringList list;
+				for(const Comment *c:selected){
+					list.append(c->string);
+				}
+				qApp->clipboard()->setText(list.join('\n'));
+			});
+			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[&](){
 				QList<QString> &list=Shield::shieldU;
-				QString sender=((Comment *)(danmV->currentIndex().data(Qt::UserRole).value<quintptr>()))->sender;
-				if(!sender.isEmpty()&&!list.contains(sender)){
-					list.append(sender);
+				for(const Comment *c:selected){
+					QString sender=c->sender;
+					if(!sender.isEmpty()&&!list.contains(sender)){
+						list.append(sender);
+					}
 				}
 				Danmaku::instance()->parse(0x2);
 			});

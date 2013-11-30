@@ -50,7 +50,7 @@ protected:
 class Mode1:public Graphic
 {
 public:
-	Mode1(const Comment &comment,QList<Graphic *> &current,QSize size);
+	Mode1(const Comment &comment,QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
@@ -65,7 +65,7 @@ private:
 class Mode4:public Graphic
 {
 public:
-	Mode4(const Comment &comment,QList<Graphic *> &current,QSize size);
+	Mode4(const Comment &comment,QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
@@ -80,7 +80,7 @@ private:
 class Mode5:public Graphic
 {
 public:
-	Mode5(const Comment &comment,QList<Graphic *> &current,QSize size);
+	Mode5(const Comment &comment,QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
@@ -95,7 +95,7 @@ private:
 class Mode6:public Graphic
 {
 public:
-	Mode6(const Comment &comment,QList<Graphic *> &current,QSize size);
+	Mode6(const Comment &comment,QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);
@@ -105,12 +105,13 @@ private:
 	QRectF rect;
 	double speed;
 	QPixmap cache;
+	const QSize &size;
 };
 
 class Mode7:public Graphic
 {
 public:
-	Mode7(const Comment &comment,QList<Graphic *> &current,QSize size);
+	Mode7(const Comment &comment,QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	bool intersects(Graphic *other);

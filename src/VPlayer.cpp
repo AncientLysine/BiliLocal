@@ -209,6 +209,12 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 	}
 }
 
+void VPlayer::setState(int _state)
+{
+	state=_state;
+	emit stateChanged(state);
+}
+
 void VPlayer::play()
 {
 	if(mp){
@@ -247,7 +253,7 @@ void VPlayer::play()
 		}
 		else{
 			libvlc_media_player_pause(mp);
-			state=state==Play?Pause:Play;
+			setState(state==Play?Pause:Play);
 		}
 	}
 }
@@ -256,7 +262,7 @@ void VPlayer::stop()
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
-		state=Stop;
+		setState(Stop);
 		frame=QPixmap();
 		if(soundOnly){
 			fake->stop();
@@ -269,7 +275,7 @@ void VPlayer::open()
 {
 	if(mp){
 		if(state==Stop){
-			state=Play;
+			setState(Play);
 			auto transTracks=[this](libvlc_track_description_t *head)
 			{
 				libvlc_track_description_t *iter=head;
@@ -317,7 +323,7 @@ void VPlayer::open()
 			emit begin();
 		}
 		if(state==Loop){
-			state=Play;
+			setState(Play);
 			for(QAction *i:subtitle){
 				if(i->isChecked()) libvlc_video_set_spu(mp,i->data().toInt());
 			}
@@ -336,7 +342,7 @@ void VPlayer::free()
 {
 	if(Utils::getConfig("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
-		state=Loop;
+		setState(Loop);
 		libvlc_media_player_play(mp);
 		emit jumped(0);
 	}

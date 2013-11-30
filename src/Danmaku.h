@@ -40,7 +40,7 @@ public:
 	explicit Danmaku(QObject *parent=0);
 	qint64 getTime(){return time;}
 	QList<Record> &getPool(){return pool;}
-	void draw(QPainter *painter,bool move=true);
+	void draw(QPainter *painter,qint64 move);
 	QVariant data(const QModelIndex &index,int role) const;
 	int rowCount(const QModelIndex &parent=QModelIndex()) const;
 	int columnCount(const QModelIndex &parent=QModelIndex()) const;
@@ -55,7 +55,6 @@ signals:
 
 private:
 	int cur;
-	QTime last;
 	QSize size;
 	qint64 time;
 	QList<Record> pool;

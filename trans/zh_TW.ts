@@ -287,17 +287,17 @@
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="68"/>
+        <location filename="../src/Danmaku.cpp" line="62"/>
         <source>Blocked</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="139"/>
+        <location filename="../src/Danmaku.cpp" line="133"/>
         <source>Time</source>
         <translation>時間</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="142"/>
+        <location filename="../src/Danmaku.cpp" line="136"/>
         <source>Comment</source>
         <translation>評論</translation>
     </message>
@@ -336,7 +336,7 @@
     </message>
     <message>
         <location filename="../src/Info.cpp" line="83"/>
-        <location filename="../src/Info.cpp" line="262"/>
+        <location filename="../src/Info.cpp" line="266"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
@@ -346,37 +346,42 @@
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="121"/>
+        <location filename="../src/Info.cpp" line="122"/>
+        <source>Copy Danmaku</source>
+        <translation>複製彈幕</translation>
+    </message>
+    <message>
+        <location filename="../src/Info.cpp" line="125"/>
         <source>Eliminate The Sender</source>
         <translation>屏蔽發送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="130"/>
+        <location filename="../src/Info.cpp" line="134"/>
         <source>Edit Blocking List</source>
         <translation>編輯屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="136"/>
+        <location filename="../src/Info.cpp" line="140"/>
         <source>Edit Danmaku Pool</source>
         <translation>編輯彈幕池</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="143"/>
+        <location filename="../src/Info.cpp" line="147"/>
         <source>Clear Danmaku Pool</source>
         <translation>清除彈幕池</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="144"/>
+        <location filename="../src/Info.cpp" line="148"/>
         <source>Save Danmaku to File</source>
         <translation>保存彈幕到文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="149"/>
+        <location filename="../src/Info.cpp" line="153"/>
         <source>Save File</source>
         <translation>保存文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="262"/>
+        <location filename="../src/Info.cpp" line="266"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
@@ -384,68 +389,68 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="196"/>
+        <location filename="../src/Interface.cpp" line="197"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="201"/>
+        <location filename="../src/Interface.cpp" line="202"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="219"/>
+        <location filename="../src/Interface.cpp" line="311"/>
         <source>Block All</source>
         <translation>關閉彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="230"/>
+        <location filename="../src/Interface.cpp" line="220"/>
         <source>Config</source>
         <translation>設置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="306"/>
+        <location filename="../src/Interface.cpp" line="296"/>
         <source>Copy</source>
         <translation>複製</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="323"/>
+        <location filename="../src/Interface.cpp" line="322"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="324"/>
+        <location filename="../src/Interface.cpp" line="323"/>
         <source>Video Track</source>
         <translation>視頻軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="325"/>
+        <location filename="../src/Interface.cpp" line="324"/>
         <source>Audio Track</source>
         <translation>音頻軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="332"/>
+        <location filename="../src/Interface.cpp" line="331"/>
         <source>Track</source>
         <translation>軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="240"/>
+        <location filename="../src/Interface.cpp" line="230"/>
         <source>Ratio</source>
         <translation>寬高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="243"/>
-        <location filename="../src/Interface.cpp" line="255"/>
+        <location filename="../src/Interface.cpp" line="233"/>
+        <location filename="../src/Interface.cpp" line="245"/>
         <source>Default</source>
         <translation>默認</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="272"/>
+        <location filename="../src/Interface.cpp" line="262"/>
         <source>Scale</source>
         <translation>縮放</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="309"/>
+        <location filename="../src/Interface.cpp" line="299"/>
         <source>Eliminate The Sender</source>
         <translation>屏蔽發送者</translation>
     </message>
@@ -760,12 +765,12 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="276"/>
+        <location filename="../src/VPlayer.cpp" line="286"/>
         <source>Track</source>
         <translation>軌道</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="277"/>
+        <location filename="../src/VPlayer.cpp" line="287"/>
         <source>Disable</source>
         <translation>關閉</translation>
     </message>
