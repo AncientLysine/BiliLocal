@@ -253,16 +253,15 @@ static QPixmap getCache(QString string,
 						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
 						double opacity=Utils::getConfig("/Danmaku/Alpha",1.0))
 {
-	QStaticText text;
-	text.setText(string.replace("\n","<br>"));
 	QPixmap fst(size);
 	fst.fill(Qt::transparent);
 	QPainter painter;
 	painter.begin(&fst);
 	painter.setFont(font);
 	auto draw=[&](QColor c,QPoint p){
+		QRect r(p+QPoint(2,2),size-QSize(4,4));
 		painter.setPen(c);
-		painter.drawStaticText(p+=QPoint(2,2),text);
+		painter.drawText(r,string);
 	};
 	int base=color;
 	QColor edge=qGray(base)<30?Qt::white:Qt::black;
@@ -607,13 +606,7 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	life=getDouble(3);
 	QJsonValue v=l<12?QJsonValue(true):data[11];
 	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
-	int scaled=scale?comment.font*scale:comment.font;
-#ifdef Q_CC_MSVC
-	QString defaultFont=QString::fromLocal8Bit("黑体");
-#else
-	QString defaultFont="黑体";
-#endif
-	QFont font=getFont(scaled,l<13?defaultFont:data[12].toString());
+	QFont font=getFont(scale?comment.font*scale:comment.font,l<13?Utils::defaultFont(true):data[12].toString());
 	QString string=data[4].toString();
 	cache=getCache(string,comment.color,font,getSize(string,font),effect,1.0);
 	zRotate=l<6?0:getDouble(5);

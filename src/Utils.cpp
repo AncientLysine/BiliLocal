@@ -54,6 +54,40 @@ void Utils::setGround(QWidget *widget,QColor color)
 	widget->setPalette(palette);
 }
 
+QString Utils::defaultFont(bool monospace)
+{
+	if(monospace){
+#ifdef Q_OS_LINUX
+		return "文泉驿等宽正黑";
+#endif
+#ifdef Q_OS_WIN
+#ifdef Q_CC_MSVC
+		return QString::fromLocal8Bit("黑体");
+#else
+		return "黑体";
+#endif
+#endif
+#ifdef Q_OS_MAC
+		return "";
+#endif
+	}
+	else{
+#ifdef Q_OS_LINUX
+		return "文泉驿正黑";
+#endif
+#ifdef Q_OS_WIN
+#ifdef Q_CC_MSVC
+		return QString::fromLocal8Bit("微软雅黑");
+#else
+		return "微软雅黑";
+#endif
+#endif
+#ifdef Q_OS_MAC
+		return "华文黑体";
+#endif
+	}
+}
+
 QString Utils::splitString(QString text,int width)
 {
 	QStringList result;

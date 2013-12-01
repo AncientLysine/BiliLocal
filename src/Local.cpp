@@ -32,20 +32,7 @@
 
 static void setDefaultFont()
 {
-	QString def;
-#ifdef Q_OS_LINUX
-	def="文泉驿正黑";
-#endif
-#ifdef Q_OS_WIN
-#ifdef Q_CC_MSVC
-	def=QString::fromLocal8Bit("微软雅黑");
-#else
-	def="微软雅黑";
-#endif
-#endif
-#ifdef Q_OS_MAC
-	def="华文黑体";
-#endif
+	QString def=Utils::defaultFont();
 	QFont f=qApp->font();
 	if(!QFontDatabase().families().contains(def)){
 		def=QFontInfo(f).family();
