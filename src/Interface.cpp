@@ -51,7 +51,7 @@ Interface::Interface(QWidget *parent):
 	panel=new Panel(this);
 	setCenter(QSize(),true);
 	tv=new QLabel(this);
-	tv->setMovie(new QMovie(":/Picture/tv.gif"));
+	tv->setMovie(new QMovie(":/Picture/tv.gif",QByteArray(),this));
 	tv->setFixedSize(QSize(94,82));
 	me=new QLabel(this);
 	me->setPixmap(QPixmap(":/Picture/version.png"));
