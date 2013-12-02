@@ -317,7 +317,7 @@ void Panel::postComment(QString comment)
 				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
 			}
 			else{
-				Danmaku::instance()->appendToCurrent(c);
+				Danmaku::instance()->appendToCurrent(&c,true);
 			}
 		});
 	}

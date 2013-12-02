@@ -42,11 +42,13 @@ Danmaku::Danmaku(QObject *parent) :
 void Danmaku::draw(QPainter *painter,qint64 move)
 {
 	for(auto iter=current.begin();iter!=current.end();){
-		if((*iter)->move(move)){
-			(*iter++)->draw(painter);
+		Graphic *g=*iter;
+		if(g->move(move)){
+			g->draw(painter);
+			++iter;
 		}
 		else{
-			delete *iter;
+			delete g;
 			iter=current.erase(iter);
 		}
 	}
@@ -229,14 +231,11 @@ void Danmaku::setSize(QSize _size)
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
+	QList<const Comment *> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
-		const Comment &comment=*danmaku[cur];
-		int l=Utils::getConfig("/Shield/Density",80);
-		if(!comment.blocked&&(l==0||current.size()<l)){
-			appendToCurrent(comment);
-			qApp->processEvents();
-		}
+		buffer.append(danmaku[cur]);
 	}
+	appendToCurrent(buffer);
 }
 
 void Danmaku::jumpToTime(qint64 _time)
@@ -325,7 +324,7 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
-void Danmaku::appendToCurrent(const Comment &comment)
+Graphic *Danmaku::render(const Comment &comment)
 {
 	Graphic *graphic=NULL;
 	switch(comment.mode){
@@ -345,7 +344,43 @@ void Danmaku::appendToCurrent(const Comment &comment)
 		graphic=new Mode7(comment,current,size);
 		break;
 	}
-	if(graphic!=NULL&&graphic->getMode()==0){
+	if(graphic!=NULL&&!graphic->isEnabled()){
 		delete graphic;
+		return NULL;
+	}
+	return graphic;
+}
+
+void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
+{
+	int l=Utils::getConfig("/Shield/Density",100);
+	if(!comment->blocked&&(comment->mode==7||l==0||current.size()<l)){
+		Graphic *graphic=render(*comment);
+		if(graphic){
+			if(isLocal){
+				graphic->setSource(NULL);
+			}
+			current.append(graphic);
+		}
+	}
+}
+
+void Danmaku::appendToCurrent(const QList<const Comment *> &comments)
+{
+	QList<Graphic *> waiting;
+	int l=Utils::getConfig("/Shield/Density",100);
+	for(const Comment *comment:comments){
+		if(!comment->blocked&&(comment->mode==7||l==0||current.size()+waiting.size()<l)){
+			Graphic *graphic=render(*comment);
+			if(graphic){
+				graphic->setEnabled(false);
+				waiting.append(graphic);
+				current.append(graphic);
+			}
+			qApp->processEvents();
+		}
+	}
+	for(Graphic *graphic:waiting){
+		graphic->setEnabled(true);
 	}
 }

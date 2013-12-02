@@ -36,24 +36,30 @@ class Graphic
 public:
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
-	virtual bool intersects(Graphic *other)=0;
+	virtual uint intersects(Graphic *other)=0;
 	virtual QRectF currentRect(){return QRect();}
 	virtual ~Graphic(){}
 	int getMode(){return source?source->mode:0;}
+
+	bool isEnabled(){return enabled;}
+	void setEnabled(bool _enabled){enabled=_enabled;}
+
 	const Comment *getSource(){return source;}
+	void setSource(Comment *_source){source=_source;}
 
 protected:
+	bool enabled;
 	const Comment *source;
-	Graphic(){source=NULL;}
+	Graphic(){enabled=false;source=NULL;}
 };
 
 class Mode1:public Graphic
 {
 public:
-	Mode1(const Comment &comment,QList<Graphic *> &current,const QSize &size);
+	Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	bool intersects(Graphic *other);
+	uint intersects(Graphic *other);
 	QRectF currentRect(){return rect;}
 
 private:
@@ -65,10 +71,10 @@ private:
 class Mode4:public Graphic
 {
 public:
-	Mode4(const Comment &comment,QList<Graphic *> &current,const QSize &size);
+	Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	bool intersects(Graphic *other);
+	uint intersects(Graphic *other);
 	QRectF currentRect(){return rect;}
 
 private:
@@ -80,10 +86,10 @@ private:
 class Mode5:public Graphic
 {
 public:
-	Mode5(const Comment &comment,QList<Graphic *> &current,const QSize &size);
+	Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	bool intersects(Graphic *other);
+	uint intersects(Graphic *other);
 	QRectF currentRect(){return rect;}
 
 private:
@@ -95,10 +101,10 @@ private:
 class Mode6:public Graphic
 {
 public:
-	Mode6(const Comment &comment,QList<Graphic *> &current,const QSize &size);
+	Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	bool intersects(Graphic *other);
+	uint intersects(Graphic *other);
 	QRectF currentRect(){return rect;}
 
 private:
@@ -111,10 +117,10 @@ private:
 class Mode7:public Graphic
 {
 public:
-	Mode7(const Comment &comment,QList<Graphic *> &current,const QSize &size);
+	Mode7(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	bool intersects(Graphic *other);
+	uint intersects(Graphic *other);
 
 private:
 	QPointF bPos;

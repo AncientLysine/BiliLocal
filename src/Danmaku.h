@@ -61,6 +61,7 @@ private:
 	QList<Graphic *> current;
 	QList<Comment *> danmaku;
 	static Danmaku *ins;
+	Graphic *render(const Comment &comment);
 
 public slots:
 	void resetTime();
@@ -72,7 +73,8 @@ public slots:
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
-	void appendToCurrent(const Comment &comment);
+	void appendToCurrent(const Comment *comment,bool isLocal=false);
+	void appendToCurrent(const QList<const Comment *> &comments);
 };
 
 #endif // DANMAKU_H

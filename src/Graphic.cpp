@@ -235,7 +235,11 @@ static QFont getFont(int pixelSize,QString family=Utils::getConfig("/Danmaku/Fon
 
 static QSize getSize(QString string,QFont font)
 {
-	return QFontMetrics(font).boundingRect(QRect(),Qt::TextDontClip,string).size()+QSize(4,4);
+	QString fix=string;
+	fix.replace("\n",".\n");
+	QFontMetrics metrics(font);
+	QSize size=metrics.boundingRect(QRect(),Qt::TextDontClip,fix).size()+QSize(4,4);
+	return fix.length()>string.length()?QSize(size.width()-metrics.width('.'),size.height()):size;
 }
 
 static double getScale(int mode,QSize size)
@@ -312,12 +316,34 @@ static QPixmap getCache(QString string,
 		painter.begin(&sec);
 		painter.setOpacity(opacity);
 		painter.drawPixmap(QPoint(0,0),fst);
+		if(Utils::getConfig("/Interface/Debug",false)){
+			painter.setPen(Qt::blue);
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(sec.rect().adjusted(0,0,-1,-1));
+		}
 		painter.end();
 		return sec;
 	}
 }
 
-Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,const QSize &size)
+static double getOverlap(double ff,double fs,double sf,double ss)
+{
+	if(sf<=ff&&ss>=fs){
+		return fs-ff;
+	}
+	if(sf>=ff&&sf<=fs){
+		return qMin(fs-sf,ss-sf);
+	}
+	if(ss<=fs&&ss>=ff){
+		return qMin(ss-ff,ss-sf);
+	}
+	return 0;
+}
+
+#define MIN 10
+#define MAX 360
+
+Mode1::Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
 {
 	if(comment.mode!=1){
 		return;
@@ -329,35 +355,37 @@ Mode1::Mode1(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	if((speed=evaluate(exp))==0){
 		return;
 	}
-	rect=QRectF(QPointF(0,0),bound);
-	rect.moveLeft(size.width());
-	int pos=0,min=0x7FFFFFFF;
-	int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-	for(int height=5;height<limit;height+=10){
-		rect.moveTop(height);
-		int c=0;
-		for(Graphic *iter:current){
-			if(intersects(iter)){
-				++c;
+	rect=QRectF(QPointF(size.width(),5),bound);
+	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+		double m=0;
+		QRectF r;
+		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
+		for(int height=5;height<limit;height+=MIN){
+			rect.moveTop(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
 			}
 		}
-		if(c<min){
-			min=c;
-			pos=rect.top();
-			if(c==0){
-				break;
-			}
-		}
+		rect=r;
 	}
-	rect.moveTop(pos);
+	enabled=true;
 	source=&comment;
 	cache=getCache(comment.string,comment.color,font,bound);
-	current.append(this);
 }
 
 bool Mode1::move(qint64 time)
 {
-	rect.moveLeft(rect.left()-speed*time/1000.0);
+	if(enabled){
+		rect.moveLeft(rect.left()-speed*time/1000.0);
+	}
 	return rect.right()>=0;
 }
 
@@ -366,24 +394,29 @@ void Mode1::draw(QPainter *painter)
 	painter->drawPixmap(rect.topLeft(),cache);
 }
 
-bool Mode1::intersects(Graphic *other)
+uint Mode1::intersects(Graphic *other)
 {
 	if(other->getMode()!=1){
 		return false;
 	}
 	const Mode1 &f=*dynamic_cast<Mode1 *>(other);
 	const Mode1 &s=*this;
+	int w=0;
 	if(f.rect.intersects(s.rect)){
-		return true;
+		if(f.speed>s.speed){
+			w=getOverlap(f.rect.left(),f.rect.right(),s.rect.left(),s.rect.right());
+		}
+		else{
+			w=qMin(f.rect.width(),s.rect.width());
+		}
 	}
-	int ft=f.rect.top();
-	int fb=f.rect.bottom();
-	int st=s.rect.top();
-	int sb=s.rect.bottom();
-	return ((st>=ft&&st<=fb)||(sb<=fb&&sb>=ft)||(st<=ft&&sb>=fb))&&f.rect.right()/f.speed>=s.rect.left()/s.speed;
+	else{
+		w=qMax<double>(f.rect.right()-f.speed*s.rect.left()/s.speed,0);
+	}
+	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
 
-Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,const QSize &size)
+Mode4::Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
 {
 	if(comment.mode!=4){
 		return;
@@ -397,34 +430,37 @@ Mode4::Mode4(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	}
 	rect=QRectF(QPointF(0,0),bound);
 	rect.moveCenter(QPoint(size.width()/2,0));
-	int pos=0,min=0x7FFFFFFF;
-	int limit=rect.height();
-	int height=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:5);
-	for(;height>limit;height-=10){
-		rect.moveBottom(height);
-		int c=0;
-		for(Graphic *iter:current){
-			if(intersects(iter)){
-				++c;
+	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:5));
+	if(comment.font*(comment.string.count("\n")+1)<MAX){
+		double m=0;
+		QRectF r;
+		int limit=rect.height();
+		for(int height=rect.bottom();height>limit;height-=MIN){
+			rect.moveBottom(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
 			}
 		}
-		if(c<min){
-			min=c;
-			pos=rect.bottom();
-			if(c==0){
-				break;
-			}
-		}
+		rect=r;
 	}
-	rect.moveBottom(pos);
+	enabled=true;
 	source=&comment;
 	cache=getCache(comment.string,comment.color,font,bound);
-	current.append(this);
 }
 
 bool Mode4::move(qint64 time)
 {
-	life-=time/1000.0;
+	if(enabled){
+		life-=time/1000.0;
+	}
 	return life>0;
 }
 
@@ -433,17 +469,17 @@ void Mode4::draw(QPainter *painter)
 	painter->drawPixmap(rect.topLeft(),cache);
 }
 
-bool Mode4::intersects(Graphic *other)
+uint Mode4::intersects(Graphic *other)
 {
 	if(other->getMode()!=4){
 		return false;
 	}
 	const Mode4 &f=*this;
 	const Mode4 &s=*dynamic_cast<Mode4 *>(other);
-	return f.rect.intersects(s.rect);
+	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,const QSize &size)
+Mode5::Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
 {
 	if(comment.mode!=5){
 		return;
@@ -457,33 +493,37 @@ Mode5::Mode5(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	}
 	rect=QRectF(QPointF(0,0),bound);
 	rect.moveCenter(QPoint(size.width()/2,0));
-	int pos=0,min=0x7FFFFFFF;
-	int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-	for(int height=5;height<limit;height+=10){
-		rect.moveTop(height);
-		int c=0;
-		for(Graphic *iter:current){
-			if(intersects(iter)){
-				++c;
+	rect.moveTop(5);
+	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+		double m=0;
+		QRectF r;
+		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
+		for(int height=5;height<limit;height+=MIN){
+			rect.moveTop(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
 			}
 		}
-		if(c<min){
-			min=c;
-			pos=rect.top();
-			if(c==0){
-				break;
-			}
-		}
+		rect=r;
 	}
-	rect.moveTop(pos);
+	enabled=true;
 	source=&comment;
 	cache=getCache(comment.string,comment.color,font,bound);
-	current.append(this);
 }
 
 bool Mode5::move(qint64 time)
 {
-	life-=time/1000.0;
+	if(enabled){
+		life-=time/1000.0;
+	}
 	return life>0;
 }
 
@@ -492,17 +532,17 @@ void Mode5::draw(QPainter *painter)
 	painter->drawPixmap(rect.topLeft(),cache);
 }
 
-bool Mode5::intersects(Graphic *other)
+uint Mode5::intersects(Graphic *other)
 {
 	if(other->getMode()!=5){
 		return false;
 	}
 	const Mode5 &f=*this;
 	const Mode5 &s=*dynamic_cast<Mode5 *>(other);
-	return f.rect.intersects(s.rect);
+	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode6::Mode6(const Comment &comment,QList<Graphic *> &current,const QSize &size):
+Mode6::Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size):
 	size(size)
 {
 	if(comment.mode!=6){
@@ -515,35 +555,37 @@ Mode6::Mode6(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	if((speed=evaluate(exp))==0){
 		return;
 	}
-	rect=QRectF(QPointF(0,0),bound);
-	rect.moveLeft(-bound.width());
-	int pos=0,min=0x7FFFFFFF;
-	int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-	for(int height=5;height<limit;height+=10){
-		rect.moveTop(height);
-		int c=0;
-		for(Graphic *iter:current){
-			if(intersects(iter)){
-				++c;
+	rect=QRectF(QPointF(-bound.width(),5),bound);
+	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+		double m=0;
+		QRectF r;
+		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
+		for(int height=5;height<limit;height+=MIN){
+			rect.moveTop(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
 			}
 		}
-		if(c<min){
-			min=c;
-			pos=rect.top();
-			if(c==0){
-				break;
-			}
-		}
+		rect=r;
 	}
-	rect.moveTop(pos);
+	enabled=true;
 	source=&comment;
 	cache=getCache(comment.string,comment.color,font,bound);
-	current.append(this);
 }
 
 bool Mode6::move(qint64 time)
 {
-	rect.moveLeft(rect.left()+speed*time/1000.0);
+	if(enabled){
+		rect.moveLeft(rect.left()+speed*time/1000.0);
+	}
 	return rect.left()<=size.width();
 }
 
@@ -552,24 +594,29 @@ void Mode6::draw(QPainter *painter)
 	painter->drawPixmap(rect.topLeft(),cache);
 }
 
-bool Mode6::intersects(Graphic *other)
+uint Mode6::intersects(Graphic *other)
 {
 	if(other->getMode()!=6){
-		return false;
+		return 0;
 	}
 	const Mode6 &f=*dynamic_cast<Mode6 *>(other);
 	const Mode6 &s=*this;
+	int w=0;
 	if(f.rect.intersects(s.rect)){
-		return true;
+		if(f.speed>s.speed){
+			w=getOverlap(f.rect.left(),f.rect.right(),s.rect.left(),s.rect.right());
+		}
+		else{
+			w=qMin(f.rect.width(),s.rect.width());
+		}
 	}
-	int ft=f.rect.top();
-	int fb=f.rect.bottom();
-	int st=s.rect.top();
-	int sb=s.rect.bottom();
-	return ((st>=ft&&st<=fb)||(sb<=fb&&sb>=ft)||(st<=ft&&sb>=fb))&&f.rect.left()/f.speed>=s.rect.right()/s.speed;
+	else{
+		w=qMax<double>(f.rect.left()-f.speed*s.rect.right()/s.speed,0);
+	}
+	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
 
-Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,const QSize &size)
+Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
 {
 	if(comment.mode!=7){
 		return;
@@ -613,14 +660,17 @@ Mode7::Mode7(const Comment &comment,QList<Graphic *> &current,const QSize &size)
 	yRotate=l<7?0:getDouble(6);
 	wait=l<11?0:getDouble(10)/1000;
 	stay=l<10?0:life-wait-getDouble(9)/1000;
+	enabled=true;
 	source=&comment;
 	time=0;
-	current.append(this);
 }
 
 bool Mode7::move(qint64 time)
 {
-	return (this->time+=time/1000.0)<=life;
+	if(enabled){
+		this->time+=time/1000.0;
+	}
+	return (this->time)<=life;
 }
 
 void Mode7::draw(QPainter *painter)
@@ -638,7 +688,7 @@ void Mode7::draw(QPainter *painter)
 	painter->restore();
 }
 
-bool Mode7::intersects(Graphic *)
+uint Mode7::intersects(Graphic *)
 {
-	return false;
+	return 0;
 }

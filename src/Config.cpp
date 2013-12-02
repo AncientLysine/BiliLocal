@@ -489,7 +489,7 @@ Config::Config(QWidget *parent,int index):
 		grid->addWidget(label[0],3,0,1,4);
 
 		limit[1]=new QLineEdit(widget[2]);
-		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",80)));
+		limit[1]->setText(QString::number(Utils::getConfig("/Shield/Density",100)));
 		connect(limit[1],&QLineEdit::editingFinished,[this](){
 			Utils::setConfig("/Shield/Density",limit[1]->text().toInt());
 		});
