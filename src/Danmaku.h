@@ -74,7 +74,7 @@ public slots:
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
 	void appendToCurrent(const Comment *comment,bool isLocal=false);
-	void appendToCurrent(const QList<const Comment *> &comments);
+	void appendToCurrent(const QList<const Comment *> &comments,bool isLocal=false);
 };
 
 #endif // DANMAKU_H

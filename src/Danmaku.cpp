@@ -365,7 +365,7 @@ void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
 	}
 }
 
-void Danmaku::appendToCurrent(const QList<const Comment *> &comments)
+void Danmaku::appendToCurrent(const QList<const Comment *> &comments,bool isLocal)
 {
 	QList<Graphic *> waiting;
 	int l=Utils::getConfig("/Shield/Density",100);
@@ -373,6 +373,9 @@ void Danmaku::appendToCurrent(const QList<const Comment *> &comments)
 		if(!comment->blocked&&(comment->mode==7||l==0||current.size()+waiting.size()<l)){
 			Graphic *graphic=render(*comment);
 			if(graphic){
+				if(isLocal){
+					graphic->setSource(NULL);
+				}
 				graphic->setEnabled(false);
 				waiting.append(graphic);
 				current.append(graphic);

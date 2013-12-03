@@ -235,11 +235,14 @@ static QFont getFont(int pixelSize,QString family=Utils::getConfig("/Danmaku/Fon
 
 static QSize getSize(QString string,QFont font)
 {
-	QString fix=string;
-	fix.replace("\n",".\n");
-	QFontMetrics metrics(font);
-	QSize size=metrics.boundingRect(QRect(),Qt::TextDontClip,fix).size()+QSize(4,4);
-	return fix.length()>string.length()?QSize(size.width()-metrics.width('.'),size.height()):size;
+	QStringList lines=string.split('\n');
+	for(QString &line:lines){
+		QChar h=' ',f(0x3000);
+		int hc=line.count(h),fc=line.count(f);
+		line.remove(h).prepend(QString(hc,h));
+		line.remove(f).prepend(QString(fc,f));
+	}
+	return QFontMetrics(font).size(0,lines.join('\n'))+QSize(4,4);
 }
 
 static double getScale(int mode,QSize size)
@@ -306,6 +309,11 @@ static QPixmap getCache(QString string,
 		draw(base,QPoint(0,0));
 		break;
 	}
+	if(Utils::getConfig("/Interface/Debug",false)){
+		painter.setPen(Qt::blue);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(fst.rect().adjusted(0,0,-1,-1));
+	}
 	painter.end();
 	if(opacity==1){
 		return fst;
@@ -316,11 +324,6 @@ static QPixmap getCache(QString string,
 		painter.begin(&sec);
 		painter.setOpacity(opacity);
 		painter.drawPixmap(QPoint(0,0),fst);
-		if(Utils::getConfig("/Interface/Debug",false)){
-			painter.setPen(Qt::blue);
-			painter.setBrush(Qt::NoBrush);
-			painter.drawRect(sec.rect().adjusted(0,0,-1,-1));
-		}
 		painter.end();
 		return sec;
 	}
@@ -356,7 +359,7 @@ Mode1::Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize 
 		return;
 	}
 	rect=QRectF(QPointF(size.width(),5),bound);
-	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
@@ -494,7 +497,7 @@ Mode5::Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize 
 	rect=QRectF(QPointF(0,0),bound);
 	rect.moveCenter(QPoint(size.width()/2,0));
 	rect.moveTop(5);
-	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
@@ -556,7 +559,7 @@ Mode6::Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize 
 		return;
 	}
 	rect=QRectF(QPointF(-bound.width(),5),bound);
-	if(comment.font*(comment.string.count("\n")+1)<=MAX){
+	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
