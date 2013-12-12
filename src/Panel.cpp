@@ -193,7 +193,7 @@ Panel::Panel(QWidget *parent) :
 	timeS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(duration!=-1&&!updating){
-			emit time(duration*_time/SPLIT);
+			VPlayer::instance()->setTime(duration*_time/SPLIT);
 		}
 	});
 	new Jumper(timeS,sliding);

@@ -54,6 +54,7 @@ private:
 	QAction *quitA;
 	QAction *fullA;
 	QAction *confA;
+	QAction *toggA;
 	QMenu *rat;
 	QMenu *sca;
 

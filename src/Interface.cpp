@@ -188,11 +188,6 @@ Interface::Interface(QWidget *parent):
 		else
 			power->stop();
 	});
-	connect(info,&Info::time,vplayer,&VPlayer::setTime);
-	connect(info,&Info::play,vplayer,&VPlayer::play);
-	connect(info,&Info::stop,vplayer,&VPlayer::stop);
-	connect(info,&Info::volume,vplayer,&VPlayer::setVolume);
-	connect(panel,&Panel::time,vplayer,&VPlayer::setTime);
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
@@ -224,6 +219,17 @@ Interface::Interface(QWidget *parent):
 		Config config(this);
 		config.exec();
 		danmaku->parse(0x2);
+	});
+	
+	toggA=new QAction(tr("Block All"),this);
+	toggA->setCheckable(true);
+	toggA->setChecked(Shield::block[7]);
+	toggA->setShortcut(QKeySequence("Ctrl+T"));
+	addAction(toggA);
+	connect(toggA,&QAction::toggled,[this](bool b){
+		Shield::block[7]=b;
+		danmaku->parse(0x2);
+		danmaku->clearCurrent();
 	});
 
 	QActionGroup *g;
@@ -308,16 +314,7 @@ Interface::Interface(QWidget *parent):
 			}
 			top.addActions(info->actions());
 			top.addAction(fullA);
-			QAction *tog=new QAction(tr("Block All"),this);
-			tog->setCheckable(true);
-			tog->setChecked(Shield::block[7]);
-			tog->setShortcut(QKeySequence("Ctrl+T"));
-			connect(tog,&QAction::toggled,[this](bool b){
-				Shield::block[7]=b;
-				danmaku->parse(0x2);
-				danmaku->clearCurrent();
-			});
-			top.addAction(tog);
+			top.addAction(toggA);
 			top.addActions(menu->actions());
 			QMenu *sub=new QMenu(tr("Subtitle"),this);
 			QMenu *vid=new QMenu(tr("Video Track"),this);

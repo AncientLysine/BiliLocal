@@ -38,8 +38,6 @@ Info::Info(QWidget *parent):
 {
 	isPop=false;
 	isStay=false;
-	opened=false;
-	playing=false;
 	updating=false;
 	Utils::setGround(this,Qt::white);
 	duration=-1;
@@ -64,12 +62,12 @@ Info::Info(QWidget *parent):
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(duration!=-1&&!updating){
-			emit time(duration*_time/400);
+			VPlayer::instance()->setTime(duration*_time/400);
 		}
 	});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
 		Utils::setConfig("Playing/Volume",_volm);
-		emit volume(_volm);
+		VPlayer::instance()->setVolume(_volm);
 	});
 	playB=new QPushButton(this);
 	stopB=new QPushButton(this);
@@ -82,15 +80,10 @@ Info::Info(QWidget *parent):
 	pauseI=QIcon(":/Picture/pause.png");
 	playA=new QAction(playI,tr("Play"),this);
 	stopA=new QAction(stopI,tr("Stop"),this);
-	connect(playA,&QAction::triggered,[this](){
-		if(opened){
-			setPlaying(!playing);
-		}
-		emit play();
-	});
-	connect(stopA,&QAction::triggered,[this](){emit stop();});
-	this->addAction(playA);
-	this->addAction(stopA);
+	addAction(playA);
+	addAction(stopA);
+	connect(playA,&QAction::triggered,VPlayer::instance(),&VPlayer::play);
+	connect(stopA,&QAction::triggered,VPlayer::instance(),&VPlayer::stop);
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
 	playA->setShortcut(QKeySequence(Qt::Key_Space));
@@ -113,7 +106,7 @@ Info::Info(QWidget *parent):
 	resizeHeader();
 	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Info::resizeHeader);
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
-		emit time(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
+		VPlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
 	connect(danmV,&QTableView::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
@@ -173,14 +166,16 @@ Info::Info(QWidget *parent):
 		isStay=0;
 	});
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
-		opened=true;
-		setPlaying(true);
 		setDuration(VPlayer::instance()->getDuration());
 	});
 	connect(VPlayer::instance(),&VPlayer::reach,[this](){
-		opened=false;
-		setPlaying(false);
 		setDuration(-1);
+	});
+	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](int state){
+		bool playing=state==VPlayer::Play;
+		playB->setIcon(playing?pauseI:playI);
+		playA->setIcon(playing?pauseI:playI);
+		playA->setText(playing?tr("Pause"):tr("Play"));
 	});
 }
 
@@ -265,14 +260,6 @@ void Info::setTime(qint64 _time)
 	t+='/';
 	t+=to(s/60)+':'+to(s%60);
 	durT->setText(t);
-}
-
-void Info::setPlaying(bool _playing)
-{
-	playing=_playing;
-	playB->setIcon(playing?pauseI:playI);
-	playA->setIcon(playing?pauseI:playI);
-	playA->setText(playing?tr("Pause"):tr("Play"));
 }
 
 void Info::setFilePath(QString _file)

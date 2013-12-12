@@ -41,9 +41,6 @@ public:
 	bool isValid(){return !getCid().isEmpty();}
 	QColor getColor();
 
-signals:
-	void time(qint64);
-
 public slots:
 	void fadeIn();
 	void fadeOut();

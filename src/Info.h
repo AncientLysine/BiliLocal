@@ -41,8 +41,6 @@ public:
 private:
 	bool isPop;
 	bool isStay;
-	bool opened;
-	bool playing;
 	bool updating;
 	qint64 duration;
 	QString filePath;
@@ -63,12 +61,6 @@ private:
 	QIcon playI,stopI,pauseI;
 	void resizeEvent(QResizeEvent *e);
 	
-signals:
-	void play();
-	void stop();
-	void time(qint64);
-	void volume(int);
-	
 public slots:
 	void pop();
 	void push(bool force=false);
@@ -76,7 +68,6 @@ public slots:
 	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);
-	void setPlaying(bool _playing);
 	void setFilePath(QString _file);
 	void setDuration(qint64 _duration);
 	

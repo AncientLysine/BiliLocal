@@ -1,4 +1,4 @@
 *~
+*.o
 *.user
 *.sh
-build*/
