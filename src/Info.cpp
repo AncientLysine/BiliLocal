@@ -153,12 +153,7 @@ Info::Info(QWidget *parent):
 					QFileInfo info(path);
 					path=info.absolutePath()+'/'+info.baseName()+".json";
 				}
-				QString file=QFileDialog::getSaveFileName(parentWidget(),
-														  tr("Save File"),
-														  path,
-														  "",
-														  0,
-														  QFileDialog::DontUseNativeDialog);
+				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
 				if(!file.isEmpty()){
 					if(!file.endsWith(".json")){
 						file.append(".json");

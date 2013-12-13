@@ -258,7 +258,7 @@ static QPixmap getCache(QString string,
 						QFont font,
 						QSize size,
 						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
-						double opacity=Utils::getConfig("/Danmaku/Alpha",1.0))
+						int opacity=Utils::getConfig("/Danmaku/Alpha",100))
 {
 	QPixmap fst(size);
 	fst.fill(Qt::transparent);
@@ -315,14 +315,14 @@ static QPixmap getCache(QString string,
 		painter.drawRect(fst.rect().adjusted(0,0,-1,-1));
 	}
 	painter.end();
-	if(opacity==1){
+	if(opacity==100){
 		return fst;
 	}
 	else{
 		QPixmap sec(size);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
-		painter.setOpacity(opacity);
+		painter.setOpacity(opacity/100.0);
 		painter.drawPixmap(QPoint(0,0),fst);
 		painter.end();
 		return sec;
@@ -658,7 +658,7 @@ Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
 	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
 	QFont font=getFont(scale?comment.font*scale:comment.font,l<13?Utils::defaultFont(true):data[12].toString());
 	QString string=data[4].toString();
-	cache=getCache(string,comment.color,font,getSize(string,font),effect,1.0);
+	cache=getCache(string,comment.color,font,getSize(string,font),effect,100);
 	zRotate=l<6?0:getDouble(5);
 	yRotate=l<7?0:getDouble(6);
 	wait=l<11?0:getDouble(10)/1000;

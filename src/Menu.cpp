@@ -33,6 +33,11 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
+static QString getPath()
+{
+	return Utils::getConfig("/Playing/Path",QDir::homePath());
+}
+
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)
 {
@@ -84,24 +89,14 @@ Menu::Menu(QWidget *parent) :
 	danmA=new QAction(tr("Load Danmaku"),this);
 	sechA=new QAction(tr("Search Danmaku"),this);
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(parentWidget(),
-												   tr("Open File"),
-												   Utils::getConfig("/Playing/Path",QDir::homePath()),
-												   "",
-												   0,
-												   QFileDialog::DontUseNativeDialog);
+		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath());
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Utils::getConfig("/Danmaku/Local",false)){
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),
-													   tr("Open File"),
-													   Utils::getConfig("/Playing/Path",QDir::homePath()),
-													   tr("Danmaku files (*.xml *.json)"),
-													   0,
-													   QFileDialog::DontUseNativeDialog);
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath());
 			if(!_file.isEmpty()){
 				setDanmaku(_file);
 			}
@@ -140,9 +135,9 @@ Menu::Menu(QWidget *parent) :
 	alphaS->setOrientation(Qt::Horizontal);
 	alphaS->setGeometry(QRect(10,170,180,15));
 	alphaS->setRange(0,100);
-	alphaS->setValue(Utils::getConfig("/Danmaku/Alpha",1.0)*100);
+	alphaS->setValue(Utils::getConfig("/Danmaku/Alpha",100));
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){
-		Utils::setConfig("/Danmaku/Alpha",_alpha/100.0);
+		Utils::setConfig("/Danmaku/Alpha",_alpha);
 	});
 	powerT=new QLabel(this);
 	powerT->setGeometry(QRect(10,205,100,20));
@@ -167,24 +162,15 @@ Menu::Menu(QWidget *parent) :
 	localC->setGeometry(QRect(168,240,25,25));
 	Utils::delayExec(this,0,[this](){localC->setChecked(Utils::getConfig("/Danmaku/Local",false));});
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
-		if(state==Qt::Checked){
-			danmL->setText("");
-			danmL->setReadOnly(true);
-			danmL->setPlaceholderText("");
-			danmB->setText(tr("Open"));
-			sechL->setText("");
-			sechL->setEnabled(false);
-			sechB->setEnabled(false);
-		}
-		else{
-			danmL->setText("");
-			danmL->setReadOnly(false);
-			danmL->setPlaceholderText(tr("av/ac"));
-			danmB->setText(tr("Load"));
-			sechL->setEnabled(true);
-			sechB->setEnabled(true);
-		}
-		Utils::setConfig("/Danmaku/Local",state==Qt::Checked);
+		bool local=state==Qt::Checked;
+		danmL->setText("");
+		sechL->setText("");
+		danmL->setReadOnly(local);
+		sechL->setEnabled(!local);
+		sechB->setEnabled(!local);
+		danmB->setText(local?tr("Open"):tr("Load"));
+		danmL->setPlaceholderText(local?QString():tr("av/ac"));
+		Utils::setConfig("/Danmaku/Local",local);
 	});
 	subT=new QLabel(this);
 	subT->setGeometry(QRect(10,275,100,25));

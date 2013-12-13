@@ -210,12 +210,7 @@ Config::Config(QWidget *parent,int index):
 		open->setFocusPolicy(Qt::NoFocus);
 		connect(open,&QPushButton::clicked,[this](){
 			QString path=back->text().isEmpty()?QDir::currentPath():QFileInfo(back->text()).absolutePath();
-			QString file=QFileDialog::getOpenFileName(parentWidget(),
-													  tr("Open File"),
-													  path,
-													  "",
-													  0,
-													  QFileDialog::DontUseNativeDialog);
+			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path);
 			if(!file.isEmpty()){
 				back->setText(file);
 			}
@@ -405,12 +400,7 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[2],&QAction::triggered,[this](){
-			QString path=QFileDialog::getOpenFileName(parentWidget(),
-													  tr("Import File"),
-													  QDir::homePath(),
-													  "",
-													  0,
-													  QFileDialog::DontUseNativeDialog);
+			QString path=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath());
 			if(!path.isEmpty()){
 				QFile file(path);
 				if(file.exists()){
@@ -443,12 +433,7 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[3],&QAction::triggered,[this](){
-			QString path=QFileDialog::getSaveFileName(parentWidget(),
-													  tr("Export File"),
-													  QDir::homePath()+"/shield.bililocal.xml",
-													  "",
-													  0,
-													  QFileDialog::DontUseNativeDialog);
+			QString path=QFileDialog::getSaveFileName(parentWidget(),tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
 			if(!path.isEmpty()){
 				if(!path.endsWith(".xml")){
 					path.append(".xml");
