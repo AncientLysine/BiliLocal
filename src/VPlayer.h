@@ -52,6 +52,7 @@ public:
 	qint64 getTime();
 	qint64 getDuration();
 	QSize getSize(int t=Source);
+	QString getFile(){return file;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
@@ -71,6 +72,7 @@ private:
 	QPixmap frame;
 	QPixmap sound;
 	QTimer *fake;
+	QString file;
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
 	QList<QAction *> audio;

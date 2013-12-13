@@ -43,7 +43,6 @@ private:
 	bool isStay;
 	bool updating;
 	qint64 duration;
-	QString filePath;
 
 	QLabel *durT;
 	QLabel *timeT;
@@ -68,7 +67,6 @@ public slots:
 	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);
-	void setFilePath(QString _file);
 	void setDuration(qint64 _duration);
 	
 };

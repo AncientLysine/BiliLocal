@@ -148,11 +148,17 @@ Info::Info(QWidget *parent):
 			});
 			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-				QString path=Utils::getConfig("/Playing/Path",QDir::homePath());
-				if(!filePath.isEmpty()){
-					path+='/'+QFileInfo(filePath).baseName()+".json";
+				QString path=VPlayer::instance()->getFile();
+				if(!path.isEmpty()){
+					QFileInfo info(path);
+					path=info.absolutePath()+'/'+info.baseName()+".json";
 				}
-				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
+				QString file=QFileDialog::getSaveFileName(parentWidget(),
+														  tr("Save File"),
+														  path,
+														  "",
+														  0,
+														  QFileDialog::DontUseNativeDialog);
 				if(!file.isEmpty()){
 					if(!file.endsWith(".json")){
 						file.append(".json");
@@ -260,11 +266,6 @@ void Info::setTime(qint64 _time)
 	t+='/';
 	t+=to(s/60)+':'+to(s%60);
 	durT->setText(t);
-}
-
-void Info::setFilePath(QString _file)
-{
-	filePath=_file;
 }
 
 void Info::setDuration(qint64 _duration)

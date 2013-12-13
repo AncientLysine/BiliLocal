@@ -408,7 +408,8 @@ void VPlayer::setFile(QString _file)
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
-	m=libvlc_media_new_path(vlc,_file.toUtf8());
+	file=_file;
+	m=libvlc_media_new_path(vlc,file.toUtf8());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){

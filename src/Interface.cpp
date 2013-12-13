@@ -180,8 +180,6 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(vplayer,&VPlayer::stateChanged,[this](){lst=QTime();});
-	connect(menu,&Menu::open,info,&Info::setFilePath);
-	connect(menu,&Menu::open,vplayer,&VPlayer::setFile);
 	connect(menu,&Menu::power,[this](qint16 _power){
 		if(_power>=0)
 			power->start(_power);

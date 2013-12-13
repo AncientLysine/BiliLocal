@@ -31,6 +31,7 @@
 #include "Cookie.h"
 #include "Printer.h"
 #include "Danmaku.h"
+#include "VPlayer.h"
 
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)
@@ -83,15 +84,24 @@ Menu::Menu(QWidget *parent) :
 	danmA=new QAction(tr("Load Danmaku"),this);
 	sechA=new QAction(tr("Search Danmaku"),this);
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),Utils::getConfig("/Playing/Path",QDir::homePath()));
+		QString _file=QFileDialog::getOpenFileName(parentWidget(),
+												   tr("Open File"),
+												   Utils::getConfig("/Playing/Path",QDir::homePath()),
+												   "",
+												   0,
+												   QFileDialog::DontUseNativeDialog);
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Utils::getConfig("/Danmaku/Local",false)){
-			QString filter=tr("Danmaku files (*.xml *.json)");
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),Utils::getConfig("/Playing/Path",QDir::homePath()),filter);
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),
+													   tr("Open File"),
+													   Utils::getConfig("/Playing/Path",QDir::homePath()),
+													   tr("Danmaku files (*.xml *.json)"),
+													   0,
+													   QFileDialog::DontUseNativeDialog);
 			if(!_file.isEmpty()){
 				setDanmaku(_file);
 			}
@@ -433,8 +443,9 @@ void Menu::setFile(QString _file)
 {
 	QFileInfo file(_file);
 	fileL->setText(file.fileName());
+	fileL->setCursorPosition(0);
 	Utils::setConfig("/Playing/Path",file.absolutePath());
-	emit open(QDir::toNativeSeparators(file.absoluteFilePath()));
+	VPlayer::instance()->setFile(QDir::toNativeSeparators(file.absoluteFilePath()));
 	bool only=Utils::getConfig("/Playing/Clear",true);
 	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){
@@ -508,6 +519,7 @@ void Menu::setDanmaku(QString _code)
 			localC->toggle();
 		}
 		danmL->setText(QFileInfo(_code).fileName());
+		danmL->setCursorPosition(0);
 	}
 	if(url.isValid()){
 		if(Utils::getConfig("/Playing/Clear",true)){

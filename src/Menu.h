@@ -66,7 +66,6 @@ private:
 	QNetworkAccessManager *manager;
 
 signals:
-	void open(QString);
 	void power(qint16);
 
 public slots:
