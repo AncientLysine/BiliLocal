@@ -185,10 +185,12 @@ void VPlayer::setFrame(bool force)
 									srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
 									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
 									SWS_FAST_BILINEAR,NULL,NULL,NULL);
-		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,srcSize.height(),dstFrame->data,dstFrame->linesize);
+		int height=srcSize.height();
 		size.unlock();
+		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,height,dstFrame->data,dstFrame->linesize);
+		QPixmap buf=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
 		data.lock();
-		frame=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
+		frame=buf;
 		data.unlock();
 		emit decode();
 	}

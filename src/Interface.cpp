@@ -36,6 +36,10 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
+#ifdef Q_OS_WIN32
+#include <QtWinExtras>
+#endif
+
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
@@ -350,6 +354,36 @@ Interface::Interface(QWidget *parent):
 		});
 	}
 	setFocus();
+#ifdef Q_OS_WIN32
+	Utils::delayExec(this,0,[this](){
+		QWinThumbnailToolBar *bar=new QWinThumbnailToolBar(this);
+		bar->setWindow(windowHandle());
+		QStringList paths;
+		paths<<":/Picture/play.png"<<":/Picture/pause.png"<<":/Picture/stop.png";
+		QList<QIcon> icons;
+		QPainter painter;
+		QPixmap buffer(16,16);
+		for(QString path:paths){
+			buffer.fill(Qt::transparent);
+			painter.begin(&buffer);
+			painter.setRenderHints(QPainter::Antialiasing|QPainter::SmoothPixmapTransform);
+			painter.drawPixmap(QPointF(2,2),QPixmap(path));
+			painter.end();
+			icons<<QIcon(buffer);
+		}
+		QWinThumbnailToolButton *play=new QWinThumbnailToolButton(bar);
+		play->setIcon(icons[0]);
+		bar->addButton(play);
+		connect(play,&QWinThumbnailToolButton::clicked,vplayer,&VPlayer::play);
+		QWinThumbnailToolButton *stop=new QWinThumbnailToolButton(bar);
+		stop->setIcon(icons[2]);
+		bar->addButton(stop);
+		connect(stop,&QWinThumbnailToolButton::clicked,vplayer,&VPlayer::stop);
+		connect(vplayer,&VPlayer::stateChanged,[=](int state){
+			play->setIcon(icons[state==VPlayer::Play?0:1]);
+		});
+	});
+#endif
 }
 
 void Interface::setCenter(QSize _s,bool f)

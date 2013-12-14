@@ -58,5 +58,6 @@ TRANSLATIONS += \
     trans/zh_TW.ts
 
 win32 {
+QT += winextras
 RC_FILE = Windows.rc
 }

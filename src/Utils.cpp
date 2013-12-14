@@ -60,7 +60,7 @@ QString Utils::defaultFont(bool monospace)
 #ifdef Q_OS_LINUX
 		return "文泉驿等宽正黑";
 #endif
-#ifdef Q_OS_WIN
+#ifdef Q_OS_WIN32
 #ifdef Q_CC_MSVC
 		return QString::fromLocal8Bit("黑体");
 #else
@@ -75,7 +75,7 @@ QString Utils::defaultFont(bool monospace)
 #ifdef Q_OS_LINUX
 		return "文泉驿正黑";
 #endif
-#ifdef Q_OS_WIN
+#ifdef Q_OS_WIN32
 #ifdef Q_CC_MSVC
 		return QString::fromLocal8Bit("微软雅黑");
 #else
