@@ -236,9 +236,9 @@ Panel::Panel(QWidget *parent) :
 		setDuration(-1);
 	});
 	connect(Danmaku::instance(),&Danmaku::layoutChanged,[this](){
-		QString cid=getCid();
-		commentL->setEnabled(!cid.isEmpty());
-		commentB->setEnabled(!cid.isEmpty());
+		const Record *r=getBilibili();
+		commentL->setEnabled(r!=NULL);
+		commentB->setEnabled(r!=NULL);
 	});
 	hide();
 }
@@ -286,8 +286,8 @@ void Panel::setColor(QColor color)
 
 void Panel::postComment(QString comment)
 {
-	QString cid=getCid();
-	if(!cid.isEmpty()){
+	const Record *r=getBilibili();
+	if(r!=NULL){
 		Comment c;
 		c.mode=mode()[commentM->currentIndex()];
 		c.font=25;
@@ -297,10 +297,10 @@ void Panel::postComment(QString comment)
 		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
-		params.addQueryItem("cid",cid);
+		params.addQueryItem("cid",QFileInfo(r->source).baseName());
 		params.addQueryItem("date",QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 		params.addQueryItem("pool","0");
-		params.addQueryItem("playTime",QString::number(c.time/1000.0,'f',4));
+		params.addQueryItem("playTime",QString::number((c.time-r->delay)/1000.0,'f',4));
 		params.addQueryItem("color",QString::number(c.color));
 		params.addQueryItem("fontsize",QString::number(c.font));
 		params.addQueryItem("message",c.string);
@@ -339,12 +339,12 @@ void Panel::setDuration(qint64 _duration)
 	}
 }
 
-QString Panel::getCid()
+const Record *Panel::getBilibili()
 {
 	for(const Record &r:Danmaku::instance()->getPool()){
 		if(r.source.startsWith("http://comment.bilibili.tv/")){
-			return QFileInfo(r.source).baseName();
+			return &r;
 		}
 	}
-	return QString();
+	return NULL;
 }

@@ -32,13 +32,15 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
+class Record;
+
 class Panel:public QWidget
 {
 	Q_OBJECT
 public:
 	explicit Panel(QWidget *parent = 0);
 	bool isShown(){return ioo==2;}
-	bool isValid(){return !getCid().isEmpty();}
+	bool isValid(){return getBilibili()!=NULL;}
 	QColor getColor();
 
 public slots:
@@ -63,7 +65,7 @@ private:
 	int ioo;
 	QTimer *timer;
 	QGraphicsOpacityEffect *effect;
-	QString getCid();
+	const Record *getBilibili();
 };
 
 #endif // POSTER_H

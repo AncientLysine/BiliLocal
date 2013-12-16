@@ -97,7 +97,7 @@ signals:
 public slots:
 	void play();
 	void stop();
-	void open();
+	void init();
 	void free();
 	void setSize(QSize _size);
 	void setTime(qint64 _time);

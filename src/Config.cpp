@@ -48,11 +48,17 @@ Config::Config(QWidget *parent,int index):
 		});
 		c->addWidget(danm[0]);
 		danm[1]=new QCheckBox(tr("auto delay after loaded"),widget[0]);
-		danm[1]->setChecked(Utils::getConfig("/Playing//Delay",false));
+		danm[1]->setChecked(Utils::getConfig("/Playing/Delay",false));
 		connect(danm[1],&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Playing/Delay",state==Qt::Checked);
 		});
 		c->addWidget(danm[1]);
+		danm[2]=new QCheckBox(tr("load local subtitles"),widget[0]);
+		danm[2]->setChecked(Utils::getConfig("/Playing/Subtitle",true));
+		connect(danm[2],&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig("/Playing/Subtitle",state==Qt::Checked);
+		});
+		c->addWidget(danm[2]);
 		box[0]=new QGroupBox(tr("Loading"),widget[0]);
 		box[0]->setLayout(c);
 		list->addWidget(box[0]);
