@@ -58,9 +58,9 @@ private:
 	QLineEdit *size;
 	QLineEdit *back;
 	QPushButton *open;
-	QLabel *image;
+	QLabel *info;
 	QLineEdit *input[3];
-	QPushButton *login;
+	QPushButton *click;
 	QNetworkAccessManager *manager;
 
 	//Shiled

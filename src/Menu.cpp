@@ -96,7 +96,7 @@ Menu::Menu(QWidget *parent) :
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Utils::getConfig("/Danmaku/Local",false)){
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath());
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath(),tr("Danmaku files (*.xml *.json)"));
 			if(!_file.isEmpty()){
 				setDanmaku(_file);
 			}

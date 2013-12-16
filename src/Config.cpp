@@ -234,58 +234,43 @@ Config::Config(QWidget *parent,int index):
 		l->addWidget(input[0]);
 		l->addWidget(input[1]);
 		l->addWidget(input[2]);
-		image=new QLabel(widget[1]);
-		image->setFixedWidth(100);
-		image->setAlignment(Qt::AlignCenter);
-		l->addWidget(image);
+		info=new QLabel(widget[1]);
+		info->setFixedWidth(100);
+		info->setAlignment(Qt::AlignCenter);
+		l->addWidget(info);
 		manager=new QNetworkAccessManager(this);
 		manager->setCookieJar(Cookie::instance());
 		Cookie::instance()->setParent(NULL);
-		auto logged=[this](){
-			image->setText(tr("Logged"));
-			input[0]->setEnabled(false);
-			input[1]->setEnabled(false);
-			input[1]->clear();
-			input[2]->setEnabled(false);
-			input[2]->clear();
-			login->setEnabled(false);
-		};
-		QString url("http://interface.bilibili.tv/nav.js");
-		Utils::getReply(manager,QNetworkRequest(url),[logged,this](QNetworkReply *reply){
-			bool flag=true;
-			if(reply->error()==QNetworkReply::NoError){
-				QString page(reply->readAll());
-				int sta=page.indexOf("title=\"");
-				if(sta!=-1){
-					sta+=7;
-					input[0]->setText(page.mid(sta,page.indexOf("\"",sta)-sta));
-					flag=false;
-				}
-			}
-			if(flag){
-				QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
-				Utils::getReply(manager,QNetworkRequest(url),[this](QNetworkReply *reply){
-					if(reply->error()==QNetworkReply::NoError){
-						QPixmap pixmap;
-						pixmap.loadFromData(reply->readAll());
-						if(!pixmap.isNull()){
-							image->setPixmap(pixmap);
-						}
+		auto loadValid=[this](){
+			QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
+			Utils::getReply(manager,QNetworkRequest(url),[this](QNetworkReply *reply){
+				if(reply->error()==QNetworkReply::NoError){
+					QPixmap pixmap;
+					pixmap.loadFromData(reply->readAll());
+					if(!pixmap.isNull()){
+						info->setPixmap(pixmap);
 					}
-				});
+				}
+			});
+		};
+		auto setLogged=[this,loadValid](bool logged){
+			info->clear();
+			if(logged){
+				info->setText(tr("logged"));
+				input[1]->clear();
+				input[2]->clear();
+				click->setText(tr("logout"));
 			}
 			else{
-				logged();
+				loadValid();
+				click->setText(tr("login"));
 			}
-		});
-		login=new QPushButton(tr("login"),widget[1]);
-		login->setFixedWidth(50);
-		connect(login,&QPushButton::clicked,[=](){
 			for(QLineEdit *iter:input){
-				if(iter->text().isEmpty()){
-					return;
-				}
+				iter->setEnabled(!logged);
 			}
+		};
+		auto sendLogin=[this,setLogged](){
+			click->setEnabled(false);
 			QUrlQuery query;
 			query.addQueryItem("act","login");
 			query.addQueryItem("userid",input[0]->text());
@@ -309,12 +294,47 @@ Config::Config(QWidget *parent,int index):
 						QMessageBox::warning(parentWidget(),tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
 					}
 				}
-				if(flag){
-					logged();
-				}
+				click->setEnabled(true);
+				setLogged(flag);
 			});
+		};
+		auto setLogout=[this,setLogged](){
+			click->setEnabled(false);
+			QString url="https://secure.bilibili.tv/login?act=exit";
+			Utils::getReply(manager,QNetworkRequest(url),[=](QNetworkReply *reply){
+				click->setEnabled(true);
+				setLogged(reply->error()!=QNetworkReply::NoError);
+			});
+		};
+		click=new QPushButton(tr("login"),widget[1]);
+		click->setFixedWidth(50);
+		connect(click,&QPushButton::clicked,[=](){
+			if(info->text().isEmpty()){
+				for(QLineEdit *iter:input){
+					if(iter->text().isEmpty()){
+						return;
+					}
+				}
+				sendLogin();
+			}
+			else{
+				setLogout();
+			}
 		});
-		l->addWidget(login);
+		Utils::getReply(manager,QNetworkRequest(QString("http://interface.bilibili.tv/nav.js")),[=](QNetworkReply *reply){
+			bool flag=false;
+			if(reply->error()==QNetworkReply::NoError){
+				QString page(reply->readAll());
+				int sta=page.indexOf("title=\"");
+				if(sta!=-1){
+					sta+=7;
+					input[0]->setText(page.mid(sta,page.indexOf("\"",sta)-sta));
+					flag=true;
+				}
+			}
+			setLogged(flag);
+		});
+		l->addWidget(click);
 		ui[4]=new QGroupBox(tr("login"),widget[1]);
 		ui[4]->setLayout(l);
 		lines->addWidget(ui[4]);
