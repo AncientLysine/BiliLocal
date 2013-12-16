@@ -83,7 +83,8 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
-	vlc=libvlc_new(0,NULL);
+    const char* argv_list[] = {"--avcodec-hw=dxva2.lo"};
+    vlc=libvlc_new(1,argv_list);
 	libvlc_log_set(vlc,log,NULL);
 	m=NULL;
 	mp=NULL;
@@ -278,25 +279,7 @@ void VPlayer::open()
 	if(mp){
         if(state==Stop){
             setState(Play);
-
-            //(begin) set default no subtitles:
-
-            libvlc_track_description_t *sub_desc = libvlc_video_get_spu_description(mp);
-            libvlc_track_description_t *sub_iter = sub_desc;
-            while(sub_iter)
-            {
-                QString name = sub_iter->psz_name;
-                if (name.indexOf("isable") > -1)
-                {
-                    libvlc_video_set_spu(mp,sub_iter->i_id);
-                    break;
-                }
-                sub_iter=sub_iter->p_next;
-            }
-            libvlc_track_description_list_release(sub_desc);
-
-            //(end) set default no subtitles
-
+            libvlc_video_set_spu(mp,-1);
 			auto transTracks=[this](libvlc_track_description_t *head)
 			{
 				libvlc_track_description_t *iter=head;
