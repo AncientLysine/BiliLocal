@@ -49,7 +49,6 @@ private:
 	QLabel *tv;
 	QLabel *me;
 	QTimer *timer;
-	QTimer *power;
 	QTimer *delay;
 	QAction *quitA;
 	QAction *fullA;

@@ -66,10 +66,8 @@ Interface::Interface(QWidget *parent):
 	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
 	me->setAttribute(Qt::WA_TransparentForMouseEvents);
 	timer=new QTimer(this);
-	power=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(200);
-	power->setTimerType(Qt::PreciseTimer);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
@@ -139,14 +137,14 @@ Interface::Interface(QWidget *parent):
 			danmaku->setTime(time);
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play){
-			update();
-		}
-	});
 	connect(delay,&QTimer::timeout,[this](){
 		if(vplayer->getState()==VPlayer::Play){
 			setCursor(QCursor(Qt::BlankCursor));
+		}
+	});
+	connect(menu->getPower(),&QTimer::timeout,[this](){
+		if(vplayer->getState()==VPlayer::Play){
+			update();
 		}
 	});
 	connect(danmaku,SIGNAL(currentCleared()),this,SLOT(update()));
@@ -178,18 +176,12 @@ Interface::Interface(QWidget *parent):
 		update();
 	});
 	connect(vplayer,&VPlayer::decode,[this](){
-		if(!power->isActive()){
+		if(!menu->getPower()->isActive()){
 			update();
 		}
 	});
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 	connect(vplayer,&VPlayer::stateChanged,[this](){lst=QTime();});
-	connect(menu,&Menu::power,[this](qint16 _power){
-		if(_power>=0)
-			power->start(_power);
-		else
-			power->stop();
-	});
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));

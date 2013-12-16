@@ -144,7 +144,9 @@ Menu::Menu(QWidget *parent) :
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
-	Utils::delayExec(this,0,[this](){setPower(Utils::getConfig("/Danmaku/Power",100));});
+	powerC=new QTimer(this);
+	powerC->setTimerType(Qt::PreciseTimer);
+	setPower(Utils::getConfig("/Danmaku/Power",100));
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -160,7 +162,6 @@ Menu::Menu(QWidget *parent) :
 	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
 	localC->setGeometry(QRect(168,240,25,25));
-	Utils::delayExec(this,0,[this](){localC->setChecked(Utils::getConfig("/Danmaku/Local",false));});
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		bool local=state==Qt::Checked;
 		danmL->setText("");
@@ -172,6 +173,7 @@ Menu::Menu(QWidget *parent) :
 		danmL->setPlaceholderText(local?QString():tr("av/ac"));
 		Utils::setConfig("/Danmaku/Local",local);
 	});
+	localC->setChecked(Utils::getConfig("/Danmaku/Local",false));
 	subT=new QLabel(this);
 	subT->setGeometry(QRect(10,275,100,25));
 	subT->setText(tr("Protect Sub"));
@@ -449,13 +451,14 @@ void Menu::setFile(QString _file)
 void Menu::setPower(qint16 fps)
 {
 	if(fps==0){
+		powerC->stop();
 		powerL->setText("");
 	}
 	else{
 		fps=qBound<qint16>(30,fps,200);
+		powerC->start(1000/fps);
 		powerL->setText(QString::number(fps));
 	}
-	emit power(fps==0?-1:1000/fps);
 }
 
 void Menu::openLocal(QString _file)

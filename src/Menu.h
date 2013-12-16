@@ -38,6 +38,7 @@ class Menu:public QWidget
 public:
 	explicit Menu(QWidget *parent=0);
 	bool isPopped(){return isPop;}
+	QTimer *getPower(){return powerC;}
 
 private:
 	bool isPop;
@@ -55,6 +56,7 @@ private:
 	QLabel *alphaT;
 	QSlider *alphaS;
 	QLabel *powerT;
+	QTimer *powerC;
 	QLineEdit *powerL;
 	QLabel *localT;
 	QCheckBox *localC;
@@ -64,9 +66,6 @@ private:
 	QCheckBox *loopC;
 	QPropertyAnimation *animation;
 	QNetworkAccessManager *manager;
-
-signals:
-	void power(qint16);
 
 public slots:
 	void pop();
