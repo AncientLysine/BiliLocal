@@ -235,7 +235,7 @@ Panel::Panel(QWidget *parent) :
 	connect(VPlayer::instance(),&VPlayer::reach,[this](){
 		setDuration(-1);
 	});
-	connect(Danmaku::instance(),&Danmaku::layoutChanged,[this](){
+	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
 		const Record *r=getBilibili();
 		commentL->setEnabled(r!=NULL);
 		commentB->setEnabled(r!=NULL);

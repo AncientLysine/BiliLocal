@@ -90,7 +90,7 @@ Editor::Editor(QWidget *parent):
 		});
 		menu.exec(mapToGlobal(p));
 	});
-	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Editor::load);
+	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::load);
 }
 
 void Editor::load()

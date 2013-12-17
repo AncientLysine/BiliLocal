@@ -147,7 +147,7 @@ Interface::Interface(QWidget *parent):
 			update();
 		}
 	});
-	connect(danmaku,SIGNAL(currentCleared()),this,SLOT(update()));
+	connect(danmaku,SIGNAL(layoutChanged()),this,SLOT(update()));
 	connect(vplayer,&VPlayer::begin,[this](){
 		tv->hide();
 		me->hide();
@@ -220,10 +220,12 @@ Interface::Interface(QWidget *parent):
 	toggA->setChecked(Shield::block[7]);
 	toggA->setShortcut(QKeySequence("Ctrl+T"));
 	addAction(toggA);
-	connect(toggA,&QAction::toggled,[this](bool b){
+	connect(toggA,&QAction::triggered,[this](bool b){
 		Shield::block[7]=b;
 		danmaku->parse(0x2);
-		danmaku->clearCurrent();
+	});
+	connect(danmaku,&Danmaku::layoutChanged,[this](){
+		toggA->setChecked(Shield::block[7]);
 	});
 
 	QActionGroup *g;

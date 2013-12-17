@@ -50,9 +50,6 @@ public:
 	const Comment *commentAt(QPoint point) const;
 	static Danmaku *instance(){return ins;}
 
-signals:
-	void currentCleared();
-
 private:
 	int cur;
 	QSize size;
