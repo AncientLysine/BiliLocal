@@ -72,7 +72,7 @@ static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list ar
 
 static void sta(const struct libvlc_event_t *,void *)
 {
-	QMetaObject::invokeMethod(VPlayer::instance(),"open");
+	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
 static void end(const struct libvlc_event_t *,void *)
@@ -274,12 +274,14 @@ void VPlayer::stop()
 	}
 }
 
-void VPlayer::open()
+void VPlayer::init()
 {
 	if(mp){
-        if(state==Stop){
-            setState(Play);
-            libvlc_video_set_spu(mp,-1);
+		if(state==Stop){
+			setState(Play);
+			if(!Utils::getConfig("/Playing/Subtitle",true)){
+				libvlc_video_set_spu(mp,-1);
+			}
 			auto transTracks=[this](libvlc_track_description_t *head)
 			{
 				libvlc_track_description_t *iter=head;
