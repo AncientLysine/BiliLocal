@@ -169,7 +169,7 @@ void Danmaku::clearCurrent()
 		delete iter;
 	}
 	current.clear();
-	emit currentCleared();
+	emit layoutChanged();
 }
 
 void Danmaku::parse(int flag)
@@ -219,8 +219,18 @@ void Danmaku::parse(int flag)
 				qApp->processEvents();
 			}
 		}
+		for(auto iter=current.begin();iter!=current.end();){
+			const Comment *cur=(*iter)->getSource();
+			if(cur&&cur->blocked){
+				delete *iter;
+				iter=current.erase(iter);
+			}
+			else{
+				++iter;
+			}
+		}
+		emit layoutChanged();
 	}
-	emit layoutChanged();
 }
 
 void Danmaku::setSize(QSize _size)

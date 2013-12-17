@@ -169,6 +169,7 @@ Menu::Menu(QWidget *parent) :
 		danmL->setReadOnly(local);
 		sechL->setEnabled(!local);
 		sechB->setEnabled(!local);
+		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
 		danmL->setPlaceholderText(local?QString():tr("av/ac"));
 		Utils::setConfig("/Danmaku/Local",local);
