@@ -25,7 +25,8 @@ SOURCES += \
     src/Printer.cpp \
     src/Cookie.cpp \
     src/Graphic.cpp \
-    src/Panel.cpp
+    src/Panel.cpp \
+    src/Platform.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -41,7 +42,8 @@ HEADERS  += \
     src/Printer.h \
     src/Cookie.h \
     src/Graphic.h \
-    src/Panel.h
+    src/Panel.h \
+    src/Platform.h
 
 LIBS += \
     -lvlc \
