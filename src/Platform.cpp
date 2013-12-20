@@ -30,8 +30,8 @@
 #ifdef Q_OS_WIN32
 bool WindowsSavePowerFilter::nativeEventFilter(const QByteArray &,void *message,long *)
 {
-	MSG *m=(MSG *)message;
-	return VPlayer::instance()->getState()==VPlayer::Play&&
+	MSG *m=static_cast<MSG *>(message);
+	return VPlayer::instance()->getState()!=VPlayer::Stop&&
 			m->message==WM_SYSCOMMAND&&
 			m->wParam==SC_MONITORPOWER&&
 			m->lParam>0;
