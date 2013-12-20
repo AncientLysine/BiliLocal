@@ -262,10 +262,10 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QNetworkRequest request(QUrl(item.mid(sta,end-sta)));
 						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
 						reply->manager()->get(request);
-						sta=item.indexOf("<span>[",end)+7;
-						end=item.indexOf("]</span>",sta);
+						sta=item.indexOf("<span>",end)+6;
+						end=item.indexOf("</span>",sta);
 						row->setText(4,trans(item.mid(sta,end-sta)));
-						sta=end+8;
+						sta=end+7;
 						end=item.indexOf("</div>",sta);
 						row->setText(3,trans(item.mid(sta,end-sta)));
 						sta=item.indexOf("class=\"upper\"",end);
