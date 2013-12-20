@@ -254,7 +254,7 @@ Config::Config(QWidget *parent,int index):
 					QPixmap pixmap;
 					pixmap.loadFromData(reply->readAll());
 					if(!pixmap.isNull()){
-						info->setPixmap(pixmap.scaled(info->size(),Qt::IgnoreAspectRatio,Qt::SmoothTransformation));
+						info->setPixmap(pixmap);
 					}
 				}
 			});
