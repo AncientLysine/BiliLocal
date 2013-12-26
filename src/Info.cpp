@@ -132,36 +132,35 @@ Info::Info(QWidget *parent):
 				}
 				Danmaku::instance()->parse(0x2);
 			});
+			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(parentWidget(),2);
 			config.exec();
 			Danmaku::instance()->parse(0x2);
 		});
-		if(danmV->model()->rowCount()){
-			connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-				int state=VPlayer::instance()->getState();
-				if(state==VPlayer::Play) VPlayer::instance()->play();
-				Editor::exec(parentWidget());
-				Danmaku::instance()->parse(0x1|0x2);
-				if(state==VPlayer::Play) VPlayer::instance()->play();
-			});
-			connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
-			connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-				QString path=VPlayer::instance()->getFile();
-				if(!path.isEmpty()){
-					QFileInfo info(path);
-					path=info.absolutePath()+'/'+info.baseName()+".json";
+		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
+			int state=VPlayer::instance()->getState();
+			if(state==VPlayer::Play) VPlayer::instance()->play();
+			Editor::exec(parentWidget());
+			Danmaku::instance()->parse(0x1|0x2);
+			if(state==VPlayer::Play) VPlayer::instance()->play();
+		});
+		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
+		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
+			QString path=VPlayer::instance()->getFile();
+			if(!path.isEmpty()){
+				QFileInfo info(path);
+				path=info.absolutePath()+'/'+info.baseName()+".json";
+			}
+			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
+			if(!file.isEmpty()){
+				if(!file.endsWith(".json")){
+					file.append(".json");
 				}
-				QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
-				if(!file.isEmpty()){
-					if(!file.endsWith(".json")){
-						file.append(".json");
-					}
-					Danmaku::instance()->saveToFile(file);
-				}
-			});
-		}
+				Danmaku::instance()->saveToFile(file);
+			}
+		});
 		isStay=1;
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 		isStay=0;

@@ -29,7 +29,6 @@
 #include "Utils.h"
 #include "Search.h"
 #include "Cookie.h"
-#include "Printer.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 
@@ -194,7 +193,6 @@ Menu::Menu(QWidget *parent) :
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			isStay=false;
-			Printer::instance()->append(QString("[Danmaku]network error %1").arg(code));
 			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(code));
 		};
 
@@ -241,7 +239,6 @@ Menu::Menu(QWidget *parent) :
 		};
 
 		QString url=reply->url().url();
-		Printer::instance()->append(QString("[Danmaku]%1").arg(url));
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
@@ -261,7 +258,6 @@ Menu::Menu(QWidget *parent) :
 					load.danmaku=ac(reply->readAll());
 				}
 				Danmaku::instance()->appendToPool(load);
-				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.danmaku.size()));
 			}
 			else if(site==Utils::Bilibili){
 				bool flag=true;

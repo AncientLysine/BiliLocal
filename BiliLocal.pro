@@ -22,7 +22,6 @@ SOURCES += \
     src/Shield.cpp \
     src/Config.cpp \
     src/Editor.cpp \
-    src/Printer.cpp \
     src/Cookie.cpp \
     src/Graphic.cpp \
     src/Panel.cpp \
@@ -39,7 +38,6 @@ HEADERS  += \
     src/Shield.h \
     src/Config.h \
     src/Editor.h \
-    src/Printer.h \
     src/Cookie.h \
     src/Graphic.h \
     src/Panel.h \

@@ -32,7 +32,6 @@
 #include "Panel.h"
 #include "Shield.h"
 #include "Config.h"
-#include "Printer.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -45,7 +44,6 @@ Interface::Interface(QWidget *parent):
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
-	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	panel=new Panel(this);
@@ -432,7 +430,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	panel->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
-	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
 
