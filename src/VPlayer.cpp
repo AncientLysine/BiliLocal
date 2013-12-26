@@ -324,7 +324,12 @@ void VPlayer::init()
 				connect(i,&QAction::triggered,[=](){libvlc_audio_set_track(mp,i->data().toInt());});
 				i->setChecked(i->data().toInt()==libvlc_audio_get_track(mp));
 			}
-			Utils::delayExec(this,&VPlayer::decode,[this](){setVolume(Utils::getConfig("/Playing/Volume",100));});
+			QMetaObject::Connection *connect=new QMetaObject::Connection;
+			*connect=QObject::connect(this,&VPlayer::decode,[=](){
+				setVolume(Utils::getConfig("/Playing/Volume",100));
+				QObject::disconnect(*connect);
+				delete connect;
+			});
 			emit begin();
 		}
 		if(state==Loop){

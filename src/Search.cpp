@@ -215,13 +215,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+		if(redirect.isValid()){
+			reply->manager()->get(QNetworkRequest(redirect));
+			return;
+		}
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
 			QMessageBox::warning(this,tr("Network Error"),info.arg(code));
 			clearSearch();
 			isWaiting=false;
 		};
-
 		auto trans=[](QString html){
 			QTextDocument document;
 			document.setHtml(html);
@@ -229,7 +233,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		};
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
-			if(url.startsWith("http://www.bilibili.tv")){
+			if(Utils::getSite(url)==Utils::Bilibili){
 				QString data(reply->readAll());
 				int sta,end;
 				if(pageNum==-1){
@@ -285,7 +289,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
-			else if(url.startsWith("http://www.acfun.tv")){
+			else if(Utils::getSite(url)==Utils::AcFun){
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				QJsonObject page=json["page"].toObject();
 				if(pageNum==-1){
@@ -326,7 +330,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				}
 			}
 		}
-		else if(url.startsWith("http://api.bilibili.tv")||url.startsWith("http://www.acfun.tv")){
+		else if(Utils::getSite(url)!=Utils::Unknown){
 			error(reply->error());
 		}
 	});

@@ -73,11 +73,11 @@ Info::Info(QWidget *parent):
 	stopB=new QPushButton(this);
 	playB->setGeometry(QRect(10,15,25,25));
 	stopB->setGeometry(QRect(40,15,25,25));
-	playI=QIcon(":/Picture/play.png");
-	stopI=QIcon(":/Picture/stop.png");
+	playI=QIcon::fromTheme("media-playback-start",QIcon(":/Picture/play.png"));
+	stopI=QIcon::fromTheme("media-playback-stop",QIcon(":/Picture/stop.png"));
+	pauseI=QIcon::fromTheme("media-playback-pause",QIcon(":/Picture/pause.png"));
 	playB->setIcon(playI);
 	stopB->setIcon(stopI);
-	pauseI=QIcon(":/Picture/pause.png");
 	playA=new QAction(playI,tr("Play"),this);
 	stopA=new QAction(stopI,tr("Stop"),this);
 	addAction(playA);

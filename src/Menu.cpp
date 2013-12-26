@@ -117,12 +117,9 @@ Menu::Menu(QWidget *parent) :
 		}
 		sechL->setText(searchBox.getKey());
 	});
-	fileA->setShortcut(QKeySequence("Ctrl+O"));
-	danmA->setShortcut(QKeySequence("Ctrl+L"));
-	sechA->setShortcut(QKeySequence("Ctrl+S"));
-	this->addAction(fileA);
-	this->addAction(danmA);
-	this->addAction(sechA);
+	addAction(fileA);
+	addAction(danmA);
+	addAction(sechA);
 	connect(fileB,&QPushButton::clicked,fileA,&QAction::trigger);
 	connect(danmB,&QPushButton::clicked,danmA,&QAction::trigger);
 	connect(sechB,&QPushButton::clicked,sechA,&QAction::trigger);
@@ -253,6 +250,7 @@ Menu::Menu(QWidget *parent) :
 				return;
 			}
 			isStay=false;
+			Utils::Site site=Utils::getSite(url);
 			if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
 				Record load;
 				load.source=url;
@@ -265,7 +263,7 @@ Menu::Menu(QWidget *parent) :
 				Danmaku::instance()->appendToPool(load);
 				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.danmaku.size()));
 			}
-			else if(url.startsWith("http://www.bilibili.tv/")){
+			else if(site==Utils::Bilibili){
 				bool flag=true;
 				QString api,id,video(reply->readAll());
 				if(!url.endsWith("html")){
@@ -306,7 +304,7 @@ Menu::Menu(QWidget *parent) :
 					}
 				}
 			}
-			else if(url.startsWith("http://www.acfun.tv/")){
+			else if(site==Utils::AcFun){
 				if(url.endsWith(".aspx")){
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 					if(json.contains("cid")){
@@ -370,7 +368,7 @@ Menu::Menu(QWidget *parent) :
 					}
 				}
 			}
-			else if(url.startsWith("http://comic.letv.com/")){
+			else if(site==Utils::Letv){
 				QString api,video(reply->readAll());
 				video=video.mid(video.indexOf("<div class=\"page_box\">"));
 				QRegExp regex("cid\\=\"\\d+");
