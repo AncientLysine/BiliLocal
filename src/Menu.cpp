@@ -241,13 +241,13 @@ Menu::Menu(QWidget *parent) :
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
-			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(redirect.isValid()){
 				reply->manager()->get(QNetworkRequest(redirect));
 				return;
 			}
 			isStay=false;
 			Utils::Site site=Utils::getSite(url);
+			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
 				Record load;
 				load.source=url;
@@ -387,6 +387,9 @@ Menu::Menu(QWidget *parent) :
 				else if(isPop){
 					danmC->complete();
 				}
+			}
+			else{
+				error(404);
 			}
 		}
 		else{

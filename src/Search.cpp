@@ -301,8 +301,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 					QJsonObject item=ary[i].toObject();
 					if(item["url"].toString().startsWith("/v/")){
 						QStringList content;
-						content<<""<<QString::number(item["views"].toDouble())
-								<<QString::number(item["comments"].toDouble())
+						content<<""<<QString::number((int)item["views"].toDouble())
+								<<QString::number((int)item["comments"].toDouble())
 								<<trans(item["title"].toString())
 								<<AcFunChannel()[item["channelId"].toDouble()]
 								<<trans(item["username"].toString());
