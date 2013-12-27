@@ -56,3 +56,7 @@ TRANSLATIONS += \
     trans/zh_CN.ts \
     trans/zh_HK.ts \
     trans/zh_TW.ts
+
+win32{
+RC_ICONS = BiliLocal.ico
+}
