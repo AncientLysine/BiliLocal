@@ -70,7 +70,6 @@ VPlayer::VPlayer(QObject *parent) :
 {
 	const char* argv_list[] = {"--avcodec-hw=dxva2.lo"};
 	vlc=libvlc_new(1,argv_list);
-	libvlc_log_set(vlc,log,NULL);
 	m=NULL;
 	mp=NULL;
 	swsctx=NULL;
