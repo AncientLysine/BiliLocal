@@ -25,7 +25,6 @@
 =========================================================================*/
 
 #include "Graphic.h"
-#include "Printer.h"
 
 namespace{
 template<class T>
@@ -167,7 +166,6 @@ static double evaluate(QString exp)
 		return num.top();
 	}
 	QT_CATCH(...){
-		Printer::instance()->append(QString("[Dnamaku]error while evaluating \"%1\"").arg(exp));
 		return 0;
 	}
 }
@@ -627,7 +625,6 @@ Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
 	QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
 	int l;
 	if((l=data.size())<5){
-		Printer::instance()->append(QString("[Danmaku]unknown or broken mode7 code %1").arg(comment.string));
 		return;
 	}
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};

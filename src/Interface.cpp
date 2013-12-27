@@ -32,13 +32,8 @@
 #include "Panel.h"
 #include "Shield.h"
 #include "Config.h"
-#include "Printer.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
-
-#ifdef Q_OS_WIN32
-#include <QtWinExtras>
-#endif
 
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
@@ -49,7 +44,6 @@ Interface::Interface(QWidget *parent):
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
-	printer=new Printer(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	panel=new Panel(this);
@@ -340,44 +334,10 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
-	if(QApplication::arguments().count()>=2){
-		Utils::delayExec(this,0,[this](){
-			for(const QString &file:QApplication::arguments().mid(1)){
-				menu->openLocal(file);
-			}
-		});
+	for(const QString &file:QApplication::arguments().mid(1)){
+		menu->openLocal(file);
 	}
 	setFocus();
-#ifdef Q_OS_WIN32
-	Utils::delayExec(this,0,[this](){
-		QWinThumbnailToolBar *bar=new QWinThumbnailToolBar(this);
-		bar->setWindow(windowHandle());
-		QStringList paths;
-		paths<<":/Picture/play.png"<<":/Picture/pause.png"<<":/Picture/stop.png";
-		QList<QIcon> icons;
-		QPainter painter;
-		QPixmap buffer(16,16);
-		for(QString path:paths){
-			buffer.fill(Qt::transparent);
-			painter.begin(&buffer);
-			painter.setRenderHints(QPainter::Antialiasing|QPainter::SmoothPixmapTransform);
-			painter.drawPixmap(QPointF(2,2),QPixmap(path));
-			painter.end();
-			icons<<QIcon(buffer);
-		}
-		QWinThumbnailToolButton *play=new QWinThumbnailToolButton(bar);
-		play->setIcon(icons[0]);
-		bar->addButton(play);
-		connect(play,&QWinThumbnailToolButton::clicked,vplayer,&VPlayer::play);
-		QWinThumbnailToolButton *stop=new QWinThumbnailToolButton(bar);
-		stop->setIcon(icons[2]);
-		bar->addButton(stop);
-		connect(stop,&QWinThumbnailToolButton::clicked,vplayer,&VPlayer::stop);
-		connect(vplayer,&VPlayer::stateChanged,[=](int state){
-			play->setIcon(icons[state==VPlayer::Play?0:1]);
-		});
-	});
-#endif
 }
 
 void Interface::setCenter(QSize _s,bool f)
@@ -470,7 +430,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
 	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
 	panel->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
-	printer->setGeometry(10,10,qBound<int>(300,w/2.5,500),150);
 	QWidget::resizeEvent(e);
 }
 

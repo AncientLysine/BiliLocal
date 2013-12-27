@@ -33,63 +33,11 @@ static QHash<int,QString> AcFunChannel()
 {
 	static QHash<int,QString> m;
 	if(m.isEmpty()){
-		QHash<int,const char *> c;
-		c[1]="动画";
-		c[42]="图库";
-		c[58]="音乐";
-		c[59]="游戏";
-		c[60]="娱乐";
-		c[63]="文章";
-		c[67]="新番连载";
-		c[68]="影视";
-		c[69]="体育";
-		c[70]="科技";
-		c[71]="Flash游戏";
-		c[72]="Mugen";
-		c[73]="工作·情感";
-		c[74]="动漫文化";
-		c[75]="漫画·小说";
-		c[76]="页游资料";
-		c[77]="1区";
-		c[78]="21区";
-		c[79]="31区";
-		c[80]="41区";
-		c[81]="文章里区(不审)";
-		c[82]="视频里区(不审)";
-		c[83]="游戏集锦";
-		c[84]="实况解说";
-		c[85]="英雄联盟";
-		c[86]="生活娱乐";
-		c[87]="鬼畜调教";
-		c[88]="萌宠";
-		c[89]="美食";
-		c[90]="科普";
-		c[91]="数码";
-		c[92]="军事";
-		c[93]="惊奇体育";
-		c[94]="足球";
-		c[95]="篮球";
-		c[96]="电影";
-		c[97]="剧集";
-		c[98]="综艺";
-		c[99]="特摄·霹雳";
-		c[100]="纪录片";
-		c[101]="演唱·乐器";
-		c[102]="宅舞";
-		c[103]="Vocaloid";
-		c[104]="ACG音乐";
-		c[105]="流行音乐";
-		c[106]="动画短片";
-		c[107]="MAD·AMV";
-		c[108]="MMD·3D";
-		c[109]="动画合集";
-		c[110]="文章综合";
-		for(auto i=c.begin();i!=c.end();++i){
-#ifdef Q_CC_MSVC
-			m.insert(i.key(),QString::fromLocal8Bit(i.value()));
-#else
-			m.insert(i.key(),i.value());
-#endif
+		QFile file(":/Text/DATA");
+		file.open(QIODevice::ReadOnly|QIODevice::Text);
+		QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()["AcFunChannel"].toObject();
+		for(auto iter=data.begin();iter!=data.end();++iter){
+			m[iter.key().toInt()]=iter.value().toString();
 		}
 	}
 	return m;
@@ -267,13 +215,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+		if(redirect.isValid()){
+			reply->manager()->get(QNetworkRequest(redirect));
+			return;
+		}
 		auto error=[this](int code){
 			QString info=tr("Network error occurred, error code: %1");
 			QMessageBox::warning(this,tr("Network Error"),info.arg(code));
 			clearSearch();
 			isWaiting=false;
 		};
-
 		auto trans=[](QString html){
 			QTextDocument document;
 			document.setHtml(html);
@@ -281,7 +233,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		};
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
-			if(url.startsWith("http://www.bilibili.tv")){
+			if(Utils::getSite(url)==Utils::Bilibili){
 				QString data(reply->readAll());
 				int sta,end;
 				if(pageNum==-1){
@@ -314,10 +266,10 @@ Search::Search(QWidget *parent):QDialog(parent)
 						QNetworkRequest request(QUrl(item.mid(sta,end-sta)));
 						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
 						reply->manager()->get(request);
-						sta=item.indexOf("<span>[",end)+7;
-						end=item.indexOf("]</span>",sta);
+						sta=item.indexOf("<span>",end)+6;
+						end=item.indexOf("</span>",sta);
 						row->setText(4,trans(item.mid(sta,end-sta)));
-						sta=end+8;
+						sta=end+7;
 						end=item.indexOf("</div>",sta);
 						row->setText(3,trans(item.mid(sta,end-sta)));
 						sta=item.indexOf("class=\"upper\"",end);
@@ -337,7 +289,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
-			else if(url.startsWith("http://www.acfun.tv")){
+			else if(Utils::getSite(url)==Utils::AcFun){
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				QJsonObject page=json["page"].toObject();
 				if(pageNum==-1){
@@ -349,8 +301,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 					QJsonObject item=ary[i].toObject();
 					if(item["url"].toString().startsWith("/v/")){
 						QStringList content;
-						content<<""<<QString::number(item["views"].toDouble())
-								<<QString::number(item["comments"].toDouble())
+						content<<""<<QString::number((int)item["views"].toDouble())
+								<<QString::number((int)item["comments"].toDouble())
 								<<trans(item["title"].toString())
 								<<AcFunChannel()[item["channelId"].toDouble()]
 								<<trans(item["username"].toString());
@@ -378,7 +330,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				}
 			}
 		}
-		else if(url.startsWith("http://api.bilibili.tv")||url.startsWith("http://www.acfun.tv")){
+		else if(Utils::getSite(url)!=Utils::Unknown){
 			error(reply->error());
 		}
 	});

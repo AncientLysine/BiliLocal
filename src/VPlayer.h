@@ -42,16 +42,27 @@ class VPlayer:public QObject
 {
 	Q_OBJECT
 public:
-	enum {Stop,Play,Pause,Loop,Source,Scaled,Destinate};
-
+	enum State
+	{
+		Stop,
+		Play,
+		Pause,
+		Loop
+	};
+	enum SizeType
+	{
+		Source,
+		Scaled,
+		Destinate
+	};
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
 	uchar *getSrc();
 	uchar *getDst();
-	int getState();
+	State getState();
 	qint64 getTime();
 	qint64 getDuration();
-	QSize getSize(int t=Source);
+	QSize getSize(SizeType t=Source);
 	QString getFile(){return file;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
@@ -61,7 +72,7 @@ public:
 	static VPlayer *instance(){return ins;}
 
 private:
-	int state;
+	State state;
 	bool soundOnly;
 	double ratio;
 	QMutex data;
@@ -84,12 +95,11 @@ private:
 	AVPicture *dstFrame;
 	static VPlayer *ins;
 
-	void setState(int _state);
+	void setState(State _state);
 
 signals:
 	void begin();
 	void reach();
-	void reset();
 	void decode();
 	void jumped(qint64 _time);
 	void stateChanged(int _state);

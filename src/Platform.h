@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Printer.h
-*   Time:        2013/08/14
+*   Filename:    Platform.h
+*   Time:        2013/12/20
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,37 +24,29 @@
 *
 =========================================================================*/
 
-#ifndef PRINTER_H
-#define PRINTER_H
+#ifndef PLATFORM_H
+#define PLATFORM_H
 
-#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
-class Printer:public QWidget
+#ifdef Q_OS_WIN32
+class WindowsSavePowerFilter:public QAbstractNativeEventFilter
 {
-	Q_OBJECT
+	bool nativeEventFilter(const QByteArray &,void *message,long *);
+};
+#endif
+
+class Platform
+{
 public:
-	explicit Printer(QWidget *parent=0);
-	bool isShown(){return ioo!=0;}
-	void append(QString content){QMetaObject::invokeMethod(this,"process",Q_ARG(QString,content));}
-	static Printer *instance(){return ins;}
-
-private:
-	int ioo;
-	QTimer *timer;
-	QTimer *delay;
-	QTextStream stream;
-	QStringList list;
-	QGraphicsOpacityEffect *effect;
-	static Printer *ins;
-	void paintEvent(QPaintEvent *e);
-
-public slots:
-	void process(QString content);
-	void fadeIn();
-	void fadeOut();
-	
+static QAbstractNativeEventFilter *getNativeEventFilter()
+{
+#ifdef Q_OS_WIN32
+	return new WindowsSavePowerFilter;
+#else
+	return NULL;
+#endif
+}
 };
 
-#endif // PRINTER_H
+#endif // PLATFORM_H

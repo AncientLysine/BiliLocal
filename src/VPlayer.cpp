@@ -26,7 +26,6 @@
 
 #include "VPlayer.h"
 #include "Utils.h"
-#include "Printer.h"
 
 VPlayer *VPlayer::ins=NULL;
 
@@ -56,20 +55,6 @@ static void dsp(void *,void *)
 	VPlayer::instance()->setFrame();
 }
 
-static void log(void *,int level,const libvlc_log_t *,const char *fmt,va_list args)
-{
-	if(level>0){
-		char *string=new char[1024];
-#ifdef Q_CC_MSVC
-		vsprintf_s(string,1024,fmt,args);
-#else
-		vsprintf(string,fmt,args);
-#endif
-		Printer::instance()->append(QString("[VPlayer]%1").arg(string));
-		delete []string;
-	}
-}
-
 static void sta(const struct libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
@@ -83,8 +68,8 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
-    const char* argv_list[] = {"--avcodec-hw=dxva2.lo"};
-    vlc=libvlc_new(1,argv_list);
+	const char* argv_list[] = {"--avcodec-hw=dxva2.lo"};
+	vlc=libvlc_new(1,argv_list);
 	libvlc_log_set(vlc,log,NULL);
 	m=NULL;
 	mp=NULL;
@@ -134,7 +119,7 @@ uchar *VPlayer::getDst()
 	return (uchar *)*dstFrame->data;
 }
 
-int VPlayer::getState()
+VPlayer::State VPlayer::getState()
 {
 	return state;
 }
@@ -149,7 +134,7 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-QSize VPlayer::getSize(int t)
+QSize VPlayer::getSize(SizeType t)
 {
 	switch(t){
 	case Scaled:
@@ -212,7 +197,7 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 	}
 }
 
-void VPlayer::setState(int _state)
+void VPlayer::setState(State _state)
 {
 	state=_state;
 	emit stateChanged(state);
@@ -325,7 +310,12 @@ void VPlayer::init()
 				connect(i,&QAction::triggered,[=](){libvlc_audio_set_track(mp,i->data().toInt());});
 				i->setChecked(i->data().toInt()==libvlc_audio_get_track(mp));
 			}
-			Utils::delayExec(this,&VPlayer::decode,[this](){setVolume(Utils::getConfig("/Playing/Volume",100));});
+			QMetaObject::Connection *connect=new QMetaObject::Connection;
+			*connect=QObject::connect(this,&VPlayer::decode,[=](){
+				setVolume(Utils::getConfig("/Playing/Volume",100));
+				QObject::disconnect(*connect);
+				delete connect;
+			});
 			emit begin();
 		}
 		if(state==Loop){
@@ -339,7 +329,6 @@ void VPlayer::init()
 			for(QAction *i:audio){
 				if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
 			}
-			emit reset();
 		}
 	}
 }

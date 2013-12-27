@@ -11,5 +11,6 @@
     <qresource prefix="/Text">
         <file>COPYING</file>
         <file>THANKS</file>
+        <file>DATA</file>
     </qresource>
 </RCC>

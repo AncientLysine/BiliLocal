@@ -216,7 +216,7 @@ Config::Config(QWidget *parent,int index):
 		open->setFocusPolicy(Qt::NoFocus);
 		connect(open,&QPushButton::clicked,[this](){
 			QString path=back->text().isEmpty()?QDir::currentPath():QFileInfo(back->text()).absolutePath();
-			QString file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),path);
+			QString file=QFileDialog::getOpenFileName(this,tr("Open File"),path);
 			if(!file.isEmpty()){
 				back->setText(file);
 			}
@@ -254,7 +254,7 @@ Config::Config(QWidget *parent,int index):
 					QPixmap pixmap;
 					pixmap.loadFromData(reply->readAll());
 					if(!pixmap.isNull()){
-						info->setPixmap(pixmap);
+						info->setPixmap(pixmap.scaledToHeight(25,Qt::SmoothTransformation));
 					}
 				}
 			});
@@ -297,7 +297,7 @@ Config::Config(QWidget *parent,int index):
 					}
 					else{
 						int sta=page.indexOf("document.write(\"")+16;
-						QMessageBox::warning(parentWidget(),tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
+						QMessageBox::warning(this,tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
 					}
 				}
 				click->setEnabled(true);
@@ -426,7 +426,7 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[2],&QAction::triggered,[this](){
-			QString path=QFileDialog::getOpenFileName(parentWidget(),tr("Import File"),QDir::homePath());
+			QString path=QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath());
 			if(!path.isEmpty()){
 				QFile file(path);
 				if(file.exists()){
@@ -459,7 +459,7 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(action[3],&QAction::triggered,[this](){
-			QString path=QFileDialog::getSaveFileName(parentWidget(),tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
+			QString path=QFileDialog::getSaveFileName(this,tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
 			if(!path.isEmpty()){
 				if(!path.endsWith(".xml")){
 					path.append(".xml");

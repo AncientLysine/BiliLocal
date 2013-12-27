@@ -22,10 +22,10 @@ SOURCES += \
     src/Shield.cpp \
     src/Config.cpp \
     src/Editor.cpp \
-    src/Printer.cpp \
     src/Cookie.cpp \
     src/Graphic.cpp \
-    src/Panel.cpp
+    src/Panel.cpp \
+    src/Platform.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -38,10 +38,10 @@ HEADERS  += \
     src/Shield.h \
     src/Config.h \
     src/Editor.h \
-    src/Printer.h \
     src/Cookie.h \
     src/Graphic.h \
-    src/Panel.h
+    src/Panel.h \
+    src/Platform.h
 
 LIBS += \
     -lvlc \
@@ -57,7 +57,6 @@ TRANSLATIONS += \
     trans/zh_HK.ts \
     trans/zh_TW.ts
 
-win32 {
-QT += winextras
-RC_FILE = Windows.rc
+win32{
+RC_ICONS = BiliLocal.ico
 }

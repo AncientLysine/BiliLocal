@@ -28,6 +28,22 @@
 
 QJsonObject Utils::config;
 
+Utils::Site Utils::getSite(QString url)
+{
+	if(url.startsWith("http://www.bilibili.tv")||url.startsWith("http://bilibili.kankanews.com/")){
+		return Bilibili;
+	}
+	else if(url.startsWith("http://www.acfun.tv")){
+		return AcFun;
+	}
+	else if(url.startsWith("http://comic.letv.com/")){
+		return Letv;
+	}
+	else{
+		return Unknown;
+	}
+}
+
 void Utils::setCenter(QWidget *widget)
 {
 	QPoint center;

@@ -29,7 +29,6 @@
 #include "Utils.h"
 #include "Search.h"
 #include "Cookie.h"
-#include "Printer.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 
@@ -117,12 +116,9 @@ Menu::Menu(QWidget *parent) :
 		}
 		sechL->setText(searchBox.getKey());
 	});
-	fileA->setShortcut(QKeySequence("Ctrl+O"));
-	danmA->setShortcut(QKeySequence("Ctrl+L"));
-	sechA->setShortcut(QKeySequence("Ctrl+S"));
-	this->addAction(fileA);
-	this->addAction(danmA);
-	this->addAction(sechA);
+	addAction(fileA);
+	addAction(danmA);
+	addAction(sechA);
 	connect(fileB,&QPushButton::clicked,fileA,&QAction::trigger);
 	connect(danmB,&QPushButton::clicked,danmA,&QAction::trigger);
 	connect(sechB,&QPushButton::clicked,sechA,&QAction::trigger);
@@ -197,7 +193,6 @@ Menu::Menu(QWidget *parent) :
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			isStay=false;
-			Printer::instance()->append(QString("[Danmaku]network error %1").arg(code));
 			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(code));
 		};
 
@@ -244,15 +239,15 @@ Menu::Menu(QWidget *parent) :
 		};
 
 		QString url=reply->url().url();
-		Printer::instance()->append(QString("[Danmaku]%1").arg(url));
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
-			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(redirect.isValid()){
 				reply->manager()->get(QNetworkRequest(redirect));
 				return;
 			}
 			isStay=false;
+			Utils::Site site=Utils::getSite(url);
+			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(reply->url().isLocalFile()||url.startsWith("http://comment.")){
 				Record load;
 				load.source=url;
@@ -263,9 +258,8 @@ Menu::Menu(QWidget *parent) :
 					load.danmaku=ac(reply->readAll());
 				}
 				Danmaku::instance()->appendToPool(load);
-				Printer::instance()->append(QString("[Danmaku]%1 records loaded").arg(load.danmaku.size()));
 			}
-			else if(url.startsWith("http://www.bilibili.tv/")){
+			else if(site==Utils::Bilibili){
 				bool flag=true;
 				QString api,id,video(reply->readAll());
 				if(!url.endsWith("html")){
@@ -306,7 +300,7 @@ Menu::Menu(QWidget *parent) :
 					}
 				}
 			}
-			else if(url.startsWith("http://www.acfun.tv/")){
+			else if(site==Utils::AcFun){
 				if(url.endsWith(".aspx")){
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 					if(json.contains("cid")){
@@ -370,7 +364,7 @@ Menu::Menu(QWidget *parent) :
 					}
 				}
 			}
-			else if(url.startsWith("http://comic.letv.com/")){
+			else if(site==Utils::Letv){
 				QString api,video(reply->readAll());
 				video=video.mid(video.indexOf("<div class=\"page_box\">"));
 				QRegExp regex("cid\\=\"\\d+");
@@ -393,6 +387,9 @@ Menu::Menu(QWidget *parent) :
 				else if(isPop){
 					danmC->complete();
 				}
+			}
+			else{
+				error(404);
 			}
 		}
 		else{

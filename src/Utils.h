@@ -84,33 +84,19 @@ QJsonObject fromJsonValue(QJsonValue v)
 class Utils
 {
 public:
+	enum Site
+	{
+		Unknown,
+		Bilibili,
+		AcFun,
+		Letv
+	};
+	static Site getSite(QString url);
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
 	static QString defaultFont(bool monospace=false);
 	static QString splitString(QString text,int width);
 
-	template<class Sender,class Func>
-	static void delayExec(Sender *parent,int time,Func func)
-	{
-		QTimer *delay=new QTimer(parent);
-		delay->setSingleShot(true);
-		delay->start(time);
-		delay->connect(delay,&QTimer::timeout,[=](){
-			func();
-			delay->deleteLater();
-		});
-	}
-
-	template<class Sender,class Wait,class Func>
-	static void delayExec(Sender *parent,Wait wait,Func func)
-	{
-		QMetaObject::Connection *connect=new QMetaObject::Connection;
-		*connect=QObject::connect(parent,wait,[=](){
-			func();
-			QObject::disconnect(*connect);
-			delete connect;
-		});
-	}
 
 	template<class T>
 	static T getConfig(QString key,T def=T())
