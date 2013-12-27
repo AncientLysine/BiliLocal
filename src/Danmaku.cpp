@@ -39,8 +39,9 @@ Danmaku::Danmaku(QObject *parent) :
 	qsrand(QTime::currentTime().msec());
 }
 
-void Danmaku::draw(QPainter *painter,qint64 move)
+void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 {
+	size=rect.size();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
 		if(g->move(move)){
@@ -231,11 +232,6 @@ void Danmaku::parse(int flag)
 		}
 		emit layoutChanged();
 	}
-}
-
-void Danmaku::setSize(QSize _size)
-{
-	size=_size;
 }
 
 void Danmaku::setTime(qint64 _time)

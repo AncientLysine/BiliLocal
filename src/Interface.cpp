@@ -30,6 +30,7 @@
 #include "Menu.h"
 #include "Info.h"
 #include "Panel.h"
+#include "Render.h"
 #include "Shield.h"
 #include "Config.h"
 #include "VPlayer.h"
@@ -44,6 +45,8 @@ Interface::Interface(QWidget *parent):
 	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
+	render=createWindowContainer(new Render,this);
+	render->hide();
 	menu=new Menu(this);
 	info=new Info(this);
 	panel=new Panel(this);
@@ -136,23 +139,17 @@ Interface::Interface(QWidget *parent):
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
-	connect(menu->getPower(),&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play){
-			update();
-		}
-	});
-	connect(danmaku,SIGNAL(layoutChanged()),this,SLOT(update()));
+	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
+	connect(danmaku,&Danmaku::layoutChanged,Render::instance(),&Render::draw);
 	connect(vplayer,&VPlayer::begin,[this](){
 		tv->hide();
 		me->hide();
-		if(isFullScreen()){
-			vplayer->setSize(size());
-		}
-		else{
+		if(!isFullScreen()){
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
 		rat->setEnabled(true);
+		render->show();
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
 		tv->show();
@@ -167,15 +164,10 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(QSize(),false);
 		}
-		update();
+		render->hide();
 	});
-	connect(vplayer,&VPlayer::decode,[this](){
-		if(!menu->getPower()->isActive()){
-			update();
-		}
-	});
+	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
-	connect(vplayer,&VPlayer::stateChanged,[this](){lst=QTime();});
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
@@ -236,22 +228,12 @@ Interface::Interface(QWidget *parent):
 	rat->defaultAction()->setChecked(true);
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
-		if(vplayer->getSize().isValid()){
-			QSize c=vplayer->getSize(VPlayer::Destinate);
-			if(action->text()==tr("Default")){
-				vplayer->setRatio(0);
-			}
-			else{
-				QStringList l=action->text().split(':');
-				vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
-			}
-			QSize n=vplayer->getSize(VPlayer::Scaled);
-			if(!isFullScreen()){
-				setCenter(QSize(c.height()*n.width()/n.height(),c.height()),false);
-			}
-			else{
-				vplayer->setSize(size());
-			}
+		if(action->text()==tr("Default")){
+			vplayer->setRatio(0);
+		}
+		else{
+			QStringList l=action->text().split(':');
+			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
 	});
 
@@ -270,7 +252,7 @@ Interface::Interface(QWidget *parent):
 	connect(sca,&QMenu::triggered,[this](QAction *action){
 		if(vplayer->getSize().isValid()){
 			QStringList l=action->text().split(':');
-			QSize s=vplayer->getSize(VPlayer::Scaled)*l[0].toInt()/l[1].toInt();
+			QSize s=vplayer->getSize()*l[0].toInt()/l[1].toInt();
 			setCenter(s,false);
 		}
 	});
@@ -404,23 +386,14 @@ void Interface::paintEvent(QPaintEvent *e)
 		to.moveCenter(rect().center());
 		painter.drawPixmap(to,background);
 	}
-	vplayer->draw(&painter,rect());
-	qint64 time=0;
-	if(!lst.isNull()){
-		time=lst.elapsed();
-	}
-	if(vplayer->getState()==VPlayer::Play){
-		lst.start();
-	}
-	danmaku->draw(&painter,time);
 	painter.end();
+	Render::instance()->draw();
 	QWidget::paintEvent(e);
 }
 
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	vplayer->setSize(e->size());
-	danmaku->setSize(e->size());
+	render->resize(e->size());
 	int w=e->size().width(),h=e->size().height();
 	QMetaObject::invokeMethod(this,"saveSize",Qt::QueuedConnection);
 	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
@@ -489,6 +462,20 @@ void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);
+}
+
+void Interface::drawDecoded()
+{
+	if(!menu->getPower()->isActive()){
+		Render::instance()->draw();
+	}
+}
+
+void Interface::drawPowered()
+{
+	if(vplayer->getState()==VPlayer::Play){
+		Render::instance()->draw();
+	}
 }
 
 void Interface::saveSize()

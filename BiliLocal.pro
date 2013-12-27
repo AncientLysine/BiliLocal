@@ -25,7 +25,8 @@ SOURCES += \
     src/Cookie.cpp \
     src/Graphic.cpp \
     src/Panel.cpp \
-    src/Platform.cpp
+    src/Platform.cpp \
+    src/Render.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -41,13 +42,12 @@ HEADERS  += \
     src/Cookie.h \
     src/Graphic.h \
     src/Panel.h \
-    src/Platform.h
+    src/Platform.h \
+    src/Render.h
 
 LIBS += \
     -lvlc \
-    -lvlccore \
-    -lavutil \
-    -lswscale
+    -lvlccore
 
 RESOURCES += \
     res/Res.qrc
@@ -56,3 +56,7 @@ TRANSLATIONS += \
     trans/zh_CN.ts \
     trans/zh_HK.ts \
     trans/zh_TW.ts
+
+win32{
+RC_ICONS = BiliLocal.ico
+}

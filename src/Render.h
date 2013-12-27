@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Interface.h
-*   Time:        2013/03/18
+*   Filename:    Render.h
+*   Time:        2013/12/27
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,65 +24,25 @@
 *
 =========================================================================*/
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#ifndef RENDER_H
+#define RENDER_H
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
-class Menu;
-class Info;
-class Panel;
-class Render;
-class VPlayer;
-class Danmaku;
-
-class Interface:public QWidget
+class Render:public QWindow,QOpenGLFunctions
 {
 	Q_OBJECT
 public:
-	explicit Interface(QWidget *parent=0);
+	explicit Render(QWindow *parent=0);
+	void draw();
+	static Render *instance (){return ins;}
 
 private:
-	QLabel *tv;
-	QLabel *me;
-	QTimer *timer;
-	QTimer *delay;
-	QAction *quitA;
-	QAction *fullA;
-	QAction *confA;
-	QAction *toggA;
-	QMenu *rat;
-	QMenu *sca;
-
-	Menu *menu;
-	Info *info;
-	Panel *panel;
-	QWidget *render;
-	VPlayer *vplayer;
-	Danmaku *danmaku;
-
-	QPoint pre;
-	QPoint sta;
-	QPoint wgd;
-	QPixmap background;
-
-	void dropEvent(QDropEvent *e);
-	void paintEvent(QPaintEvent *e);
-	void resizeEvent(QResizeEvent *e);
-	void keyPressEvent(QKeyEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-
-private slots:
-	void drawDecoded();
-	void drawPowered();
-	void saveSize();
-	void setCenter(QSize s,bool f);
-
+	QTime last;
+	QOpenGLContext *context;
+	QOpenGLPaintDevice *device;
+	static Render *ins;
 };
 
-#endif // INTERFACE_H
+#endif // RENDER_H

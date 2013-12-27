@@ -33,9 +33,6 @@
 extern "C"
 {
 #include <vlc/vlc.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-#include <libswscale/swscale.h>
 }
 
 class VPlayer:public QObject
@@ -49,21 +46,14 @@ public:
 		Pause,
 		Loop
 	};
-	enum SizeType
-	{
-		Source,
-		Scaled,
-		Destinate
-	};
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
-	uchar *getSrc();
-	uchar *getDst();
-	State getState();
+	State getState(){return state;}
 	qint64 getTime();
 	qint64 getDuration();
-	QSize getSize(SizeType t=Source);
+	QSize getSize(){return size;}
 	QString getFile(){return file;}
+	quint8 *getBuffer(){return buffer;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
@@ -73,13 +63,11 @@ public:
 
 private:
 	State state;
-	bool soundOnly;
+	bool music;
 	double ratio;
+	QSize size;
 	QMutex data;
-	QMutex size;
-	QSize srcSize;
-	QSize dstSize;
-	QSize guiSize;
+	uchar *buffer;
 	QPixmap frame;
 	QPixmap sound;
 	QTimer *fake;
@@ -90,9 +78,6 @@ private:
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
-	SwsContext *swsctx;
-	AVPicture *srcFrame;
-	AVPicture *dstFrame;
 	static VPlayer *ins;
 
 	void setState(State _state);
@@ -109,7 +94,6 @@ public slots:
 	void stop();
 	void init();
 	void free();
-	void setSize(QSize _size);
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setRatio(double _ratio);
