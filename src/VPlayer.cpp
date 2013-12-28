@@ -118,15 +118,9 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 			painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 		}
 		else{
-			QRect dest;
 			int w=size.width(),h=size.height();
-			if(ratio>0){
-				int _w=qMin<int>(w,h*ratio);
-				dest.setSize(QSize(_w,_w/ratio));
-			}
-			else{
-				dest.setSize(size.scaled(rect.size(),Qt::KeepAspectRatio));
-			}
+			QRect dest;
+			dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize());
 			dest.moveCenter(rect.center());
 			data.lock();
 			painter->beginNativePainting();
@@ -207,6 +201,8 @@ void VPlayer::stop()
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
+		size=QSize();
+		ratio=0;
 		setState(Stop);
 		if(music){
 			fake->stop();

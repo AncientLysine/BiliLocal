@@ -59,7 +59,7 @@ Interface::Interface(QWidget *parent):
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
-		if(isActiveWindow()){
+		if(isActiveWindow()&&y>-50&&y<h+50){
 			if(x>=0&&x<50){
 				setIndex(1);
 			}
@@ -198,6 +198,9 @@ Interface::Interface(QWidget *parent):
 			QStringList l=action->text().split(':');
 			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
+		if(vplayer->getState()==VPlayer::Pause){
+			render->draw();
+		}
 	});
 
 	sca=new QMenu(tr("Scale"),this);
@@ -313,9 +316,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!menu->geometry().contains(e->pos())&&!info->geometry().contains(e->pos())){
-		//		menu->push(true);
-		//		info->push(true);
-		setFocus();
+		setIndex(0);
 	}
 	sta=wgd=QPoint();
 	if(e->button()==Qt::RightButton){
@@ -334,9 +335,9 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	//	if(!menu->isPopped()&&!info->isPopped()&&!post->isShown()){
-	//		fullA->toggle();
-	//	}
+	if(!menu->isVisible()&&!info->isVisible()&&!post->isShown()){
+		fullA->toggle();
+	}
 	QWidget::mouseDoubleClickEvent(e);
 }
 
@@ -364,8 +365,8 @@ void Interface::saveSize()
 void Interface::showMenu(QPoint p)
 {
 	bool flag=true;
-	//	flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
-	//	flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
+	flag=flag&&!(menu->isVisible()&&menu->geometry().contains(p));
+	flag=flag&&!(info->isVisible()&&info->geometry().contains(p));
 	if(flag){
 		QMenu top(this);
 		const Comment *cur=danmaku->commentAt(p);
@@ -418,13 +419,7 @@ void Interface::showMenu(QPoint p)
 void Interface::setIndex(int i)
 {
 	if(animation->state()==QAbstractAnimation::Stopped){
-		if(index!=0&&i==0){
-			index=0;
-			animation->setStartValue(manager->pos());
-			animation->setEndValue(QPoint(0,0));
-			animation->start();
-			setFocus();
-		}
+		bool force=false;
 		if(qAbs(i)==1){
 			if(index==0){
 				animation->setStartValue(manager->pos());
@@ -432,15 +427,24 @@ void Interface::setIndex(int i)
 				animation->setEndValue(QPoint(200*i,0));
 				if(i==1){
 					menu->show();
+					menu->setFocus();
 				}
 				else{
 					info->show();
+					info->setFocus();
 				}
 				animation->start();
 			}
 			else if(i!=index){
-				setIndex(0);
+				force=true;
 			}
+		}
+		if(force||(((index==1&&!menu->preferStay())||(index==-1&&!info->preferStay()))&&i==0)){
+			index=0;
+			animation->setStartValue(manager->pos());
+			animation->setEndValue(QPoint(0,0));
+			animation->start();
+			setFocus();
 		}
 	}
 }

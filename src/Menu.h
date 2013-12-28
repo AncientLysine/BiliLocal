@@ -37,8 +37,8 @@ class Menu:public QWidget
 	Q_OBJECT
 public:
 	explicit Menu(QWidget *parent=0);
-	bool preferStay(){return isStay;}
 	QTimer *getPower(){return powerC;}
+	bool preferStay(){return isStay||!danmC->popup()->isHidden();}
 
 private:
 	bool isStay;
