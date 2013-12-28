@@ -40,15 +40,11 @@ static QString getPath()
 Menu::Menu(QWidget *parent) :
 	QWidget(parent)
 {
-	isPop=false;
 	isStay=false;
 	Utils::setGround(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	animation=new QPropertyAnimation(this,"pos",this);
-	animation->setDuration(200);
-	animation->setEasingCurve(QEasingCurve::OutCubic);
 	fileL=new QLineEdit(this);
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
@@ -282,7 +278,7 @@ Menu::Menu(QWidget *parent) :
 							cur+=regex.matchedLength();
 						}
 						if(model->rowCount()>0){
-							if(isPop){
+							if(isVisible()){
 								danmC->complete();
 							}
 							flag=false;
@@ -337,7 +333,7 @@ Menu::Menu(QWidget *parent) :
 							if(model->rowCount()>0){
 								QStandardItem *f=model->item(0);
 								f->setData(QUrl(url+"_1"),Qt::UserRole);
-								if(isPop){
+								if(isVisible()){
 									danmC->complete();
 								}
 								flag=false;
@@ -384,7 +380,7 @@ Menu::Menu(QWidget *parent) :
 				if(model->rowCount()==0){
 					error(404);
 				}
-				else if(isPop){
+				else if(isVisible()){
 					danmC->complete();
 				}
 			}
@@ -396,33 +392,6 @@ Menu::Menu(QWidget *parent) :
 			error(reply->error());
 		}
 	});
-}
-
-void Menu::pop()
-{
-	if(!isPop&&animation->state()==QAbstractAnimation::Stopped){
-		animation->setStartValue(pos());
-		animation->setEndValue(pos()+QPoint(200,0));
-		animation->start();
-		isPop=true;
-	}
-}
-
-void Menu::push(bool force)
-{
-	if(isPop&&animation->state()==QAbstractAnimation::Stopped&&((!isStay&&danmC->popup()->isHidden())||force)){
-		animation->setStartValue(pos());
-		animation->setEndValue(pos()-QPoint(200,0));
-		animation->start();
-		isPop=false;
-	}
-}
-
-void Menu::terminate()
-{
-	if(animation->state()!=QAbstractAnimation::Stopped){
-		animation->setCurrentTime(animation->totalDuration());
-	}
 }
 
 void Menu::setFile(QString _file)

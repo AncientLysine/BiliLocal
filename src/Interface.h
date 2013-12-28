@@ -48,6 +48,9 @@ public:
 private:
 	QTimer *timer;
 	QTimer *delay;
+	int index;
+	QPropertyAnimation *animation;
+
 	QAction *quitA;
 	QAction *fullA;
 	QAction *confA;
@@ -67,6 +70,7 @@ private:
 	QPoint sta;
 	QPoint wgd;
 
+
 	bool eventFilter(QObject *o,QEvent *e);
 	void dropEvent(QDropEvent *e);
 	void resizeEvent(QResizeEvent *e);
@@ -81,6 +85,7 @@ private slots:
 	void drawPowered();
 	void saveSize();
 	void showMenu(QPoint p);
+	void setIndex(int i);
 	void setCenter(QSize s,bool f);
 
 };

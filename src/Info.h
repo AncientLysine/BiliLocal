@@ -36,10 +36,9 @@ class Info:public QWidget
 	Q_OBJECT
 public:
 	explicit Info(QWidget *parent=0);
-	bool isPopped(){return isPop;}
+	bool preferStay(){return isStay;}
 
 private:
-	bool isPop;
 	bool isStay;
 	bool updating;
 	qint64 duration;
@@ -61,10 +60,6 @@ private:
 	void resizeEvent(QResizeEvent *e);
 	
 public slots:
-	void pop();
-	void push(bool force=false);
-	void trigger();
-	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);
 	void setDuration(qint64 _duration);

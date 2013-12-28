@@ -45,13 +45,14 @@ Interface::Interface(QWidget *parent):
 	setCenter(QSize(),true);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
-	render=new Render;
-	render->installEventFilter(this);
-	manager=createWindowContainer(render,this);
-	manager->hide();
 	menu=new Menu(this);
 	info=new Info(this);
 	post=new Post(this);
+	menu->hide();
+	info->hide();
+	render=new Render;
+	render->installEventFilter(this);
+	manager=createWindowContainer(render,this);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(200);
@@ -59,55 +60,30 @@ Interface::Interface(QWidget *parent):
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
 		if(isActiveWindow()){
-			if(y<-50||y>h+50){
-				menu->push();
-				info->push();
-				post->fadeOut();
-				setFocus();
+			if(x>=0&&x<50){
+				setIndex(1);
 			}
-			else{
-				if(x<-100){
-					menu->push();
-					setFocus();
+			if(x>250&&x<w-250){
+				setIndex(0);
+			}
+			if(x>w-50&&x<=w){
+				setIndex(-1);
+			}
+			if(x>200&&x<w-200){
+				if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||post->isValid())){
+					post->fadeIn();
 				}
-				if(x>=0&&x<50){
-					menu->pop();
-				}
-				if(x>250){
-					menu->push();
-					if(!info->isPopped()&&!post->isShown()){
-						setFocus();
-					}
-				}
-				if(x<w-250){
-					info->push();
-					if(!menu->isPopped()&&!post->isShown()){
-						setFocus();
-					}
-				}
-				if(x>w-50&&x<=w){
-					info->pop();
-				}
-				if(x>w+100){
-					info->push();
-					setFocus();
-				}
-				if(x>200&&x<w-200){
-					if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||post->isValid())){
-						post->fadeIn();
-					}
-					if(y<h-85){
-						post->fadeOut();
-					}
-				}
-				else{
+				if(y<h-85){
 					post->fadeOut();
 				}
+			}
+			else{
+				post->fadeOut();
 			}
 		}
 		if(cur!=pre){
 			pre=cur;
-			if(!menu->isPopped()&&!info->isPopped()){
+			if(!menu->isVisible()&&!info->isVisible()){
 				if(cursor().shape()==Qt::BlankCursor){
 					unsetCursor();
 				}
@@ -152,6 +128,9 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
+
+	addActions(menu->actions());
+	addActions(info->actions());
 
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
@@ -241,6 +220,17 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
+	index=0;
+	animation=new QPropertyAnimation(manager,"pos",this);
+	animation->setDuration(200);
+	animation->setEasingCurve(QEasingCurve::OutCubic);
+	connect(animation,&QPropertyAnimation::finished,[this](){
+		if(index==0){
+			menu->hide();
+			info->hide();
+		}
+	});
+
 	if(Utils::getConfig("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
 	}
@@ -283,10 +273,8 @@ void Interface::resizeEvent(QResizeEvent *e)
 	manager->resize(e->size());
 	int w=e->size().width(),h=e->size().height();
 	QMetaObject::invokeMethod(this,"saveSize",Qt::QueuedConnection);
-	menu->terminate();
-	info->terminate();
-	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
-	info->setGeometry(info->isPopped()?w-200:w,0,200,h);
+	menu->setGeometry(0,    0,200,h);
+	info->setGeometry(w-200,0,200,h);
 	post->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
 	QWidget::resizeEvent(e);
 }
@@ -325,8 +313,8 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!menu->geometry().contains(e->pos())&&!info->geometry().contains(e->pos())){
-		menu->push(true);
-		info->push(true);
+		//		menu->push(true);
+		//		info->push(true);
 		setFocus();
 	}
 	sta=wgd=QPoint();
@@ -346,9 +334,9 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isPopped()&&!info->isPopped()&&!post->isShown()){
-		fullA->toggle();
-	}
+	//	if(!menu->isPopped()&&!info->isPopped()&&!post->isShown()){
+	//		fullA->toggle();
+	//	}
 	QWidget::mouseDoubleClickEvent(e);
 }
 
@@ -376,8 +364,8 @@ void Interface::saveSize()
 void Interface::showMenu(QPoint p)
 {
 	bool flag=true;
-	flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
-	flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
+	//	flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
+	//	flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
 	if(flag){
 		QMenu top(this);
 		const Comment *cur=danmaku->commentAt(p);
@@ -424,6 +412,36 @@ void Interface::showMenu(QPoint p)
 		top.addAction(confA);
 		top.addAction(quitA);
 		top.exec(mapToGlobal(p));
+	}
+}
+
+void Interface::setIndex(int i)
+{
+	if(animation->state()==QAbstractAnimation::Stopped){
+		if(index!=0&&i==0){
+			index=0;
+			animation->setStartValue(manager->pos());
+			animation->setEndValue(QPoint(0,0));
+			animation->start();
+			setFocus();
+		}
+		if(qAbs(i)==1){
+			if(index==0){
+				animation->setStartValue(manager->pos());
+				index=i;
+				animation->setEndValue(QPoint(200*i,0));
+				if(i==1){
+					menu->show();
+				}
+				else{
+					info->show();
+				}
+				animation->start();
+			}
+			else if(i!=index){
+				setIndex(0);
+			}
+		}
 	}
 }
 

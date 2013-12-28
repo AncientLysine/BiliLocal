@@ -37,11 +37,10 @@ class Menu:public QWidget
 	Q_OBJECT
 public:
 	explicit Menu(QWidget *parent=0);
-	bool isPopped(){return isPop;}
+	bool preferStay(){return isStay;}
 	QTimer *getPower(){return powerC;}
 
 private:
-	bool isPop;
 	bool isStay;
 	QLineEdit *fileL;
 	QLineEdit *danmL;
@@ -64,13 +63,9 @@ private:
 	QCheckBox *subC;
 	QLabel *loopT;
 	QCheckBox *loopC;
-	QPropertyAnimation *animation;
 	QNetworkAccessManager *manager;
 
 public slots:
-	void pop();
-	void push(bool force=false);
-	void terminate();
 	void setFile(QString _file);
 	void setPower(qint16 fps);
 	void openLocal(QString _file);

@@ -36,7 +36,6 @@
 Info::Info(QWidget *parent):
 	QWidget(parent)
 {
-	isPop=false;
 	isStay=false;
 	updating=false;
 	Utils::setGround(this,Qt::white);
@@ -182,38 +181,6 @@ Info::Info(QWidget *parent):
 void Info::resizeEvent(QResizeEvent *e)
 {
 	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
-}
-
-void Info::pop()
-{
-	if(!isPop&&animation->state()==QAbstractAnimation::Stopped){
-		animation->setStartValue(pos());
-		animation->setEndValue(pos()-QPoint(200,0));
-		animation->start();
-		isPop=true;
-	}
-}
-
-void Info::push(bool force)
-{
-	if(isPop&&animation->state()==QAbstractAnimation::Stopped&&(!isStay||force)){
-		animation->setStartValue(pos());
-		animation->setEndValue(pos()+QPoint(200,0));
-		animation->start();
-		isPop=false;
-	}
-}
-
-void Info::trigger()
-{
-	playA->trigger();
-}
-
-void Info::terminate()
-{
-	if(animation->state()!=QAbstractAnimation::Stopped){
-		animation->setCurrentTime(animation->totalDuration());
-	}
 }
 
 void Info::resizeHeader()
