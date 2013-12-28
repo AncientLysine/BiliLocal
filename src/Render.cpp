@@ -31,12 +31,18 @@
 Render *Render::ins=NULL;
 
 Render::Render(QWindow *parent):
-	QWindow(parent)
+	QWindow(parent),tv(":/Picture/tv.gif")
 {
 	device=NULL;
 	context=NULL;
+	tv.start();
+	me=QImage(":/Picture/version.png");
+	background=QImage(Utils::getConfig("/Interface/Background",QString()));
 	setSurfaceType(QWindow::OpenGLSurface);
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
+	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
+	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
+	connect(&tv,&QMovie::updated,this,&Render::draw);
 	ins=this;
 }
 
@@ -45,18 +51,13 @@ void Render::draw()
 	if(!isExposed()){
 		return;
 	}
-	bool needInitialize=false;
 	if(!context){
 		context=new QOpenGLContext(this);
 		context->create();
-		needInitialize=true;
 	}
 	context->makeCurrent(this);
 	if(!device){
 		device=new QOpenGLPaintDevice;
-	}
-	if(needInitialize){
-		initializeOpenGLFunctions();
 	}
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 	device->setSize(size());
@@ -65,14 +66,31 @@ void Render::draw()
 	VPlayer *vplayer=VPlayer::instance();
 	Danmaku *danmaku=Danmaku::instance();
 	QRect rect(QPoint(0,0),size());
-	vplayer->draw(&painter,rect);
-	qint64 time=0;
-	if(!last.isNull()){
-		time=last.elapsed();
+	if(vplayer->getState()==VPlayer::Stop){
+		drawInit(&painter,rect);
 	}
-	if(vplayer->getState()==VPlayer::Play){
-		last.start();
+	else{
+		vplayer->draw(&painter,rect);
+		qint64 time=0;
+		if(!last.isNull()){
+			time=last.elapsed();
+		}
+		if(vplayer->getState()==VPlayer::Play){
+			last.start();
+		}
+		danmaku->draw(&painter,rect,time);
 	}
-	danmaku->draw(&painter,rect,time);
 	context->swapBuffers(this);
+}
+
+void Render::drawInit(QPainter *painter,QRect rect)
+{
+	QRect dest=rect;
+	dest.setSize(background.size().scaled(dest.size(),Qt::KeepAspectRatioByExpanding));
+	dest.moveCenter(rect.center());
+	painter->drawImage(dest,background);
+	int w=rect.width(),h=rect.height();
+	QImage cf=tv.currentImage();
+	painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);
+	painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
 }

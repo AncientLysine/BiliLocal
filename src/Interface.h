@@ -46,8 +46,6 @@ public:
 	explicit Interface(QWidget *parent=0);
 
 private:
-	QLabel *tv;
-	QLabel *me;
 	QTimer *timer;
 	QTimer *delay;
 	QAction *quitA;
@@ -67,10 +65,9 @@ private:
 	QPoint pre;
 	QPoint sta;
 	QPoint wgd;
-	QPixmap background;
 
+	bool eventFilter(QObject *o,QEvent *e);
 	void dropEvent(QDropEvent *e);
-	void paintEvent(QPaintEvent *e);
 	void resizeEvent(QResizeEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
@@ -82,6 +79,7 @@ private slots:
 	void drawDecoded();
 	void drawPowered();
 	void saveSize();
+	void showMenu(QPoint p);
 	void setCenter(QSize s,bool f);
 
 };

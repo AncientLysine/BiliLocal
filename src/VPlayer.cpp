@@ -56,7 +56,9 @@ VPlayer::VPlayer(QObject *parent) :
 	vlc=libvlc_new(0,NULL);
 	m=NULL;
 	mp=NULL;
-	buffer=NULL;
+	frame=0;
+	index=0;
+	buffer[0]=buffer[1]=NULL;
 	state=Stop;
 	ratio=0;
 	music=false;
@@ -64,7 +66,7 @@ VPlayer::VPlayer(QObject *parent) :
 	fake->setInterval(33);
 	fake->setTimerType(Qt::PreciseTimer);
 	connect(fake,&QTimer::timeout,this,&VPlayer::decode);
-	sound=QPixmap(":/Picture/sound.png");
+	sound=QImage(":/Picture/sound.png");
 	ins=this;
 }
 
@@ -76,8 +78,14 @@ VPlayer::~VPlayer()
 	if(m){
 		libvlc_media_release(m);
 	}
-	if(buffer){
-		delete []buffer;
+	if(frame){
+		glDeleteTextures(1,&frame);
+	}
+	if(buffer[0]){
+		delete buffer[0];
+	}
+	if(buffer[1]){
+		delete buffer[1];
 	}
 	libvlc_release(vlc);
 }
@@ -92,36 +100,84 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-void VPlayer::setFrame(bool force)
+void VPlayer::setFrame()
 {
-	if(state!=Pause||force){
-		QPixmap buf=QPixmap::fromImage(QImage(getBuffer(),size.width(),size.height(),QImage::Format_RGB32).copy());
+	if(state!=Pause){
 		data.lock();
-		frame=buf;
+		index=(!(index&1))|2;
 		data.unlock();
 		emit decode();
 	}
 }
+
+//static void glError()
+//{
+//	switch(glGetError()){
+//	case GL_NO_ERROR:
+//		qDebug()<<"GL_NO_ERROR";
+//		break;
+//	case GL_INVALID_ENUM:
+//		qDebug()<<"GL_INVALID_ENUM";
+//		break;
+//	case GL_INVALID_VALUE:
+//		qDebug()<<"GL_INVALID_VALUE";
+//		break;
+//	case GL_INVALID_OPERATION:
+//		qDebug()<<"GL_INVALID_ENUM";
+//		break;
+//	case GL_INVALID_FRAMEBUFFER_OPERATION:
+//		qDebug()<<"GL_INVALID_FRAMEBUFFER_OPERATION";
+//		break;
+//	case GL_STACK_UNDERFLOW:
+//		qDebug()<<"GL_STACK_UNDERFLOW";
+//		break;
+//	case GL_STACK_OVERFLOW:
+//		qDebug()<<"GL_STACK_OVERFLOW";
+//		break;
+//	}
+//}
 
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
 	if(state!=Stop){
 		painter->fillRect(rect,Qt::black);
 		if(music){
-			painter->drawPixmap(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+			painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 		}
 		else{
-			data.lock();
 			QRect dest;
+			int w=size.width(),h=size.height();
 			if(ratio>0){
-				int w=qMin<int>(size.width(),size.height()*ratio);
-				dest.setSize(QSize(w,w/ratio));
+				int _w=qMin<int>(w,h*ratio);
+				dest.setSize(QSize(_w,_w/ratio));
 			}
 			else{
 				dest.setSize(size.scaled(rect.size(),Qt::KeepAspectRatio));
 			}
 			dest.moveCenter(rect.center());
-			painter->drawPixmap(dest,frame,frame.rect());
+			data.lock();
+			painter->beginNativePainting();
+			glEnable(GL_TEXTURE_2D);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+			if(index&2){
+				index&=1;
+				if(frame){
+					glDeleteTextures(1,&frame);
+				}
+				glGenTextures(1,&frame);
+				glBindTexture(GL_TEXTURE_2D,frame);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer[!index]);
+			}
+			GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
+			GLfloat vtx[8]={l,t,r,t,r,b,l,b};
+			GLfloat tex[8]={0,1,1,1,1,0,0,0};
+			glVertexPointer(2,GL_FLOAT,0,vtx);
+			glTexCoordPointer(2,GL_FLOAT,0,tex);
+			glDrawArrays(GL_TRIANGLE_FAN,0,4);
+			painter->endNativePainting();
 			data.unlock();
 		}
 	}
@@ -155,10 +211,14 @@ void VPlayer::play()
 			if(music){
 				fake->start();
 			}
-			if(buffer){
-				delete []buffer;
+			if(buffer[0]){
+				delete buffer[0];
 			}
-			buffer=new uchar[size.width()*size.height()*4];
+			if(buffer[1]){
+				delete buffer[1];
+			}
+			buffer[0]=new uchar[size.width()*size.height()*4];
+			buffer[1]=new uchar[size.width()*size.height()*4];
 			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
@@ -175,7 +235,6 @@ void VPlayer::stop()
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
 		setState(Stop);
-		frame=QPixmap();
 		if(music){
 			fake->stop();
 		}

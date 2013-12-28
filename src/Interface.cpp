@@ -42,26 +42,14 @@ Interface::Interface(QWidget *parent):
 	setAcceptDrops(true);
 	setMinimumSize(550,390);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
-	background=QPixmap(Utils::getConfig("/Interface/Background",QString()));
+	setCenter(QSize(),true);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
 	render=createWindowContainer(new Render,this);
-	render->hide();
+	Render::instance()->installEventFilter(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	panel=new Panel(this);
-	setCenter(QSize(),true);
-	tv=new QLabel(this);
-	tv->setMovie(new QMovie(":/Picture/tv.gif",QByteArray(),this));
-	tv->setFixedSize(QSize(94,82));
-	me=new QLabel(this);
-	me->setPixmap(QPixmap(":/Picture/version.png"));
-	me->setFixedSize(me->pixmap()->size());
-	tv->lower();
-	me->lower();
-	tv->movie()->start();
-	tv->setAttribute(Qt::WA_TransparentForMouseEvents);
-	me->setAttribute(Qt::WA_TransparentForMouseEvents);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(200);
@@ -142,18 +130,13 @@ Interface::Interface(QWidget *parent):
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
 	connect(danmaku,&Danmaku::layoutChanged,Render::instance(),&Render::draw);
 	connect(vplayer,&VPlayer::begin,[this](){
-		tv->hide();
-		me->hide();
 		if(!isFullScreen()){
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
 		rat->setEnabled(true);
-		render->show();
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
-		tv->show();
-		me->show();
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->defaultAction()->setChecked(true);
@@ -164,7 +147,6 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(QSize(),false);
 		}
-		render->hide();
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
@@ -257,59 +239,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
-	setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
-		bool flag=true;
-		flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
-		flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
-		if(flag){
-			QMenu top(this);
-			const Comment *cur=danmaku->commentAt(p);
-			if(cur){
-				QAction *text=new QAction(&top);
-				top.addAction(text);
-				int w=top.actionGeometry(text).width()-24;
-				text->setText(top.fontMetrics().elidedText(cur->string,Qt::ElideRight,w));
-				top.addSeparator();
-				connect(top.addAction(tr("Copy")),&QAction::triggered,[=](){
-					qApp->clipboard()->setText(cur->string);
-				});
-				connect(top.addAction(tr("Eliminate The Sender")),&QAction::triggered,[=](){
-					QList<QString> &list=Shield::shieldU;
-					QString sender=cur->sender;
-					if(!sender.isEmpty()&&!list.contains(sender)){
-						list.append(sender);
-					}
-					Danmaku::instance()->parse(0x2);
-				});
-				top.addSeparator();
-			}
-			top.addActions(info->actions());
-			top.addAction(fullA);
-			top.addAction(toggA);
-			top.addActions(menu->actions());
-			QMenu *sub=new QMenu(tr("Subtitle"),this);
-			QMenu *vid=new QMenu(tr("Video Track"),this);
-			QMenu *aud=new QMenu(tr("Audio Track"),this);
-			sub->addActions(vplayer->getSubtitles());
-			sub->setEnabled(!sub->isEmpty());
-			vid->addActions(vplayer->getVideoTracks());
-			vid->setEnabled(!vid->isEmpty());
-			aud->addActions(vplayer->getAudioTracks());
-			aud->setEnabled(!aud->isEmpty());
-			QMenu *tra=new QMenu(tr("Track"),this);
-			tra->addMenu(sub);
-			tra->addMenu(vid);
-			tra->addMenu(aud);
-			tra->setEnabled(vplayer->getState()!=VPlayer::Stop);
-			top.addMenu(tra);
-			top.addMenu(sca);
-			top.addMenu(rat);
-			top.addAction(confA);
-			top.addAction(quitA);
-			top.exec(mapToGlobal(p));
-		}
-	});
 	if(Utils::getConfig("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
 	}
@@ -322,47 +251,19 @@ Interface::Interface(QWidget *parent):
 	setFocus();
 }
 
-void Interface::setCenter(QSize _s,bool f)
+bool Interface::eventFilter(QObject *,QEvent *e)
 {
-	if(!_s.isValid()){
-		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
-		if(l.size()==2){
-			_s=QSize(l[0].toInt(),l[1].toInt());
-		}
-	}
-	QSize m=minimumSize();
-	QRect r;
-	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
-	QRect s=QApplication::desktop()->screenGeometry(this);
-	QRect t=f?s:geometry();
-	if((windowFlags()&Qt::CustomizeWindowHint)==0){
-		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
-	}
-	bool flag=true;
-	if(r.width()>=s.width()||r.height()>=s.height()){
-		if(isVisible()){
-			fullA->toggle();
-			flag=false;
-		}
-		else{
-			r.setSize(QSize(960,540));
-		}
-	}
-	if(flag){
-		r.moveCenter(t.center());
-		if(r.top()<s.top()){
-			r.moveTop(s.top());
-		}
-		if(r.bottom()>s.bottom()){
-			r.moveBottom(s.bottom());
-		}
-		if(r.left()<s.left()){
-			r.moveLeft(s.left());
-		}
-		if(r.right()>s.right()){
-			r.moveRight(s.right());
-		}
-		setGeometry(r);
+	switch(e->type()){
+	case QEvent::Drop:
+	case QEvent::KeyPress:
+	case QEvent::MouseButtonPress:
+	case QEvent::MouseButtonRelease:
+	case QEvent::MouseButtonDblClick:
+	case QEvent::DragEnter:
+		event(e);
+		return true;
+	default:
+		return false;
 	}
 }
 
@@ -375,29 +276,11 @@ void Interface::dropEvent(QDropEvent *e)
 	}
 }
 
-void Interface::paintEvent(QPaintEvent *e)
-{
-	QPainter painter;
-	painter.begin(this);
-	painter.setRenderHint(QPainter::SmoothPixmapTransform);
-	if(vplayer->getState()==VPlayer::Stop){
-		QRect to=rect();
-		to.setSize(background.size().scaled(to.size(),Qt::KeepAspectRatioByExpanding));
-		to.moveCenter(rect().center());
-		painter.drawPixmap(to,background);
-	}
-	painter.end();
-	Render::instance()->draw();
-	QWidget::paintEvent(e);
-}
-
 void Interface::resizeEvent(QResizeEvent *e)
 {
 	render->resize(e->size());
 	int w=e->size().width(),h=e->size().height();
 	QMetaObject::invokeMethod(this,"saveSize",Qt::QueuedConnection);
-	tv->move((w-tv->width())/2,(h-tv->height())/2-40);
-	me->move((w-me->width())/2,(h-me->height())/2+40);
 	menu->terminate();
 	info->terminate();
 	menu->setGeometry(menu->isPopped()?0:0-200,0,200,h);
@@ -445,6 +328,9 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		setFocus();
 	}
 	sta=wgd=QPoint();
+	if(e->button()==Qt::RightButton){
+		showMenu(e->pos());
+	}
 	QWidget::mouseReleaseEvent(e);
 }
 
@@ -482,5 +368,103 @@ void Interface::saveSize()
 {
 	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
 		Utils::setConfig("/Interface/Size",QString("%1,%2").arg(width()).arg(height()));
+	}
+}
+
+void Interface::showMenu(QPoint p)
+{
+	bool flag=true;
+	flag=flag&&!(menu->isPopped()&&menu->geometry().contains(p));
+	flag=flag&&!(info->isPopped()&&info->geometry().contains(p));
+	if(flag){
+		QMenu top(this);
+		const Comment *cur=danmaku->commentAt(p);
+		if(cur){
+			QAction *text=new QAction(&top);
+			top.addAction(text);
+			int w=top.actionGeometry(text).width()-24;
+			text->setText(top.fontMetrics().elidedText(cur->string,Qt::ElideRight,w));
+			top.addSeparator();
+			connect(top.addAction(tr("Copy")),&QAction::triggered,[=](){
+				qApp->clipboard()->setText(cur->string);
+			});
+			connect(top.addAction(tr("Eliminate The Sender")),&QAction::triggered,[=](){
+				QList<QString> &list=Shield::shieldU;
+				QString sender=cur->sender;
+				if(!sender.isEmpty()&&!list.contains(sender)){
+					list.append(sender);
+				}
+				Danmaku::instance()->parse(0x2);
+			});
+			top.addSeparator();
+		}
+		top.addActions(info->actions());
+		top.addAction(fullA);
+		top.addAction(toggA);
+		top.addActions(menu->actions());
+		QMenu *sub=new QMenu(tr("Subtitle"),this);
+		QMenu *vid=new QMenu(tr("Video Track"),this);
+		QMenu *aud=new QMenu(tr("Audio Track"),this);
+		sub->addActions(vplayer->getSubtitles());
+		sub->setEnabled(!sub->isEmpty());
+		vid->addActions(vplayer->getVideoTracks());
+		vid->setEnabled(!vid->isEmpty());
+		aud->addActions(vplayer->getAudioTracks());
+		aud->setEnabled(!aud->isEmpty());
+		QMenu *tra=new QMenu(tr("Track"),this);
+		tra->addMenu(sub);
+		tra->addMenu(vid);
+		tra->addMenu(aud);
+		tra->setEnabled(vplayer->getState()!=VPlayer::Stop);
+		top.addMenu(tra);
+		top.addMenu(sca);
+		top.addMenu(rat);
+		top.addAction(confA);
+		top.addAction(quitA);
+		top.exec(mapToGlobal(p));
+	}
+}
+
+void Interface::setCenter(QSize _s,bool f)
+{
+	if(!_s.isValid()){
+		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
+		if(l.size()==2){
+			_s=QSize(l[0].toInt(),l[1].toInt());
+		}
+	}
+	QSize m=minimumSize();
+	QRect r;
+	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
+	QRect s=QApplication::desktop()->screenGeometry(this);
+	QRect t=f?s:geometry();
+	if((windowFlags()&Qt::CustomizeWindowHint)==0){
+		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	}
+	bool flag=true;
+	if(r.width()>=s.width()||r.height()>=s.height()){
+		if(isVisible()){
+			fullA->toggle();
+			flag=false;
+		}
+		else{
+			r.setSize(QSize(960,540));
+		}
+	}
+	if(flag){
+		r.moveCenter(t.center());
+		if(r.top()<s.top()){
+			r.moveTop(s.top());
+		}
+		if(r.bottom()>s.bottom()){
+			r.moveBottom(s.bottom());
+		}
+		if(r.left()<s.left()){
+			r.moveLeft(s.left());
+		}
+		if(r.right()>s.right()){
+			r.moveRight(s.right());
+		}
+		setGeometry(r);
 	}
 }

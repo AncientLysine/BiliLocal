@@ -30,19 +30,24 @@
 #include <QtGui>
 #include <QtCore>
 
-class Render:public QWindow,QOpenGLFunctions
+class Render:public QWindow
 {
 	Q_OBJECT
 public:
 	explicit Render(QWindow *parent=0);
 	void draw();
-	static Render *instance (){return ins;}
+	static Render *instance(){return ins;}
 
 private:
 	QTime last;
+	QMovie tv;
+	QImage me;
+	QImage background;
 	QOpenGLContext *context;
 	QOpenGLPaintDevice *device;
 	static Render *ins;
+	void exposeEvent(QExposeEvent *){draw();}
+	void drawInit(QPainter *painter,QRect rect);
 };
 
 #endif // RENDER_H
