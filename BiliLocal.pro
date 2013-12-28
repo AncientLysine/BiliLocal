@@ -24,7 +24,7 @@ SOURCES += \
     src/Editor.cpp \
     src/Cookie.cpp \
     src/Graphic.cpp \
-    src/Panel.cpp \
+    src/Post.cpp \
     src/Platform.cpp \
     src/Render.cpp
 
@@ -41,7 +41,7 @@ HEADERS  += \
     src/Editor.h \
     src/Cookie.h \
     src/Graphic.h \
-    src/Panel.h \
+    src/Post.h \
     src/Platform.h \
     src/Render.h
 

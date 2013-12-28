@@ -51,13 +51,20 @@ void Render::draw()
 	if(!isExposed()){
 		return;
 	}
+	bool initialize=false;
 	if(!context){
 		context=new QOpenGLContext(this);
 		context->create();
+		initialize=true;
 	}
 	context->makeCurrent(this);
 	if(!device){
 		device=new QOpenGLPaintDevice;
+	}
+	if(initialize){
+		glEnable(GL_TEXTURE_2D);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	}
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 	device->setSize(size());

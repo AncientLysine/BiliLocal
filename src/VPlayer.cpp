@@ -110,33 +110,6 @@ void VPlayer::setFrame()
 	}
 }
 
-//static void glError()
-//{
-//	switch(glGetError()){
-//	case GL_NO_ERROR:
-//		qDebug()<<"GL_NO_ERROR";
-//		break;
-//	case GL_INVALID_ENUM:
-//		qDebug()<<"GL_INVALID_ENUM";
-//		break;
-//	case GL_INVALID_VALUE:
-//		qDebug()<<"GL_INVALID_VALUE";
-//		break;
-//	case GL_INVALID_OPERATION:
-//		qDebug()<<"GL_INVALID_ENUM";
-//		break;
-//	case GL_INVALID_FRAMEBUFFER_OPERATION:
-//		qDebug()<<"GL_INVALID_FRAMEBUFFER_OPERATION";
-//		break;
-//	case GL_STACK_UNDERFLOW:
-//		qDebug()<<"GL_STACK_UNDERFLOW";
-//		break;
-//	case GL_STACK_OVERFLOW:
-//		qDebug()<<"GL_STACK_OVERFLOW";
-//		break;
-//	}
-//}
-
 void VPlayer::draw(QPainter *painter,QRect rect)
 {
 	if(state!=Stop){
@@ -157,11 +130,6 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 			dest.moveCenter(rect.center());
 			data.lock();
 			painter->beginNativePainting();
-			glEnable(GL_TEXTURE_2D);
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 			if(index&2){
 				index&=1;
 				if(frame){
@@ -169,11 +137,16 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 				}
 				glGenTextures(1,&frame);
 				glBindTexture(GL_TEXTURE_2D,frame);
-				glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer[!index]);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer[!index]);
 			}
+			else{
+				glBindTexture(GL_TEXTURE_2D,frame);
+			}
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 			GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
 			GLfloat vtx[8]={l,t,r,t,r,b,l,b};
-			GLfloat tex[8]={0,1,1,1,1,0,0,0};
+			GLfloat tex[8]={0,0,1,0,1,1,0,1};
 			glVertexPointer(2,GL_FLOAT,0,vtx);
 			glTexCoordPointer(2,GL_FLOAT,0,tex);
 			glDrawArrays(GL_TRIANGLE_FAN,0,4);

@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Panel.h
+*   Filename:    Post.h
 *   Time:        2013/05/23
 *   Author:      zhengdanwei
 *   Contributor: Lysine
@@ -25,8 +25,8 @@
 *
 =========================================================================*/
 
-#ifndef PANEL_H
-#define PANEL_H
+#ifndef POST_H
+#define POST_H
 
 #include <QtCore>
 #include <QtWidgets>
@@ -34,11 +34,11 @@
 
 class Record;
 
-class Panel:public QWidget
+class Post:public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Panel(QWidget *parent = 0);
+	explicit Post(QWidget *parent = 0);
 	bool isShown(){return ioo==2;}
 	bool isValid(){return getBilibili()!=NULL;}
 	QColor getColor();
@@ -68,4 +68,4 @@ private:
 	const Record *getBilibili();
 };
 
-#endif // POSTER_H
+#endif // POST_H

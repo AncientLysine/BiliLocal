@@ -34,7 +34,7 @@
 
 class Menu;
 class Info;
-class Panel;
+class Post;
 class Render;
 class VPlayer;
 class Danmaku;
@@ -57,8 +57,9 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Panel *panel;
-	QWidget *render;
+	Post *post;
+	Render *render;
+	QWidget *manager;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
 

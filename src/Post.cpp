@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Panel.cpp
+*   Filename:    Post.cpp
 *   Time:        2013/05/23
 *   Author:      zhengdanwei
 *   Contributor: Lysine
@@ -25,7 +25,7 @@
 *
 =========================================================================*/
 
-#include "Panel.h"
+#include "Post.h"
 #include "Utils.h"
 #include "Cookie.h"
 #include "Danmaku.h"
@@ -144,7 +144,7 @@ private:
 };
 }
 
-Panel::Panel(QWidget *parent) :
+Post::Post(QWidget *parent) :
 	QWidget(parent)
 {
 	ioo=0;
@@ -243,13 +243,13 @@ Panel::Panel(QWidget *parent) :
 	hide();
 }
 
-QColor Panel::getColor()
+QColor Post::getColor()
 {
 	QString sheet=commentC->styleSheet();
 	return QColor(sheet.mid(sheet.indexOf('#')));
 }
 
-void Panel::fadeIn()
+void Post::fadeIn()
 {
 	if(ioo==0){
 		ioo=1;
@@ -258,7 +258,7 @@ void Panel::fadeIn()
 	}
 }
 
-void Panel::fadeOut()
+void Post::fadeOut()
 {
 	if(ioo==2){
 		ioo=3;
@@ -266,7 +266,7 @@ void Panel::fadeOut()
 	}
 }
 
-void Panel::setTime(qint64 _time)
+void Post::setTime(qint64 _time)
 {
 	if(!timeS->isSliderDown()){
 		int position=timeS->sliderPosition();
@@ -279,12 +279,12 @@ void Panel::setTime(qint64 _time)
 	}
 }
 
-void Panel::setColor(QColor color)
+void Post::setColor(QColor color)
 {
 	commentC->setStyleSheet(QString("background-color:%1").arg(color.name()));
 }
 
-void Panel::postComment(QString comment)
+void Post::postComment(QString comment)
 {
 	const Record *r=getBilibili();
 	if(r!=NULL){
@@ -326,7 +326,7 @@ void Panel::postComment(QString comment)
 	}
 }
 
-void Panel::setDuration(qint64 _duration)
+void Post::setDuration(qint64 _duration)
 {
 	if(_duration>0){
 		duration=_duration;
@@ -339,7 +339,7 @@ void Panel::setDuration(qint64 _duration)
 	}
 }
 
-const Record *Panel::getBilibili()
+const Record *Post::getBilibili()
 {
 	for(const Record &r:Danmaku::instance()->getPool()){
 		if(r.source.startsWith("http://comment.bilibili.tv/")){
