@@ -31,6 +31,7 @@
 #include "Interface.h"
 #include <QtCore>
 
+/*
 static void setEventFilter()
 {
 	QAbstractNativeEventFilter *filter=Platform::getNativeEventFilter();
@@ -38,6 +39,7 @@ static void setEventFilter()
 		qApp->installNativeEventFilter(filter);
 	}
 }
+*/
 
 static void setDefaultFont()
 {
@@ -73,7 +75,7 @@ int main(int argc,char *argv[])
 	Utils::loadConfig();
 	Shield::init();
 	Cookie::init();
-	setEventFilter();
+    //setEventFilter();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
