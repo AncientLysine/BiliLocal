@@ -25,7 +25,6 @@ SOURCES += \
     src/Cookie.cpp \
     src/Graphic.cpp \
     src/Post.cpp \
-    src/Platform.cpp \
     src/Render.cpp
 
 HEADERS  += \
@@ -42,7 +41,6 @@ HEADERS  += \
     src/Cookie.h \
     src/Graphic.h \
     src/Post.h \
-    src/Platform.h \
     src/Render.h
 
 LIBS += \
