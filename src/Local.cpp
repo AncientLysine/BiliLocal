@@ -73,7 +73,7 @@ int main(int argc,char *argv[])
 	Utils::loadConfig();
 	Shield::init();
 	Cookie::init();
-	setEventFilter();
+    //setEventFilter();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
