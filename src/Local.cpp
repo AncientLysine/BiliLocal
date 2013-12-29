@@ -27,19 +27,8 @@
 #include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
-#include "Platform.h"
 #include "Interface.h"
 #include <QtCore>
-
-/*
-static void setEventFilter()
-{
-	QAbstractNativeEventFilter *filter=Platform::getNativeEventFilter();
-	if(filter!=NULL){
-		qApp->installNativeEventFilter(filter);
-	}
-}
-*/
 
 static void setDefaultFont()
 {
@@ -75,7 +64,6 @@ int main(int argc,char *argv[])
 	Utils::loadConfig();
 	Shield::init();
 	Cookie::init();
-    //setEventFilter();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){

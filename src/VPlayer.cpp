@@ -202,7 +202,7 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 void VPlayer::setState(State _state)
 {
 #ifdef Q_OS_WIN32
-	if ((_state == Play)||(_state == Loop))
+	if (_state == Play || _state == Loop)
 	{
 		SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
 	}
@@ -211,7 +211,6 @@ void VPlayer::setState(State _state)
 		SetThreadExecutionState(ES_CONTINUOUS);
 	}
 #endif
-
 	state=_state;
 	emit stateChanged(state);
 }
