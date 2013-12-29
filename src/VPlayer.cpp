@@ -72,8 +72,7 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
-	const char* argv_list[] = {"--avcodec-hw=dxva2.lo"};
-	vlc=libvlc_new(1,argv_list);
+	vlc=libvlc_new(0,NULL);
 	m=NULL;
 	mp=NULL;
 	swsctx=NULL;
@@ -202,16 +201,16 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 
 void VPlayer::setState(State _state)
 {
-    #ifdef Q_OS_WIN32
-    if ((_state == Play) || (_state == Loop))
-    {
-        SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
-    }
-    else
-    {
-        SetThreadExecutionState(ES_CONTINUOUS);
-    }
-    #endif
+#ifdef Q_OS_WIN32
+	if ((_state == Play)||(_state == Loop))
+	{
+		SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
+	}
+	else
+	{
+		SetThreadExecutionState(ES_CONTINUOUS);
+	}
+#endif
 
 	state=_state;
 	emit stateChanged(state);
