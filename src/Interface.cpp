@@ -233,6 +233,7 @@ Interface::Interface(QWidget *parent):
 			info->hide();
 		}
 	});
+	connect(animation,&QPropertyAnimation::valueChanged,render,&Render::draw);
 
 	if(Utils::getConfig("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);

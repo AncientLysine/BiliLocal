@@ -92,10 +92,15 @@ void Render::draw()
 
 void Render::drawInit(QPainter *painter,QRect rect)
 {
-	QRect dest=rect;
-	dest.setSize(background.size().scaled(dest.size(),Qt::KeepAspectRatioByExpanding));
-	dest.moveCenter(rect.center());
-	painter->drawImage(dest,background);
+	if(background.isNull()){
+		painter->fillRect(rect,qApp->palette().color(QPalette::Window));
+	}
+	else{
+		QRect dest=rect;
+		dest.setSize(background.size().scaled(dest.size(),Qt::KeepAspectRatioByExpanding));
+		dest.moveCenter(rect.center());
+		painter->drawImage(dest,background);
+	}
 	int w=rect.width(),h=rect.height();
 	QImage cf=tv.currentImage();
 	painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);

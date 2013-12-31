@@ -130,10 +130,9 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 			painter->beginNativePainting();
 			if(index&2){
 				index&=1;
-				if(frame){
-					glDeleteTextures(1,&frame);
-				}
-				glGenTextures(1,&frame);
+				if(!frame){
+					glGenTextures(1,&frame);
+				};
 				glBindTexture(GL_TEXTURE_2D,frame);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer[!index]);
 			}

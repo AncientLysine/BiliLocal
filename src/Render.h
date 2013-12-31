@@ -46,7 +46,6 @@ private:
 	QOpenGLContext *context;
 	QOpenGLPaintDevice *device;
 	static Render *ins;
-	void exposeEvent(QExposeEvent *){draw();}
 	void drawInit(QPainter *painter,QRect rect);
 };
 
