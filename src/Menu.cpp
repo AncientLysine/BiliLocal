@@ -297,11 +297,11 @@ Menu::Menu(QWidget *parent) :
 				}
 			}
 			else if(site==Utils::AcFun){
-				if(url.endsWith(".aspx")){
+				if(url.indexOf("getVideo.aspx")!=-1){
 					QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-					if(json.contains("cid")){
+					if(json.contains("danmakuId")){
 						QString api="http://comment.acfun.tv/%1.json";
-						QUrl jsonUrl(api.arg(json["cid"].toString()));
+						QUrl jsonUrl(api.arg(json["danmakuId"].toString()));
 						reply->manager()->get(QNetworkRequest(jsonUrl));
 					}
 					else{
@@ -310,49 +310,38 @@ Menu::Menu(QWidget *parent) :
 				}
 				else{
 					bool flag=true;
-					QString api,id,video(reply->readAll());
-					if(url.indexOf("_")==-1){
-						int sta;
-						if((sta=video.indexOf("<div id=\"area-pager\""))!=-1){
-							int len=video.indexOf("</div>",sta)-sta+1;
-							len=len<0?0:len;
-							QString select=video.mid(sta,len);
-							QRegExp regex("href\\=\"[^\"]+");
-							int cur=0;
-							api="http://www.acfun.tv";
-							QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
-							model->clear();
-							while((cur=regex.indexIn(select,cur))!=-1){
-								int sta=select.indexOf("i>",cur)+2;
-								QStandardItem *item=new QStandardItem();
-								item->setData(QUrl(api+regex.cap().mid(6)),Qt::UserRole);
-								item->setData(select.mid(sta,select.indexOf('<',sta)-sta),Qt::EditRole);
-								model->appendRow(item);
-								cur+=regex.matchedLength();
+					QString video(reply->readAll()),id;
+					int sta,end;
+					if(url.indexOf("_")==-1&&(sta=video.indexOf("<div id=\"area-part-view\" class=\"\""))!=-1){
+						sta=video.indexOf("<div class=\"l\">",sta);
+						end=video.indexOf("</div>",sta);
+						QString select=video.mid(sta,end-sta);
+						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
+						model->clear();
+						sta=0;
+						while((sta=select.indexOf("href=\"",sta))!=-1){
+							QStandardItem *item=new QStandardItem();
+							sta+=6;
+							end=select.indexOf('\"',sta);
+							item->setData(QUrl(select.mid(sta,end-sta).prepend("http://www.acfun.tv")),Qt::UserRole);
+							end=select.indexOf("</a>",end);
+							sta=select.lastIndexOf(">",end)+1;
+							item->setData(select.mid(sta,end-sta),Qt::EditRole);
+							model->appendRow(item);
+						}
+						if(model->rowCount()>0){
+							if(isVisible()){
+								danmC->complete();
 							}
-							if(model->rowCount()>0){
-								QStandardItem *f=model->item(0);
-								f->setData(QUrl(url+"_1"),Qt::UserRole);
-								if(isVisible()){
-									danmC->complete();
-								}
-								flag=false;
-							}
+							flag=false;
 						}
 					}
 					if(flag){
-						QRegularExpressionMatch match=QRegularExpression("(?<=\\[video\\])\\d+(?=\\[/video\\])",option).match(video);
-						if(match.hasMatch()){
-							id=match.captured();
-							api="http://www.acfun.tv/api/player/vids/%1.aspx";
-						}
-						else{
-							match=QRegularExpression("(?<=id=)\\w+",option).match(video,video.indexOf("<embed"));
-							id=match.captured();
-							api="http://comment.acfun.tv/%1.json";
-						}
+						sta=video.indexOf("<a class=\"btn success active\" data-vid=\"")+40;
+						end=video.indexOf('\"',sta);
+						id=video.mid(sta,end-sta);
 						if(!id.isEmpty()){
-							reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
+							reply->manager()->get(QNetworkRequest(id.prepend("http://www.acfun.tv/video/getVideo.aspx?id=")));
 						}
 						else{
 							error(404);

@@ -12,6 +12,9 @@ Mac OS版本编译
 测试
 使用说明
 
+hungkie(samlls):
+阻止屏幕变暗或关闭
+
 BiliLocal使用了以下库和插件
 
 VLC - Copyright (C) 1998-2013 VLC authors and VideoLAN

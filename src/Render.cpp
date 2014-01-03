@@ -28,8 +28,6 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
-Render *Render::ins=NULL;
-
 Render::Render(QWindow *parent):
 	QWindow(parent),tv(":/Picture/tv.gif")
 {
@@ -43,7 +41,6 @@ Render::Render(QWindow *parent):
 	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
 	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
 	connect(&tv,&QMovie::updated,this,&Render::draw);
-	ins=this;
 }
 
 void Render::draw()
@@ -70,27 +67,27 @@ void Render::draw()
 	device->setSize(size());
 	QPainter painter(device);
 	painter.setRenderHints(QPainter::SmoothPixmapTransform);
-	VPlayer *vplayer=VPlayer::instance();
-	Danmaku *danmaku=Danmaku::instance();
 	QRect rect(QPoint(0,0),size());
-	if(vplayer->getState()==VPlayer::Stop){
-		drawInit(&painter,rect);
-	}
-	else{
-		vplayer->draw(&painter,rect);
-		qint64 time=0;
-		if(!last.isNull()){
-			time=last.elapsed();
-		}
-		if(vplayer->getState()==VPlayer::Play){
-			last.start();
-		}
-		danmaku->draw(&painter,rect,time);
-	}
+	VPlayer::instance()->getState()==VPlayer::Stop?drawStop(&painter,rect):drawPlay(&painter,rect);
 	context->swapBuffers(this);
 }
 
-void Render::drawInit(QPainter *painter,QRect rect)
+void Render::drawPlay(QPainter *painter, QRect rect)
+{
+	VPlayer *vplayer=VPlayer::instance();
+	Danmaku *danmaku=Danmaku::instance();
+	vplayer->draw(painter,rect);
+	qint64 time=0;
+	if(!last.isNull()){
+		time=last.elapsed();
+	}
+	if(vplayer->getState()==VPlayer::Play){
+		last.start();
+	}
+	danmaku->draw(painter,rect,time);
+}
+
+void Render::drawStop(QPainter *painter,QRect rect)
 {
 	if(background.isNull()){
 		painter->fillRect(rect,qApp->palette().color(QPalette::Window));

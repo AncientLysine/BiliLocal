@@ -36,7 +36,6 @@ class Render:public QWindow
 public:
 	explicit Render(QWindow *parent=0);
 	void draw();
-	static Render *instance(){return ins;}
 
 private:
 	QTime last;
@@ -45,8 +44,8 @@ private:
 	QImage background;
 	QOpenGLContext *context;
 	QOpenGLPaintDevice *device;
-	static Render *ins;
-	void drawInit(QPainter *painter,QRect rect);
+	void drawPlay(QPainter *painter,QRect rect);
+	void drawStop(QPainter *painter,QRect rect);
 };
 
 #endif // RENDER_H
