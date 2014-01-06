@@ -319,6 +319,7 @@ void Post::postComment(QString comment)
 			else{
 				Danmaku::instance()->appendToCurrent(&c,true);
 			}
+			reply->deleteLater();
 		});
 	}
 	else{

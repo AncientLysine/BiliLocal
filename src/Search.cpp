@@ -333,6 +333,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		else if(Utils::getSite(url)!=Utils::Unknown){
 			error(reply->error());
 		}
+		reply->deleteLater();
 	});
 }
 

@@ -302,6 +302,7 @@ Config::Config(QWidget *parent,int index):
 				}
 				click->setEnabled(true);
 				setLogged(flag);
+				reply->deleteLater();
 			});
 		};
 		auto setLogout=[this,setLogged](){

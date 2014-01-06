@@ -380,6 +380,7 @@ Menu::Menu(QWidget *parent) :
 		else{
 			error(reply->error());
 		}
+		reply->deleteLater();
 	});
 }
 
