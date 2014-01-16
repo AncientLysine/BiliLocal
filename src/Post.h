@@ -64,7 +64,6 @@ private:
 	QNetworkAccessManager *manager;
 	int ioo;
 	QTimer *timer;
-	QGraphicsOpacityEffect *effect;
 	const Record *getBilibili();
 };
 

@@ -41,7 +41,7 @@ static void *lck(void *,void **planes)
 
 static void dsp(void *,void *)
 {
-	VPlayer::instance()->setFrame();
+	VPlayer::instance()->setDirty();
 }
 
 static void sta(const struct libvlc_event_t *,void *)
@@ -61,10 +61,10 @@ VPlayer::VPlayer(QObject *parent) :
 	m=NULL;
 	mp=NULL;
 	frame=0;
-	index=0;
-	buffer[0]=buffer[1]=NULL;
+	buffer=NULL;
 	state=Stop;
 	ratio=0;
+	dirty=false;
 	music=false;
 	fake=new QTimer(this);
 	fake->setInterval(33);
@@ -85,11 +85,8 @@ VPlayer::~VPlayer()
 	if(frame){
 		glDeleteTextures(1,&frame);
 	}
-	if(buffer[0]){
-		delete buffer[0];
-	}
-	if(buffer[1]){
-		delete buffer[1];
+	if(buffer){
+		delete buffer;
 	}
 	libvlc_release(vlc);
 }
@@ -104,11 +101,11 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-void VPlayer::setFrame()
+void VPlayer::setDirty()
 {
 	if(state!=Pause){
 		data.lock();
-		index=(!(index&1))|2;
+		dirty=true;
 		data.unlock();
 		emit decode();
 	}
@@ -128,17 +125,18 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 			dest.moveCenter(rect.center());
 			data.lock();
 			painter->beginNativePainting();
-			if(index&2){
-				index&=1;
+			if(dirty){
 				if(!frame){
 					glGenTextures(1,&frame);
 				};
 				glBindTexture(GL_TEXTURE_2D,frame);
-				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer[!index]);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer);
+				dirty=false;
 			}
 			else{
 				glBindTexture(GL_TEXTURE_2D,frame);
 			}
+			data.unlock();
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 			GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
@@ -148,7 +146,6 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 			glTexCoordPointer(2,GL_FLOAT,0,tex);
 			glDrawArrays(GL_TRIANGLE_FAN,0,4);
 			painter->endNativePainting();
-			data.unlock();
 		}
 	}
 }
@@ -191,14 +188,10 @@ void VPlayer::play()
 			if(music){
 				fake->start();
 			}
-			if(buffer[0]){
-				delete buffer[0];
+			if(buffer){
+				delete buffer;
 			}
-			if(buffer[1]){
-				delete buffer[1];
-			}
-			buffer[0]=new uchar[size.width()*size.height()*4];
-			buffer[1]=new uchar[size.width()*size.height()*4];
+			buffer=new uchar[size.width()*size.height()*4];
 			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);

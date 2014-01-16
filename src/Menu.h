@@ -64,6 +64,7 @@ private:
 	QLabel *loopT;
 	QCheckBox *loopC;
 	QNetworkAccessManager *manager;
+	bool eventFilter(QObject *o,QEvent *e);
 
 public slots:
 	void setFile(QString _file);

@@ -156,30 +156,27 @@ Post::Post(QWidget *parent) :
 			timer->stop();
 		}
 		else if(ioo==1){
-			if(effect->opacity()>=0.9){
-				effect->setOpacity(1.0);
+			if(windowOpacity()>=0.9){
+				setWindowOpacity(1.0);
 				timer->stop();
 				ioo=2;
 			}
 			else{
-				effect->setOpacity(effect->opacity()+0.1);
+				setWindowOpacity(windowOpacity()+0.1);
 			}
 		}
 		else if(ioo==3){
-			if(effect->opacity()<=0.1){
-				effect->setOpacity(0.0);
+			if(windowOpacity()<=0.1){
+				setWindowOpacity(0.0);
 				timer->stop();
 				ioo=0;
 				hide();
 			}
 			else{
-				effect->setOpacity(effect->opacity()-0.1);
+				setWindowOpacity(windowOpacity()-0.1);
 			}
 		}
 	});
-	effect=new QGraphicsOpacityEffect(this);
-	effect->setOpacity(0.0);
-	setGraphicsEffect(effect);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);

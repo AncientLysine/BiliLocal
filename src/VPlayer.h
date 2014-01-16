@@ -53,22 +53,22 @@ public:
 	qint64 getDuration();
 	QSize getSize(){return size;}
 	QString getFile(){return file;}
-	uchar *getBuffer(){return buffer[index&1];}
+	uchar *getBuffer(){return buffer;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
-	void setFrame();
+	void setDirty();
 	void draw(QPainter *painter,QRect rect);
 	static VPlayer *instance(){return ins;}
 
 private:
 	State state;
 	bool music;
+	bool dirty;
 	double ratio;
 	QSize size;
 	QMutex data;
-	int index;
-	uchar *buffer[2];
+	uchar *buffer;
 	GLuint frame;
 	QImage sound;
 	QTimer *fake;

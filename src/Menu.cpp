@@ -48,6 +48,9 @@ Menu::Menu(QWidget *parent) :
 	fileL=new QLineEdit(this);
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
+	fileL->installEventFilter(this);
+	danmL->installEventFilter(this);
+	sechL->installEventFilter(this);
 	fileL->setReadOnly(true);
 	danmL->setPlaceholderText(tr("av/ac"));
 	fileL->setGeometry(QRect(10,25, 120,25));
@@ -138,7 +141,7 @@ Menu::Menu(QWidget *parent) :
 	powerL->setGeometry(QRect(160,205,30,20));
 	powerC=new QTimer(this);
 	powerC->setTimerType(Qt::PreciseTimer);
-	setPower(Utils::getConfig("/Danmaku/Power",100));
+	setPower(Utils::getConfig("/Danmaku/Power",60));
 	connect(powerL,&QLineEdit::textEdited,[this](QString text){
 		QRegExp regex("([0-9]+)");
 		regex.indexIn(text);
@@ -382,6 +385,21 @@ Menu::Menu(QWidget *parent) :
 		}
 		reply->deleteLater();
 	});
+}
+
+bool Menu::eventFilter(QObject *o,QEvent *e)
+{
+	if(e->type()==QEvent::ContextMenu){
+		isStay=1;
+		QMenu *m=dynamic_cast<QLineEdit *>(o)->createStandardContextMenu();
+		m->exec(dynamic_cast<QContextMenuEvent *>(e)->globalPos());
+		delete m;
+		isStay=0;
+		return 1;
+	}
+	else{
+		return 0;
+	}
 }
 
 void Menu::setFile(QString _file)

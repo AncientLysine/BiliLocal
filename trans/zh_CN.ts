@@ -550,49 +550,49 @@
     </message>
 </context>
 <context>
-    <name>Panel</name>
+    <name>Post</name>
     <message>
-        <location filename="../src/Panel.cpp" line="316"/>
+        <location filename="../src/Post.cpp" line="316"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="317"/>
+        <location filename="../src/Post.cpp" line="317"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="202"/>
+        <location filename="../src/Post.cpp" line="202"/>
         <source>Top</source>
         <translation>顶端</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="202"/>
+        <location filename="../src/Post.cpp" line="202"/>
         <source>Slide</source>
         <translation>滑动</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="202"/>
+        <location filename="../src/Post.cpp" line="202"/>
         <source>Bottom</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="217"/>
+        <location filename="../src/Post.cpp" line="217"/>
         <source>Post</source>
         <translation>发送</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="220"/>
+        <location filename="../src/Post.cpp" line="220"/>
         <source>DA☆ZE!</source>
         <translation>毁灭地喷射白光!da!</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="325"/>
+        <location filename="../src/Post.cpp" line="325"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/Panel.cpp" line="325"/>
+        <location filename="../src/Post.cpp" line="325"/>
         <source>Empty cid.</source>
         <translation>空cid。</translation>
     </message>
