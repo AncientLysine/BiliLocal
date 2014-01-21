@@ -37,6 +37,7 @@ Info::Info(QWidget *parent):
 	QWidget(parent)
 {
 	isStay=false;
+	isPoped=false;
 	updating=false;
 	Utils::setGround(this,Qt::white);
 	duration=-1;
@@ -164,6 +165,16 @@ Info::Info(QWidget *parent):
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 		isStay=0;
 	});
+
+	animation=new QPropertyAnimation(this,"pos",this);
+	animation->setDuration(200);
+	animation->setEasingCurve(QEasingCurve::OutCubic);
+	connect(animation,&QPropertyAnimation::finished,[this](){
+		if(!isPoped){
+			hide();
+		}
+	});
+
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		setDuration(VPlayer::instance()->getDuration());
 	});
@@ -176,6 +187,35 @@ Info::Info(QWidget *parent):
 		playA->setIcon(playing?pauseI:playI);
 		playA->setText(playing?tr("Pause"):tr("Play"));
 	});
+	hide();
+}
+
+void Info::pop()
+{
+	if(!isPoped&&animation->state()==QAbstractAnimation::Stopped){
+		show();
+		animation->setStartValue(pos());
+		animation->setEndValue(pos()-QPoint(200,0));
+		animation->start();
+		isPoped=true;
+	}
+}
+
+void Info::push(bool force)
+{
+	if(isPoped&&animation->state()==QAbstractAnimation::Stopped&&(!preferStay()||force)){
+		animation->setStartValue(pos());
+		animation->setEndValue(pos()+QPoint(200,0));
+		animation->start();
+		isPoped=false;
+	}
+}
+
+void Info::terminate()
+{
+	if(animation->state()!=QAbstractAnimation::Stopped){
+		animation->setCurrentTime(animation->totalDuration());
+	}
 }
 
 void Info::resizeEvent(QResizeEvent *e)

@@ -166,9 +166,9 @@ Config::Config(QWidget *parent,int index):
 
 		auto s=new QHBoxLayout;
 		size=new QLineEdit(widget[1]);
-		size->setText(Utils::getConfig("/Interface/Size",QString("960,540")));
+		size->setText(Utils::getConfig("/Interface/Size",QString("960,540")).trimmed());
 		connect(size,&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Interface/Size",size->text());
+			Utils::setConfig("/Interface/Size",size->text()+" ");
 		});
 		s->addWidget(size);
 		ui[0]=new QGroupBox(tr("initialize size"),widget[1]);

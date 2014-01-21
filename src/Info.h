@@ -36,10 +36,12 @@ class Info:public QWidget
 	Q_OBJECT
 public:
 	explicit Info(QWidget *parent=0);
+	bool isShown(){return isPoped;}
 	bool preferStay(){return isStay;}
 
 private:
 	bool isStay;
+	bool isPoped;
 	bool updating;
 	qint64 duration;
 
@@ -53,13 +55,16 @@ private:
 	QTableView *danmV;
 	QPushButton *playB;
 	QPushButton *stopB;
-	QPropertyAnimation *animation;
 	QAction *playA;
 	QAction *stopA;
 	QIcon playI,stopI,pauseI;
+	QPropertyAnimation *animation;
 	void resizeEvent(QResizeEvent *e);
 	
 public slots:
+	void pop();
+	void push(bool force=false);
+	void terminate();
 	void resizeHeader();
 	void setTime(qint64 _time);
 	void setDuration(qint64 _duration);

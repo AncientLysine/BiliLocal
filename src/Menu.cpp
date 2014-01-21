@@ -189,6 +189,15 @@ Menu::Menu(QWidget *parent) :
 		Utils::setConfig("/Playing/Loop",state==Qt::Checked);
 	});
 
+	animation=new QPropertyAnimation(this,"pos",this);
+	animation->setDuration(200);
+	animation->setEasingCurve(QEasingCurve::OutCubic);
+	connect(animation,&QPropertyAnimation::finished,[this](){
+		if(!isPoped){
+			hide();
+		}
+	});
+
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
 			isStay=false;
@@ -385,6 +394,7 @@ Menu::Menu(QWidget *parent) :
 		}
 		reply->deleteLater();
 	});
+	hide();
 }
 
 bool Menu::eventFilter(QObject *o,QEvent *e)
@@ -399,6 +409,34 @@ bool Menu::eventFilter(QObject *o,QEvent *e)
 	}
 	else{
 		return 0;
+	}
+}
+
+void Menu::pop()
+{
+	if(!isPoped&&animation->state()==QAbstractAnimation::Stopped){
+		show();
+		animation->setStartValue(pos());
+		animation->setEndValue(pos()+QPoint(200,0));
+		animation->start();
+		isPoped=true;
+	}
+}
+
+void Menu::push(bool force)
+{
+	if(isPoped&&animation->state()==QAbstractAnimation::Stopped&&(!preferStay()||force)){
+		animation->setStartValue(pos());
+		animation->setEndValue(pos()-QPoint(200,0));
+		animation->start();
+		isPoped=false;
+	}
+}
+
+void Menu::terminate()
+{
+	if(animation->state()!=QAbstractAnimation::Stopped){
+		animation->setCurrentTime(animation->totalDuration());
 	}
 }
 

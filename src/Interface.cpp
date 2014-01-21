@@ -45,40 +45,62 @@ Interface::Interface(QWidget *parent):
 	setCenter(QSize(),true);
 	vplayer=new VPlayer(this);
 	danmaku=new Danmaku(this);
+	render=new Render(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	post=new Post(this);
-	menu->hide();
-	info->hide();
-	render=new Render;
-	render->installEventFilter(this);
-	manager=createWindowContainer(render,this);
+	render->setFloating(QList<QWidget *>()<<menu<<info<<post);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(200);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
-		if(isActiveWindow()&&y>-50&&y<h+50){
-			if(x>=0&&x<50){
-				setIndex(1);
-			}
-			if(x>250&&x<w-250){
-				setIndex(0);
-			}
-			if(x>w-50&&x<=w){
-				setIndex(-1);
-			}
-			if(x>200&&x<w-200){
-				if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||post->isValid())){
-					post->fadeIn();
-				}
-				if(y<h-85){
-					post->fadeOut();
-				}
+		if(isActiveWindow()){
+			if(y<-50||y>h+50){
+				menu->push();
+				info->push();
+				post->fadeOut();
+				setFocus();
 			}
 			else{
-				post->fadeOut();
+				if(x<-100){
+					menu->push();
+					setFocus();
+				}
+				if(x>=0&&x<50){
+					menu->pop();
+				}
+				if(x>250){
+					menu->push();
+					if(!info->isShown()&&!post->isShown()){
+						setFocus();
+					}
+				}
+				if(x<w-250){
+					info->push();
+					if(!menu->isShown()&&!post->isShown()){
+						setFocus();
+					}
+				}
+				if(x>w-50&&x<=w){
+					info->pop();
+				}
+				if(x>w+100){
+					info->push();
+					setFocus();
+				}
+				if(x>200&&x<w-200){
+					if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||post->isValid())){
+						post->fadeIn();
+					}
+					if(y<h-85){
+						post->fadeOut();
+					}
+				}
+				else{
+					post->fadeOut();
+				}
 			}
 		}
 		if(cur!=pre){
@@ -163,7 +185,7 @@ Interface::Interface(QWidget *parent):
 		config.exec();
 		danmaku->parse(0x2);
 	});
-	
+
 	toggA=new QAction(tr("Block All"),this);
 	toggA->setCheckable(true);
 	toggA->setChecked(Shield::block[7]);
@@ -223,18 +245,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
-	index=0;
-	animation=new QPropertyAnimation(manager,"pos",this);
-	animation->setDuration(200);
-	animation->setEasingCurve(QEasingCurve::OutCubic);
-	connect(animation,&QPropertyAnimation::finished,[this](){
-		if(index==0){
-			menu->hide();
-			info->hide();
-		}
-	});
-	connect(animation,&QPropertyAnimation::valueChanged,render,&Render::draw);
-
 	if(Utils::getConfig("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
 	}
@@ -247,22 +257,6 @@ Interface::Interface(QWidget *parent):
 	setFocus();
 }
 
-bool Interface::eventFilter(QObject *,QEvent *e)
-{
-	switch(e->type()){
-	case QEvent::Drop:
-	case QEvent::KeyPress:
-	case QEvent::MouseButtonPress:
-	case QEvent::MouseButtonRelease:
-	case QEvent::MouseButtonDblClick:
-	case QEvent::DragEnter:
-		event(e);
-		return true;
-	default:
-		return false;
-	}
-}
-
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
@@ -272,13 +266,31 @@ void Interface::dropEvent(QDropEvent *e)
 	}
 }
 
+void Interface::closeEvent(QCloseEvent *e)
+{
+	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
+		QString size=Utils::getConfig("/Interface/Size",QString("960,540"));
+		Utils::setConfig("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
+	}
+	QWidget::closeEvent(e);
+}
+
+void Interface::dragEnterEvent(QDragEnterEvent *e)
+{
+	if(e->mimeData()->hasFormat("text/uri-list")){
+		e->acceptProposedAction();
+	}
+	QWidget::dragEnterEvent(e);
+}
+
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	manager->resize(e->size());
+	render->getWidget()->resize(e->size());
 	int w=e->size().width(),h=e->size().height();
-	QMetaObject::invokeMethod(this,"saveSize",Qt::QueuedConnection);
-	menu->setGeometry(0,    0,200,h);
-	info->setGeometry(w-200,0,200,h);
+	menu->terminate();
+	info->terminate();
+	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
+	info->setGeometry(info->isShown()?w-200:w,0,200,h);
 	post->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
 	QWidget::resizeEvent(e);
 }
@@ -317,26 +329,20 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 void Interface::mouseReleaseEvent(QMouseEvent *e)
 {
 	if(!menu->geometry().contains(e->pos())&&!info->geometry().contains(e->pos())){
-		setIndex(0);
+		menu->push(true);
+		info->push(true);
+		setFocus();
 	}
 	sta=wgd=QPoint();
 	if(e->button()==Qt::RightButton){
-		showMenu(e->pos());
+		showContextMenu(e->pos());
 	}
 	QWidget::mouseReleaseEvent(e);
 }
 
-void Interface::dragEnterEvent(QDragEnterEvent *e)
-{
-	if(e->mimeData()->hasFormat("text/uri-list")){
-		e->acceptProposedAction();
-	}
-	QWidget::dragEnterEvent(e);
-}
-
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isVisible()&&!info->isVisible()&&!post->isShown()){
+	if(!menu->isShown()&&!info->isShown()&&!post->isShown()){
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);
@@ -356,14 +362,51 @@ void Interface::drawPowered()
 	}
 }
 
-void Interface::saveSize()
+void Interface::setCenter(QSize _s,bool f)
 {
-	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
-		Utils::setConfig("/Interface/Size",QString("%1,%2").arg(width()).arg(height()));
+	if(!_s.isValid()){
+		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
+		if(l.size()>=2){
+			_s=QSize(l[0].toInt(),l[1].toInt());
+		}
+	}
+	QSize m=minimumSize();
+	QRect r;
+	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
+	QRect s=QApplication::desktop()->screenGeometry(this);
+	QRect t=f?s:geometry();
+	if((windowFlags()&Qt::CustomizeWindowHint)==0){
+		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
+	}
+	bool flag=true;
+	if(r.width()>=s.width()||r.height()>=s.height()){
+		if(isVisible()){
+			fullA->toggle();
+			flag=false;
+		}
+		else{
+			r.setSize(QSize(960,540));
+		}
+	}
+	if(flag){
+		r.moveCenter(t.center());
+		if(r.top()<s.top()){
+			r.moveTop(s.top());
+		}
+		if(r.bottom()>s.bottom()){
+			r.moveBottom(s.bottom());
+		}
+		if(r.left()<s.left()){
+			r.moveLeft(s.left());
+		}
+		if(r.right()>s.right()){
+			r.moveRight(s.right());
+		}
+		setGeometry(r);
 	}
 }
 
-void Interface::showMenu(QPoint p)
+void Interface::showContextMenu(QPoint p)
 {
 	bool flag=true;
 	flag=flag&&!(menu->isVisible()&&menu->geometry().contains(p));
@@ -414,82 +457,5 @@ void Interface::showMenu(QPoint p)
 		top.addAction(confA);
 		top.addAction(quitA);
 		top.exec(mapToGlobal(p));
-	}
-}
-
-void Interface::setIndex(int i)
-{
-	if(animation->state()==QAbstractAnimation::Stopped){
-		bool force=false;
-		if(qAbs(i)==1){
-			if(index==0){
-				animation->setStartValue(manager->pos());
-				index=i;
-				animation->setEndValue(QPoint(200*i,0));
-				if(i==1){
-					menu->show();
-					menu->setFocus();
-				}
-				else{
-					info->show();
-					info->setFocus();
-				}
-				animation->start();
-			}
-			else if(i!=index){
-				force=true;
-			}
-		}
-		if(force||(((index==1&&!menu->preferStay())||(index==-1&&!info->preferStay()))&&i==0)){
-			index=0;
-			animation->setStartValue(manager->pos());
-			animation->setEndValue(QPoint(0,0));
-			animation->start();
-			setFocus();
-		}
-	}
-}
-
-void Interface::setCenter(QSize _s,bool f)
-{
-	if(!_s.isValid()){
-		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
-		if(l.size()==2){
-			_s=QSize(l[0].toInt(),l[1].toInt());
-		}
-	}
-	QSize m=minimumSize();
-	QRect r;
-	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
-	QRect s=QApplication::desktop()->screenGeometry(this);
-	QRect t=f?s:geometry();
-	if((windowFlags()&Qt::CustomizeWindowHint)==0){
-		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
-	}
-	bool flag=true;
-	if(r.width()>=s.width()||r.height()>=s.height()){
-		if(isVisible()){
-			fullA->toggle();
-			flag=false;
-		}
-		else{
-			r.setSize(QSize(960,540));
-		}
-	}
-	if(flag){
-		r.moveCenter(t.center());
-		if(r.top()<s.top()){
-			r.moveTop(s.top());
-		}
-		if(r.bottom()>s.bottom()){
-			r.moveBottom(s.bottom());
-		}
-		if(r.left()<s.left()){
-			r.moveLeft(s.left());
-		}
-		if(r.right()>s.right()){
-			r.moveRight(s.right());
-		}
-		setGeometry(r);
 	}
 }

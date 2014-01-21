@@ -48,8 +48,6 @@ public:
 private:
 	QTimer *timer;
 	QTimer *delay;
-	int index;
-	QPropertyAnimation *animation;
 
 	QAction *quitA;
 	QAction *fullA;
@@ -62,7 +60,6 @@ private:
 	Info *info;
 	Post *post;
 	Render *render;
-	QWidget *manager;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
 
@@ -70,23 +67,20 @@ private:
 	QPoint sta;
 	QPoint wgd;
 
-
-	bool eventFilter(QObject *o,QEvent *e);
 	void dropEvent(QDropEvent *e);
+	void closeEvent(QCloseEvent *e);
 	void resizeEvent(QResizeEvent *e);
+	void dragEnterEvent(QDragEnterEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 
 private slots:
 	void drawDecoded();
 	void drawPowered();
-	void saveSize();
-	void showMenu(QPoint p);
-	void setIndex(int i);
 	void setCenter(QSize s,bool f);
+	void showContextMenu(QPoint p);
 
 };
 

@@ -28,48 +28,74 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
-Render::Render(QWindow *parent):
-	QWindow(parent),tv(":/Picture/tv.gif")
+Render::Render(QWidget *parent):
+	tv(":/Picture/tv.gif"),me(":/Picture/version.png"),parent(parent)
 {
 	device=NULL;
 	context=NULL;
-	tv.start();
-	me=QImage(":/Picture/version.png");
+	updating=false;
+	//tv.start();
 	background=QImage(Utils::getConfig("/Interface/Background",QString()));
 	setSurfaceType(QWindow::OpenGLSurface);
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
 	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
 	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
 	connect(&tv,&QMovie::updated,this,&Render::draw);
+	widget=QWidget::createWindowContainer(this,parent);
+	if(parent){
+		connect(parent,&QWidget::destroyed,this,&Render::deleteLater);
+	}
 }
 
-void Render::draw()
+bool Render::event(QEvent *e)
 {
-	if(!isExposed()){
-		return;
+	switch(e->type()){
+	case QEvent::Drop:
+	case QEvent::KeyPress:
+	case QEvent::KeyRelease:
+	case QEvent::Enter:
+	case QEvent::Leave:
+	case QEvent::MouseMove:
+	case QEvent::MouseButtonPress:
+	case QEvent::MouseButtonRelease:
+	case QEvent::MouseButtonDblClick:
+	case QEvent::Wheel:
+	case QEvent::DragEnter:
+	case QEvent::DragMove:
+	case QEvent::DragLeave:
+	case QEvent::ContextMenu:
+		if(parent){
+			QBackingStore *backing=parent->backingStore();
+			if(backing){
+				QWindow *window=backing->window();
+				if(window){
+					return qApp->sendEvent(window,e);
+				}
+			}
+		}
+		return false;
+	case QEvent::Resize:
+		draw();
+	default:
+		return false;
 	}
-	bool initialize=false;
-	if(!context){
-		context=new QOpenGLContext(this);
-		context->create();
-		initialize=true;
+}
+
+bool Render::eventFilter(QObject *o,QEvent *e)
+{
+	QWidget *w=qobject_cast<QWidget *>(o);
+	if(w&&cache.contains(w)&&!updating){
+		switch(e->type()){
+		case QEvent::Move:
+			draw();
+			break;
+		case QEvent::Paint:
+			break;
+		default:
+			break;
+		}
 	}
-	context->makeCurrent(this);
-	if(!device){
-		device=new QOpenGLPaintDevice;
-	}
-	if(initialize){
-		glEnable(GL_TEXTURE_2D);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	}
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-	device->setSize(size());
-	QPainter painter(device);
-	painter.setRenderHints(QPainter::SmoothPixmapTransform);
-	QRect rect(QPoint(0,0),size());
-	VPlayer::instance()->getState()==VPlayer::Stop?drawStop(&painter,rect):drawPlay(&painter,rect);
-	context->swapBuffers(this);
+	return false;
 }
 
 void Render::drawPlay(QPainter *painter, QRect rect)
@@ -102,4 +128,64 @@ void Render::drawStop(QPainter *painter,QRect rect)
 	QImage cf=tv.currentImage();
 	painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);
 	painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
+}
+
+static QWidget::RenderFlags getFlags(QWidget *w)
+{
+	if(w->autoFillBackground()){
+		return QWidget::DrawChildren|QWidget::DrawWindowBackground;
+	}
+	else{
+		return QWidget::DrawChildren;
+	}
+}
+
+void Render::draw()
+{
+	if(!isExposed()){
+		return;
+	}
+	bool initialize=false;
+	if(!context){
+		context=new QOpenGLContext(this);
+		context->create();
+		initialize=true;
+	}
+	context->makeCurrent(this);
+	if(!device){
+		device=new QOpenGLPaintDevice;
+	}
+	if(initialize){
+		glEnable(GL_TEXTURE_2D);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+	device->setSize(size());
+	QPainter painter(device);
+	painter.setRenderHints(QPainter::SmoothPixmapTransform);
+	QRect rect(QPoint(0,0),size());
+	VPlayer::instance()->getState()==VPlayer::Stop?drawStop(&painter,rect):drawPlay(&painter,rect);
+	updating=1;
+	for(QWidget *w:cache.keys()){
+		if(w->isVisible()){
+			QPixmap &c=cache[w];
+			if(c.isNull()){
+				c=QPixmap(w->size());
+				c.fill(Qt::transparent);
+				w->render(&c,QPoint(),QRegion(),getFlags(w));
+			}
+			painter.drawPixmap(w->pos(),c);
+		}
+	}
+	updating=0;
+	context->swapBuffers(this);
+}
+
+void Render::setFloating(QList<QWidget *> f)
+{
+	for(QWidget *w:f){
+		w->installEventFilter(this);
+		cache.insert(w,QPixmap());
+	}
 }

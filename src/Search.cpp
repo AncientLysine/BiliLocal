@@ -290,30 +290,29 @@ Search::Search(QWidget *parent):QDialog(parent)
 				isWaiting=false;
 			}
 			else if(Utils::getSite(url)==Utils::AcFun){
-				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+				QByteArray data=reply->readAll();
+				QJsonObject json=QJsonDocument::fromJson(data.mid(10,data.size()-11)).object();
 				QJsonObject page=json["page"].toObject();
 				if(pageNum==-1){
 					pageNum=page["totalPage"].toDouble();
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
-				QJsonArray ary=json["contents"].toArray();
-				for(int i=0;i<ary.count();++i){
-					QJsonObject item=ary[i].toObject();
-					if(item["url"].toString().startsWith("/v/")){
-						QStringList content;
-						content<<""<<QString::number((int)item["views"].toDouble())
-								<<QString::number((int)item["comments"].toDouble())
-								<<trans(item["title"].toString())
-								<<AcFunChannel()[item["channelId"].toDouble()]
-								<<trans(item["username"].toString());
-						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
-						row->setData(0,Qt::UserRole,item["url"].toString().mid(3));
-						row->setSizeHint(0,QSize(120,92));
-						row->setToolTip(3,Utils::splitString(trans(item["description"].toString()),400));
-						QNetworkRequest request(QUrl(item["titleImg"].toString()));
-						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
-						reply->manager()->get(request);
-					}
+				QJsonArray list=json["contents"].toArray();
+				for(int i=0;i<list.count();++i){
+					QJsonObject item=list[i].toObject();
+					QStringList content;
+					content<<""<<QString::number((int)item["views"].toDouble())
+							<<QString::number((int)item["comments"].toDouble())
+							<<trans(item["title"].toString())
+							<<AcFunChannel()[item["channelId"].toDouble()]
+							<<trans(item["username"].toString());
+					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
+					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
+					row->setSizeHint(0,QSize(120,92));
+					row->setToolTip(3,Utils::splitString(trans(item["description"].toString()),400));
+					QNetworkRequest request(QUrl(item["titleImg"].toString()));
+					request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
+					reply->manager()->get(request);
 				}
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
@@ -384,7 +383,7 @@ void Search::getData(int pageNum)
 		url.setQuery(query);
 	}
 	else{
-		url=QUrl("http://www.acfun.tv/api/search.aspx");
+		url=QUrl("http://api.acfun.tv/search");
 		QUrlQuery query;
 		query.addQueryItem("query",key);
 		query.addQueryItem("exact","1");

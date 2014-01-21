@@ -62,6 +62,7 @@ private:
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
+	QGraphicsOpacityEffect *effect;
 	int ioo;
 	QTimer *timer;
 	const Record *getBilibili();
