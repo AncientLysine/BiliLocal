@@ -33,17 +33,17 @@ Render::Render(QWidget *parent):
 {
 	device=NULL;
 	context=NULL;
-	updating=false;
-	//tv.start();
-	background=QImage(Utils::getConfig("/Interface/Background",QString()));
+	drawing=false;
+	tv.start();
 	setSurfaceType(QWindow::OpenGLSurface);
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
 	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
 	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
 	connect(&tv,&QMovie::updated,this,&Render::draw);
 	widget=QWidget::createWindowContainer(this,parent);
-	if(parent){
-		connect(parent,&QWidget::destroyed,this,&Render::deleteLater);
+	QString path=Utils::getConfig("/Interface/Background",QString());
+	if(!path.isEmpty()){
+		background=QImage(path);
 	}
 }
 
@@ -74,22 +74,25 @@ bool Render::event(QEvent *e)
 			}
 		}
 		return false;
-	case QEvent::Resize:
+	case QEvent::Expose:
 		draw();
-	default:
 		return false;
+	default:
+		return QWindow::event(e);
 	}
 }
 
 bool Render::eventFilter(QObject *o,QEvent *e)
 {
 	QWidget *w=qobject_cast<QWidget *>(o);
-	if(w&&cache.contains(w)&&!updating){
+	if(w&&cache.contains(w)&&!drawing){
 		switch(e->type()){
+		case QEvent::Hide:
+		case QEvent::Resize:
+			cache[w]=QPixmap();
+			break;
 		case QEvent::Move:
 			draw();
-			break;
-		case QEvent::Paint:
 			break;
 		default:
 			break;
@@ -140,6 +143,21 @@ static QWidget::RenderFlags getFlags(QWidget *w)
 	}
 }
 
+void Render::drawFloating(QPainter *painter)
+{
+	for(QWidget *w:cache.keys()){
+		if(w->isVisible()){
+			QPixmap &c=cache[w];
+			if(c.isNull()){
+				c=QPixmap(w->size());
+				c.fill(Qt::transparent);
+				w->render(&c,QPoint(),QRegion(),getFlags(w));
+			}
+			painter->drawPixmap(w->pos(),c);
+		}
+	}
+}
+
 void Render::draw()
 {
 	if(!isExposed()){
@@ -164,21 +182,16 @@ void Render::draw()
 	device->setSize(size());
 	QPainter painter(device);
 	painter.setRenderHints(QPainter::SmoothPixmapTransform);
+	drawing=1;
 	QRect rect(QPoint(0,0),size());
-	VPlayer::instance()->getState()==VPlayer::Stop?drawStop(&painter,rect):drawPlay(&painter,rect);
-	updating=1;
-	for(QWidget *w:cache.keys()){
-		if(w->isVisible()){
-			QPixmap &c=cache[w];
-			if(c.isNull()){
-				c=QPixmap(w->size());
-				c.fill(Qt::transparent);
-				w->render(&c,QPoint(),QRegion(),getFlags(w));
-			}
-			painter.drawPixmap(w->pos(),c);
-		}
+	if(VPlayer::instance()->getState()==VPlayer::Stop){
+		drawStop(&painter,rect);
 	}
-	updating=0;
+	else{
+		drawPlay(&painter,rect);
+	}
+	drawFloating(&painter);
+	drawing=0;
 	context->swapBuffers(this);
 }
 

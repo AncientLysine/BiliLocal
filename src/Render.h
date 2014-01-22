@@ -38,11 +38,10 @@ public:
 	QWidget *getWidget(){return widget;}
 
 private:
-	bool updating;
+	bool drawing;
 	QTime last;
 	QMovie tv;
-	QImage me;
-	QImage background;
+	QImage me,background;
 	QWidget *parent;
 	QWidget *widget;
 	QHash<QWidget *,QPixmap> cache;
@@ -52,6 +51,7 @@ private:
 	bool eventFilter(QObject *o, QEvent *e);
 	void drawPlay(QPainter *painter,QRect rect);
 	void drawStop(QPainter *painter,QRect rect);
+	void drawFloating(QPainter *painter);
 
 public slots:
 	void draw();

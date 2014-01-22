@@ -57,7 +57,12 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
-	vlc=libvlc_new(0,NULL);
+	QJsonArray args=Utils::getConfig<QJsonArray>("/Playing/Arguments");
+	int argc=0;char *argv[args.size()];
+	for(QJsonValue arg:args){
+		argv[argc++]=arg.toString().toUtf8().data();
+	}
+	vlc=libvlc_new(argc,argv);
 	m=NULL;
 	mp=NULL;
 	frame=0;

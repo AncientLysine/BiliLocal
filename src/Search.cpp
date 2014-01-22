@@ -300,11 +300,15 @@ Search::Search(QWidget *parent):QDialog(parent)
 				QJsonArray list=json["contents"].toArray();
 				for(int i=0;i<list.count();++i){
 					QJsonObject item=list[i].toObject();
+					int channelId=item["channelId"].toDouble();
+					if (channelId == 110 || channelId == 63 || (channelId > 72 && channelId < 77)) {
+						continue;
+					}
 					QStringList content;
 					content<<""<<QString::number((int)item["views"].toDouble())
 							<<QString::number((int)item["comments"].toDouble())
 							<<trans(item["title"].toString())
-							<<AcFunChannel()[item["channelId"].toDouble()]
+							<<AcFunChannel()[channelId]
 							<<trans(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));

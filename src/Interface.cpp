@@ -63,7 +63,7 @@ Interface::Interface(QWidget *parent):
 				post->fadeOut();
 				setFocus();
 			}
-			else{
+			else if(y>=0&&y<=h){
 				if(x<-100){
 					menu->push();
 					setFocus();
