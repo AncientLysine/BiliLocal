@@ -44,165 +44,20 @@ static QHash<int,int> mode()
 	return mode;
 }
 
-namespace{
-class Jumper:public QObject
+Post::Post(QWidget *parent):
+	QDialog(parent)
 {
-public:
-	Jumper(QAbstractSlider *parent,bool &flag):
-		QObject(parent),f(flag)
-	{
-		s=parent;
-		s->installEventFilter(this);
-	}
-
-	bool eventFilter(QObject *o, QEvent *e)
-	{
-		switch(e->type()){
-		case QEvent::MouseButtonRelease:
-			f=0;
-			s->setValue(getPosintion(e));
-			return true;
-		case QEvent::MouseMove:
-		case QEvent::MouseButtonPress:
-			f=1;
-			s->setSliderPosition(getPosintion(e));
-			return true;
-		case QEvent::Paint:
-		{
-			QPainter p(s);
-			p.setRenderHint(QPainter::Antialiasing);
-			QStyleOptionSlider o;
-			o.initFrom(s);
-			o.subControls = QStyle::SC_SliderGroove;
-			o.activeSubControls = QStyle::SC_None;
-			o.orientation = s->orientation();
-			o.maximum = s->maximum();
-			o.minimum = s->minimum();
-			o.tickPosition = QSlider::NoTicks;
-			o.tickInterval = 0;
-			o.upsideDown = false;
-			o.sliderPosition = s->sliderPosition();
-			o.sliderValue = s->value();
-			o.singleStep = s->singleStep();
-			o.pageStep = s->pageStep();
-			o.state = QStyle::State_Horizontal;
-			QRect g = s->style()->subControlRect(QStyle::CC_Slider, &o, QStyle::SC_SliderGroove, s);
-			p.translate(0.5, 0.5);
-			QLinearGradient gradient;
-			gradient.setStart(g.center().x(), g.top());
-			gradient.setFinalStop(g.center().x(), g.bottom());
-			QColor outline = s->palette().background().color().darker(140);
-			p.setPen(QPen(outline));
-			QColor grooveColor,buttonColor = button(s->palette());
-			grooveColor.setHsv(buttonColor.hue(),
-							   qMin(255, (int)(buttonColor.saturation())),
-							   qMin(255, (int)(buttonColor.value()*0.9)));
-			gradient.setColorAt(0, grooveColor.darker(110));
-			gradient.setColorAt(1, grooveColor.lighter(110));
-			p.setBrush(gradient);
-			p.drawRoundedRect(g.adjusted(1, 1, -2, -2), 1, 1);
-			if(s->maximum()){
-				QColor highlight = s->palette().color(QPalette::Highlight);
-				QColor highlightedoutline = highlight.darker(140);
-				if (qGray(outline.rgb()) > qGray(highlightedoutline.rgb()))
-					outline = highlightedoutline;
-				p.setPen(QPen(outline));
-				gradient.setColorAt(0, highlight);
-				gradient.setColorAt(1, highlight.lighter(130));
-				p.setBrush(gradient);
-				g.setRight(g.right()*s->sliderPosition()/s->maximum());
-				p.drawRoundedRect(g.adjusted(1, 1, -2, -2), 1, 1);
-				p.setPen(QColor(255, 255, 255, 30));
-				p.setBrush(Qt::NoBrush);
-				p.drawRoundedRect(g.adjusted(2, 2, -3, -3), 1, 1);
-			}
-			p.end();
-			return true;
-		}
-		default:
-			return QObject::eventFilter(o,e);
-		}
-	}
-
-private:
-	bool &f;
-	QAbstractSlider *s;
-
-	int getPosintion(QEvent *e)
-	{
-		return dynamic_cast<QMouseEvent *>(e)->pos().x()*SPLIT/s->width();
-	}
-
-	QColor button(const QPalette &pal) const
-	{
-		QColor buttonColor = pal.button().color();
-		int val = qGray(buttonColor.rgb());
-		buttonColor = buttonColor.lighter(100 + qMax(1, (180 - val)/6));
-		buttonColor.setHsv(buttonColor.hue(), buttonColor.saturation() * 0.75, buttonColor.value());
-		return buttonColor;
-	}
-};
-}
-
-Post::Post(QWidget *parent) :
-	QWidget(parent)
-{
-	ioo=0;
-	sliding=updating=false;
-	duration=-1;
-	timer=new QTimer(this);
-	connect(timer,&QTimer::timeout,[this](){
-		if(ioo==0){
-			timer->stop();
-		}
-		else if(ioo==1){
-			if(effect->opacity()>=0.9){
-				effect->setOpacity(1.0);
-				timer->stop();
-				ioo=2;
-			}
-			else{
-				effect->setOpacity(effect->opacity()+0.1);
-			}
-		}
-		else if(ioo==3){
-			if(effect->opacity()<=0.1){
-				effect->setOpacity(0.0);
-				timer->stop();
-				ioo=0;
-				hide();
-			}
-			else{
-				effect->setOpacity(effect->opacity()-0.1);
-			}
-		}
-	});
-	effect=new QGraphicsOpacityEffect(this);
-	effect->setOpacity(0.0);
-	setGraphicsEffect(effect);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	auto layout=new QGridLayout(this);
+	auto layout=new QHBoxLayout(this);
 	layout->setMargin(0);
 	layout->setSpacing(0);
-	timeS=new QAbstractSlider(this);
-	timeS->setOrientation(Qt::Horizontal);
-	timeS->setRange(0,0);
-	timeS->setValue(0);
-	timeS->setTracking(false);
-	connect(timeS,&QSlider::valueChanged,[this](int _time){
-		if(duration!=-1&&!updating){
-			VPlayer::instance()->setTime(duration*_time/SPLIT);
-		}
-	});
-	new Jumper(timeS,sliding);
-	layout->addWidget(timeS,0,0,1,4);
 	commentM=new QComboBox(this);
 	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
 	commentM->setFixedWidth(commentM->sizeHint().width());
-	layout->addWidget(commentM,1,0);
+	layout->addWidget(commentM);
 	commentC=new QPushButton(this);
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
@@ -210,15 +65,15 @@ Post::Post(QWidget *parent) :
 		QColor color=QColorDialog::getColor(getColor(),parentWidget());
 		if(color.isValid()) setColor(color);
 	});
-	layout->addWidget(commentC,1,1);
+	layout->addWidget(commentC);
 	commentL=new QLineEdit(this);
 	commentL->setEnabled(false);
-	layout->addWidget(commentL,1,2);
+	layout->addWidget(commentL);
 	commentB=new QPushButton(tr("Post"),this);
 	commentB->setEnabled(false);
 	commentB->setFixedWidth(55);
 	commentB->setToolTip(tr("DA☆ZE!"));
-	layout->addWidget(commentB,1,3);
+	layout->addWidget(commentB);
 	commentA=new QAction(this);
 	commentA->setShortcut(QKeySequence("Ctrl+Enter"));
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
@@ -228,12 +83,6 @@ Post::Post(QWidget *parent) :
 			postComment(commentL->text());
 			commentL->setText("");
 		}
-	});
-	connect(VPlayer::instance(),&VPlayer::begin,[this](){
-		setDuration(VPlayer::instance()->getDuration());
-	});
-	connect(VPlayer::instance(),&VPlayer::reach,[this](){
-		setDuration(-1);
 	});
 	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
 		const Record *r=getBilibili();
@@ -247,36 +96,6 @@ QColor Post::getColor()
 {
 	QString sheet=commentC->styleSheet();
 	return QColor(sheet.mid(sheet.indexOf('#')));
-}
-
-void Post::fadeIn()
-{
-	if(ioo==0){
-		ioo=1;
-		timer->start(20);
-		show();
-	}
-}
-
-void Post::fadeOut()
-{
-	if(ioo==2){
-		ioo=3;
-		timer->start(20);
-	}
-}
-
-void Post::setTime(qint64 _time)
-{
-	if(!timeS->isSliderDown()){
-		int position=timeS->sliderPosition();
-		updating=1;
-		timeS->setValue(_time*SPLIT/duration);
-		updating=0;
-		if(sliding){
-			timeS->setSliderPosition(position);
-		}
-	}
 }
 
 void Post::setColor(QColor color)
@@ -324,19 +143,6 @@ void Post::postComment(QString comment)
 	}
 	else{
 		QMessageBox::warning(this,tr("Warning"),tr("Empty cid."));
-	}
-}
-
-void Post::setDuration(qint64 _duration)
-{
-	if(_duration>0){
-		duration=_duration;
-		timeS->setRange(0,SPLIT);
-	}
-	else{
-		duration=-1;
-		timeS->setValue(0);
-		timeS->setRange(0,0);
 	}
 }
 

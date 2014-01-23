@@ -88,6 +88,7 @@ signals:
 	void reach();
 	void decode();
 	void jumped(qint64 _time);
+	void timeChanged(qint64 _time);
 	void stateChanged(int _state);
 
 public slots:

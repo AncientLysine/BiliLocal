@@ -60,14 +60,14 @@ private:
 	QIcon playI,stopI,pauseI;
 	QPropertyAnimation *animation;
 	void resizeEvent(QResizeEvent *e);
+	void setTime(qint64 _time);
+	void setDuration(qint64 _duration);
 	
 public slots:
 	void pop();
 	void push(bool force=false);
 	void terminate();
 	void resizeHeader();
-	void setTime(qint64 _time);
-	void setDuration(qint64 _duration);
 	
 };
 

@@ -34,37 +34,26 @@
 
 class Record;
 
-class Post:public QWidget
+class Post:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Post(QWidget *parent = 0);
-	bool isShown(){return ioo==2;}
+	explicit Post(QWidget *parent=0);
+	bool isShown(){return isVisible();}
 	bool isValid(){return getBilibili()!=NULL;}
 	QColor getColor();
 
 public slots:
-	void fadeIn();
-	void fadeOut();
-	void setTime(qint64 _time);
 	void setColor(QColor color);
 	void postComment(QString comment);
-	void setDuration(qint64 _duration);
 
 private:
-	bool sliding;
-	bool updating;
-	qint64 duration;
-	QAbstractSlider *timeS;
 	QAction *commentA;
 	QLineEdit *commentL;
 	QComboBox *commentM;
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
-	QGraphicsOpacityEffect *effect;
-	int ioo;
-	QTimer *timer;
 	const Record *getBilibili();
 };
 

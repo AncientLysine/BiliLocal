@@ -26,6 +26,7 @@
 
 #include "Danmaku.h"
 #include "Shield.h"
+#include "VPlayer.h"
 #include "Graphic.h"
 #include <unordered_set>
 
@@ -36,7 +37,8 @@ Danmaku::Danmaku(QObject *parent) :
 {
 	cur=time=0;
 	ins=this;
-	qsrand(QTime::currentTime().msec());
+	connect(VPlayer::instance(),&VPlayer::jumped,this,&Danmaku::jumpToTime);
+	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
 }
 
 void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)

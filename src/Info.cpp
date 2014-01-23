@@ -175,6 +175,7 @@ Info::Info(QWidget *parent):
 		}
 	});
 
+	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Info::setTime);
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		setDuration(VPlayer::instance()->getDuration());
 	});

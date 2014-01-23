@@ -49,6 +49,13 @@ static void sta(const struct libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
+static void mid(const struct libvlc_event_t *,void *)
+{
+	QMetaObject::invokeMethod(VPlayer::instance(),
+							  "timeChanged",
+							  Q_ARG(qint64,VPlayer::instance()->getTime()));
+}
+
 static void end(const struct libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),"free");
@@ -330,8 +337,8 @@ void VPlayer::setTime(qint64 _time)
 			}
 		}
 		else{
-			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 			emit jumped(_time);
+			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 		}
 	}
 }
@@ -351,8 +358,15 @@ void VPlayer::setFile(QString _file)
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
-			libvlc_event_attach(man,libvlc_MediaPlayerPlaying   ,sta,NULL);
-			libvlc_event_attach(man,libvlc_MediaPlayerEndReached,end,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerPlaying,
+								sta,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerTimeChanged,
+								mid,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerEndReached,
+								end,NULL);
 		}
 	}
 }

@@ -33,7 +33,6 @@ Render::Render(QWidget *parent):
 {
 	device=NULL;
 	context=NULL;
-	drawing=false;
 	tv.start();
 	setSurfaceType(QWindow::OpenGLSurface);
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
@@ -82,25 +81,6 @@ bool Render::event(QEvent *e)
 	}
 }
 
-bool Render::eventFilter(QObject *o,QEvent *e)
-{
-	QWidget *w=qobject_cast<QWidget *>(o);
-	if(w&&cache.contains(w)&&!drawing){
-		switch(e->type()){
-		case QEvent::Hide:
-		case QEvent::Resize:
-			cache[w]=QPixmap();
-			break;
-		case QEvent::Move:
-			draw();
-			break;
-		default:
-			break;
-		}
-	}
-	return false;
-}
-
 void Render::drawPlay(QPainter *painter, QRect rect)
 {
 	VPlayer *vplayer=VPlayer::instance();
@@ -133,29 +113,9 @@ void Render::drawStop(QPainter *painter,QRect rect)
 	painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
 }
 
-static QWidget::RenderFlags getFlags(QWidget *w)
+void Render::drawTime(QPainter *painter,QRect rect)
 {
-	if(w->autoFillBackground()){
-		return QWidget::DrawChildren|QWidget::DrawWindowBackground;
-	}
-	else{
-		return QWidget::DrawChildren;
-	}
-}
-
-void Render::drawFloating(QPainter *painter)
-{
-	for(QWidget *w:cache.keys()){
-		if(w->isVisible()){
-			QPixmap &c=cache[w];
-			if(c.isNull()){
-				c=QPixmap(w->size());
-				c.fill(Qt::transparent);
-				w->render(&c,QPoint(),QRegion(),getFlags(w));
-			}
-			painter->drawPixmap(w->pos(),c);
-		}
-	}
+	;
 }
 
 void Render::draw()
@@ -182,7 +142,6 @@ void Render::draw()
 	device->setSize(size());
 	QPainter painter(device);
 	painter.setRenderHints(QPainter::SmoothPixmapTransform);
-	drawing=1;
 	QRect rect(QPoint(0,0),size());
 	if(VPlayer::instance()->getState()==VPlayer::Stop){
 		drawStop(&painter,rect);
@@ -190,15 +149,8 @@ void Render::draw()
 	else{
 		drawPlay(&painter,rect);
 	}
-	drawFloating(&painter);
-	drawing=0;
-	context->swapBuffers(this);
-}
-
-void Render::setFloating(QList<QWidget *> f)
-{
-	for(QWidget *w:f){
-		w->installEventFilter(this);
-		cache.insert(w,QPixmap());
+	if(Utils::getConfig("/Playing/Slider",true)){
+		drawTime(&painter,rect);
 	}
+	context->swapBuffers(this);
 }

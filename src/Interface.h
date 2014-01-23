@@ -34,12 +34,11 @@
 
 class Menu;
 class Info;
-class Post;
 class Render;
 class VPlayer;
 class Danmaku;
 
-class Interface:public QWidget
+class Interface:public QMdiSubWindow
 {
 	Q_OBJECT
 public:
@@ -58,7 +57,6 @@ private:
 
 	Menu *menu;
 	Info *info;
-	Post *post;
 	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
@@ -73,6 +71,7 @@ private:
 	void dragEnterEvent(QDragEnterEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
+	void mousePressEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 

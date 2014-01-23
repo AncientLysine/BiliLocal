@@ -29,7 +29,6 @@
 #include "Utils.h"
 #include "Menu.h"
 #include "Info.h"
-#include "Post.h"
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
@@ -37,10 +36,10 @@
 #include "Danmaku.h"
 
 Interface::Interface(QWidget *parent):
-	QWidget(parent)
+	QMdiSubWindow(parent)
 {
 	setAcceptDrops(true);
-	setMinimumSize(550,390);
+	setMinimumSize(550,400);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
 	vplayer=new VPlayer(this);
@@ -48,8 +47,6 @@ Interface::Interface(QWidget *parent):
 	render=new Render(this);
 	menu=new Menu(this);
 	info=new Info(this);
-	post=new Post(this);
-	render->setFloating(QList<QWidget *>()<<menu<<info<<post);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(200);
@@ -60,7 +57,6 @@ Interface::Interface(QWidget *parent):
 			if(y<-50||y>h+50){
 				menu->push();
 				info->push();
-				post->fadeOut();
 				setFocus();
 			}
 			else if(y>=0&&y<=h){
@@ -68,38 +64,29 @@ Interface::Interface(QWidget *parent):
 					menu->push();
 					setFocus();
 				}
-				if(x>=0&&x<50){
-					menu->pop();
-				}
 				if(x>250){
 					menu->push();
-					if(!info->isShown()&&!post->isShown()){
+					if(!info->isShown()){
 						setFocus();
 					}
 				}
 				if(x<w-250){
 					info->push();
-					if(!menu->isShown()&&!post->isShown()){
+					if(!menu->isShown()){
 						setFocus();
 					}
-				}
-				if(x>w-50&&x<=w){
-					info->pop();
 				}
 				if(x>w+100){
 					info->push();
 					setFocus();
 				}
-				if(x>200&&x<w-200){
-					if(y>h-65&&(vplayer->getState()!=VPlayer::Stop||post->isValid())){
-						post->fadeIn();
+				if(y<=h-25){
+					if(x>=0&&x<50){
+						menu->pop();
 					}
-					if(y<h-85){
-						post->fadeOut();
+					if(x>w-50&&x<=w){
+						info->pop();
 					}
-				}
-				else{
-					post->fadeOut();
 				}
 			}
 		}
@@ -114,12 +101,6 @@ Interface::Interface(QWidget *parent):
 			else{
 				delay->stop();
 			}
-		}
-		if(vplayer->getState()==VPlayer::Play){
-			qint64 time=vplayer->getTime();
-			info->setTime(time);
-			post->setTime(time);
-			danmaku->setTime(time);
 		}
 	});
 	connect(delay,&QTimer::timeout,[this](){
@@ -149,7 +130,6 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
-	connect(vplayer,&VPlayer::jumped,danmaku,&Danmaku::jumpToTime);
 
 	addActions(menu->actions());
 	addActions(info->actions());
@@ -157,7 +137,7 @@ Interface::Interface(QWidget *parent):
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setShortcut(QKeySequence("Ctrl+Q"));
 	addAction(quitA);
-	connect(quitA,&QAction::triggered,&QApplication::quit);
+	connect(quitA,&QAction::triggered,this,&Interface::close);
 
 	fullA=new QAction(tr("Full Screen"),this);
 	fullA->setCheckable(true);
@@ -291,7 +271,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	info->terminate();
 	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
 	info->setGeometry(info->isShown()?w-200:w,0,200,h);
-	post->setGeometry(qMax(400,w-800)/2,h-65,qMin(800,w-400),50);
 	QWidget::resizeEvent(e);
 }
 
@@ -316,14 +295,19 @@ void Interface::keyPressEvent(QKeyEvent *e)
 
 void Interface::mouseMoveEvent(QMouseEvent *e)
 {
+	if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
+		move(wgd+e->globalPos()-sta);
+	}
+	QWidget::mouseMoveEvent(e);
+}
+
+void Interface::mousePressEvent(QMouseEvent *e)
+{
 	if(sta.isNull()){
 		sta=e->globalPos();
 		wgd=pos();
 	}
-	else if((windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
-		move(wgd+e->globalPos()-sta);
-	}
-	QWidget::mouseMoveEvent(e);
+	QWidget::mousePressEvent(e);
 }
 
 void Interface::mouseReleaseEvent(QMouseEvent *e)
@@ -342,7 +326,7 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 
 void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 {
-	if(!menu->isShown()&&!info->isShown()&&!post->isShown()){
+	if(!menu->isShown()&&!info->isShown()){
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);

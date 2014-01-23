@@ -37,7 +37,7 @@ static QString getPath()
 	return Utils::getConfig("/Playing/Path",QDir::homePath());
 }
 
-Menu::Menu(QWidget *parent) :
+Menu::Menu(QWidget *parent):
 	QWidget(parent)
 {
 	isStay=false;
