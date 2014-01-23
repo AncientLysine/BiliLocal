@@ -67,10 +67,8 @@ Post::Post(QWidget *parent):
 	});
 	layout->addWidget(commentC);
 	commentL=new QLineEdit(this);
-	commentL->setEnabled(false);
 	layout->addWidget(commentL);
 	commentB=new QPushButton(tr("Post"),this);
-	commentB->setEnabled(false);
 	commentB->setFixedWidth(55);
 	commentB->setToolTip(tr("DA☆ZE!"));
 	layout->addWidget(commentB);
@@ -81,21 +79,25 @@ Post::Post(QWidget *parent):
 	connect(commentA,&QAction::triggered,[this](){
 		if(!commentL->text().isEmpty()){
 			postComment(commentL->text());
-			commentL->setText("");
+			accept();
 		}
 	});
-	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
-		const Record *r=getBilibili();
-		commentL->setEnabled(r!=NULL);
-		commentB->setEnabled(r!=NULL);
-	});
-	hide();
 }
 
 QColor Post::getColor()
 {
 	QString sheet=commentC->styleSheet();
 	return QColor(sheet.mid(sheet.indexOf('#')));
+}
+
+const Record *Post::getBilibili()
+{
+	for(const Record &r:Danmaku::instance()->getPool()){
+		if(r.source.startsWith("http://comment.bilibili.tv/")){
+			return &r;
+		}
+	}
+	return NULL;
 }
 
 void Post::setColor(QColor color)
@@ -144,14 +146,4 @@ void Post::postComment(QString comment)
 	else{
 		QMessageBox::warning(this,tr("Warning"),tr("Empty cid."));
 	}
-}
-
-const Record *Post::getBilibili()
-{
-	for(const Record &r:Danmaku::instance()->getPool()){
-		if(r.source.startsWith("http://comment.bilibili.tv/")){
-			return &r;
-		}
-	}
-	return NULL;
 }

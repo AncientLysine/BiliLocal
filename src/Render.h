@@ -39,9 +39,9 @@ public:
 
 private:
 	QMovie tv;
+	double time;
 	QImage me,background;
 	QTime last;
-	QPixmap slider;
 	QWidget *parent;
 	QWidget *widget;
 	QOpenGLContext *context;
@@ -53,6 +53,7 @@ private:
 
 public slots:
 	void draw();
+	void setTime(double t);
 };
 
 #endif // RENDER_H

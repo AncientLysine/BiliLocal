@@ -29,6 +29,7 @@
 #include "Utils.h"
 #include "Menu.h"
 #include "Info.h"
+#include "Post.h"
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
@@ -179,6 +180,17 @@ Interface::Interface(QWidget *parent):
 		toggA->setChecked(Shield::block[7]);
 	});
 
+	postA=new QAction(tr("Post Danmaku"),this);
+	postA->setEnabled(false);
+	postA->setShortcut(QKeySequence("Ctrl+P"));
+	connect(postA,&QAction::triggered,[this](){
+		Post post(this);
+		post.exec();
+	});
+	connect(danmaku,&Danmaku::modelReset,[this](){
+		postA->setEnabled(Post::isValid());
+	});
+
 	QActionGroup *g;
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
@@ -303,7 +315,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 
 void Interface::mousePressEvent(QMouseEvent *e)
 {
-	if(sta.isNull()){
+	if(sta.isNull()&&e->button()==Qt::LeftButton){
 		sta=e->globalPos();
 		wgd=pos();
 	}
@@ -421,6 +433,7 @@ void Interface::showContextMenu(QPoint p)
 		top.addAction(fullA);
 		top.addAction(toggA);
 		top.addActions(menu->actions());
+		top.addAction(postA);
 		QMenu *sub=new QMenu(tr("Subtitle"),this);
 		QMenu *vid=new QMenu(tr("Video Track"),this);
 		QMenu *aud=new QMenu(tr("Audio Track"),this);

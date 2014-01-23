@@ -52,6 +52,7 @@ private:
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
+	QAction *postA;
 	QMenu *rat;
 	QMenu *sca;
 

@@ -39,13 +39,7 @@ class Post:public QDialog
 	Q_OBJECT
 public:
 	explicit Post(QWidget *parent=0);
-	bool isShown(){return isVisible();}
-	bool isValid(){return getBilibili()!=NULL;}
-	QColor getColor();
-
-public slots:
-	void setColor(QColor color);
-	void postComment(QString comment);
+	static bool isValid(){return getBilibili()!=NULL;}
 
 private:
 	QAction *commentA;
@@ -54,7 +48,12 @@ private:
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
-	const Record *getBilibili();
+	QColor getColor();
+	static const Record *getBilibili();
+
+private slots:
+	void setColor(QColor color);
+	void postComment(QString comment);
 };
 
 #endif // POST_H

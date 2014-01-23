@@ -33,6 +33,7 @@ Render::Render(QWidget *parent):
 {
 	device=NULL;
 	context=NULL;
+	time=0;
 	tv.start();
 	setSurfaceType(QWindow::OpenGLSurface);
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
@@ -115,7 +116,28 @@ void Render::drawStop(QPainter *painter,QRect rect)
 
 void Render::drawTime(QPainter *painter,QRect rect)
 {
-	;
+	if(time<=0){
+		return;
+	}
+	rect=QRect(0,height()-2,width()*time,2);
+	QLinearGradient gradient;
+	gradient.setStart(rect.center().x(),rect.top());
+	gradient.setFinalStop(rect.center().x(),rect.bottom());
+	QColor outline=qApp->palette().background().color().darker(140);
+	QColor highlight=qApp->palette().color(QPalette::Highlight);
+	QColor highlightedoutline=highlight.darker(140);
+	if (qGray(outline.rgb())>qGray(highlightedoutline.rgb())){
+		outline=highlightedoutline;
+	}
+	painter->setPen(QPen(outline));
+	gradient.setColorAt(0,highlight);
+	gradient.setColorAt(1,highlight.lighter(130));
+	painter->setBrush(gradient);
+	painter->drawRect(rect);
+	painter->setPen(QColor(255,255,255,30));
+	painter->setBrush(Qt::NoBrush);
+	painter->drawRect(rect.adjusted(1,1,-1,-1));
+
 }
 
 void Render::draw()
@@ -141,16 +163,20 @@ void Render::draw()
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 	device->setSize(size());
 	QPainter painter(device);
-	painter.setRenderHints(QPainter::SmoothPixmapTransform);
+	painter.setRenderHints(QPainter::SmoothPixmapTransform|QPainter::HighQualityAntialiasing);
 	QRect rect(QPoint(0,0),size());
 	if(VPlayer::instance()->getState()==VPlayer::Stop){
 		drawStop(&painter,rect);
 	}
 	else{
 		drawPlay(&painter,rect);
-	}
-	if(Utils::getConfig("/Playing/Slider",true)){
 		drawTime(&painter,rect);
 	}
 	context->swapBuffers(this);
+}
+
+void Render::setTime(double t)
+{
+	time=t;
+	draw();
 }
