@@ -292,7 +292,7 @@ Config::Config(QWidget *parent,int index):
 				bool flag=false;
 				if(reply->error()==QNetworkReply::NoError){
 					QString page(reply->readAll());
-					if(page.indexOf("http://www.bilibili.tv/")!=-1){
+					if(page.indexOf("setTimeout('JumpUrl()',2000)")!=-1){
 						flag=true;
 					}
 					else{
@@ -328,14 +328,14 @@ Config::Config(QWidget *parent,int index):
 				setLogout();
 			}
 		});
-		Utils::getReply(manager,QNetworkRequest(QString("http://interface.bilibili.tv/nav.js")),[=](QNetworkReply *reply){
+		Utils::getReply(manager,QNetworkRequest(QUrl("http://member.bilibili.tv/")),[=](QNetworkReply *reply){
 			bool flag=false;
 			if(reply->error()==QNetworkReply::NoError){
 				QString page(reply->readAll());
-				int sta=page.indexOf("title=\"");
+				int sta=page.indexOf("<em>");
 				if(sta!=-1){
-					sta+=7;
-					input[0]->setText(page.mid(sta,page.indexOf("\"",sta)-sta));
+					sta+=4;
+					input[0]->setText(page.mid(sta,page.indexOf("<",sta)-sta));
 					flag=true;
 				}
 			}

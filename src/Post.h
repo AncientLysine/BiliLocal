@@ -33,6 +33,7 @@
 #include <QtNetwork>
 
 class Record;
+class Comment;
 
 class Post:public QDialog
 {
@@ -42,6 +43,7 @@ public:
 	static bool isValid(){return getBilibili()!=NULL;}
 
 private:
+	QLabel *commentP;
 	QAction *commentA;
 	QLineEdit *commentL;
 	QComboBox *commentM;
@@ -49,11 +51,13 @@ private:
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
 	QColor getColor();
+	Comment getComment();
 	static const Record *getBilibili();
 
 private slots:
 	void setColor(QColor color);
-	void postComment(QString comment);
+	void drawComment();
+	void postComment();
 };
 
 #endif // POST_H

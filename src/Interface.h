@@ -62,9 +62,10 @@ private:
 	VPlayer *vplayer;
 	Danmaku *danmaku;
 
-	QPoint pre;
 	QPoint sta;
 	QPoint wgd;
+
+	bool sliding;
 
 	void dropEvent(QDropEvent *e);
 	void closeEvent(QCloseEvent *e);

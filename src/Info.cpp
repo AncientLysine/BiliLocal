@@ -36,9 +36,7 @@
 Info::Info(QWidget *parent):
 	QWidget(parent)
 {
-	isStay=false;
-	isPoped=false;
-	updating=false;
+	isStay=isPoped=updating=false;
 	Utils::setGround(this,Qt::white);
 	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
@@ -153,7 +151,7 @@ Info::Info(QWidget *parent):
 				QFileInfo info(path);
 				path=info.absolutePath()+'/'+info.baseName()+".json";
 			}
-			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
+			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path,tr("Danmaku files (*.json)"));
 			if(!file.isEmpty()){
 				if(!file.endsWith(".json")){
 					file.append(".json");

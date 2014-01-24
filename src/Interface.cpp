@@ -50,62 +50,20 @@ Interface::Interface(QWidget *parent):
 	info=new Info(this);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
-	timer->start(200);
+	timer->start(1000);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
 		if(isActiveWindow()){
-			if(y<-50||y>h+50){
+			if(y<-60||y>h+60||x<-100||x>w+100){
 				menu->push();
 				info->push();
 				setFocus();
 			}
-			else if(y>=0&&y<=h){
-				if(x<-100){
-					menu->push();
-					setFocus();
-				}
-				if(x>250){
-					menu->push();
-					if(!info->isShown()){
-						setFocus();
-					}
-				}
-				if(x<w-250){
-					info->push();
-					if(!menu->isShown()){
-						setFocus();
-					}
-				}
-				if(x>w+100){
-					info->push();
-					setFocus();
-				}
-				if(y<=h-25){
-					if(x>=0&&x<50){
-						menu->pop();
-					}
-					if(x>w-50&&x<=w){
-						info->pop();
-					}
-				}
-			}
-		}
-		if(cur!=pre){
-			pre=cur;
-			if(!menu->isVisible()&&!info->isVisible()){
-				if(cursor().shape()==Qt::BlankCursor){
-					unsetCursor();
-				}
-				delay->start(2000);
-			}
-			else{
-				delay->stop();
-			}
 		}
 	});
 	connect(delay,&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play){
+		if(vplayer->getState()==VPlayer::Play&&!menu->isVisible()&&!info->isVisible()){
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 	});
@@ -117,6 +75,7 @@ Interface::Interface(QWidget *parent):
 			setCenter(vplayer->getSize(),false);
 		}
 		rat->setEnabled(true);
+		render->setTime(0);
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
 		danmaku->resetTime();
@@ -129,8 +88,16 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			setCenter(QSize(),false);
 		}
+		render->setTime(0);
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
+
+	sliding=false;
+	connect(vplayer,&VPlayer::timeChanged,[this](qint64 t){
+		if(!sliding&&vplayer->getState()!=VPlayer::Stop){
+			render->setTime(t/(double)vplayer->getDuration());
+		}
+	});
 
 	addActions(menu->actions());
 	addActions(info->actions());
@@ -307,7 +274,38 @@ void Interface::keyPressEvent(QKeyEvent *e)
 
 void Interface::mouseMoveEvent(QMouseEvent *e)
 {
-	if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
+	QPoint cur=e->pos();
+	int x=cur.x(),y=cur.y(),w=width(),h=height();
+	if(isActiveWindow()){
+		if(x>250){
+			menu->push();
+			if(!info->isShown()){
+				setFocus();
+			}
+		}
+		if(x<w-250){
+			info->push();
+			if(!menu->isShown()){
+				setFocus();
+			}
+		}
+		if(y<=h-25){
+			if(x>=0&&x<50){
+				menu->pop();
+			}
+			if(x>w-50&&x<=w){
+				info->pop();
+			}
+		}
+	}
+	if(cursor().shape()==Qt::BlankCursor){
+		unsetCursor();
+	}
+	delay->start(4000);
+	if(sliding){
+		render->setTime(e->x()/(double)width());
+	}
+	else if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);
 	}
 	QWidget::mouseMoveEvent(e);
@@ -315,9 +313,15 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 
 void Interface::mousePressEvent(QMouseEvent *e)
 {
-	if(sta.isNull()&&e->button()==Qt::LeftButton){
-		sta=e->globalPos();
-		wgd=pos();
+	if(e->button()==Qt::LeftButton){
+		if(sta.isNull()){
+			sta=e->globalPos();
+			wgd=pos();
+		}
+		if(e->y()>=height()-25){
+			sliding=true;
+			render->setTime(e->x()/(double)width());
+		}
 	}
 	QWidget::mousePressEvent(e);
 }
@@ -330,6 +334,12 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		setFocus();
 	}
 	sta=wgd=QPoint();
+	if(sliding&&e->button()==Qt::LeftButton){
+		sliding=false;
+		if(vplayer->getState()!=VPlayer::Stop){
+			vplayer->setTime(e->x()*vplayer->getDuration()/(width()-1));
+		}
+	}
 	if(e->button()==Qt::RightButton){
 		showContextMenu(e->pos());
 	}

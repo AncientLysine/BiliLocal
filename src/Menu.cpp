@@ -40,7 +40,7 @@ static QString getPath()
 Menu::Menu(QWidget *parent):
 	QWidget(parent)
 {
-	isStay=false;
+	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());

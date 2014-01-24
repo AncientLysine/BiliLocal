@@ -26,59 +26,57 @@
 =========================================================================*/
 
 #include "Post.h"
-#include "Utils.h"
 #include "Cookie.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
-
-#define SPLIT 1500
-
-static QHash<int,int> mode()
-{
-	static QHash<int,int> mode;
-	if(mode.isEmpty()){
-		mode[0]=5;
-		mode[1]=1;
-		mode[2]=4;
-	}
-	return mode;
-}
+#include "Graphic.h"
 
 Post::Post(QWidget *parent):
 	QDialog(parent)
 {
+	setMinimumSize(400,300);
+	setWindowTitle(tr("Post"));
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	auto layout=new QHBoxLayout(this);
+	auto layout=new QGridLayout(this);
 	layout->setMargin(0);
 	layout->setSpacing(0);
+	layout->setRowStretch(0,5);
+	commentP=new QLabel(this);
+	layout->addWidget(commentP,0,0,1,4);
 	commentM=new QComboBox(this);
 	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
 	commentM->setFixedWidth(commentM->sizeHint().width());
-	layout->addWidget(commentM);
+	connect(commentM,SIGNAL(currentIndexChanged(int)),this,SLOT(drawComment()));
+	layout->addWidget(commentM,1,0);
 	commentC=new QPushButton(this);
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
 	connect(commentC,&QPushButton::clicked,[this](){
 		QColor color=QColorDialog::getColor(getColor(),parentWidget());
-		if(color.isValid()) setColor(color);
+		if(color.isValid()){
+			setColor(color);
+			drawComment();
+		}
 	});
-	layout->addWidget(commentC);
+	layout->addWidget(commentC,1,1);
 	commentL=new QLineEdit(this);
-	layout->addWidget(commentL);
+	connect(commentL,&QLineEdit::textChanged,this,&Post::drawComment);
+	layout->addWidget(commentL,1,2);
 	commentB=new QPushButton(tr("Post"),this);
+	commentB->setDefault(true);
 	commentB->setFixedWidth(55);
 	commentB->setToolTip(tr("DA☆ZE!"));
-	layout->addWidget(commentB);
+	layout->addWidget(commentB,1,3);
 	commentA=new QAction(this);
 	commentA->setShortcut(QKeySequence("Ctrl+Enter"));
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
 	connect(commentL,&QLineEdit::returnPressed,commentA,&QAction::trigger);
 	connect(commentA,&QAction::triggered,[this](){
 		if(!commentL->text().isEmpty()){
-			postComment(commentL->text());
+			postComment();
 			accept();
 		}
 	});
@@ -88,6 +86,31 @@ QColor Post::getColor()
 {
 	QString sheet=commentC->styleSheet();
 	return QColor(sheet.mid(sheet.indexOf('#')));
+}
+
+static int mode(int i)
+{
+	switch(i){
+	case 0:
+		return 5;
+	case 1:
+		return 1;
+	case 2:
+		return 4;
+	default:
+		return 0;
+	}
+}
+
+Comment Post::getComment()
+{
+	Comment c;
+	c.mode=mode(commentM->currentIndex());
+	c.font=25;
+	c.time=qMax<qint64>(0,VPlayer::instance()->getTime());
+	c.color=getColor().rgb()&0xFFFFFF;
+	c.string=commentL->text();
+	return c;
 }
 
 const Record *Post::getBilibili()
@@ -102,19 +125,64 @@ const Record *Post::getBilibili()
 
 void Post::setColor(QColor color)
 {
-	commentC->setStyleSheet(QString("background-color:%1").arg(color.name()));
+	commentC->setStyleSheet(QString("background:%1").arg(color.name()));
 }
 
-void Post::postComment(QString comment)
+void Post::drawComment()
+{
+	if(!commentL->text().isEmpty()){
+		Graphic *g=NULL;
+		switch(commentM->currentIndex()){
+		case 0:
+			g=new Mode5(getComment(),QList<Graphic *>(),commentP->size());
+			break;
+		case 1:
+			g=new Mode1(getComment(),QList<Graphic *>(),commentP->size());
+			break;
+		case 2:
+			g=new Mode4(getComment(),QList<Graphic *>(),commentP->size());
+			break;
+		}
+		if(g!=NULL&&!g->isEnabled()){
+			delete g;
+			g=NULL;
+		}
+		if(g){
+			QRect r=g->currentRect().toRect();
+			QPixmap c(r.size());
+			c.fill(Qt::transparent);
+			QPainter p(&c);
+			p.translate(-r.topLeft());
+			g->draw(&p);
+			switch(g->getMode()){
+			case 1:
+				commentP->setAlignment(Qt::AlignCenter);
+				break;
+			case 4:
+				commentP->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
+				break;
+			case 5:
+				commentP->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+				break;
+			}
+			delete g;
+			commentP->setPixmap(c);
+			return;
+		}
+		else{
+			commentP->setText(tr("Error while rendering."));
+		}
+	}
+	else{
+		commentP->clear();
+	}
+}
+
+void Post::postComment()
 {
 	const Record *r=getBilibili();
 	if(r!=NULL){
-		Comment c;
-		c.mode=mode()[commentM->currentIndex()];
-		c.font=25;
-		c.time=qMax<qint64>(0,VPlayer::instance()->getTime());
-		c.color=getColor().rgb()&0xFFFFFF;
-		c.string=comment;
+		const Comment &c=getComment();
 		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
