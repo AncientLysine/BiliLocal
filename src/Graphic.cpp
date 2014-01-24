@@ -243,12 +243,23 @@ static QSize getSize(QString string,QFont font)
 	return QFontMetrics(font).size(0,lines.join('\n'))+QSize(4,4);
 }
 
-static double getScale(int mode,QSize size)
+static QSizeF getPlayer(qint64 date)
+{
+	if(date<=1384099200){
+		return QSizeF(545,388);
+	}
+	else{
+		return QSizeF(672,438);
+	}
+}
+
+static double getScale(int mode,qint64 date,QSize size)
 {
 	int scale=Utils::getConfig("/Danmaku/Scale",0x1);
 	if(mode<=6&&(scale&0x2)==0) return 1;
 	if(mode==7&&(scale&0x1)==0) return 0;
-	return qMin(size.width()/545.0,size.height()/388.0);
+	QSizeF player=getPlayer(date);
+	return qMin(size.width()/player.width(),size.height()/player.height());
 }
 
 static QPixmap getCache(QString string,
@@ -349,7 +360,7 @@ Mode1::Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize 
 	if(comment.mode!=1){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -422,7 +433,7 @@ Mode4::Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize 
 	if(comment.mode!=4){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -485,7 +496,7 @@ Mode5::Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize 
 	if(comment.mode!=5){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -549,7 +560,7 @@ Mode6::Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize 
 	if(comment.mode!=6){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,size));
+	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize bound=getSize(comment.string,font);
 	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -628,7 +639,7 @@ Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
 		return;
 	}
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
-	double scale=getScale(comment.mode,size);
+	double scale=getScale(comment.mode,comment.date,size);
 	bPos=QPointF(getDouble(0),getDouble(1));
 	ePos=l<8?bPos:QPointF(getDouble(7),getDouble(8));
 	int w=size.width(),h=size.height();
@@ -643,7 +654,8 @@ Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
 		scale=1;
 	}
 	else{
-		QPoint offset((w-545*scale)/2,(h-388*scale)/2);
+		QSizeF player=getPlayer(comment.date);
+		QPoint offset=QPoint((w-player.width()*scale)/2,(h-player.height()*scale)/2);
 		bPos=bPos*scale+offset;
 		ePos=ePos*scale+offset;
 	}
