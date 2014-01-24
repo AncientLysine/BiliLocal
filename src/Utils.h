@@ -89,7 +89,8 @@ public:
 		Unknown,
 		Bilibili,
 		AcFun,
-		Letv
+		Letv,
+		AcPlay
 	};
 	static Site getSite(QString url);
 	static void setCenter(QWidget *widget);

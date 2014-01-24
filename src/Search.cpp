@@ -28,6 +28,7 @@
 #include "Search.h"
 #include "Utils.h"
 #include "Cookie.h"
+#include "VPlayer.h"
 
 static QHash<int,QString> AcFunChannel()
 {
@@ -93,7 +94,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 	orderC->setEditable(false);
 	sitesC=new QComboBox(this);
 	QStringList sites;
-	sites<<"Bilibili"<<"AcFun";
+	sites<<"Bilibili"<<"AcFun"<<"AcPlay";
 	sitesC->addItems(sites);
 	sitesC->setEditable(false);
 	keywdLayout->addWidget(orderC);
@@ -156,7 +157,11 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	connect(sitesC,&QComboBox::currentTextChanged,[this](QString){
 		setSite();
-		if(!isWaiting&&resultW->topLevelItemCount()>0){
+		keywE->setEnabled(sitesC->currentIndex()!=2);
+		if(!keywE->isEnabled()){
+			keywE->clear();
+		}
+		else if(!isWaiting&&resultW->topLevelItemCount()>0){
 			searchB->click();
 		}
 	});
@@ -165,7 +170,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
-		else if(!keywE->text().isEmpty()){
+		else if(!keywE->text().isEmpty()||sitesC->currentIndex()==2){
 			clearSearch();
 			startSearch();
 		}
@@ -238,12 +243,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 				int sta,end;
 				if(pageNum==-1){
 					sta=data.indexOf("<div class=\"pagelistbox\"><span>");
-					end=data.indexOf("</div>",sta);
-					QString page=data.mid(sta,end-sta+6);
-					sta=page.indexOf("<a class=\"endPage\"");
-					sta=page.indexOf("page=",sta)+5;
-					end=page.indexOf("\">",sta);
-					pageNum=page.mid(sta,end-sta).toInt();
+					if(sta!=-1){
+						end=data.indexOf("</div>",sta);
+						QString page=data.mid(sta,end-sta+6);
+						sta=page.indexOf("<a class=\"endPage\"");
+						sta=page.indexOf("page=",sta)+5;
+						end=page.indexOf("\">",sta);
+						pageNum=page.mid(sta,end-sta).toInt();
+					}
+					else{
+						pageNum=1;
+					}
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
 				QStringList ary=data.split("<li class=\"l\">",QString::SkipEmptyParts);
@@ -251,39 +261,39 @@ Search::Search(QWidget *parent):QDialog(parent)
 					QString &item=ary.last();
 					item.truncate(item.lastIndexOf("</li>")+5);
 					ary.removeFirst();
-				}
-				for(QString item:ary){
-					item=item.simplified();
-					sta=item.indexOf("http://www.bilibili.tv/video/");
-					if(sta!=-1){
-						sta+=29;
-						end=item.indexOf("/\"",sta);
-						QTreeWidgetItem *row=new QTreeWidgetItem(resultW);
-						row->setData(0,Qt::UserRole,item.mid(sta,end-sta));
-						row->setSizeHint(0,QSize(120,92));
-						sta=item.indexOf("<img src=",end)+10;
-						end=item.indexOf("\" ",sta);
-						QNetworkRequest request(QUrl(item.mid(sta,end-sta)));
-						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
-						reply->manager()->get(request);
-						sta=item.indexOf("<span>",end)+6;
-						end=item.indexOf("</span>",sta);
-						row->setText(4,trans(item.mid(sta,end-sta)));
-						sta=end+7;
-						end=item.indexOf("</div>",sta);
-						row->setText(3,trans(item.mid(sta,end-sta)));
-						sta=item.indexOf("class=\"upper\"",end);
-						sta=item.indexOf("\">",sta)+2;
-						end=item.indexOf("</a>",sta);
-						row->setText(5,trans(item.mid(sta,end-sta)));
-						sta=item.indexOf("class=\"gk\"",end);
-						auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(sta));
-						row->setText(1,iter.next().captured());
-						iter.next();
-						row->setText(2,iter.next().captured());
-						sta=item.indexOf("class=\"intro\">",sta)+14;
-						end=item.indexOf("</div>",sta);
-						row->setToolTip(3,Utils::splitString(trans(item.mid(sta,end-sta)),400));
+					for(QString item:ary){
+						item=item.simplified();
+						sta=item.indexOf("http://www.bilibili.tv/video/");
+						if(sta!=-1){
+							sta+=29;
+							end=item.indexOf("/\"",sta);
+							QTreeWidgetItem *row=new QTreeWidgetItem(resultW);
+							row->setData(0,Qt::UserRole,item.mid(sta,end-sta));
+							row->setSizeHint(0,QSize(120,92));
+							sta=item.indexOf("<img src=",end)+10;
+							end=item.indexOf("\" ",sta);
+							QNetworkRequest request(QUrl(item.mid(sta,end-sta)));
+							request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
+							reply->manager()->get(request);
+							sta=item.indexOf("<span>",end)+6;
+							end=item.indexOf("</span>",sta);
+							row->setText(4,trans(item.mid(sta,end-sta)));
+							sta=end+7;
+							end=item.indexOf("</div>",sta);
+							row->setText(3,trans(item.mid(sta,end-sta)));
+							sta=item.indexOf("class=\"upper\"",end);
+							sta=item.indexOf("\">",sta)+2;
+							end=item.indexOf("</a>",sta);
+							row->setText(5,trans(item.mid(sta,end-sta)));
+							sta=item.indexOf("class=\"gk\"",end);
+							auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(sta));
+							row->setText(1,iter.next().captured());
+							iter.next();
+							row->setText(2,iter.next().captured());
+							sta=item.indexOf("class=\"intro\">",sta)+14;
+							end=item.indexOf("</div>",sta);
+							row->setToolTip(3,Utils::splitString(trans(item.mid(sta,end-sta)),400));
+						}
 					}
 				}
 				statusL->setText(tr("Finished"));
@@ -309,7 +319,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 							<<QString::number((int)item["comments"].toDouble())
 							<<trans(item["title"].toString())
 							<<AcFunChannel()[channelId]
-							<<trans(item["username"].toString());
+							  <<trans(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
 					row->setSizeHint(0,QSize(120,92));
@@ -318,6 +328,22 @@ Search::Search(QWidget *parent):QDialog(parent)
 					request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
 					reply->manager()->get(request);
 				}
+				statusL->setText(tr("Finished"));
+				isWaiting=false;
+			}
+			else if(Utils::getSite(url)==Utils::AcPlay){
+				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
+				for(QJsonValue iter:json["Matches"].toArray()){
+					QJsonObject item=iter.toObject();
+					QString title=item["AnimeTitle"].toString()+" "+item["EpisodeTitle"].toString();
+					QStringList content;
+					content<<""<<""<<""<<title<<QString::number(item["Type"].toInt());
+					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
+					row->setData(0,Qt::UserRole,QString("dd%1").arg(item["EpisodeId"].toInt()));
+					row->setSizeHint(0,QSize(120,92));
+				}
+				pageNum=1;
+				pageNuL->setText("/1");
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
@@ -349,11 +375,24 @@ void Search::setKey(QString _key)
 
 void Search::setSite()
 {
-	int s=sitesC->currentIndex();
 	QStringList header,options;
-	header<<tr("Cover")<<tr("Play")<<(s==0?tr("Danmaku"):tr("Comment"))<<tr("Title")<<tr("Typename")<<tr("Author");
-	for(const char *i:s==0?BiOrder():AcOrder()){
-		options.append(tr(i));
+	switch(sitesC->currentIndex()){
+	case 0:
+		header<<tr("Cover")<<tr("Play")<<tr("Danmaku")<<tr("Title")<<tr("Typename")<<tr("Author");
+		for(const char *i:BiOrder()){
+			options.append(tr(i));
+		}
+		break;
+	case 1:
+		header<<tr("Cover")<<tr("Play")<<tr("Comment")<<tr("Title")<<tr("Typename")<<tr("Author");
+		for(const char *i:AcOrder()){
+			options.append(tr(i));
+		}
+		break;
+	case 2:
+		header<<""<<""<<""<<tr("Title")<<tr("Typename")<<"";
+		options<<tr("default");
+		break;
 	}
 	isWaiting=true;
 	orderC->clear();
@@ -373,11 +412,10 @@ void Search::startSearch()
 
 void Search::getData(int pageNum)
 {
-	resultW->clear();
-	isWaiting=true;
-	statusL->setText(tr("Requesting"));
 	QUrl url;
-	if(sitesC->currentIndex()==0){
+	switch(sitesC->currentIndex()){
+	case 0:
+	{
 		url=QUrl("http://www.bilibili.tv/search");
 		QUrlQuery query;
 		query.addQueryItem("keyword",key);
@@ -385,8 +423,10 @@ void Search::getData(int pageNum)
 		query.addQueryItem("orderby",BiOrder()[orderC->currentIndex()]);
 		query.addQueryItem("pagesize","20");
 		url.setQuery(query);
+		break;
 	}
-	else{
+	case 1:
+	{
 		url=QUrl("http://api.acfun.tv/search");
 		QUrlQuery query;
 		query.addQueryItem("query",key);
@@ -396,7 +436,29 @@ void Search::getData(int pageNum)
 		query.addQueryItem("pageNo",QString::number(pageNum));
 		query.addQueryItem("pageSize","20");
 		url.setQuery(query);
+		break;
 	}
+	case 2:
+	{
+		QFile file(VPlayer::instance()->getFile());
+		if(file.exists()){
+			file.open(QIODevice::ReadOnly);
+			url=QUrl("http://api.acplay.net:8089/api/v1/match");
+			QUrlQuery query;
+			query.addQueryItem("fileName",QFileInfo(file).baseName());
+			query.addQueryItem("hash",QCryptographicHash::hash(file.read(0x1000000),QCryptographicHash::Md5).toHex());
+			query.addQueryItem("length",QString::number(file.size()));
+			url.setQuery(query);
+		}
+		else{
+			QMessageBox::warning(this,tr("Match Error"),tr("No video loaded."));
+			return;
+		}
+	}
+	}
+	resultW->clear();
+	isWaiting=true;
+	statusL->setText(tr("Requesting"));
 	manager->get(QNetworkRequest(url));
 }
 

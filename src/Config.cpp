@@ -234,6 +234,21 @@ Config::Config(QWidget *parent,int index):
 		input[1]->setEchoMode(QLineEdit::Password);
 		input[2]=new QLineEdit(widget[1]);
 		input[2]->setPlaceholderText(tr("Identifier"));
+		auto checkout=[this](){
+			bool flag=true;
+			for(QLineEdit *iter:input){
+				if(iter->text().isEmpty()){
+					flag=false;
+					break;
+				}
+			}
+			if(flag){
+				click->click();
+			}
+		};
+		for(QLineEdit *iter:input){
+			connect(iter,&QLineEdit::editingFinished,checkout);
+		}
 		connect(input[2],&QLineEdit::textEdited,[this](QString text){
 			input[2]->setText(text.toUpper());
 		});
@@ -315,6 +330,7 @@ Config::Config(QWidget *parent,int index):
 		};
 		click=new QPushButton(tr("login"),widget[1]);
 		click->setFixedWidth(50);
+		click->setFocusPolicy(Qt::NoFocus);
 		connect(click,&QPushButton::clicked,[=](){
 			if(info->text().isEmpty()){
 				for(QLineEdit *iter:input){
