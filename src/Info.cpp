@@ -36,9 +36,7 @@
 Info::Info(QWidget *parent):
 	QWidget(parent)
 {
-	isPop=false;
-	isStay=false;
-	updating=false;
+	isStay=isPoped=updating=false;
 	Utils::setGround(this,Qt::white);
 	duration=-1;
 	animation=new QPropertyAnimation(this,"pos",this);
@@ -153,7 +151,7 @@ Info::Info(QWidget *parent):
 				QFileInfo info(path);
 				path=info.absolutePath()+'/'+info.baseName()+".json";
 			}
-			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path);
+			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path,tr("Danmaku files (*.json)"));
 			if(!file.isEmpty()){
 				if(!file.endsWith(".json")){
 					file.append(".json");
@@ -165,6 +163,17 @@ Info::Info(QWidget *parent):
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 		isStay=0;
 	});
+
+	animation=new QPropertyAnimation(this,"pos",this);
+	animation->setDuration(200);
+	animation->setEasingCurve(QEasingCurve::OutCubic);
+	connect(animation,&QPropertyAnimation::finished,[this](){
+		if(!isPoped){
+			hide();
+		}
+	});
+
+	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Info::setTime);
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		setDuration(VPlayer::instance()->getDuration());
 	});
@@ -177,36 +186,28 @@ Info::Info(QWidget *parent):
 		playA->setIcon(playing?pauseI:playI);
 		playA->setText(playing?tr("Pause"):tr("Play"));
 	});
-}
-
-void Info::resizeEvent(QResizeEvent *e)
-{
-	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
+	hide();
 }
 
 void Info::pop()
 {
-	if(!isPop&&animation->state()==QAbstractAnimation::Stopped){
+	if(!isPoped&&animation->state()==QAbstractAnimation::Stopped){
+		show();
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()-QPoint(200,0));
 		animation->start();
-		isPop=true;
+		isPoped=true;
 	}
 }
 
 void Info::push(bool force)
 {
-	if(isPop&&animation->state()==QAbstractAnimation::Stopped&&(!isStay||force)){
+	if(isPoped&&animation->state()==QAbstractAnimation::Stopped&&(!preferStay()||force)){
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()+QPoint(200,0));
 		animation->start();
-		isPop=false;
+		isPoped=false;
 	}
-}
-
-void Info::trigger()
-{
-	playA->trigger();
 }
 
 void Info::terminate()
@@ -214,6 +215,11 @@ void Info::terminate()
 	if(animation->state()!=QAbstractAnimation::Stopped){
 		animation->setCurrentTime(animation->totalDuration());
 	}
+}
+
+void Info::resizeEvent(QResizeEvent *e)
+{
+	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
 }
 
 void Info::resizeHeader()

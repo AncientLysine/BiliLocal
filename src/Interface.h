@@ -34,52 +34,54 @@
 
 class Menu;
 class Info;
-class Panel;
+class Render;
 class VPlayer;
 class Danmaku;
 
-class Interface:public QWidget
+class Interface:public QMdiSubWindow
 {
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
 
 private:
-	QLabel *tv;
-	QLabel *me;
 	QTimer *timer;
 	QTimer *delay;
+
 	QAction *quitA;
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
+	QAction *postA;
 	QMenu *rat;
 	QMenu *sca;
 
 	Menu *menu;
 	Info *info;
-	Panel *panel;
+	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;
 
-	QTime lst;
-	QPoint pre;
 	QPoint sta;
 	QPoint wgd;
-	QPixmap background;
+
+	bool sliding;
 
 	void dropEvent(QDropEvent *e);
-	void paintEvent(QPaintEvent *e);
+	void closeEvent(QCloseEvent *e);
 	void resizeEvent(QResizeEvent *e);
+	void dragEnterEvent(QDragEnterEvent *e);
 	void keyPressEvent(QKeyEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
+	void mousePressEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
 	void mouseDoubleClickEvent(QMouseEvent *e);
 
 private slots:
-	void saveSize();
+	void drawDecoded();
+	void drawPowered();
 	void setCenter(QSize s,bool f);
+	void showContextMenu(QPoint p);
 
 };
 

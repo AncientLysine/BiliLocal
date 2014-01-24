@@ -2,10 +2,10 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Info.h
-*   Time:        2013/04/05
-*   Author:      Lysine
-*   Contributor: Chaserhkj
+*   Filename:    Post.h
+*   Time:        2013/05/23
+*   Author:      zhengdanwei
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,50 +25,39 @@
 *
 =========================================================================*/
 
-#ifndef INFO_H
-#define INFO_H
+#ifndef POST_H
+#define POST_H
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
-class Info:public QWidget
+class Record;
+class Comment;
+
+class Post:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Info(QWidget *parent=0);
-	bool isShown(){return isPoped;}
-	bool preferStay(){return isStay;}
+	explicit Post(QWidget *parent=0);
+	static bool isValid(){return getBilibili()!=NULL;}
 
 private:
-	bool isStay;
-	bool isPoped;
-	bool updating;
-	qint64 duration;
+	QLabel *commentP;
+	QAction *commentA;
+	QLineEdit *commentL;
+	QComboBox *commentM;
+	QPushButton *commentC;
+	QPushButton *commentB;
+	QNetworkAccessManager *manager;
+	QColor getColor();
+	Comment getComment();
+	static const Record *getBilibili();
 
-	QLabel *durT;
-	QLabel *timeT;
-	QLabel *volmT;
-	QLabel *plfmT;
-	QSlider *timeS;
-	QSlider *volmS;
-	QLineEdit *plfmL;
-	QTableView *danmV;
-	QPushButton *playB;
-	QPushButton *stopB;
-	QAction *playA;
-	QAction *stopA;
-	QIcon playI,stopI,pauseI;
-	QPropertyAnimation *animation;
-	void resizeEvent(QResizeEvent *e);
-	void setTime(qint64 _time);
-	void setDuration(qint64 _duration);
-	
-public slots:
-	void pop();
-	void push(bool force=false);
-	void terminate();
-	void resizeHeader();
-	
+private slots:
+	void setColor(QColor color);
+	void drawComment();
+	void postComment();
 };
 
-#endif // INFO_H
+#endif // POST_H

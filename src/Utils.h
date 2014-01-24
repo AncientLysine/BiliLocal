@@ -140,7 +140,10 @@ public:
 	static void getReply(QNetworkAccessManager *manager,const QNetworkRequest &request,Func func)
 	{
 		QNetworkReply *reply=manager->get(request);
-		reply->connect(reply,&QNetworkReply::finished,[reply,func](){func(reply);});
+		reply->connect(reply,&QNetworkReply::finished,[reply,func](){
+			func(reply);
+			reply->deleteLater();
+		});
 	}
 
 	static void loadConfig();

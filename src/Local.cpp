@@ -71,6 +71,7 @@ int main(int argc,char *argv[])
 		Shield::free();
 		Utils::saveConfig();
 	});
+	qsrand(QTime::currentTime().msec());
 	Interface w;
 	w.show();
 	return a.exec();

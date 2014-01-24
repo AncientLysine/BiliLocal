@@ -33,7 +33,7 @@ Utils::Site Utils::getSite(QString url)
 	if(url.startsWith("http://www.bilibili.tv")||url.startsWith("http://bilibili.kankanews.com/")){
 		return Bilibili;
 	}
-	else if(url.startsWith("http://www.acfun.tv")){
+	else if(url.startsWith("http://www.acfun.tv")||url.startsWith("http://api.acfun.tv")){
 		return AcFun;
 	}
 	else if(url.startsWith("http://comic.letv.com/")){

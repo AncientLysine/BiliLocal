@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Panel.h
-*   Time:        2013/05/23
-*   Author:      zhengdanwei
-*   Contributor: Lysine
+*   Filename:    Render.h
+*   Time:        2013/12/27
+*   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,47 +24,36 @@
 *
 =========================================================================*/
 
-#ifndef PANEL_H
-#define PANEL_H
+#ifndef RENDER_H
+#define RENDER_H
 
+#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include <QtNetwork>
 
-class Record;
-
-class Panel:public QWidget
+class Render:public QWindow
 {
 	Q_OBJECT
 public:
-	explicit Panel(QWidget *parent = 0);
-	bool isShown(){return ioo==2;}
-	bool isValid(){return getBilibili()!=NULL;}
-	QColor getColor();
-
-public slots:
-	void fadeIn();
-	void fadeOut();
-	void setTime(qint64 _time);
-	void setColor(QColor color);
-	void postComment(QString comment);
-	void setDuration(qint64 _duration);
+	explicit Render(QWidget *parent=0);
+	QWidget *getWidget(){return widget;}
 
 private:
-	bool sliding;
-	bool updating;
-	qint64 duration;
-	QAbstractSlider *timeS;
-	QAction *commentA;
-	QLineEdit *commentL;
-	QComboBox *commentM;
-	QPushButton *commentC;
-	QPushButton *commentB;
-	QNetworkAccessManager *manager;
-	int ioo;
-	QTimer *timer;
-	QGraphicsOpacityEffect *effect;
-	const Record *getBilibili();
+	QMovie tv;
+	double time;
+	QImage me,background;
+	QTime last;
+	QWidget *parent;
+	QWidget *widget;
+	QOpenGLContext *context;
+	QOpenGLPaintDevice *device;
+	bool event(QEvent *e);
+	void drawPlay(QPainter *painter,QRect rect);
+	void drawStop(QPainter *painter,QRect rect);
+	void drawTime(QPainter *painter,QRect rect);
+
+public slots:
+	void draw();
+	void setTime(double t);
 };
 
-#endif // POSTER_H
+#endif // RENDER_H

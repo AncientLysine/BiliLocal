@@ -24,7 +24,8 @@ SOURCES += \
     src/Editor.cpp \
     src/Cookie.cpp \
     src/Graphic.cpp \
-    src/Panel.cpp
+    src/Post.cpp \
+    src/Render.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -39,13 +40,12 @@ HEADERS  += \
     src/Editor.h \
     src/Cookie.h \
     src/Graphic.h \
-    src/Panel.h
+    src/Post.h \
+    src/Render.h
 
 LIBS += \
     -lvlc \
-    -lvlccore \
-    -lavutil \
-    -lswscale
+    -lvlccore
 
 RESOURCES += \
     res/Res.qrc

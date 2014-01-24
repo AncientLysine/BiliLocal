@@ -33,35 +33,27 @@
 
 VPlayer *VPlayer::ins=NULL;
 
-int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
-{
-	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
-	if(ret<0){
-		memset(picture,0,sizeof(AVPicture));
-		return ret;
-	}
-	return 0;
-}
-
-void avpicture_free(AVPicture *picture)
-{
-	av_free(picture->data[0]);
-}
-
 static void *lck(void *,void **planes)
 {
-	*planes=VPlayer::instance()->getSrc();
+	*planes=VPlayer::instance()->getBuffer();
 	return NULL;
 }
 
 static void dsp(void *,void *)
 {
-	VPlayer::instance()->setFrame();
+	VPlayer::instance()->setDirty();
 }
 
 static void sta(const struct libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
+}
+
+static void mid(const struct libvlc_event_t *,void *)
+{
+	QMetaObject::invokeMethod(VPlayer::instance(),
+							  "timeChanged",
+							  Q_ARG(qint64,VPlayer::instance()->getTime()));
 }
 
 static void end(const struct libvlc_event_t *,void *)
@@ -72,20 +64,25 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent) :
 	QObject(parent)
 {
-	vlc=libvlc_new(0,NULL);
+	QJsonArray args=Utils::getConfig<QJsonArray>("/Playing/Arguments");
+	int argc=0;char *argv[args.size()];
+	for(QJsonValue arg:args){
+		argv[argc++]=arg.toString().toUtf8().data();
+	}
+	vlc=libvlc_new(argc,argv);
 	m=NULL;
 	mp=NULL;
-	swsctx=NULL;
-	srcFrame=NULL;
-	dstFrame=NULL;
+	frame=0;
+	buffer=NULL;
 	state=Stop;
 	ratio=0;
-	soundOnly=false;
+	dirty=false;
+	music=false;
 	fake=new QTimer(this);
 	fake->setInterval(33);
 	fake->setTimerType(Qt::PreciseTimer);
 	connect(fake,&QTimer::timeout,this,&VPlayer::decode);
-	sound=QPixmap(":/Picture/sound.png");
+	sound=QImage(":/Picture/sound.png");
 	ins=this;
 }
 
@@ -97,33 +94,13 @@ VPlayer::~VPlayer()
 	if(m){
 		libvlc_media_release(m);
 	}
-	if(swsctx){
-		sws_freeContext(swsctx);
+	if(frame){
+		glDeleteTextures(1,&frame);
 	}
-	if(srcFrame){
-		avpicture_free(srcFrame);
-		delete srcFrame;
-	}
-	if(dstFrame){
-		avpicture_free(dstFrame);
-		delete dstFrame;
+	if(buffer){
+		delete buffer;
 	}
 	libvlc_release(vlc);
-}
-
-uchar *VPlayer::getSrc()
-{
-	return (uchar *)*srcFrame->data;
-}
-
-uchar *VPlayer::getDst()
-{
-	return (uchar *)*dstFrame->data;
-}
-
-VPlayer::State VPlayer::getState()
-{
-	return state;
 }
 
 qint64 VPlayer::getTime()
@@ -136,49 +113,11 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
-QSize VPlayer::getSize(SizeType t)
+void VPlayer::setDirty()
 {
-	switch(t){
-	case Scaled:
-	{
-		if(ratio==0){
-			return srcSize;
-		}
-		else{
-			int w=srcSize.width(),h=srcSize.height();
-			return h*ratio>w?QSize(w,w/ratio):QSize(h*ratio,h);
-		}
-	}
-	case Destinate:
-	{
-		return guiSize;
-	}
-	default:
-	{
-		return srcSize;
-	}
-	}
-}
-
-void VPlayer::setFrame(bool force)
-{
-	if(state!=Pause||force){
-		size.lock();
-		if(dstSize!=guiSize){
-			dstSize=guiSize;
-			avpicture_free (dstFrame);
-			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
-		}
-		swsctx=sws_getCachedContext(swsctx,
-									srcSize.width(),srcSize.height(),PIX_FMT_RGB32,
-									dstSize.width(),dstSize.height(),PIX_FMT_RGB32,
-									SWS_FAST_BILINEAR,NULL,NULL,NULL);
-		int height=srcSize.height();
-		size.unlock();
-		sws_scale(swsctx,srcFrame->data,srcFrame->linesize,0,height,dstFrame->data,dstFrame->linesize);
-		QPixmap buf=QPixmap::fromImage(QImage(getDst(),dstSize.width(),dstSize.height(),QImage::Format_RGB32).copy());
+	if(state!=Pause){
 		data.lock();
-		frame=buf;
+		dirty=true;
 		data.unlock();
 		emit decode();
 	}
@@ -188,13 +127,37 @@ void VPlayer::draw(QPainter *painter,QRect rect)
 {
 	if(state!=Stop){
 		painter->fillRect(rect,Qt::black);
-		if(soundOnly){
-			painter->drawPixmap(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+		if(music){
+			painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 		}
 		else{
+			int w=size.width(),h=size.height();
+			QRect dest;
+			dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize());
+			dest.moveCenter(rect.center());
 			data.lock();
-			painter->drawPixmap(rect.center()-QRect(QPoint(0,0),frame.size()).center(),frame);
+			painter->beginNativePainting();
+			if(dirty){
+				if(!frame){
+					glGenTextures(1,&frame);
+				};
+				glBindTexture(GL_TEXTURE_2D,frame);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer);
+				dirty=false;
+			}
+			else{
+				glBindTexture(GL_TEXTURE_2D,frame);
+			}
 			data.unlock();
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+			GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
+			GLfloat vtx[8]={l,t,r,t,r,b,l,b};
+			GLfloat tex[8]={0,0,1,0,1,1,0,1};
+			glVertexPointer(2,GL_FLOAT,0,vtx);
+			glTexCoordPointer(2,GL_FLOAT,0,tex);
+			glDrawArrays(GL_TRIANGLE_FAN,0,4);
+			painter->endNativePainting();
 		}
 	}
 }
@@ -222,32 +185,26 @@ void VPlayer::play()
 			libvlc_media_track_t **info;
 			libvlc_media_parse(m);
 			int n=libvlc_media_tracks_get(m,&info);
-			soundOnly=true;
-			dstSize=guiSize=srcSize=QSize();
+			music=true;
+			size=QSize();
 			for(int i=0;i<n;++i){
 				if(info[i]->i_type==libvlc_track_video){
 					libvlc_video_track_t *v=info[i]->video;
-					soundOnly=false;
+					music=false;
 					double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
-					dstSize=guiSize=srcSize=QSize(v->i_width*r,v->i_height);
+					size=QSize(v->i_width*r,v->i_height);
 					break;
 				}
 			}
 			libvlc_media_tracks_release(info,n);
-			if(soundOnly){
+			if(music){
 				fake->start();
 			}
-			if(srcFrame){
-				avpicture_free(srcFrame);
+			if(buffer){
+				delete buffer;
 			}
-			if(dstFrame){
-				avpicture_free(dstFrame);
-			}
-			srcFrame=new AVPicture;
-			dstFrame=new AVPicture;
-			avpicture_alloc(srcFrame,PIX_FMT_RGB32,srcSize.width(),srcSize.height());
-			avpicture_alloc(dstFrame,PIX_FMT_RGB32,dstSize.width(),dstSize.height());
-			libvlc_video_set_format(mp,"RV32",srcSize.width(),srcSize.height(),srcSize.width()*4);
+			buffer=new uchar[size.width()*size.height()*4];
+			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
 		}
@@ -262,9 +219,10 @@ void VPlayer::stop()
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
+		size=QSize();
+		ratio=0;
 		setState(Stop);
-		frame=QPixmap();
-		if(soundOnly){
+		if(music){
 			fake->stop();
 		}
 		emit reach();
@@ -309,11 +267,11 @@ void VPlayer::init()
 					libvlc_video_set_track(mp,t);
 					if(t==-1){
 						fake->start();
-						soundOnly=1;
+						music=1;
 					}
 					else{
 						fake->stop();
-						soundOnly=0;
+						music=0;
 					}
 				});
 				i->setChecked(t==libvlc_video_get_track(mp));
@@ -367,27 +325,6 @@ void VPlayer::free()
 	}
 }
 
-void VPlayer::setSize(QSize _size)
-{
-	if(state==Play||state==Pause){
-		size.lock();
-		if(ratio>0){
-			int w=qMin<int>(_size.width(),_size.height()*ratio);
-			guiSize=QSize(w,w/ratio);
-		}
-		else{
-			guiSize=srcSize.scaled(_size,Qt::KeepAspectRatio);
-		}
-		guiSize/=4;
-		guiSize*=4;
-		bool flag=guiSize!=dstSize&&state==Pause;
-		size.unlock();
-		if(flag){
-			setFrame(true);
-		}
-	}
-}
-
 void VPlayer::setTime(qint64 _time)
 {
 	if(mp){
@@ -400,8 +337,8 @@ void VPlayer::setTime(qint64 _time)
 			}
 		}
 		else{
-			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 			emit jumped(_time);
+			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 		}
 	}
 }
@@ -421,8 +358,15 @@ void VPlayer::setFile(QString _file)
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
-			libvlc_event_attach(man,libvlc_MediaPlayerPlaying   ,sta,NULL);
-			libvlc_event_attach(man,libvlc_MediaPlayerEndReached,end,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerPlaying,
+								sta,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerTimeChanged,
+								mid,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerEndReached,
+								end,NULL);
 		}
 	}
 }
