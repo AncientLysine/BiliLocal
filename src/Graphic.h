@@ -47,93 +47,14 @@ public:
 	const Comment *getSource(){return source;}
 	void setSource(Comment *_source){source=_source;}
 
+	static Graphic *create(const Comment &comment,
+						   const QSize &size,
+						   const QList<Graphic *> &current=QList<Graphic *>());
+
 protected:
 	bool enabled;
 	const Comment *source;
 	Graphic(){enabled=false;source=NULL;}
-};
-
-class Mode1:public Graphic
-{
-public:
-	Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
-	bool move(qint64 time);
-	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
-
-private:
-	QRectF rect;
-	double speed;
-	QPixmap cache;
-};
-
-class Mode4:public Graphic
-{
-public:
-	Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
-	bool move(qint64 time);
-	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
-
-private:
-	QRectF rect;
-	double life;
-	QPixmap cache;
-};
-
-class Mode5:public Graphic
-{
-public:
-	Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
-	bool move(qint64 time);
-	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
-
-private:
-	QRectF rect;
-	double life;
-	QPixmap cache;
-};
-
-class Mode6:public Graphic
-{
-public:
-	Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
-	bool move(qint64 time);
-	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
-
-private:
-	QRectF rect;
-	double speed;
-	QPixmap cache;
-	const QSize &size;
-};
-
-class Mode7:public Graphic
-{
-public:
-	Mode7(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
-	bool move(qint64 time);
-	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-
-private:
-	QPointF bPos;
-	QPointF ePos;
-	double bAlpha;
-	double eAlpha;
-	double zRotate;
-	double yRotate;
-	QPixmap cache;
-	double wait;
-	double stay;
-	double life;
-	double time;
 };
 
 #endif // GRAPHIC_H

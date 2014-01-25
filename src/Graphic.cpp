@@ -171,6 +171,89 @@ static double evaluate(QString exp)
 }
 }
 
+class Mode1:public Graphic
+{
+public:
+	Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	uint intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
+
+private:
+	QRectF rect;
+	double speed;
+	QPixmap cache;
+};
+
+class Mode4:public Graphic
+{
+public:
+	Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	uint intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
+
+private:
+	QRectF rect;
+	double life;
+	QPixmap cache;
+};
+
+class Mode5:public Graphic
+{
+public:
+	Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	uint intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
+
+private:
+	QRectF rect;
+	double life;
+	QPixmap cache;
+};
+
+class Mode6:public Graphic
+{
+public:
+	Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	uint intersects(Graphic *other);
+	QRectF currentRect(){return rect;}
+
+private:
+	QRectF rect;
+	double speed;
+	QPixmap cache;
+	const QSize &size;
+};
+
+class Mode7:public Graphic
+{
+public:
+	Mode7(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	bool move(qint64 time);
+	void draw(QPainter *painter);
+	uint intersects(Graphic *other);
+
+private:
+	QPointF bPos;
+	QPointF ePos;
+	double bAlpha;
+	double eAlpha;
+	double zRotate;
+	double yRotate;
+	QPixmap cache;
+	double wait;
+	double stay;
+	double life;
+	double time;
+};
+
 class QPixmapFilterPrivate;
 class Q_WIDGETS_EXPORT QPixmapFilter : public QObject
 {
@@ -350,6 +433,36 @@ static double getOverlap(double ff,double fs,double sf,double ss)
 		return qMin(ss-ff,ss-sf);
 	}
 	return 0;
+}
+
+Graphic *Graphic::create(const Comment &comment,
+						 const QSize &size,
+						 const QList<Graphic *> &current)
+{
+
+	Graphic *graphic=NULL;
+	switch(comment.mode){
+	case 1:
+		graphic=new Mode1(comment,current,size);
+		break;
+	case 4:
+		graphic=new Mode4(comment,current,size);
+		break;
+	case 5:
+		graphic=new Mode5(comment,current,size);
+		break;
+	case 6:
+		graphic=new Mode6(comment,current,size);
+		break;
+	case 7:
+		graphic=new Mode7(comment,current,size);
+		break;
+	}
+	if(graphic!=NULL&&!graphic->isEnabled()){
+		delete graphic;
+		return NULL;
+	}
+	return graphic;
 }
 
 #define MIN 10

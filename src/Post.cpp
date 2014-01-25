@@ -133,22 +133,7 @@ void Post::drawComment()
 	if(!commentL->text().isEmpty()){
 		Comment comment=getComment();
 		comment.string.replace("/n","\n");
-		Graphic *g=NULL;
-		switch(commentM->currentIndex()){
-		case 0:
-			g=new Mode5(comment,QList<Graphic *>(),commentP->size());
-			break;
-		case 1:
-			g=new Mode1(comment,QList<Graphic *>(),commentP->size());
-			break;
-		case 2:
-			g=new Mode4(comment,QList<Graphic *>(),commentP->size());
-			break;
-		}
-		if(g!=NULL&&!g->isEnabled()){
-			delete g;
-			g=NULL;
-		}
+		Graphic *g=Graphic::create(comment,commentP->size());
 		if(g){
 			QRect r=g->currentRect().toRect();
 			QPixmap c(r.size());

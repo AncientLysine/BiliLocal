@@ -58,7 +58,6 @@ private:
 	QList<Comment *> danmaku;
 	static Danmaku *ins;
 	void setTime(qint64 _time);
-	Graphic *render(const Comment &comment);
 
 public slots:
 	void resetTime();

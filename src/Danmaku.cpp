@@ -332,38 +332,11 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
-Graphic *Danmaku::render(const Comment &comment)
-{
-	Graphic *graphic=NULL;
-	switch(comment.mode){
-	case 1:
-		graphic=new Mode1(comment,current,size);
-		break;
-	case 4:
-		graphic=new Mode4(comment,current,size);
-		break;
-	case 5:
-		graphic=new Mode5(comment,current,size);
-		break;
-	case 6:
-		graphic=new Mode6(comment,current,size);
-		break;
-	case 7:
-		graphic=new Mode7(comment,current,size);
-		break;
-	}
-	if(graphic!=NULL&&!graphic->isEnabled()){
-		delete graphic;
-		return NULL;
-	}
-	return graphic;
-}
-
 void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
 {
 	int l=Utils::getConfig("/Shield/Density",100);
 	if(!comment->blocked&&(comment->mode==7||l==0||current.size()<l)){
-		Graphic *graphic=render(*comment);
+		Graphic *graphic=Graphic::create(*comment,size,current);
 		if(graphic){
 			if(isLocal){
 				graphic->setSource(NULL);
@@ -379,7 +352,7 @@ void Danmaku::appendToCurrent(const QList<const Comment *> &comments,bool isLoca
 	int l=Utils::getConfig("/Shield/Density",100);
 	for(const Comment *comment:comments){
 		if(!comment->blocked&&(comment->mode==7||l==0||current.size()+waiting.size()<l)){
-			Graphic *graphic=render(*comment);
+			Graphic *graphic=Graphic::create(*comment,size,current);
 			if(graphic){
 				if(isLocal){
 					graphic->setSource(NULL);

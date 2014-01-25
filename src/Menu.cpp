@@ -535,7 +535,7 @@ void Menu::setDanmaku(QString _code)
 		if(s=="dd"){
 			url=QString("http://api.acplay.net:8089/api/v1/comment/")+i;
 			request.setUrl(url);
-			request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+			request.setRawHeader("Accept","application/json");
 		}
 		if(Utils::getConfig("/Danmaku/Local",false)){
 			localC->toggle();
