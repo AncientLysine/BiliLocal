@@ -264,6 +264,29 @@ Menu::Menu(QWidget *parent):
 			return list;
 		};
 
+		auto al=[](const QByteArray &data){
+			QStringList l=QString(data).split("<l i=\"");
+			l.removeFirst();
+			QList<Comment> list;
+			for(QString &item:l){
+				Comment comment;
+				int sta=0;
+				int len=item.indexOf("\"");
+				QStringList args=item.mid(sta,len).split(',');
+				sta=item.indexOf("<![CDATA[")+9;
+				len=item.indexOf("]]>",sta)-sta;
+				comment.time=args[0].toDouble()*1000;
+				comment.date=args[5].toInt();
+				comment.mode=args[3].toInt();
+				comment.font=args[1].toInt();
+				comment.color=args[2].toInt();
+				comment.sender=args[4];
+				comment.string=item.mid(sta,len);
+				list.append(comment);
+			}
+			return list;
+		};
+
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
@@ -278,7 +301,13 @@ Menu::Menu(QWidget *parent):
 				Record load;
 				load.source=url;
 				if(url.endsWith("xml")){
-					load.danmaku=bi(reply->readAll());
+					QByteArray data=reply->readAll();
+					if(data.indexOf("<i>")!=-1){
+						load.danmaku=bi(data);
+					}
+					if(data.indexOf("<c>")!=-1){
+						load.danmaku=al(data);
+					}
 				}
 				if(url.endsWith("json")){
 					load.danmaku=ac(reply->readAll());
