@@ -54,9 +54,11 @@ public:
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
+	void releaseAndLock();
 
 	virtual uchar *getBuffer()=0;
-	virtual void setBuffer(QSize size)=0;
+	virtual void initBuffer()=0;
+	virtual void freeBuffer()=0;
 	virtual void draw(QPainter *painter,QRect rect)=0;
 
 	static VPlayer *create(QObject *parent=NULL);
@@ -81,7 +83,6 @@ protected:
 	bool dirty;
 	QSize size;
 	QImage sound;
-	QMutex data;
 	static VPlayer *ins;
 
 	VPlayer(QObject *parent=0);

@@ -216,6 +216,11 @@ Interface::Interface(QWidget *parent):
 	setFocus();
 }
 
+Interface::~Interface()
+{
+	vplayer->releaseAndLock();
+}
+
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){

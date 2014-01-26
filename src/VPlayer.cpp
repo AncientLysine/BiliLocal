@@ -57,6 +57,14 @@ void avpicture_free(AVPicture *picture)
 	av_free(picture->data[0]);
 }
 
+class Mutex:public QMutex
+{
+public:
+	~Mutex(){unlock();}
+};
+
+static Mutex data;
+
 class RasterPlayer:public VPlayer
 {
 public:
@@ -69,31 +77,33 @@ public:
 		ins=this;
 	}
 
-	~RasterPlayer()
+	uchar *getBuffer()
+	{
+		return (uchar *)*srcFrame->data;
+	}
+
+	void initBuffer()
+	{
+		srcFrame=new AVPicture;
+		avpicture_alloc(srcFrame,PIX_FMT_RGB32,size.width(),size.height());
+	}
+
+	void freeBuffer()
 	{
 		if(swsctx){
 			sws_freeContext(swsctx);
+			swsctx=NULL;
 		}
 		if(srcFrame){
 			avpicture_free(srcFrame);
 			delete srcFrame;
+			srcFrame=NULL;
 		}
 		if(dstFrame){
 			avpicture_free(dstFrame);
 			delete dstFrame;
+			dstFrame=NULL;
 		}
-	}
-
-	uchar *getBuffer()
-	{
-		data.lock();
-		return (uchar *)*srcFrame->data;
-	}
-
-	void setBuffer(QSize size)
-	{
-		srcFrame=new AVPicture;
-		avpicture_alloc(srcFrame,PIX_FMT_RGB32,size.width(),size.height());
 	}
 
 	void draw(QPainter *painter,QRect rect)
@@ -153,28 +163,29 @@ public:
 		ins=this;
 	}
 
-	~OpenGLPlayer()
-	{
-		if(frame){
-			glDeleteTextures(1,&frame);
-		}
-		if(buffer){
-			delete buffer;
-		}
-	}
-
 	uchar *getBuffer()
 	{
-		data.lock();
 		return buffer;
 	}
 
-	void setBuffer(QSize size)
+	void initBuffer()
 	{
 		if(buffer){
 			delete buffer;
 		}
 		buffer=new uchar[size.width()*size.height()*4];
+	}
+
+	void freeBuffer()
+	{
+		if(frame){
+			glDeleteTextures(1,&frame);
+			frame=0;
+		}
+		if(buffer){
+			delete buffer;
+			buffer=NULL;
+		}
 	}
 
 	void draw(QPainter *painter,QRect rect)
@@ -231,6 +242,7 @@ VPlayer *VPlayer::create(QObject *parent)
 
 static void *lck(void *,void **planes)
 {
+	data.lock();
 	*planes=VPlayer::instance()->getBuffer();
 	return NULL;
 }
@@ -238,6 +250,7 @@ static void *lck(void *,void **planes)
 static void dsp(void *,void *)
 {
 	VPlayer::instance()->setDirty();
+	data.unlock();
 }
 
 static void sta(const struct libvlc_event_t *,void *)
@@ -280,12 +293,6 @@ VPlayer::VPlayer(QObject *parent) :
 
 VPlayer::~VPlayer()
 {
-	if(mp){
-		libvlc_media_player_release(mp);
-	}
-	if(m){
-		libvlc_media_release(m);
-	}
 	libvlc_release(vlc);
 }
 
@@ -297,6 +304,20 @@ qint64 VPlayer::getTime()
 qint64 VPlayer::getDuration()
 {
 	return mp?libvlc_media_player_get_length(mp):-1;
+}
+
+void VPlayer::releaseAndLock()
+{
+	if(mp){
+		libvlc_media_player_release(mp);
+		mp=NULL;
+	}
+	if(m){
+		libvlc_media_release(m);
+		m=NULL;
+	}
+	data.tryLock(500);
+	freeBuffer();
 }
 
 void VPlayer::setState(State _state)
@@ -345,7 +366,7 @@ void VPlayer::play()
 			if(music){
 				fake->start();
 			}
-			setBuffer(size);
+			initBuffer();
 			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
@@ -471,7 +492,6 @@ void VPlayer::setDirty()
 {
 	if(state!=Pause){
 		dirty=true;
-		data.unlock();
 		emit decode();
 	}
 }
