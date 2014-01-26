@@ -86,6 +86,7 @@ public:
 
 	uchar *getBuffer()
 	{
+		data.lock();
 		return (uchar *)*srcFrame->data;
 	}
 
@@ -164,6 +165,7 @@ public:
 
 	uchar *getBuffer()
 	{
+		data.lock();
 		return buffer;
 	}
 
@@ -316,7 +318,7 @@ void VPlayer::setState(State _state)
 QRect VPlayer::getRect(QRect rect)
 {
 	QRect dest;
-	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize());
+	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
 }
@@ -468,7 +470,6 @@ void VPlayer::free()
 void VPlayer::setDirty()
 {
 	if(state!=Pause){
-		data.lock();
 		dirty=true;
 		data.unlock();
 		emit decode();

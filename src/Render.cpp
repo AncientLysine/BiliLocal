@@ -44,8 +44,8 @@ private:
 	{
 		QPainter painter(this);
 		QRect rect(QPoint(0,0),size());
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		if(VPlayer::instance()->getState()==VPlayer::Stop){
-			painter.setRenderHints(QPainter::SmoothPixmapTransform);
 			render->drawStop(&painter,rect);
 		}
 		else{
