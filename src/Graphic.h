@@ -54,7 +54,7 @@ public:
 protected:
 	bool enabled;
 	const Comment *source;
-	Graphic(){enabled=false;source=NULL;}
+	Graphic():enabled(false),source(NULL){}
 };
 
 #endif // GRAPHIC_H

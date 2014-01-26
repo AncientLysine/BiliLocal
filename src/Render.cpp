@@ -28,57 +28,190 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
-Render::Render(QWidget *parent):
-	tv(":/Picture/tv.gif"),me(":/Picture/version.png"),parent(parent)
+class Widget:public QWidget
 {
-	device=NULL;
-	context=NULL;
-	time=0;
-	tv.start();
-	setSurfaceType(QWindow::OpenGLSurface);
-	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
-	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
-	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
-	connect(&tv,&QMovie::updated,this,&Render::draw);
-	widget=QWidget::createWindowContainer(this,parent);
-	QString path=Utils::getConfig("/Interface/Background",QString());
-	if(!path.isEmpty()){
-		background=QImage(path);
+public:
+	explicit Widget(Render *render,QWidget *parent=0):
+		QWidget(parent),render(render)
+	{
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		setFocusPolicy(Qt::NoFocus);
+	}
+
+private:
+	Render *render;
+	void paintEvent(QPaintEvent *e)
+	{
+		QPainter painter(this);
+		QRect rect(QPoint(0,0),size());
+		if(VPlayer::instance()->getState()==VPlayer::Stop){
+			painter.setRenderHints(QPainter::SmoothPixmapTransform);
+			render->drawStop(&painter,rect);
+		}
+		else{
+			render->drawPlay(&painter,rect);
+			render->drawTime(&painter,rect);
+		}
+		QWidget::paintEvent(e);
+	}
+};
+
+class RasterRender:public Render
+{
+public:
+	explicit RasterRender(QWidget *parent=0):
+		Render(parent)
+	{
+		widget=new Widget(this,parent);
+	}
+
+public slots:
+	void draw(QRect rect)
+	{
+		if(rect.isValid()){
+			widget->update(rect);
+		}
+		else{
+			widget->update();
+		}
+	}
+};
+
+class Window:public QWindow
+{
+public:
+	explicit Window(Render *render,QWidget *parent=0):
+		render(render),parent(parent)
+	{
+		device=NULL;
+		context=NULL;
+		setSurfaceType(QWindow::OpenGLSurface);
+	}
+
+	void draw()
+	{
+		if(!isExposed()){
+			return;
+		}
+		bool initialize=false;
+		if(!context){
+			context=new QOpenGLContext(this);
+			context->create();
+			initialize=true;
+		}
+		context->makeCurrent(this);
+		if(!device){
+			device=new QOpenGLPaintDevice;
+		}
+		if(initialize){
+			glEnable(GL_TEXTURE_2D);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		}
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+		device->setSize(size());
+		QPainter painter(device);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform|QPainter::HighQualityAntialiasing);
+		QRect rect(QPoint(0,0),size());
+		if(VPlayer::instance()->getState()==VPlayer::Stop){
+			render->drawStop(&painter,rect);
+		}
+		else{
+			render->drawPlay(&painter,rect);
+			render->drawTime(&painter,rect);
+		}
+		context->swapBuffers(this);
+	}
+
+private:
+	Render *render;
+	QWidget *parent;
+	QOpenGLContext *context;
+	QOpenGLPaintDevice *device;
+	bool event(QEvent *e)
+	{
+		switch(e->type()){
+		case QEvent::Drop:
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+		case QEvent::Enter:
+		case QEvent::Leave:
+		case QEvent::MouseMove:
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::Wheel:
+		case QEvent::DragEnter:
+		case QEvent::DragMove:
+		case QEvent::DragLeave:
+		case QEvent::ContextMenu:
+			if(parent){
+				QBackingStore *backing=parent->backingStore();
+				if(backing){
+					QWindow *window=backing->window();
+					if(window){
+						return qApp->sendEvent(window,e);
+					}
+				}
+			}
+			return false;
+		case QEvent::Expose:
+			draw();
+			return false;
+		default:
+			return QWindow::event(e);
+		}
+	}
+};
+
+class OpenGLRender:public Render
+{
+public:
+	explicit OpenGLRender(QWidget *parent=0):
+		Render(parent)
+	{
+		window=new Window(this,parent);
+		widget=QWidget::createWindowContainer(window,parent);
+	}
+
+	~OpenGLRender()
+	{
+		delete window;
+	}
+
+private:
+	Window *window;
+
+public slots:
+	void draw(QRect){window->draw();}
+};
+
+Render *Render::create(QWidget *parent)
+{
+	if(Utils::getConfig("/Interface/Accelerated",false)){
+		return new OpenGLRender(parent);
+	}
+	else{
+		return new RasterRender(parent);
 	}
 }
 
-bool Render::event(QEvent *e)
+Render::Render(QWidget *parent):
+	QObject(parent),tv(":/Picture/tv.gif"),me(":/Picture/version.png")
 {
-	switch(e->type()){
-	case QEvent::Drop:
-	case QEvent::KeyPress:
-	case QEvent::KeyRelease:
-	case QEvent::Enter:
-	case QEvent::Leave:
-	case QEvent::MouseMove:
-	case QEvent::MouseButtonPress:
-	case QEvent::MouseButtonRelease:
-	case QEvent::MouseButtonDblClick:
-	case QEvent::Wheel:
-	case QEvent::DragEnter:
-	case QEvent::DragMove:
-	case QEvent::DragLeave:
-	case QEvent::ContextMenu:
-		if(parent){
-			QBackingStore *backing=parent->backingStore();
-			if(backing){
-				QWindow *window=backing->window();
-				if(window){
-					return qApp->sendEvent(window,e);
-				}
-			}
-		}
-		return false;
-	case QEvent::Expose:
-		draw();
-		return false;
-	default:
-		return QWindow::event(e);
+	time=0;
+	tv.start();
+	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
+	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
+	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
+	connect(&tv,&QMovie::updated,[this](){
+		QImage cf=tv.currentImage();
+		int w=widget->width(),h=widget->height();
+		draw(QRect((w-cf.width())/2,(h-cf.height())/2-40,w,h));
+	});
+	QString path=Utils::getConfig("/Interface/Background",QString());
+	if(!path.isEmpty()){
+		background=QImage(path);
 	}
 }
 
@@ -119,7 +252,7 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	if(time<=0){
 		return;
 	}
-	rect=QRect(0,height()-2,width()*time,2);
+	rect=QRect(0,rect.height()-2,rect.width()*time,2);
 	QLinearGradient gradient;
 	gradient.setStart(rect.center().x(),rect.top());
 	gradient.setFinalStop(rect.center().x(),rect.bottom());
@@ -137,42 +270,6 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	painter->setPen(QColor(255,255,255,30));
 	painter->setBrush(Qt::NoBrush);
 	painter->drawRect(rect.adjusted(1,1,-1,-1));
-
-}
-
-void Render::draw()
-{
-	if(!isExposed()){
-		return;
-	}
-	bool initialize=false;
-	if(!context){
-		context=new QOpenGLContext(this);
-		context->create();
-		initialize=true;
-	}
-	context->makeCurrent(this);
-	if(!device){
-		device=new QOpenGLPaintDevice;
-	}
-	if(initialize){
-		glEnable(GL_TEXTURE_2D);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	}
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-	device->setSize(size());
-	QPainter painter(device);
-	painter.setRenderHints(QPainter::SmoothPixmapTransform|QPainter::HighQualityAntialiasing);
-	QRect rect(QPoint(0,0),size());
-	if(VPlayer::instance()->getState()==VPlayer::Stop){
-		drawStop(&painter,rect);
-	}
-	else{
-		drawPlay(&painter,rect);
-		drawTime(&painter,rect);
-	}
-	context->swapBuffers(this);
 }
 
 void Render::setTime(double t)

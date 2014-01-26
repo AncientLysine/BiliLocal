@@ -43,9 +43,9 @@ Interface::Interface(QWidget *parent):
 	setMinimumSize(550,400);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
-	vplayer=new VPlayer(this);
+	vplayer=VPlayer::create(this);
 	danmaku=new Danmaku(this);
-	render=new Render(this);
+	render=Render::create(this);
 	menu=new Menu(this);
 	info=new Info(this);
 	timer=new QTimer(this);
@@ -68,7 +68,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
-	connect(danmaku,&Danmaku::layoutChanged,render,&Render::draw);
+	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
 	connect(vplayer,&VPlayer::begin,[this](){
 		if(!isFullScreen()){
 			sca->setEnabled(true);

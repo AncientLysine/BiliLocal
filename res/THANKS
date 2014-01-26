@@ -18,5 +18,6 @@ hungkie(samlls):
 BiliLocal使用了以下库和插件
 
 VLC - Copyright (C) 1998-2013 VLC authors and VideoLAN
+FFmpeg - Copyright (C) 2000-2013 the FFmpeg developers
 Qt5 - Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 OpenSSL - Copyright (C) 1998-2013 The OpenSSL Project.

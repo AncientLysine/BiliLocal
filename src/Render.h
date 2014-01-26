@@ -29,31 +29,32 @@
 
 #include <QtGui>
 #include <QtCore>
+#include <QtWidgets>
 
-class Render:public QWindow
+class Render:public QObject
 {
 	Q_OBJECT
 public:
-	explicit Render(QWidget *parent=0);
+	~Render(){}
 	QWidget *getWidget(){return widget;}
+	static Render *create(QWidget *parent=0);
 
 private:
 	QMovie tv;
 	double time;
 	QImage me,background;
 	QTime last;
-	QWidget *parent;
+
+protected:
 	QWidget *widget;
-	QOpenGLContext *context;
-	QOpenGLPaintDevice *device;
-	bool event(QEvent *e);
+	explicit Render(QWidget *parent=0);
+
+public slots:
+	void setTime(double t);
+	virtual void draw(QRect rect=QRect())=0;
 	void drawPlay(QPainter *painter,QRect rect);
 	void drawStop(QPainter *painter,QRect rect);
 	void drawTime(QPainter *painter,QRect rect);
-
-public slots:
-	void draw();
-	void setTime(double t);
 };
 
 #endif // RENDER_H

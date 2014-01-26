@@ -30,10 +30,9 @@
 #include <QtGui>
 #include <QtCore>
 
-extern "C"
-{
-#include <vlc/vlc.h>
-}
+class libvlc_instance_t;
+class libvlc_media_t;
+class libvlc_media_player_t;
 
 class VPlayer:public QObject
 {
@@ -46,32 +45,27 @@ public:
 		Pause,
 		Loop
 	};
-	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
 	State getState(){return state;}
 	qint64 getTime();
 	qint64 getDuration();
 	QSize getSize(){return size;}
 	QString getFile(){return file;}
-	uchar *getBuffer(){return buffer;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
-	void setDirty();
-	void draw(QPainter *painter,QRect rect);
+
+	virtual uchar *getBuffer()=0;
+	virtual void setBuffer(QSize size)=0;
+	virtual void draw(QPainter *painter,QRect rect)=0;
+
+	static VPlayer *create(QObject *parent=NULL);
 	static VPlayer *instance(){return ins;}
 
 private:
 	State state;
-	bool music;
-	bool dirty;
-	double ratio;
-	QSize size;
-	QMutex data;
-	uchar *buffer;
-	GLuint frame;
-	QImage sound;
 	QTimer *fake;
+	double ratio;
 	QString file;
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
@@ -79,9 +73,19 @@ private:
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
-	static VPlayer *ins;
 
 	void setState(State _state);
+
+protected:
+	bool music;
+	bool dirty;
+	QSize size;
+	QImage sound;
+	QMutex data;
+	static VPlayer *ins;
+
+	VPlayer(QObject *parent=0);
+	QRect getRect(QRect rect);
 
 signals:
 	void begin();
@@ -96,6 +100,7 @@ public slots:
 	void stop();
 	void init();
 	void free();
+	void setDirty();
 	void setTime(qint64 _time);
 	void setFile(QString _file);
 	void setRatio(double _ratio);

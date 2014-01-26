@@ -27,11 +27,205 @@
 #include "VPlayer.h"
 #include "Utils.h"
 
+extern "C"
+{
+#include <vlc/vlc.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
+
+
 #ifdef Q_OS_WIN32
 #include <winbase.h>
 #endif
 
 VPlayer *VPlayer::ins=NULL;
+
+int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
+{
+	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
+	if(ret<0){
+		memset(picture,0,sizeof(AVPicture));
+		return ret;
+	}
+	return 0;
+}
+
+void avpicture_free(AVPicture *picture)
+{
+	av_free(picture->data[0]);
+}
+
+class RasterPlayer:public VPlayer
+{
+public:
+	explicit RasterPlayer(QObject *parent=NULL):
+		VPlayer(parent)
+	{
+		swsctx=NULL;
+		srcFrame=NULL;
+		dstFrame=NULL;
+		ins=this;
+	}
+
+	~RasterPlayer()
+	{
+		if(swsctx){
+			sws_freeContext(swsctx);
+		}
+		if(srcFrame){
+			avpicture_free(srcFrame);
+			delete srcFrame;
+		}
+		if(dstFrame){
+			avpicture_free(dstFrame);
+			delete dstFrame;
+		}
+	}
+
+	uchar *getBuffer()
+	{
+		return (uchar *)*srcFrame->data;
+	}
+
+	void setBuffer(QSize size)
+	{
+		srcFrame=new AVPicture;
+		avpicture_alloc(srcFrame,PIX_FMT_RGB32,size.width(),size.height());
+	}
+
+	void draw(QPainter *painter,QRect rect)
+	{
+		if(getState()!=Stop){
+			painter->fillRect(rect,Qt::black);
+			if(music){
+				painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+			}
+			else{
+				QRect dest=getRect(rect);
+				data.lock();
+				if(frame.size()!=dest.size()){
+					if(dstFrame){
+						avpicture_free(dstFrame);
+					}
+					else{
+						dstFrame=new AVPicture;
+					}
+					avpicture_alloc(dstFrame,PIX_FMT_RGB32,dest.width(),dest.height());
+					dirty=true;
+				}
+				if(dirty){
+					swsctx=sws_getCachedContext(swsctx,
+												size.width(),size.height(),PIX_FMT_RGB32,
+												dest.width(),dest.height(),PIX_FMT_RGB32,
+												SWS_FAST_BILINEAR,NULL,NULL,NULL);
+					sws_scale(swsctx,
+							  srcFrame->data,srcFrame->linesize,
+							  0,size.height(),
+							  dstFrame->data,dstFrame->linesize);
+					frame=QImage((uchar *)*dstFrame->data,dest.width(),dest.height(),QImage::Format_RGB32);
+					dirty=false;
+				}
+				painter->drawImage(dest,frame);
+				data.unlock();
+			}
+		}
+	}
+
+private:
+	SwsContext *swsctx;
+	AVPicture *srcFrame;
+	AVPicture *dstFrame;
+	QImage frame;
+};
+
+class OpenGLPlayer:public VPlayer
+{
+public:
+	explicit OpenGLPlayer(QObject *parent=NULL):
+		VPlayer(parent)
+	{
+		frame=0;
+		buffer=NULL;
+		dirty=false;
+		ins=this;
+	}
+
+	~OpenGLPlayer()
+	{
+		if(frame){
+			glDeleteTextures(1,&frame);
+		}
+		if(buffer){
+			delete buffer;
+		}
+	}
+
+	uchar *getBuffer()
+	{
+		return buffer;
+	}
+
+	void setBuffer(QSize size)
+	{
+		if(buffer){
+			delete buffer;
+		}
+		buffer=new uchar[size.width()*size.height()*4];
+	}
+
+	void draw(QPainter *painter,QRect rect)
+	{
+		if(getState()!=Stop){
+			painter->fillRect(rect,Qt::black);
+			if(music){
+				painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+			}
+			else{
+				int w=size.width(),h=size.height();
+				QRect dest=getRect(rect);
+				data.lock();
+				painter->beginNativePainting();
+				if(dirty){
+					if(!frame){
+						glGenTextures(1,&frame);
+					};
+					glBindTexture(GL_TEXTURE_2D,frame);
+					glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer);
+					dirty=false;
+				}
+				else{
+					glBindTexture(GL_TEXTURE_2D,frame);
+				}
+				data.unlock();
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+				GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
+				GLfloat vtx[8]={l,t,r,t,r,b,l,b};
+				GLfloat tex[8]={0,0,1,0,1,1,0,1};
+				glVertexPointer(2,GL_FLOAT,0,vtx);
+				glTexCoordPointer(2,GL_FLOAT,0,tex);
+				glDrawArrays(GL_TRIANGLE_FAN,0,4);
+				painter->endNativePainting();
+			}
+		}
+	}
+
+private:
+	uchar *buffer;
+	GLuint frame;
+};
+
+VPlayer *VPlayer::create(QObject *parent)
+{
+	if(Utils::getConfig("/Interface/Accelerated",false)){
+		return new OpenGLPlayer(parent);
+	}
+	else{
+		return new RasterPlayer(parent);
+	}
+}
 
 static void *lck(void *,void **planes)
 {
@@ -72,18 +266,14 @@ VPlayer::VPlayer(QObject *parent) :
 	vlc=libvlc_new(argc,argv);
 	m=NULL;
 	mp=NULL;
-	frame=0;
-	buffer=NULL;
 	state=Stop;
 	ratio=0;
-	dirty=false;
 	music=false;
 	fake=new QTimer(this);
 	fake->setInterval(33);
 	fake->setTimerType(Qt::PreciseTimer);
 	connect(fake,&QTimer::timeout,this,&VPlayer::decode);
 	sound=QImage(":/Picture/sound.png");
-	ins=this;
 }
 
 VPlayer::~VPlayer()
@@ -93,12 +283,6 @@ VPlayer::~VPlayer()
 	}
 	if(m){
 		libvlc_media_release(m);
-	}
-	if(frame){
-		glDeleteTextures(1,&frame);
-	}
-	if(buffer){
-		delete buffer;
 	}
 	libvlc_release(vlc);
 }
@@ -111,55 +295,6 @@ qint64 VPlayer::getTime()
 qint64 VPlayer::getDuration()
 {
 	return mp?libvlc_media_player_get_length(mp):-1;
-}
-
-void VPlayer::setDirty()
-{
-	if(state!=Pause){
-		data.lock();
-		dirty=true;
-		data.unlock();
-		emit decode();
-	}
-}
-
-void VPlayer::draw(QPainter *painter,QRect rect)
-{
-	if(state!=Stop){
-		painter->fillRect(rect,Qt::black);
-		if(music){
-			painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
-		}
-		else{
-			int w=size.width(),h=size.height();
-			QRect dest;
-			dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize());
-			dest.moveCenter(rect.center());
-			data.lock();
-			painter->beginNativePainting();
-			if(dirty){
-				if(!frame){
-					glGenTextures(1,&frame);
-				};
-				glBindTexture(GL_TEXTURE_2D,frame);
-				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer);
-				dirty=false;
-			}
-			else{
-				glBindTexture(GL_TEXTURE_2D,frame);
-			}
-			data.unlock();
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-			GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
-			GLfloat vtx[8]={l,t,r,t,r,b,l,b};
-			GLfloat tex[8]={0,0,1,0,1,1,0,1};
-			glVertexPointer(2,GL_FLOAT,0,vtx);
-			glTexCoordPointer(2,GL_FLOAT,0,tex);
-			glDrawArrays(GL_TRIANGLE_FAN,0,4);
-			painter->endNativePainting();
-		}
-	}
 }
 
 void VPlayer::setState(State _state)
@@ -176,6 +311,14 @@ void VPlayer::setState(State _state)
 #endif
 	state=_state;
 	emit stateChanged(state);
+}
+
+QRect VPlayer::getRect(QRect rect)
+{
+	QRect dest;
+	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize());
+	dest.moveCenter(rect.center());
+	return dest;
 }
 
 void VPlayer::play()
@@ -200,10 +343,7 @@ void VPlayer::play()
 			if(music){
 				fake->start();
 			}
-			if(buffer){
-				delete buffer;
-			}
-			buffer=new uchar[size.width()*size.height()*4];
+			setBuffer(size);
 			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
@@ -322,6 +462,16 @@ void VPlayer::free()
 		clear(video);
 		clear(audio);
 		clear(subtitle);
+	}
+}
+
+void VPlayer::setDirty()
+{
+	if(state!=Pause){
+		data.lock();
+		dirty=true;
+		data.unlock();
+		emit decode();
 	}
 }
 

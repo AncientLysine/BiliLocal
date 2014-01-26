@@ -30,18 +30,18 @@
 #include "Cookie.h"
 #include "VPlayer.h"
 
-static QHash<int,QString> AcFunChannel()
+static QHash<int,QString> getChannel(QString name)
 {
-	static QHash<int,QString> m;
-	if(m.isEmpty()){
+	static QHash<QString,QHash<int,QString>> m;
+	if(!m.contains(name)){
 		QFile file(":/Text/DATA");
 		file.open(QIODevice::ReadOnly|QIODevice::Text);
-		QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()["AcFunChannel"].toObject();
+		QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()[name+"Channel"].toObject();
 		for(auto iter=data.begin();iter!=data.end();++iter){
-			m[iter.key().toInt()]=iter.value().toString();
+			m[name][iter.key().toInt()]=iter.value().toString();
 		}
 	}
-	return m;
+	return m[name];
 }
 
 #define tr
@@ -157,11 +157,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	connect(sitesC,&QComboBox::currentTextChanged,[this](QString){
 		setSite();
-		keywE->setEnabled(sitesC->currentIndex()!=2);
-		if(!keywE->isEnabled()){
-			keywE->clear();
-		}
-		else if(!isWaiting&&resultW->topLevelItemCount()>0){
+		if(!isWaiting&&resultW->topLevelItemCount()>0){
 			searchB->click();
 		}
 	});
@@ -170,7 +166,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		if(isWaiting){
 			QMessageBox::warning(this,tr("Warning"),tr("A request is pending."));
 		}
-		else if(!keywE->text().isEmpty()||sitesC->currentIndex()==2){
+		else if(!keywE->text().isEmpty()||(sitesC->currentIndex()==2&&orderC->currentIndex()==2)){
 			clearSearch();
 			startSearch();
 		}
@@ -318,7 +314,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					content<<""<<QString::number((int)item["views"].toDouble())
 							<<QString::number((int)item["comments"].toDouble())
 							<<trans(item["title"].toString())
-							<<AcFunChannel()[channelId]
+							<<getChannel("AcFun")[channelId]
 							  <<trans(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
@@ -335,9 +331,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				for(QJsonValue iter:json["Matches"].toArray()){
 					QJsonObject item=iter.toObject();
-					QString title=item["AnimeTitle"].toString()+" "+item["EpisodeTitle"].toString();
 					QStringList content;
-					content<<""<<""<<""<<title<<QString::number(item["Type"].toInt());
+					content<<item["AnimeTitle"].toString()<<""<<""<<item["EpisodeTitle"].toString()<<getChannel("AcPlay")[item["Type"].toInt()]<<"";
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("dd%1").arg(item["EpisodeId"].toInt()));
 					row->setSizeHint(0,QSize(120,92));
@@ -390,8 +385,8 @@ void Search::setSite()
 		}
 		break;
 	case 2:
-		header<<""<<""<<""<<tr("Title")<<tr("Typename")<<"";
-		options<<tr("default");
+		header<<tr("Title")<<""<<""<<tr("Episode")<<tr("Typename")<<"";
+		options<<tr("TVAnime")<<tr("Other")<<tr("FileMatch");
 		break;
 	}
 	isWaiting=true;
@@ -440,19 +435,49 @@ void Search::getData(int pageNum)
 	}
 	case 2:
 	{
-		QFile file(VPlayer::instance()->getFile());
-		if(file.exists()){
-			file.open(QIODevice::ReadOnly);
-			url=QUrl("http://api.acplay.net:8089/api/v1/match");
-			QUrlQuery query;
-			query.addQueryItem("fileName",QFileInfo(file).baseName());
-			query.addQueryItem("hash",QCryptographicHash::hash(file.read(0x1000000),QCryptographicHash::Md5).toHex());
-			query.addQueryItem("length",QString::number(file.size()));
-			url.setQuery(query);
+		if(orderC->currentIndex()==2){
+			QFile file(key);
+			if(!file.exists()){
+				file.setFileName(VPlayer::instance()->getFile());
+			}
+			if(file.exists()){
+				file.open(QIODevice::ReadOnly);
+				url=QUrl("http://api.acplay.net/api/v1/match");
+				QUrlQuery query;
+				query.addQueryItem("fileName",QFileInfo(file).baseName());
+				query.addQueryItem("hash",QCryptographicHash::hash(file.read(0x1000000),QCryptographicHash::Md5).toHex());
+				query.addQueryItem("length",QString::number(file.size()));
+				url.setQuery(query);
+			}
+			else{
+				QMessageBox::warning(this,tr("Match Error"),tr("Please open a video or type in the file path."));
+				return;
+			}
 		}
 		else{
-			QMessageBox::warning(this,tr("Match Error"),tr("No video loaded."));
-			return;
+			QUrlQuery query;
+			QStringList args=key.split("#");
+			switch(orderC->currentIndex()){
+			case 0:
+				url=QUrl("http://api.acplay.net/api/v1/search/TVAnime");
+				if(args.size()!=2){
+					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
+					return;
+				}
+				query.addQueryItem("anime",args[0]);
+				query.addQueryItem("episode",args[1]);
+				break;
+			case 1:
+				url=QUrl("http://api.acplay.net/api/v1/search/Other");
+				if(args.size()==0||args.size()>2){
+					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
+					return;
+				}
+				query.addQueryItem("anime",args[0]);
+				query.addQueryItem("episode",args.size()==2?args[1]:QString(""));
+				break;
+			}
+			url.setQuery(query);
 		}
 	}
 	}

@@ -533,7 +533,7 @@ void Menu::setDanmaku(QString _code)
 			request.setUrl(url);
 		}
 		if(s=="dd"){
-			url=QString("http://api.acplay.net:8089/api/v1/comment/")+i;
+			url=QString("http://api.acplay.net/api/v1/comment/")+i;
 			request.setUrl(url);
 			request.setRawHeader("Accept","application/json");
 		}

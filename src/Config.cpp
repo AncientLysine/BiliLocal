@@ -188,16 +188,22 @@ Config::Config(QWidget *parent,int index):
 		lines->addWidget(ui[1]);
 
 		auto t=new QHBoxLayout;
+		acce=new QCheckBox(tr("hardware accelerated"),widget[1]);
+		acce->setChecked(Utils::getConfig("/Interface/Accelerated",false));
+		connect(acce,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig("/Interface/Accelerated",state==Qt::Checked);
+		});
+		t->addWidget(acce);
 		stay=new QCheckBox(tr("stay on top"),widget[1]);
 		stay->setChecked(Utils::getConfig("/Interface/Top",false));
 		connect(stay,&QCheckBox::stateChanged,[this](int state){
-			Utils::setConfig<bool>("/Interface/Top",state==Qt::Checked);
+			Utils::setConfig("/Interface/Top",state==Qt::Checked);
 		});
 		t->addWidget(stay);
 		less=new QCheckBox(tr("frameless"),widget[1]);
 		less->setChecked(Utils::getConfig("/Interface/Frameless",false));
 		connect(less,&QCheckBox::stateChanged,[this](int state){
-			Utils::setConfig<bool>("/Interface/Frameless",state==Qt::Checked);
+			Utils::setConfig("/Interface/Frameless",state==Qt::Checked);
 		});
 		t->addWidget(less);
 		ui[2]=new QGroupBox(tr("window flag"),widget[1]);

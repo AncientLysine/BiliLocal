@@ -45,7 +45,9 @@ HEADERS  += \
 
 LIBS += \
     -lvlc \
-    -lvlccore
+    -lvlccore \
+    -lavutil \
+    -lswscale
 
 RESOURCES += \
     res/Res.qrc
