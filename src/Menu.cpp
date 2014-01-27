@@ -37,6 +37,93 @@ static QString getPath()
 	return Utils::getConfig("/Playing/Path",QDir::homePath());
 }
 
+static QList<Comment> bi(const QByteArray &data)
+{
+	QStringList l=QString(data).split("<d p=\"");
+	l.removeFirst();
+	QList<Comment> list;
+	for(QString &item:l){
+		Comment comment;
+		int sta=0;
+		int len=item.indexOf("\"");
+		QStringList args=item.mid(sta,len).split(',');
+		sta=item.indexOf(">")+1;
+		len=item.indexOf("<",sta)-sta;
+		comment.time=args[0].toDouble()*1000;
+		comment.date=args[4].toInt();
+		comment.mode=args[1].toInt();
+		comment.font=args[2].toInt();
+		comment.color=args[3].toInt();
+		comment.sender=args[6];
+		comment.string=item.mid(sta,len);
+		list.append(comment);
+	}
+	return list;
+}
+
+static QList<Comment> ac(const QByteArray &data)
+{
+	QJsonArray a=QJsonDocument::fromJson(data).array();
+	QList<Comment> list;
+	for(QJsonValue i:a){
+		Comment comment;
+		QJsonObject item=i.toObject();
+		QStringList args=item["c"].toString().split(',');
+		comment.time=args[0].toDouble()*1000;
+		comment.date=args[5].toInt();
+		comment.mode=args[2].toInt();
+		comment.font=args[3].toInt();
+		comment.color=args[1].toInt();
+		comment.sender=args[4];
+		comment.string=item["m"].toString();
+		list.append(comment);
+	}
+	return list;
+}
+
+static QList<Comment> dd(const QByteArray &data)
+{
+	QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
+	QList<Comment> list;
+	for(QJsonValue i:a){
+		Comment comment;
+		QJsonObject item=i.toObject();
+		comment.time=item["Time"].toDouble()*1000;
+		comment.date=item["Timestamp"].toInt();
+		comment.mode=item["Mode"].toInt();
+		comment.font=25;
+		comment.color=item["Color"].toInt();
+		comment.sender=QString::number(item["UId"].toInt());
+		comment.string=item["Message"].toString();
+		list.append(comment);
+	}
+	return list;
+}
+
+static QList<Comment> al(const QByteArray &data)
+{
+	QStringList l=QString(data).split("<l i=\"");
+	l.removeFirst();
+	QList<Comment> list;
+	for(QString &item:l){
+		Comment comment;
+		int sta=0;
+		int len=item.indexOf("\"");
+		QStringList args=item.mid(sta,len).split(',');
+		sta=item.indexOf("<![CDATA[")+9;
+		len=item.indexOf("]]>",sta)-sta;
+		comment.time=args[0].toDouble()*1000;
+		comment.date=args[5].toInt();
+		comment.mode=args[3].toInt();
+		comment.font=args[1].toInt();
+		comment.color=args[2].toInt();
+		comment.sender=args[4];
+		comment.string=item.mid(sta,len);
+		list.append(comment);
+	}
+	return list;
+}
+
 Menu::Menu(QWidget *parent):
 	QWidget(parent)
 {
@@ -52,14 +139,18 @@ Menu::Menu(QWidget *parent):
 	danmL->installEventFilter(this);
 	sechL->installEventFilter(this);
 	fileL->setReadOnly(true);
-	danmL->setPlaceholderText(tr("av/ac"));
+	danmL->setPlaceholderText(tr("av/ac/dd"));
 	fileL->setGeometry(QRect(10,25, 120,25));
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("a([cv](([0-9]+)(#)?([0-9]+)?)?)?");
-		regex.lastIndexIn(text);
-		danmL->setText(regex.cap());
+		QRegularExpression regexp("[ad]([cvd](([0-9]+)(#)?([0-9]+)?)?)?");
+		auto iter=regexp.globalMatch(text);
+		QString match;
+		while(iter.hasNext()){
+			match=iter.next().captured();
+		}
+		danmL->setText(match);
 	});
 	danmC=new QCompleter(new QStandardItemModel(this),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
@@ -139,14 +230,10 @@ Menu::Menu(QWidget *parent):
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
+	powerL->setValidator(new QIntValidator(powerL));
 	powerC=new QTimer(this);
 	powerC->setTimerType(Qt::PreciseTimer);
 	setPower(Utils::getConfig("/Danmaku/Power",60));
-	connect(powerL,&QLineEdit::textEdited,[this](QString text){
-		QRegExp regex("([0-9]+)");
-		regex.indexIn(text);
-		powerL->setText(regex.cap());
-	});
 	connect(powerL,&QLineEdit::editingFinished,[this](){
 		int p=powerL->text().toInt();
 		setPower(p);
@@ -166,7 +253,7 @@ Menu::Menu(QWidget *parent):
 		sechB->setEnabled(!local);
 		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
-		danmL->setPlaceholderText(local?QString():tr("av/ac"));
+		danmL->setPlaceholderText(local?QString():tr("av/ac/dd"));
 		Utils::setConfig("/Danmaku/Local",local);
 	});
 	localC->setChecked(Utils::getConfig("/Danmaku/Local",false));
@@ -203,90 +290,6 @@ Menu::Menu(QWidget *parent):
 			isStay=false;
 			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(code));
 		};
-
-		auto bi=[](const QByteArray &data){
-			QStringList l=QString(data).split("<d p=\"");
-			l.removeFirst();
-			QList<Comment> list;
-			for(QString &item:l){
-				Comment comment;
-				int sta=0;
-				int len=item.indexOf("\"");
-				QStringList args=item.mid(sta,len).split(',');
-				sta=item.indexOf(">")+1;
-				len=item.indexOf("<",sta)-sta;
-				comment.time=args[0].toDouble()*1000;
-				comment.date=args[4].toInt();
-				comment.mode=args[1].toInt();
-				comment.font=args[2].toInt();
-				comment.color=args[3].toInt();
-				comment.sender=args[6];
-				comment.string=item.mid(sta,len);
-				list.append(comment);
-			}
-			return list;
-		};
-
-		auto ac=[](const QByteArray &data){
-			QJsonArray a=QJsonDocument::fromJson(data).array();
-			QList<Comment> list;
-			for(QJsonValue i:a){
-				Comment comment;
-				QJsonObject item=i.toObject();
-				QStringList args=item["c"].toString().split(',');
-				comment.time=args[0].toDouble()*1000;
-				comment.date=args[5].toInt();
-				comment.mode=args[2].toInt();
-				comment.font=args[3].toInt();
-				comment.color=args[1].toInt();
-				comment.sender=args[4];
-				comment.string=item["m"].toString();
-				list.append(comment);
-			}
-			return list;
-		};
-
-		auto dd=[](const QByteArray &data){
-			QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
-			QList<Comment> list;
-			for(QJsonValue i:a){
-				Comment comment;
-				QJsonObject item=i.toObject();
-				comment.time=item["Time"].toDouble()*1000;
-				comment.date=item["Timestamp"].toInt();
-				comment.mode=item["Mode"].toInt();
-				comment.font=25;
-				comment.color=item["Color"].toInt();
-				comment.sender=QString::number(item["UId"].toInt());
-				comment.string=item["Message"].toString();
-				list.append(comment);
-			}
-			return list;
-		};
-
-		auto al=[](const QByteArray &data){
-			QStringList l=QString(data).split("<l i=\"");
-			l.removeFirst();
-			QList<Comment> list;
-			for(QString &item:l){
-				Comment comment;
-				int sta=0;
-				int len=item.indexOf("\"");
-				QStringList args=item.mid(sta,len).split(',');
-				sta=item.indexOf("<![CDATA[")+9;
-				len=item.indexOf("]]>",sta)-sta;
-				comment.time=args[0].toDouble()*1000;
-				comment.date=args[5].toInt();
-				comment.mode=args[3].toInt();
-				comment.font=args[1].toInt();
-				comment.color=args[2].toInt();
-				comment.sender=args[4];
-				comment.string=item.mid(sta,len);
-				list.append(comment);
-			}
-			return list;
-		};
-
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();

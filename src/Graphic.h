@@ -37,7 +37,7 @@ public:
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
 	virtual uint intersects(Graphic *other)=0;
-	virtual QRectF currentRect(){return QRect();}
+	virtual QRectF currentRect()=0;
 	virtual ~Graphic(){}
 	int getMode(){return source?source->mode:0;}
 

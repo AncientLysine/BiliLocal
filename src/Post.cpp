@@ -32,10 +32,12 @@
 #include "Graphic.h"
 
 Post::Post(QWidget *parent):
-	QDialog(parent)
+	QDialog(parent,Qt::FramelessWindowHint)
 {
-	setMinimumSize(400,300);
+	setMinimumSize(550,300);
 	setWindowTitle(tr("Post"));
+	setAttribute(Qt::WA_TranslucentBackground);
+	close=QIcon::fromTheme("go-bottom.png",QIcon(":/Picture/bottom.png"));
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
@@ -44,7 +46,13 @@ Post::Post(QWidget *parent):
 	layout->setSpacing(0);
 	layout->setRowStretch(0,5);
 	commentP=new QLabel(this);
-	layout->addWidget(commentP,0,0,1,4);
+	layout->addWidget(commentP,0,0,1,5);
+	commentS=new QComboBox(this);
+	for(const Record *r:getRecords()){
+		commentS->addItem(QFileInfo(r->source).baseName(),(quintptr)r);
+	}
+	layout->addWidget(commentS,1,3);
+	if(commentS->count()==1) commentS->hide();
 	commentM=new QComboBox(this);
 	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
@@ -69,7 +77,7 @@ Post::Post(QWidget *parent):
 	commentB->setDefault(true);
 	commentB->setFixedWidth(55);
 	commentB->setToolTip(tr("DA☆ZE!"));
-	layout->addWidget(commentB,1,3);
+	layout->addWidget(commentB,1,4);
 	commentA=new QAction(this);
 	commentA->setShortcut(QKeySequence("Ctrl+Enter"));
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
@@ -77,7 +85,7 @@ Post::Post(QWidget *parent):
 	connect(commentA,&QAction::triggered,[this](){
 		if(!commentL->text().isEmpty()){
 			postComment();
-			accept();
+			commentL->clear();
 		}
 	});
 }
@@ -113,14 +121,36 @@ Comment Post::getComment()
 	return c;
 }
 
-const Record *Post::getBilibili()
+void Post::paintEvent(QPaintEvent *e)
 {
+	QPainter painter(this);
+	painter.setPen(QPen(Qt::black,1));
+	painter.setBrush(Qt::NoBrush);
+	painter.setOpacity(0.2);
+	QRect r=rect().adjusted(0,0,0,-commentM->height());
+	QPoint p[4]={r.bottomLeft(),r.topLeft(),r.topRight(),r.bottomRight()};
+	painter.drawPolyline(p,4);
+	painter.setOpacity(0.8);
+	close.paint(&painter,width()-20,4,16,16);
+	QDialog::paintEvent(e);
+}
+
+void Post::mouseReleaseEvent(QMouseEvent *e)
+{
+	if(e->x()>=width()-20&&e->y()<=20){
+		accept();
+	}
+}
+
+QList<const Record *> Post::getRecords()
+{
+	QList<const Record *> list;
 	for(const Record &r:Danmaku::instance()->getPool()){
-		if(r.source.startsWith("http://comment.bilibili.tv/")){
-			return &r;
+		if(r.source.startsWith("http://comment.bilibili.tv/")||r.source.startsWith("http://api.acplay.net/")){
+			list.append(&r);
 		}
 	}
-	return NULL;
+	return list;
 }
 
 void Post::setColor(QColor color)
@@ -167,10 +197,12 @@ void Post::drawComment()
 
 void Post::postComment()
 {
-	const Record *r=getBilibili();
-	if(r!=NULL){
-		const Comment &c=getComment();
-		QNetworkRequest request(QUrl("http://interface.bilibili.tv/dmpost"));
+	const Record *r=(const Record *)commentS->currentData().value<quintptr>();
+	QNetworkRequest request;
+	QByteArray data;
+	const Comment &c=getComment();
+	if(r->source.startsWith("http://comment.bilibili.tv/")){
+		request.setUrl(QUrl("http://interface.bilibili.tv/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
 		params.addQueryItem("cid",QFileInfo(r->source).baseName());
@@ -182,23 +214,50 @@ void Post::postComment()
 		params.addQueryItem("message",c.string);
 		params.addQueryItem("rnd",QString::number(qrand()));
 		params.addQueryItem("mode",QString::number(c.mode));
-		QNetworkReply *reply=manager->post(request,QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_"));
-		connect(reply,&QNetworkReply::finished,[=](){
-			int error=reply->error();
-			if(error==QNetworkReply::NoError){
+		data=QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_");
+	}
+	if(r->source.startsWith("http://api.acplay.net/")){
+		request.setUrl(QString("http://api.acplay.net/api/v1/comment/%1").arg(QFileInfo(r->source).baseName()));
+		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+		QJsonObject params;
+		params["Token"]=0;
+		params["Time"]=(c.time-r->delay)/1000.0;
+		params["Mode"]=c.mode;
+		params["Color"]=c.color;
+		params["TimeStamp"]=QDateTime::currentMSecsSinceEpoch();
+		params["Pool"]=0;
+		params["UId"]=0;
+		params["CId"]=0;
+		params["Message"]=c.string;
+		data=QJsonDocument(params).toJson();
+	}
+	QNetworkReply *reply=manager->post(request,data);
+	connect(reply,&QNetworkReply::finished,[=](){
+		int error=reply->error();
+		QString url=reply->url().toString();
+		if(error==QNetworkReply::NoError){
+			if(url.startsWith("http://interface.bilibili.tv/")){
 				error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
 			}
-			if(error!=QNetworkReply::NoError){
-				QString info=tr("Network error occurred, error code: %1");
-				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
+			if(url.startsWith("http://acplay.net/")){
+				QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
+				error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
 			}
-			else{
-				Danmaku::instance()->appendToCurrent(&c,true);
-			}
-			reply->deleteLater();
-		});
-	}
-	else{
-		QMessageBox::warning(this,tr("Warning"),tr("Empty cid."));
-	}
+		}
+		if(error!=QNetworkReply::NoError){
+			QString info=tr("Network error occurred, error code: %1");
+			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
+		}
+		else{
+			Danmaku::instance()->appendToCurrent(&c,true);
+		}
+		reply->deleteLater();
+	});
+}
+
+int Post::exec()
+{
+	QRect p=parentWidget()->geometry(),c=geometry();
+	move(p.center().x()-c.center().x(),p.bottom()-c.height());
+	return QDialog::exec();
 }

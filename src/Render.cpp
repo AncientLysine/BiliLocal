@@ -206,8 +206,9 @@ Render::Render(QWidget *parent):
 	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
 	connect(&tv,&QMovie::updated,[this](){
 		QImage cf=tv.currentImage();
-		int w=widget->width(),h=widget->height();
-		draw(QRect((w-cf.width())/2,(h-cf.height())/2-40,w,h));
+		QPoint ps=widget->rect().center()-cf.rect().center();
+		ps.ry()-=40;
+		draw(QRect(ps,cf.size()));
 	});
 	QString path=Utils::getConfig("/Interface/Background",QString());
 	if(!path.isEmpty()){
@@ -259,7 +260,7 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	QColor outline=qApp->palette().background().color().darker(140);
 	QColor highlight=qApp->palette().color(QPalette::Highlight);
 	QColor highlightedoutline=highlight.darker(140);
-	if (qGray(outline.rgb())>qGray(highlightedoutline.rgb())){
+	if(qGray(outline.rgb())>qGray(highlightedoutline.rgb())){
 		outline=highlightedoutline;
 	}
 	painter->setPen(QPen(outline));
@@ -267,13 +268,10 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	gradient.setColorAt(1,highlight.lighter(130));
 	painter->setBrush(gradient);
 	painter->drawRect(rect);
-	painter->setPen(QColor(255,255,255,30));
-	painter->setBrush(Qt::NoBrush);
-	painter->drawRect(rect.adjusted(1,1,-1,-1));
 }
 
 void Render::setTime(double t)
 {
 	time=t;
-	draw();
+	draw(QRect(0,widget->height()-2,widget->width()*time,2));
 }

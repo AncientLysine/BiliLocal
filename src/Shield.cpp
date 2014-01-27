@@ -29,7 +29,7 @@
 
 bool Shield::block[8];
 QList<QString> Shield::shieldU;
-QList<QRegExp> Shield::shieldR;
+QList<QRegularExpression> Shield::shieldR;
 
 void Shield::init()
 {
@@ -39,7 +39,7 @@ void Shield::init()
 		shieldU.append(item.toString());
 	}
 	for(const QJsonValue &item:r){
-		shieldR.append(QRegExp(item.toString()));
+		shieldR.append(QRegularExpression(item.toString()));
 	}
 	int group=Utils::getConfig("/Shield/Group",0);
 	for(int i=7;i>=0;--i){
@@ -88,8 +88,8 @@ bool Shield::isBlocked(const Comment &comment)
 	if(shieldU.contains(comment.sender)){
 		return true;
 	}
-	for(const QRegExp &r:shieldR){
-		if(r.indexIn(comment.string)!=-1){
+	for(const QRegularExpression &r:shieldR){
+		if(r.match(comment.string).hasMatch()){
 			return true;
 		}
 	}

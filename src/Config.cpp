@@ -579,7 +579,7 @@ Config::Config(QWidget *parent,int index):
 	connect(this,&QDialog::finished,[this](){
 		Shield::shieldR.clear();
 		for(QString item:rm->stringList()){
-			Shield::shieldR.append(QRegExp(item));
+			Shield::shieldR.append(QRegularExpression(item));
 		}
 		Shield::shieldU=sm->stringList();
 	});

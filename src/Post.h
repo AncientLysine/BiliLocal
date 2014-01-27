@@ -40,24 +40,31 @@ class Post:public QDialog
 	Q_OBJECT
 public:
 	explicit Post(QWidget *parent=0);
-	static bool isValid(){return getBilibili()!=NULL;}
+	static bool isValid(){return !getRecords().isEmpty();}
 
 private:
 	QLabel *commentP;
 	QAction *commentA;
 	QLineEdit *commentL;
+	QComboBox *commentS;
 	QComboBox *commentM;
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
+	QIcon close;
 	QColor getColor();
 	Comment getComment();
-	static const Record *getBilibili();
+	void paintEvent(QPaintEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
+	static QList<const Record *> getRecords();
 
 private slots:
 	void setColor(QColor color);
 	void drawComment();
 	void postComment();
+
+public slots:
+	int exec();
 };
 
 #endif // POST_H

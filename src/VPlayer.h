@@ -54,11 +54,9 @@ public:
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
-	void releaseAndLock();
 
 	virtual uchar *getBuffer()=0;
-	virtual void initBuffer()=0;
-	virtual void freeBuffer()=0;
+	virtual void setBuffer()=0;
 	virtual void draw(QPainter *painter,QRect rect)=0;
 
 	static VPlayer *create(QObject *parent=NULL);
@@ -101,6 +99,7 @@ public slots:
 	void stop();
 	void init();
 	void free();
+	void release();
 	void setDirty();
 	void setTime(qint64 _time);
 	void setFile(QString _file);

@@ -43,7 +43,6 @@ class Interface:public QMdiSubWindow
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	~Interface();
 
 private:
 	QTimer *timer;

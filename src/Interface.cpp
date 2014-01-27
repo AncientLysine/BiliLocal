@@ -40,7 +40,7 @@ Interface::Interface(QWidget *parent):
 	QMdiSubWindow(parent)
 {
 	setAcceptDrops(true);
-	setMinimumSize(550,400);
+	setMinimumSize(480,360);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
 	vplayer=VPlayer::create(this);
@@ -150,7 +150,11 @@ Interface::Interface(QWidget *parent):
 	postA=new QAction(tr("Post Danmaku"),this);
 	postA->setEnabled(false);
 	postA->setShortcut(QKeySequence("Ctrl+P"));
+	addAction(postA);
 	connect(postA,&QAction::triggered,[this](){
+		menu->push();
+		info->push();
+		setFocus();
 		Post post(this);
 		post.exec();
 	});
@@ -214,11 +218,6 @@ Interface::Interface(QWidget *parent):
 		menu->openLocal(file);
 	}
 	setFocus();
-}
-
-Interface::~Interface()
-{
-	vplayer->releaseAndLock();
 }
 
 void Interface::dropEvent(QDropEvent *e)

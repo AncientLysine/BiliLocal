@@ -171,74 +171,70 @@ static double evaluate(QString exp)
 }
 }
 
-class Mode1:public Graphic
+class Plain:public Graphic
 {
 public:
-	Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	virtual void draw(QPainter *painter);
+	virtual QRectF currentRect(){return rect;}
+
+protected:
+	QRectF rect;
+	QPixmap cache;
+};
+
+class Mode1:public Plain
+{
+public:
+	Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
-	void draw(QPainter *painter);
 	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
 
 private:
-	QRectF rect;
 	double speed;
-	QPixmap cache;
 };
 
-class Mode4:public Graphic
+class Mode4:public Plain
 {
 public:
-	Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
-	void draw(QPainter *painter);
 	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
 
 private:
-	QRectF rect;
 	double life;
-	QPixmap cache;
 };
 
-class Mode5:public Graphic
+class Mode5:public Plain
 {
 public:
-	Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
-	void draw(QPainter *painter);
 	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
 
 private:
-	QRectF rect;
 	double life;
-	QPixmap cache;
 };
 
-class Mode6:public Graphic
+class Mode6:public Plain
 {
 public:
-	Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
-	void draw(QPainter *painter);
 	uint intersects(Graphic *other);
-	QRectF currentRect(){return rect;}
 
 private:
-	QRectF rect;
 	double speed;
-	QPixmap cache;
 	const QSize &size;
 };
 
 class Mode7:public Graphic
 {
 public:
-	Mode7(const Comment &comment,const QList<Graphic *> &current,const QSize &size);
+	Mode7(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	uint intersects(Graphic *other);
+	QRectF currentRect();
 
 private:
 	QPointF bPos;
@@ -439,23 +435,22 @@ Graphic *Graphic::create(const Comment &comment,
 						 const QSize &size,
 						 const QList<Graphic *> &current)
 {
-
 	Graphic *graphic=NULL;
 	switch(comment.mode){
 	case 1:
-		graphic=new Mode1(comment,current,size);
+		graphic=new Mode1(comment,size,current);
 		break;
 	case 4:
-		graphic=new Mode4(comment,current,size);
+		graphic=new Mode4(comment,size,current);
 		break;
 	case 5:
-		graphic=new Mode5(comment,current,size);
+		graphic=new Mode5(comment,size,current);
 		break;
 	case 6:
-		graphic=new Mode6(comment,current,size);
+		graphic=new Mode6(comment,size,current);
 		break;
 	case 7:
-		graphic=new Mode7(comment,current,size);
+		graphic=new Mode7(comment,size,current);
 		break;
 	}
 	if(graphic!=NULL&&!graphic->isEnabled()){
@@ -468,7 +463,12 @@ Graphic *Graphic::create(const Comment &comment,
 #define MIN 10
 #define MAX 360
 
-Mode1::Mode1(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
+void Plain::draw(QPainter *painter)
+{
+	painter->drawPixmap(rect.topLeft(),cache);
+}
+
+Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
 {
 	if(comment.mode!=1){
 		return;
@@ -514,11 +514,6 @@ bool Mode1::move(qint64 time)
 	return rect.right()>=0;
 }
 
-void Mode1::draw(QPainter *painter)
-{
-	painter->drawPixmap(rect.topLeft(),cache);
-}
-
 uint Mode1::intersects(Graphic *other)
 {
 	if(other->getMode()!=1){
@@ -541,7 +536,7 @@ uint Mode1::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
 
-Mode4::Mode4(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
+Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
 {
 	if(comment.mode!=4){
 		return;
@@ -589,11 +584,6 @@ bool Mode4::move(qint64 time)
 	return life>0;
 }
 
-void Mode4::draw(QPainter *painter)
-{
-	painter->drawPixmap(rect.topLeft(),cache);
-}
-
 uint Mode4::intersects(Graphic *other)
 {
 	if(other->getMode()!=4){
@@ -604,7 +594,7 @@ uint Mode4::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode5::Mode5(const Comment &comment,const QList<Graphic *> &current,const QSize &size)
+Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
 {
 	if(comment.mode!=5){
 		return;
@@ -652,11 +642,6 @@ bool Mode5::move(qint64 time)
 	return life>0;
 }
 
-void Mode5::draw(QPainter *painter)
-{
-	painter->drawPixmap(rect.topLeft(),cache);
-}
-
 uint Mode5::intersects(Graphic *other)
 {
 	if(other->getMode()!=5){
@@ -667,7 +652,7 @@ uint Mode5::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode6::Mode6(const Comment &comment,const QList<Graphic *> &current,const QSize &size):
+Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
 	size(size)
 {
 	if(comment.mode!=6){
@@ -714,11 +699,6 @@ bool Mode6::move(qint64 time)
 	return rect.left()<=size.width();
 }
 
-void Mode6::draw(QPainter *painter)
-{
-	painter->drawPixmap(rect.topLeft(),cache);
-}
-
 uint Mode6::intersects(Graphic *other)
 {
 	if(other->getMode()!=6){
@@ -741,7 +721,7 @@ uint Mode6::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
 
-Mode7::Mode7(const Comment &comment,const QList<Graphic *> &,const QSize &size)
+Mode7::Mode7(const Comment &comment,const QSize &size,const QList<Graphic *> &)
 {
 	if(comment.mode!=7){
 		return;
@@ -816,4 +796,9 @@ void Mode7::draw(QPainter *painter)
 uint Mode7::intersects(Graphic *)
 {
 	return 0;
+}
+
+QRectF Mode7::currentRect()
+{
+	return QRect();
 }

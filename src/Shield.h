@@ -37,7 +37,7 @@ public:
 	enum {Top,Bottom,Slide,Reverse,Guest,Advanced,Color,Whole};
 	static bool block[8];
 	static QList<QString> shieldU;
-	static QList<QRegExp> shieldR;
+	static QList<QRegularExpression> shieldR;
 	static void init();
 	static void free();
 	static bool isBlocked(const Comment &comment);
