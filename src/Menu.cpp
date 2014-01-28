@@ -303,7 +303,7 @@ Menu::Menu(QWidget *parent):
 			if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
 				Record load;
 				load.source=url;
-				if(url.endsWith("xml")){
+				if(url.endsWith("xml",Qt::CaseInsensitive)){
 					QByteArray data=reply->readAll();
 					if(data.indexOf("<i>")!=-1){
 						load.danmaku=bi(data);
@@ -312,7 +312,7 @@ Menu::Menu(QWidget *parent):
 						load.danmaku=al(data);
 					}
 				}
-				if(url.endsWith("json")){
+				if(url.endsWith("json",Qt::CaseInsensitive)){
 					load.danmaku=ac(reply->readAll());
 				}
 				if(url.indexOf("acplay")!=-1){
@@ -503,7 +503,7 @@ void Menu::setFile(QString _file)
 	bool only=Utils::getConfig("/Playing/Clear",true);
 	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){
-			QString suffix=info.suffix();
+			QString suffix=info.suffix().toLower();
 			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){
 				setDanmaku(info.absoluteFilePath());
 				if(only){
@@ -531,7 +531,7 @@ void Menu::openLocal(QString _file)
 {
 	QFileInfo info(_file);
 	if(info.exists()){
-		QString suffix=info.suffix();
+		QString suffix=info.suffix().toLower();
 		if(suffix=="xml"||suffix=="json"){
 			setDanmaku(_file);
 		}

@@ -34,7 +34,7 @@
 Post::Post(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
-	setMinimumSize(550,300);
+	setMinimumSize(480,300);
 	setWindowTitle(tr("Post"));
 	setAttribute(Qt::WA_TranslucentBackground);
 	close=QIcon::fromTheme("go-bottom.png",QIcon(":/Picture/bottom.png"));
@@ -72,6 +72,7 @@ Post::Post(QWidget *parent):
 	layout->addWidget(commentC,1,1);
 	commentL=new QLineEdit(this);
 	connect(commentL,&QLineEdit::textChanged,this,&Post::drawComment);
+	commentL->setFocus();
 	layout->addWidget(commentL,1,2);
 	commentB=new QPushButton(tr("Post"),this);
 	commentB->setDefault(true);
