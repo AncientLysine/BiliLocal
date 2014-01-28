@@ -218,6 +218,7 @@ Interface::Interface(QWidget *parent):
 		menu->openLocal(file);
 	}
 	setFocus();
+	checkForUpdate();
 }
 
 void Interface::dropEvent(QDropEvent *e)
@@ -370,6 +371,29 @@ void Interface::drawPowered()
 	if(vplayer->getState()==VPlayer::Play){
 		render->draw();
 	}
+}
+
+void Interface::checkForUpdate()
+{
+	QNetworkAccessManager *manager=new QNetworkAccessManager;
+	QNetworkRequest request(QUrl("https://raw.github.com/AncientLysine/BiliLocal/master/res/DATA"));
+	Utils::getReply(manager,request,[this](QNetworkReply *data){
+		QFile local(":/Text/DATA");
+		local.open(QIODevice::ReadOnly);
+		QJsonObject l=QJsonDocument::fromJson(local.readAll()).object()["Version"].toObject();
+		QJsonObject r=QJsonDocument::fromJson(data->readAll()).object()["Version"].toObject();
+		if(r.contains("Number")&&l["Number"].toString()<r["Number"].toString()){
+			QMessageBox::StandardButton button;
+			button=QMessageBox::information(this,
+											tr("Update"),
+											r["String"].toString(),
+											QMessageBox::Ok|QMessageBox::Cancel);
+			if(button==QMessageBox::Ok){
+				QDesktopServices::openUrl(r["Url"].toString());
+			}
+		}
+		data->manager()->deleteLater();
+	});
 }
 
 void Interface::setCenter(QSize _s,bool f)

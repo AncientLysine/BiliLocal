@@ -80,6 +80,7 @@ private:
 private slots:
 	void drawDecoded();
 	void drawPowered();
+	void checkForUpdate();
 	void setCenter(QSize s,bool f);
 	void showContextMenu(QPoint p);
 
