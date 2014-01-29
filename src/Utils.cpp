@@ -73,6 +73,12 @@ void Utils::setGround(QWidget *widget,QColor color)
 	widget->setPalette(palette);
 }
 
+QString Utils::defaultPath()
+{
+	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
+	return getConfig("/Playing/Path",paths.isEmpty()?QDir::homePath():paths.last());
+}
+
 QString Utils::defaultFont(bool monospace)
 {
 	if(monospace){

@@ -95,6 +95,7 @@ public:
 	static Site getSite(QString url);
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
+	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
 	static QString splitString(QString text,int width);
 

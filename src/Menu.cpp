@@ -32,11 +32,6 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
-static QString getPath()
-{
-	return Utils::getConfig("/Playing/Path",QDir::homePath());
-}
-
 static QList<Comment> bi(const QByteArray &data)
 {
 	QStringList l=QString(data).split("<d p=\"");
@@ -178,14 +173,19 @@ Menu::Menu(QWidget *parent):
 	danmA=new QAction(tr("Load Danmaku"),this);
 	sechA=new QAction(tr("Search Danmaku"),this);
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath());
+		QString _file=QFileDialog::getOpenFileName(parentWidget(),
+												   tr("Open File"),
+												   Utils::defaultPath());
 		if(!_file.isEmpty()){
 			setFile(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Utils::getConfig("/Danmaku/Local",false)){
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),tr("Open File"),getPath(),tr("Danmaku files (*.xml *.json)"));
+			QString _file=QFileDialog::getOpenFileName(parentWidget(),
+													   tr("Open File"),
+													   Utils::defaultPath(),
+													   tr("Danmaku files (*.xml *.json)"));
 			if(!_file.isEmpty()){
 				setDanmaku(_file);
 			}

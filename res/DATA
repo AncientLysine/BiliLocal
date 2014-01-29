@@ -61,9 +61,5 @@
         "7": "其他",
         "99": "未知"
     },
-    "Version": {
-        "Number": "0.3.0",
-        "String": "Ver_0.3.0",
-        "Url": "https://github.com/AncientLysine/BiliLocal"
-    }
+    "Version": "0.3.0"
 }
