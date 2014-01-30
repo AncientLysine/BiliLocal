@@ -178,6 +178,7 @@ public:
 	virtual QRectF currentRect(){return rect;}
 
 protected:
+	Plain(const Comment &comment,const QSize &size);
 	QRectF rect;
 	QPixmap cache;
 };
@@ -463,24 +464,33 @@ Graphic *Graphic::create(const Comment &comment,
 #define MIN 10
 #define MAX 360
 
+Plain::Plain(const Comment &comment,const QSize &size)
+{
+	source=&comment;
+	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
+	QSize need=getSize(comment.string,font);
+	rect.setSize(need);
+	cache=getCache(comment.string,comment.color,font,need);
+}
+
 void Plain::draw(QPainter *painter)
 {
 	painter->drawPixmap(rect.topLeft(),cache);
 }
 
-Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
+Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+	Plain(comment,size)
 {
 	if(comment.mode!=1){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
-	QSize bound=getSize(comment.string,font);
-	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
-	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-	if((speed=evaluate(exp))==0){
+	QSizeF bound=rect.size();
+	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	if((speed=evaluate(expression))==0){
 		return;
 	}
-	rect=QRectF(QPointF(size.width(),5),bound);
+	rect.moveTopLeft(QPointF(size.width(),5));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
@@ -502,8 +512,6 @@ Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		rect=r;
 	}
 	enabled=true;
-	source=&comment;
-	cache=getCache(comment.string,comment.color,font,bound);
 }
 
 bool Mode1::move(qint64 time)
@@ -536,20 +544,19 @@ uint Mode1::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
 
-Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
+Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+	Plain(comment,size)
 {
 	if(comment.mode!=4){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
-	QSize bound=getSize(comment.string,font);
-	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
-	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-	if((life=evaluate(exp))==0){
+	QSizeF bound=rect.size();
+	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
+	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	if((life=evaluate(expression))==0){
 		return;
 	}
-	rect=QRectF(QPointF(0,0),bound);
-	rect.moveCenter(QPoint(size.width()/2,0));
+	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:5));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
@@ -572,8 +579,6 @@ Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		rect=r;
 	}
 	enabled=true;
-	source=&comment;
-	cache=getCache(comment.string,comment.color,font,bound);
 }
 
 bool Mode4::move(qint64 time)
@@ -594,20 +599,19 @@ uint Mode4::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current)
+Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+	Plain(comment,size)
 {
 	if(comment.mode!=5){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
-	QSize bound=getSize(comment.string,font);
-	QString exp=Utils::getConfig<QString>("/Danmaku/Life","5");
-	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-	if((life=evaluate(exp))==0){
+	QSizeF bound=rect.size();
+	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
+	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	if((life=evaluate(expression))==0){
 		return;
 	}
-	rect=QRectF(QPointF(0,0),bound);
-	rect.moveCenter(QPoint(size.width()/2,0));
+	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveTop(5);
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
@@ -630,8 +634,6 @@ Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		rect=r;
 	}
 	enabled=true;
-	source=&comment;
-	cache=getCache(comment.string,comment.color,font,bound);
 }
 
 bool Mode5::move(qint64 time)
@@ -653,19 +655,18 @@ uint Mode5::intersects(Graphic *other)
 }
 
 Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
-	size(size)
+	Plain(comment,size),size(size)
 {
 	if(comment.mode!=6){
 		return;
 	}
-	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
-	QSize bound=getSize(comment.string,font);
-	QString exp=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
-	exp.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-	if((speed=evaluate(exp))==0){
+	QSizeF bound=rect.size();
+	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	if((speed=evaluate(expression))==0){
 		return;
 	}
-	rect=QRectF(QPointF(-bound.width(),5),bound);
+	rect.moveTopLeft(QPointF(-bound.width(),5));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
@@ -687,8 +688,6 @@ Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		rect=r;
 	}
 	enabled=true;
-	source=&comment;
-	cache=getCache(comment.string,comment.color,font,bound);
 }
 
 bool Mode6::move(qint64 time)
