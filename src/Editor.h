@@ -54,6 +54,7 @@ private:
 	void mouseMoveEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
 	void delayRecord(int index,qint64 delay);
+	void limitRecord(int index,qint64 limit);
 };
 
 #endif // EDITOR_H

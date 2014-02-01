@@ -322,13 +322,18 @@
     <name>Editor</name>
     <message>
         <location filename="../src/Editor.cpp" line="86"/>
+        <source>History</source>
+        <translation>歷史彈幕</translation>
+    </message>
+    <message>
+        <location filename="../src/Editor.cpp" line="106"/>
         <source>Delete</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../src/Editor.cpp" line="115"/>
-        <location filename="../src/Editor.cpp" line="128"/>
-        <location filename="../src/Editor.cpp" line="236"/>
+        <location filename="../src/Editor.cpp" line="135"/>
+        <location filename="../src/Editor.cpp" line="148"/>
+        <location filename="../src/Editor.cpp" line="259"/>
         <source>Delay: %1s</source>
         <translation>延遲: %1s</translation>
     </message>

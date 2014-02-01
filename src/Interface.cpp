@@ -308,7 +308,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	delay->start(4000);
 	if(sliding){
-		render->setTime(e->x()/(double)width());
+		render->setTime(x/(double)w);
 	}
 	else if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);

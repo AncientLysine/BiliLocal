@@ -191,6 +191,11 @@ void Danmaku::parse(int flag)
 		endResetModel();
 	}
 	if((flag&0x2)>0){
+		for(Record &r:pool){
+			for(Comment &c:r.danmaku){
+				c.blocked=r.limit!=0&&c.date>r.limit;
+			}
+		}
 		QSet<QString> set;
 		int l=Utils::getConfig("/Shield/Limit",5);
 		QVector<QString> clean;
@@ -217,7 +222,8 @@ void Danmaku::parse(int flag)
 			}
 		}
 		for(int i=0;i<danmaku.size();++i){
-			danmaku[i]->blocked=(l==0?false:set.contains(clean[i]))||Shield::isBlocked(*danmaku[i]);
+			Comment &c=*danmaku[i];
+			c.blocked=c.blocked||(l==0?false:set.contains(clean[i]))||Shield::isBlocked(c);
 			if(i%50==0){
 				qApp->processEvents();
 			}

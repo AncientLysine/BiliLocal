@@ -53,11 +53,12 @@ class Record
 {
 public:
 	qint64 delay;
+	qint64 limit;
 	QString source;
 	QList<Comment> danmaku;
 	Record()
 	{
-		delay=0;
+		delay=limit=0;
 	}
 };
 

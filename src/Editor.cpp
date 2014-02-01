@@ -83,6 +83,38 @@ Editor::Editor(QWidget *parent):
 	connect(this,&Editor::customContextMenuRequested,[this](QPoint p){
 		int i=p.y()/length;
 		QMenu menu(this);
+		connect(menu.addAction(tr("History")),&QAction::triggered,[this,i](){
+			QDialog dialog(this,Qt::Popup);
+			QGridLayout layout(&dialog);
+			layout.setMargin(0);
+			QCalendarWidget date(&dialog);
+			Record &r=Danmaku::instance()->getPool()[i];
+			if(!r.danmaku.isEmpty()){
+				qint64 max=-1,min=-1;
+				for(const Comment &c:r.danmaku){
+					if(max==-1||max<c.date){
+						max=c.date;
+					}
+					if(min==-1||min>c.date){
+						min=c.date;
+					}
+				}
+				date.setDateRange(QDateTime::fromTime_t(min).date(),
+								  QDateTime::fromTime_t(max).date().addDays(1));
+			}
+			if(r.limit!=0){
+				date.setSelectedDate(QDateTime::fromTime_t(r.limit).date());
+			}
+			date.setVerticalHeaderFormat(QCalendarWidget::NoVerticalHeader);
+			QWidget *b=date.findChild<QWidget *>("qt_calendar_navigationbar");
+			b->setBackgroundRole(QPalette::Window);
+			Utils::setGround(b,Qt::gray);
+			date.findChild<QToolButton *>("qt_calendar_prevmonth")->setIcon(QIcon(":/Picture/previous.png"));
+			date.findChild<QToolButton *>("qt_calendar_nextmonth")->setIcon(QIcon(":/Picture/next.png"));
+			layout.addWidget(&date);
+			dialog.exec();
+			limitRecord(i,QDateTime(date.selectedDate()).toTime_t());
+		});
 		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
 			p.removeAt(i);
@@ -150,6 +182,9 @@ void Editor::paintEvent(QPaintEvent *e)
 		int m=0,d=duration/(w/5)+1;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
+			if(com.blocked){
+				continue;
+			}
 			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
 			c.insert(k,v);
 			m=v>m?v:m;
@@ -234,4 +269,12 @@ void Editor::delayRecord(int index,qint64 delay)
 	}
 	update(0,index*length,width(),length);
 	time[index]->setText(tr("Delay: %1s").arg(r.delay/1000));
+}
+
+void Editor::limitRecord(int index,qint64 limit)
+{
+	auto &r=Danmaku::instance()->getPool()[index];
+	r.limit=limit;
+	Danmaku::instance()->parse(0x2);
+	update(0,index*length,width(),length);
 }
