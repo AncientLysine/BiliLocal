@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Editor.h
-*   Time:        2013/06/30
+*   Filename:    History.h
+*   Time:        2014/02/03
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,36 +24,35 @@
 *
 =========================================================================*/
 
-#ifndef EDITOR_H
-#define EDITOR_H
+#ifndef HISTORY_H
+#define HISTORY_H
 
-#include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
-class Editor:public QWidget
+class Record;
+
+class History:public QDialog
 {
 	Q_OBJECT
 public:
-	static int exec(QWidget *parent=0);
+	explicit History(Record &record,QWidget *parent=0);
+	QDate selectedDate();
 
 private:
-	int scale;
-	int length;
-	QPoint point;
-	qint64 current;
-	qint64 duration;
-	QList<qint64> magnet;
-	QList<QLineEdit *> time;
+	QDate page;
+	QDate curr;
+	QLabel *date;
+	QToolButton *prev;
+	QToolButton *next;
+	QTableWidget *table;
+	QNetworkAccessManager *manager;
+	QMap<QDate,int> count;
+	QDate currentLimit();
 
-	Editor(QWidget *parent=0);
-	void load();
-	void paintEvent(QPaintEvent *e);
-	void wheelEvent(QWheelEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void delayRecord(int index,qint64 delay);
-	void limitRecord(int index,qint64 limit);
+private slots:
+	void setCurrentPage(QDate _d);
 };
 
-#endif // EDITOR_H
+#endif // HISTORY_H

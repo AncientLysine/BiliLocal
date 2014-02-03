@@ -48,6 +48,7 @@ Interface::Interface(QWidget *parent):
 	render=Render::create(this);
 	menu=new Menu(this);
 	info=new Info(this);
+	post=new Post(this);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(1000);
@@ -155,8 +156,7 @@ Interface::Interface(QWidget *parent):
 		menu->push();
 		info->push();
 		setFocus();
-		Post post(this);
-		post.exec();
+		post->show();
 	});
 	connect(danmaku,&Danmaku::modelReset,[this](){
 		postA->setEnabled(Post::isValid());

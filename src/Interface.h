@@ -31,9 +31,11 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
 class Menu;
 class Info;
+class Post;
 class Render;
 class VPlayer;
 class Danmaku;
@@ -58,6 +60,7 @@ private:
 
 	Menu *menu;
 	Info *info;
+	Post *post;
 	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;

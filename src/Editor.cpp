@@ -27,6 +27,7 @@
 #include "Editor.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
+#include "History.h"
 
 namespace{
 class Resizer:public QObject
@@ -84,36 +85,11 @@ Editor::Editor(QWidget *parent):
 		int i=p.y()/length;
 		QMenu menu(this);
 		connect(menu.addAction(tr("History")),&QAction::triggered,[this,i](){
-			QDialog dialog(this,Qt::Popup);
-			QGridLayout layout(&dialog);
-			layout.setMargin(0);
-			QCalendarWidget date(&dialog);
-			Record &r=Danmaku::instance()->getPool()[i];
-			if(!r.danmaku.isEmpty()){
-				qint64 max=-1,min=-1;
-				for(const Comment &c:r.danmaku){
-					if(max==-1||max<c.date){
-						max=c.date;
-					}
-					if(min==-1||min>c.date){
-						min=c.date;
-					}
-				}
-				date.setDateRange(QDateTime::fromTime_t(min).date(),
-								  QDateTime::fromTime_t(max).date().addDays(1));
+			History history(Danmaku::instance()->getPool()[i],this);
+			if(history.exec()==QDialog::Accepted){
+				QDate selected=history.selectedDate();
+				limitRecord(i,selected.isValid()?QDateTime(selected).toTime_t():0);
 			}
-			if(r.limit!=0){
-				date.setSelectedDate(QDateTime::fromTime_t(r.limit).date());
-			}
-			date.setVerticalHeaderFormat(QCalendarWidget::NoVerticalHeader);
-			QWidget *b=date.findChild<QWidget *>("qt_calendar_navigationbar");
-			b->setBackgroundRole(QPalette::Window);
-			Utils::setGround(b,Qt::gray);
-			date.findChild<QToolButton *>("qt_calendar_prevmonth")->setIcon(QIcon(":/Picture/previous.png"));
-			date.findChild<QToolButton *>("qt_calendar_nextmonth")->setIcon(QIcon(":/Picture/next.png"));
-			layout.addWidget(&date);
-			dialog.exec();
-			limitRecord(i,QDateTime(date.selectedDate()).toTime_t());
 		});
 		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
 			auto &p=Danmaku::instance()->getPool();
@@ -275,6 +251,5 @@ void Editor::limitRecord(int index,qint64 limit)
 {
 	auto &r=Danmaku::instance()->getPool()[index];
 	r.limit=limit;
-	Danmaku::instance()->parse(0x2);
 	update(0,index*length,width(),length);
 }

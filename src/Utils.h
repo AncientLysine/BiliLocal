@@ -91,7 +91,8 @@ public:
 		Bilibili,
 		AcFun,
 		Letv,
-		AcPlay
+		AcPlay,
+		AcfunLocalizer
 	};
 	static Site getSite(QString url);
 	static void setCenter(QWidget *widget);
@@ -99,6 +100,7 @@ public:
 	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
 	static QString splitString(QString text,int width);
+	static QList<Comment> parseComment(QByteArray data,Site site);
 
 
 	template<class T>

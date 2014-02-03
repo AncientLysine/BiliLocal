@@ -36,7 +36,10 @@ Post::Post(QWidget *parent):
 {
 	setMinimumSize(480,300);
 	setWindowTitle(tr("Post"));
+	setWindowOpacity(0.6);
 	setAttribute(Qt::WA_TranslucentBackground);
+	moveWithParent();
+	parent->installEventFilter(this);
 	close=QIcon::fromTheme("go-bottom.png",QIcon(":/Picture/bottom.png"));
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
@@ -48,11 +51,7 @@ Post::Post(QWidget *parent):
 	commentP=new QLabel(this);
 	layout->addWidget(commentP,0,0,1,5);
 	commentS=new QComboBox(this);
-	for(const Record *r:getRecords()){
-		commentS->addItem(QFileInfo(r->source).baseName(),(quintptr)r);
-	}
 	layout->addWidget(commentS,1,3);
-	if(commentS->count()==1) commentS->hide();
 	commentM=new QComboBox(this);
 	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
@@ -71,8 +70,8 @@ Post::Post(QWidget *parent):
 	});
 	layout->addWidget(commentC,1,1);
 	commentL=new QLineEdit(this);
-	connect(commentL,&QLineEdit::textChanged,this,&Post::drawComment);
 	commentL->setFocus();
+	connect(commentL,&QLineEdit::textChanged,this,&Post::drawComment);
 	layout->addWidget(commentL,1,2);
 	commentB=new QPushButton(tr("Post"),this);
 	commentB->setDefault(true);
@@ -89,6 +88,28 @@ Post::Post(QWidget *parent):
 			commentL->clear();
 		}
 	});
+	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
+		commentS->clear();
+		for(const Record *r:getRecords()){
+			commentS->addItem(QFileInfo(r->source).baseName(),(quintptr)r);
+		}
+		if(commentS->count()==0){
+			hide();
+		}
+		commentS->setVisible(commentS->count()>=2);
+	});
+}
+
+bool Post::eventFilter(QObject *,QEvent *e)
+{
+	switch(e->type()){
+	case QEvent::Move:
+	case QEvent::Resize:
+		moveWithParent();
+		return false;
+	default:
+		return false;
+	}
 }
 
 QColor Post::getColor()
@@ -127,7 +148,7 @@ void Post::paintEvent(QPaintEvent *e)
 	QPainter painter(this);
 	painter.setPen(QPen(Qt::black,1));
 	painter.setBrush(Qt::NoBrush);
-	painter.setOpacity(0.2);
+	painter.setOpacity(0.4);
 	QRect r=rect().adjusted(0,0,0,-commentM->height());
 	QPoint p[4]={r.bottomLeft(),r.topLeft(),r.topRight(),r.bottomRight()};
 	painter.drawPolyline(p,4);
@@ -156,7 +177,7 @@ QList<const Record *> Post::getRecords()
 
 void Post::setColor(QColor color)
 {
-	commentC->setStyleSheet(QString("background:%1").arg(color.name()));
+	commentC->setStyleSheet(QString("background-color:%1").arg(color.name()));
 }
 
 void Post::drawComment()
@@ -256,9 +277,8 @@ void Post::postComment()
 	});
 }
 
-int Post::exec()
+void Post::moveWithParent()
 {
 	QRect p=parentWidget()->geometry(),c=geometry();
-	move(p.center().x()-c.center().x(),p.bottom()-c.height());
-	return QDialog::exec();
+	move(p.center().x()-c.width()/2,p.bottom()-c.height()-2);
 }

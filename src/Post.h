@@ -39,7 +39,7 @@ class Post:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Post(QWidget *parent=0);
+	explicit Post(QWidget *parent);
 	static bool isValid(){return !getRecords().isEmpty();}
 
 private:
@@ -56,15 +56,14 @@ private:
 	Comment getComment();
 	void paintEvent(QPaintEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
+	bool eventFilter(QObject *o,QEvent *e);
 	static QList<const Record *> getRecords();
 
 private slots:
 	void setColor(QColor color);
 	void drawComment();
 	void postComment();
-
-public slots:
-	int exec();
+	void moveWithParent();
 };
 
 #endif // POST_H

@@ -130,6 +130,95 @@ QString Utils::splitString(QString text,int width)
 	return result.join('\n');
 }
 
+QList<Comment> Utils::parseComment(QByteArray data,Site site)
+{
+	QList<Comment> list;
+	switch(site){
+	case Bilibili:
+	{
+		QStringList l=QString(data).split("<d p=\"");
+		l.removeFirst();
+		for(QString &item:l){
+			Comment comment;
+			int sta=0;
+			int len=item.indexOf("\"");
+			QStringList args=item.mid(sta,len).split(',');
+			sta=item.indexOf(">")+1;
+			len=item.indexOf("<",sta)-sta;
+			comment.time=args[0].toDouble()*1000;
+			comment.date=args[4].toInt();
+			comment.mode=args[1].toInt();
+			comment.font=args[2].toInt();
+			comment.color=args[3].toInt();
+			comment.sender=args[6];
+			comment.string=item.mid(sta,len);
+			list.append(comment);
+		}
+		break;
+	}
+	case AcFun:
+	{
+		QJsonArray a=QJsonDocument::fromJson(data).array();
+		for(QJsonValue i:a){
+			Comment comment;
+			QJsonObject item=i.toObject();
+			QStringList args=item["c"].toString().split(',');
+			comment.time=args[0].toDouble()*1000;
+			comment.date=args[5].toInt();
+			comment.mode=args[2].toInt();
+			comment.font=args[3].toInt();
+			comment.color=args[1].toInt();
+			comment.sender=args[4];
+			comment.string=item["m"].toString();
+			list.append(comment);
+		}
+		break;
+	}
+	case AcPlay:
+	{
+		QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
+		for(QJsonValue i:a){
+			Comment comment;
+			QJsonObject item=i.toObject();
+			comment.time=item["Time"].toDouble()*1000;
+			comment.date=item["Timestamp"].toInt();
+			comment.mode=item["Mode"].toInt();
+			comment.font=25;
+			comment.color=item["Color"].toInt();
+			comment.sender=QString::number(item["UId"].toInt());
+			comment.string=item["Message"].toString();
+			list.append(comment);
+		}
+		break;
+	}
+	case AcfunLocalizer:
+	{
+		QStringList l=QString(data).split("<l i=\"");
+		l.removeFirst();
+		for(QString &item:l){
+			Comment comment;
+			int sta=0;
+			int len=item.indexOf("\"");
+			QStringList args=item.mid(sta,len).split(',');
+			sta=item.indexOf("<![CDATA[")+9;
+			len=item.indexOf("]]>",sta)-sta;
+			comment.time=args[0].toDouble()*1000;
+			comment.date=args[5].toInt();
+			comment.mode=args[3].toInt();
+			comment.font=args[1].toInt();
+			comment.color=args[2].toInt();
+			comment.sender=args[4];
+			comment.string=item.mid(sta,len);
+			list.append(comment);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return list;
+}
+
 void Utils::loadConfig()
 {
 	QFile conf("./Config.txt");

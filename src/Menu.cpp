@@ -32,93 +32,6 @@
 #include "Danmaku.h"
 #include "VPlayer.h"
 
-static QList<Comment> bi(const QByteArray &data)
-{
-	QStringList l=QString(data).split("<d p=\"");
-	l.removeFirst();
-	QList<Comment> list;
-	for(QString &item:l){
-		Comment comment;
-		int sta=0;
-		int len=item.indexOf("\"");
-		QStringList args=item.mid(sta,len).split(',');
-		sta=item.indexOf(">")+1;
-		len=item.indexOf("<",sta)-sta;
-		comment.time=args[0].toDouble()*1000;
-		comment.date=args[4].toInt();
-		comment.mode=args[1].toInt();
-		comment.font=args[2].toInt();
-		comment.color=args[3].toInt();
-		comment.sender=args[6];
-		comment.string=item.mid(sta,len);
-		list.append(comment);
-	}
-	return list;
-}
-
-static QList<Comment> ac(const QByteArray &data)
-{
-	QJsonArray a=QJsonDocument::fromJson(data).array();
-	QList<Comment> list;
-	for(QJsonValue i:a){
-		Comment comment;
-		QJsonObject item=i.toObject();
-		QStringList args=item["c"].toString().split(',');
-		comment.time=args[0].toDouble()*1000;
-		comment.date=args[5].toInt();
-		comment.mode=args[2].toInt();
-		comment.font=args[3].toInt();
-		comment.color=args[1].toInt();
-		comment.sender=args[4];
-		comment.string=item["m"].toString();
-		list.append(comment);
-	}
-	return list;
-}
-
-static QList<Comment> dd(const QByteArray &data)
-{
-	QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
-	QList<Comment> list;
-	for(QJsonValue i:a){
-		Comment comment;
-		QJsonObject item=i.toObject();
-		comment.time=item["Time"].toDouble()*1000;
-		comment.date=item["Timestamp"].toInt();
-		comment.mode=item["Mode"].toInt();
-		comment.font=25;
-		comment.color=item["Color"].toInt();
-		comment.sender=QString::number(item["UId"].toInt());
-		comment.string=item["Message"].toString();
-		list.append(comment);
-	}
-	return list;
-}
-
-static QList<Comment> al(const QByteArray &data)
-{
-	QStringList l=QString(data).split("<l i=\"");
-	l.removeFirst();
-	QList<Comment> list;
-	for(QString &item:l){
-		Comment comment;
-		int sta=0;
-		int len=item.indexOf("\"");
-		QStringList args=item.mid(sta,len).split(',');
-		sta=item.indexOf("<![CDATA[")+9;
-		len=item.indexOf("]]>",sta)-sta;
-		comment.time=args[0].toDouble()*1000;
-		comment.date=args[5].toInt();
-		comment.mode=args[3].toInt();
-		comment.font=args[1].toInt();
-		comment.color=args[2].toInt();
-		comment.sender=args[4];
-		comment.string=item.mid(sta,len);
-		list.append(comment);
-	}
-	return list;
-}
-
 Menu::Menu(QWidget *parent):
 	QWidget(parent)
 {
@@ -306,17 +219,17 @@ Menu::Menu(QWidget *parent):
 				if(url.endsWith("xml",Qt::CaseInsensitive)){
 					QByteArray data=reply->readAll();
 					if(data.indexOf("<i>")!=-1){
-						load.danmaku=bi(data);
+						load.danmaku=Utils::parseComment(data,Utils::Bilibili);
 					}
 					if(data.indexOf("<c>")!=-1){
-						load.danmaku=al(data);
+						load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);
 					}
 				}
 				if(url.endsWith("json",Qt::CaseInsensitive)){
-					load.danmaku=ac(reply->readAll());
+					load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcFun);
 				}
 				if(url.indexOf("acplay")!=-1){
-					load.danmaku=dd(reply->readAll());
+					load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcPlay);
 				}
 				Danmaku::instance()->appendToPool(load);
 			}

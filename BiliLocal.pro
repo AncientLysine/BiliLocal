@@ -25,7 +25,8 @@ SOURCES += \
     src/Cookie.cpp \
     src/Graphic.cpp \
     src/Post.cpp \
-    src/Render.cpp
+    src/Render.cpp \
+    src/History.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -41,7 +42,8 @@ HEADERS  += \
     src/Cookie.h \
     src/Graphic.h \
     src/Post.h \
-    src/Render.h
+    src/Render.h \
+    src/History.h
 
 LIBS += \
     -lvlc \
