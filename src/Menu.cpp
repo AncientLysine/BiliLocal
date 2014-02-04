@@ -215,11 +215,13 @@ Menu::Menu(QWidget *parent):
 			QRegularExpression::PatternOption option=QRegularExpression::CaseInsensitiveOption;
 			if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
 				Record load;
+				load.full=true;
 				load.source=url;
 				if(url.endsWith("xml",Qt::CaseInsensitive)){
 					QByteArray data=reply->readAll();
 					if(data.indexOf("<i>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::Bilibili);
+						load.full=reply->url().isLocalFile();
 					}
 					if(data.indexOf("<c>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);

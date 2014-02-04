@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Editor.h"
+#include "Cookie.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 #include "History.h"
@@ -73,22 +74,144 @@ int Editor::exec(QWidget *parent)
 	return dialog.exec();
 }
 
+static QMap<QDate,int> parseCount(QByteArray data)
+{
+	QMap<QDate,int> count;
+	for(QJsonValue iter:QJsonDocument::fromJson(data).array()){
+		QJsonObject obj=iter.toObject();
+		QJsonValue time=obj["timestamp"],size=obj["new"];
+		count[QDateTime::fromTime_t(time.toVariant().toInt()).date()]+=size.toVariant().toInt();
+	}
+	return count;
+}
+
 Editor::Editor(QWidget *parent):
 	QWidget(parent)
 {
 	scale=0;
 	length=100;
 	current=VPlayer::instance()->getTime();
+	manager=new QNetworkAccessManager(this);
+	manager->setCookieJar(Cookie::instance());
+	Cookie::instance()->setParent(NULL);
 	load();
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this,&Editor::customContextMenuRequested,[this](QPoint p){
 		int i=p.y()/length;
+		Record &r=Danmaku::instance()->getPool()[i];
 		QMenu menu(this);
-		connect(menu.addAction(tr("History")),&QAction::triggered,[this,i](){
-			History history(Danmaku::instance()->getPool()[i],this);
+		if(!r.full){
+			connect(menu.addAction(tr("Full")),&QAction::triggered,[this,&r](){
+				QString cid=QFileInfo(r.source).baseName();
+				QString api("http://comment.bilibili.tv/rolldate,%1");
+				Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[=,&r](QNetworkReply *reply){
+					QMap<QDate,int> count=parseCount(reply->readAll());
+					QString url("http://comment.bilibili.tv/dmroll,%2,%1");
+					url=url.arg(cid);
+					QSet<Comment> set=r.danmaku.toSet();
+					QProgressDialog progress(this);
+					int total=0;
+					for(int c:count){
+						total+=c;
+					}
+					progress.setWindowTitle(tr("Loading"));
+					progress.setMaximum(total);
+					QMetaObject::Connection connect;
+					auto finish=[&](){
+						Record load;
+						load.full=true;
+						load.danmaku=set.toList();
+						load.source=r.source;
+						QObject::disconnect(connect);
+						progress.reset();
+						Danmaku::instance()->appendToPool(load);
+					};
+					connect=QObject::connect(manager,&QNetworkAccessManager::finished,[&](QNetworkReply *reply){
+						QStringList s=reply->url().url().split(',');
+						if(s.size()==3){
+							QDate c=QDateTime::fromTime_t(s[1].toUInt()).date();
+							QByteArray data=reply->readAll();
+							int sta=data.indexOf("<max_count>")+11,end=data.indexOf("</max_count>");
+							int max=data.mid(sta,end-sta).toInt(),now=0;
+							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
+								set.insert(c);
+							}
+							if(c!=count.lastKey()){
+								auto iter=++count.find(c);
+								for(;;++iter){
+									if(iter==count.end()){
+										--iter;
+										break;
+									}
+									else if(iter.value()>=max){
+										break;
+									}
+									else if((now+=iter.value())>max){
+										--iter;
+										break;
+									}
+								}
+								reply->manager()->get(QNetworkRequest(url.arg(QDateTime(iter.key()).toTime_t())));
+								progress.setValue(set.size());
+							}
+							else{
+								finish();
+							}
+						}
+						reply->deleteLater();
+					});
+					manager->get(QNetworkRequest(url.arg(QDateTime(count.firstKey()).toTime_t())));
+					QObject::connect(&progress,&QProgressDialog::canceled,finish);
+					progress.exec();
+				});
+			});
+			menu.addSeparator();
+		}
+		connect(menu.addAction(tr("History")),&QAction::triggered,[=,&r](){
+			History history(this);
+			QMap<QDate,int> count;
+			QDate c=r.limit==0?QDate::currentDate().addDays(1):QDateTime::fromTime_t(r.limit).date();
+			history.setCurrentDate(c);
+			if(r.full){
+				for(const Comment &c:r.danmaku){
+					++count[QDateTime::fromTime_t(c.date).date()];
+				}
+				count[QDate::currentDate().addDays(1)]=0;
+				count.remove(count.firstKey());
+				history.setCount(count);
+				history.setCurrentPage(c);
+			}
+			else{
+				QString cid=QFileInfo(r.source).baseName();
+				QString api("http://comment.bilibili.tv/rolldate,%1");
+				Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[&](QNetworkReply *reply){
+					count=parseCount(reply->readAll());
+					count[QDate::currentDate().addDays(1)]=0;
+					history.setCount(count);
+					history.setCurrentPage(c);
+				});
+			}
 			if(history.exec()==QDialog::Accepted){
 				QDate selected=history.selectedDate();
-				limitRecord(i,selected.isValid()?QDateTime(selected).toTime_t():0);
+				r.limit=selected.isValid()?QDateTime(selected).toTime_t():0;
+				if(r.full){
+					Danmaku::instance()->parse(0x2);
+					update(0,i*length,width(),length);
+				}
+				else{
+					QString url,cid=QFileInfo(r.source).baseName();;
+					QDate selected=history.selectedDate();
+					if(selected.isValid()){
+						url=QString("http://comment.bilibili.tv/dmroll,%1,%2").arg(QDateTime(selected).toTime_t()).arg(cid);
+					}
+					else{
+						url=QString("http://comment.bilibili.tv/%1.xml").arg(cid);
+					}
+					Utils::getReply(manager,QNetworkRequest(url),[=,&r](QNetworkReply *reply){
+						r.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili);
+						Danmaku::instance()->parse(0x1|0x2);
+					});
+				}
 			}
 		});
 		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
@@ -139,8 +262,10 @@ void Editor::load()
 		time.append(edit);
 	}
 	magnet<<0<<current<<duration;
+	QRect rect=geometry();
 	resize(width(),pool.count()*length);
-	parentWidget()->update();
+	update();
+	parentWidget()->update(rect);
 }
 
 void Editor::paintEvent(QPaintEvent *e)
@@ -245,11 +370,4 @@ void Editor::delayRecord(int index,qint64 delay)
 	}
 	update(0,index*length,width(),length);
 	time[index]->setText(tr("Delay: %1s").arg(r.delay/1000));
-}
-
-void Editor::limitRecord(int index,qint64 limit)
-{
-	auto &r=Danmaku::instance()->getPool()[index];
-	r.limit=limit;
-	update(0,index*length,width(),length);
 }

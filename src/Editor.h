@@ -30,6 +30,7 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
 class Editor:public QWidget
 {
@@ -45,6 +46,7 @@ private:
 	qint64 duration;
 	QList<qint64> magnet;
 	QList<QLineEdit *> time;
+	QNetworkAccessManager *manager;
 
 	Editor(QWidget *parent=0);
 	void load();
@@ -53,7 +55,6 @@ private:
 	void mouseMoveEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
 	void delayRecord(int index,qint64 delay);
-	void limitRecord(int index,qint64 limit);
 };
 
 #endif // EDITOR_H

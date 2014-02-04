@@ -26,10 +26,9 @@
 
 #include "History.h"
 #include "Utils.h"
-#include "Cookie.h"
 #include "Danmaku.h"
 
-History::History(Record &record,QWidget *parent):
+History::History(QWidget *parent):
 	QDialog(parent,Qt::Popup)
 {
 	auto layout=new QGridLayout(this);
@@ -57,47 +56,7 @@ History::History(Record &record,QWidget *parent):
 	table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	curr=record.limit==0?QDate::currentDate().addDays(1):QDateTime::fromTime_t(record.limit).date();
-	if(record.source.indexOf("http://comment.bilibili.tv/")!=-1){
-		manager=new QNetworkAccessManager(this);
-		manager->setCookieJar(Cookie::instance());
-		Cookie::instance()->setParent(NULL);
-		QString cid=QFileInfo(record.source).baseName();
-		QString api("http://comment.bilibili.tv/rolldate,%1");
-		Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[this](QNetworkReply *reply){
-			for(QJsonValue iter:QJsonDocument::fromJson(reply->readAll()).array()){
-				QJsonObject obj=iter.toObject();
-				QJsonValue time=obj["timestamp"],size=obj["new"];
-				count[QDateTime::fromTime_t(time.toVariant().toInt()).date()]+=size.toVariant().toInt();
-			}
-			count[QDate::currentDate().addDays(1)]=0;
-			setCurrentPage(curr);
-		});
-		connect(table,&QTableWidget::itemDoubleClicked,[=,&record](){
-			QString url;
-			QDate selected=selectedDate();
-			if(selected.isValid()){
-				url=QString("http://comment.bilibili.tv/dmroll,%1,%2").arg(QDateTime(selected).toTime_t()).arg(cid);
-			}
-			else{
-				url=QString("http://comment.bilibili.tv/%1.xml").arg(cid);
-			}
-			table->setEnabled(false);
-			Utils::getReply(manager,QNetworkRequest(url),[this,&record](QNetworkReply *reply){
-				record.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili);
-				accept();
-			});
-		});
-	}
-	else{
-		for(const Comment &c:record.danmaku){
-			++count[QDateTime::fromTime_t(c.date).date()];
-		}
-		count[QDate::currentDate().addDays(1)]=0;
-		count.remove(count.firstKey());
-		setCurrentPage(curr);
-		connect(table,&QTableWidget::itemDoubleClicked,this,&QDialog::accept);
-	}
+	connect(table,&QTableWidget::itemDoubleClicked,this,&QDialog::accept);
 	layout->addWidget(table,1,0,1,3);
 }
 
@@ -111,6 +70,11 @@ QDate History::selectedDate()
 		}
 	}
 	return QDate();
+}
+
+void History::setCurrentDate(QDate _d)
+{
+	curr=_d;
 }
 
 void History::setCurrentPage(QDate _d)
@@ -158,4 +122,9 @@ void History::setCurrentPage(QDate _d)
 	prev->setEnabled(page>count.firstKey());
 	next->setEnabled(last<count.lastKey());
 	date->setText(page.toString("MMM yyyy"));
+}
+
+void History::setCount(const QMap<QDate,int> &_c)
+{
+	count=_c;
 }

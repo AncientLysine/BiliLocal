@@ -29,7 +29,6 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include <QtNetwork>
 
 class Record;
 
@@ -37,7 +36,7 @@ class History:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit History(Record &record,QWidget *parent=0);
+	explicit History(QWidget *parent=0);
 	QDate selectedDate();
 
 private:
@@ -47,12 +46,13 @@ private:
 	QToolButton *prev;
 	QToolButton *next;
 	QTableWidget *table;
-	QNetworkAccessManager *manager;
 	QMap<QDate,int> count;
 	QDate currentLimit();
 
-private slots:
+public slots:
+	void setCurrentDate(QDate _d);
 	void setCurrentPage(QDate _d);
+	void setCount(const QMap<QDate,int> &_c);
 };
 
 #endif // HISTORY_H

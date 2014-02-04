@@ -28,7 +28,6 @@
 #include "Shield.h"
 #include "VPlayer.h"
 #include "Graphic.h"
-#include <unordered_set>
 
 Danmaku *Danmaku::ins=NULL;
 
@@ -281,35 +280,6 @@ void Danmaku::saveToFile(QString _file)
 	f.close();
 }
 
-namespace std
-{
-template<>
-class hash<Comment>
-{
-public:
-	inline uint operator ()(const Comment &c) const
-	{
-		uint h=qHash(c.mode);
-		h=(h<<1)^qHash(c.font);
-		h=(h<<1)^qHash(c.color);
-		h=(h<<1)^qHash(c.time);
-		h=(h<<1)^qHash(c.date);
-		h=(h<<1)^qHash(c.sender);
-		h=(h<<1)^qHash(c.string);
-		return h;
-	}
-};
-template<>
-class equal_to<Comment>
-{
-public:
-	inline bool operator ()(const Comment &f,const Comment &s) const
-	{
-		return f.mode==s.mode&&f.font==s.font&&f.color==s.color&&f.sender==s.sender&&f.string==s.string&&f.time==s.time&&f.date==s.date;
-	}
-};
-}
-
 void Danmaku::appendToPool(const Record &record)
 {
 	Record *append=NULL;
@@ -327,13 +297,16 @@ void Danmaku::appendToPool(const Record &record)
 		append=&pool.last();
 	}
 	const auto &d=append->danmaku;
-	std::unordered_set<Comment> set(d.begin(),d.end());
+	QSet<Comment> set=d.toSet();
 	for(Comment c:record.danmaku){
-		if(set.count(c)==0){
+		if(!set.contains(c)){
 			c.time+=append->delay-record.delay;
 			set.insert(c);
 			append->danmaku.append(c);
 		}
+	}
+	if(record.full){
+		append->full=true;
 	}
 	parse(0x1|0x2);
 }
