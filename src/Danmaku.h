@@ -59,16 +59,20 @@ private:
 	static Danmaku *ins;
 	void setTime(qint64 _time);
 
+	QList<const Comment *> buffer;
+	bool event(QEvent *e);
+	void processDanmakuInBuffer();
+
 public slots:
 	void resetTime();
 	void clearPool();
+	void clearBuffer();
 	void clearCurrent();
 	void parse(int flag=0);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
 	void appendToCurrent(const Comment *comment,bool isLocal=false);
-	void appendToCurrent(const QList<const Comment *> &comments,bool isLocal=false);
 };
 
 #endif // DANMAKU_H

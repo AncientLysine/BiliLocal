@@ -265,7 +265,7 @@ static void end(const struct libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"free");
 }
 
-VPlayer::VPlayer(QObject *parent) :
+VPlayer::VPlayer(QObject *parent):
 	QObject(parent)
 {
 	QJsonArray args=Utils::getConfig<QJsonArray>("/Playing/Arguments");

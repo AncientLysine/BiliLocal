@@ -31,7 +31,16 @@
 
 Danmaku *Danmaku::ins=NULL;
 
-Danmaku::Danmaku(QObject *parent) :
+class RenderEvent:public QEvent
+{
+public:
+	static Type registeredType;
+	RenderEvent():QEvent(registeredType){}
+};
+
+QEvent::Type RenderEvent::registeredType=(QEvent::Type)registerEventType();
+
+Danmaku::Danmaku(QObject *parent):
 	QAbstractItemModel(parent)
 {
 	cur=time=0;
@@ -167,9 +176,8 @@ void Danmaku::clearPool()
 
 void Danmaku::clearCurrent()
 {
-	for(Graphic *iter:current){
-		delete iter;
-	}
+	clearBuffer();
+	qDeleteAll(current);
 	current.clear();
 	emit layoutChanged();
 }
@@ -185,7 +193,7 @@ void Danmaku::parse(int flag)
 				danmaku.append(&comment);
 			}
 		}
-		qStableSort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return f->time<s->time;});
+		std::stable_sort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return f->time<s->time;});
 		jumpToTime(time);
 		endResetModel();
 	}
@@ -215,15 +223,13 @@ void Danmaku::parse(int flag)
 				if(++count[clean[end]]>l&&danmaku[end]->mode<=6){
 					set.insert(clean[end]);
 				}
-				if(++end%50==0){
-					qApp->processEvents();
-				}
+				++end;
 			}
 		}
 		for(int i=0;i<danmaku.size();++i){
 			Comment &c=*danmaku[i];
 			c.blocked=c.blocked||(l==0?false:set.contains(clean[i]))||Shield::isBlocked(c);
-			if(i%50==0){
+			if(i%100==0){
 				qApp->processEvents();
 			}
 		}
@@ -244,11 +250,57 @@ void Danmaku::parse(int flag)
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
-	QList<const Comment *> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
-		buffer.append(danmaku[cur]);
+		appendToCurrent(danmaku[cur]);
 	}
-	appendToCurrent(buffer);
+	qApp->postEvent(this,new RenderEvent);
+}
+
+bool Danmaku::event(QEvent *e)
+{
+	if(e->type()==RenderEvent::registeredType){
+		processDanmakuInBuffer();
+		return true;
+	}
+	else{
+		return QAbstractItemModel::event(e);
+	}
+}
+
+void Danmaku::clearBuffer()
+{
+	buffer.clear();
+}
+
+void Danmaku::processDanmakuInBuffer()
+{
+	if(!buffer.isEmpty()){
+		QList<Graphic *> waiting;
+		int l=Utils::getConfig("/Shield/Density",100);
+		const Comment *f=buffer.first();
+		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
+			const Comment *c=buffer.takeFirst();
+			if(time-c->time>5000){
+				while(!buffer.isEmpty()&&time-c->time>1000){
+					c=buffer.takeFirst();
+				}
+			}
+			if(!c->blocked&&(c->mode==7||l==0||current.size()+waiting.size()<l)){
+				Graphic *g=Graphic::create(*c,size,current);
+				g->setEnabled(false);
+				current.append(g);
+				waiting.append(g);
+				qApp->removePostedEvents(this,RenderEvent::registeredType);
+				qApp->processEvents();
+			}
+		}
+		for(Graphic *g:waiting){
+			g->setEnabled(true);
+		}
+	}
+	if(!buffer.isEmpty()){
+		qApp->postEvent(this,new RenderEvent);
+	}
 }
 
 void Danmaku::jumpToTime(qint64 _time)
@@ -313,37 +365,14 @@ void Danmaku::appendToPool(const Record &record)
 
 void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
 {
-	int l=Utils::getConfig("/Shield/Density",100);
-	if(!comment->blocked&&(comment->mode==7||l==0||current.size()<l)){
+	if(isLocal){
 		Graphic *graphic=Graphic::create(*comment,size,current);
 		if(graphic){
-			if(isLocal){
-				graphic->setSource(NULL);
-			}
+			graphic->setSource(NULL);
 			current.append(graphic);
 		}
 	}
-}
-
-void Danmaku::appendToCurrent(const QList<const Comment *> &comments,bool isLocal)
-{
-	QList<Graphic *> waiting;
-	int l=Utils::getConfig("/Shield/Density",100);
-	for(const Comment *comment:comments){
-		if(!comment->blocked&&(comment->mode==7||l==0||current.size()+waiting.size()<l)){
-			Graphic *graphic=Graphic::create(*comment,size,current);
-			if(graphic){
-				if(isLocal){
-					graphic->setSource(NULL);
-				}
-				graphic->setEnabled(false);
-				waiting.append(graphic);
-				current.append(graphic);
-			}
-			qApp->processEvents();
-		}
-	}
-	for(Graphic *graphic:waiting){
-		graphic->setEnabled(true);
+	else{
+		buffer.append(comment);
 	}
 }

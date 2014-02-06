@@ -475,7 +475,9 @@ Plain::Plain(const Comment &comment,const QSize &size)
 
 void Plain::draw(QPainter *painter)
 {
-	painter->drawPixmap(rect.topLeft(),cache);
+	if(enabled){
+		painter->drawPixmap(rect.topLeft(),cache);
+	}
 }
 
 Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
@@ -490,12 +492,12 @@ Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	if((speed=evaluate(expression))==0){
 		return;
 	}
-	rect.moveTopLeft(QPointF(size.width(),5));
+	rect.moveTopLeft(QPointF(size.width(),0));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=5;height<limit;height+=MIN){
+		for(int height=rect.top();height<limit;height+=MIN){
 			rect.moveTop(height);
 			double c=0;
 			for(Graphic *iter:current){
@@ -557,7 +559,7 @@ Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:5));
+	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:0));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
@@ -612,12 +614,12 @@ Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveTop(5);
+	rect.moveTop(0);
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=5;height<limit;height+=MIN){
+		for(int height=rect.top();height<limit;height+=MIN){
 			rect.moveTop(height);
 			double c=0;
 			for(Graphic *iter:current){
@@ -666,12 +668,12 @@ Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	if((speed=evaluate(expression))==0){
 		return;
 	}
-	rect.moveTopLeft(QPointF(-bound.width(),5));
+	rect.moveTopLeft(QPointF(-bound.width(),0));
 	if(comment.font*(comment.string.count("\n")+1)<MAX){
 		double m=0;
 		QRectF r;
 		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=5;height<limit;height+=MIN){
+		for(int height=rect.top();height<limit;height+=MIN){
 			rect.moveTop(height);
 			double c=0;
 			for(Graphic *iter:current){
@@ -779,17 +781,19 @@ bool Mode7::move(qint64 time)
 
 void Mode7::draw(QPainter *painter)
 {
-	QPointF cPos=bPos+(ePos-bPos)*qBound<double>(0,(time-wait)/(life-stay),1);
-	QTransform rotate;
-	rotate.translate(+cPos.x(),+cPos.y());
-	rotate.rotate(yRotate,Qt::YAxis);
-	rotate.rotate(zRotate,Qt::ZAxis);
-	rotate.translate(-cPos.x(),-cPos.y());
-	painter->save();
-	painter->setTransform(rotate);
-	painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
-	painter->drawPixmap(cPos,cache);
-	painter->restore();
+	if(enabled){
+		QPointF cPos=bPos+(ePos-bPos)*qBound<double>(0,(time-wait)/(life-stay),1);
+		QTransform rotate;
+		rotate.translate(+cPos.x(),+cPos.y());
+		rotate.rotate(yRotate,Qt::YAxis);
+		rotate.rotate(zRotate,Qt::ZAxis);
+		rotate.translate(-cPos.x(),-cPos.y());
+		painter->save();
+		painter->setTransform(rotate);
+		painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
+		painter->drawPixmap(cPos,cache);
+		painter->restore();
+	}
 }
 
 uint Mode7::intersects(Graphic *)

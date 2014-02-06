@@ -106,63 +106,50 @@ Editor::Editor(QWidget *parent):
 				QString api("http://comment.bilibili.tv/rolldate,%1");
 				Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[=,&r](QNetworkReply *reply){
 					QMap<QDate,int> count=parseCount(reply->readAll());
+					if(count.isEmpty()){
+						return;
+					}
 					QString url("http://comment.bilibili.tv/dmroll,%2,%1");
 					url=url.arg(cid);
 					QSet<Comment> set=r.danmaku.toSet();
 					QProgressDialog progress(this);
-					int total=0;
-					for(int c:count){
-						total+=c;
-					}
 					progress.setWindowTitle(tr("Loading"));
-					progress.setMaximum(total);
-					QMetaObject::Connection connect;
-					auto finish=[&](){
-						Record load;
-						load.full=true;
-						load.danmaku=set.toList();
-						load.source=r.source;
-						QObject::disconnect(connect);
-						progress.reset();
-						Danmaku::instance()->appendToPool(load);
-					};
-					connect=QObject::connect(manager,&QNetworkAccessManager::finished,[&](QNetworkReply *reply){
+					QNetworkAccessManager *manager=new QNetworkAccessManager(this);
+					manager->setCookieJar(Cookie::instance());
+					Cookie::instance()->setParent(NULL);
+					connect(manager,&QNetworkAccessManager::finished,[&](QNetworkReply *reply){
 						QStringList s=reply->url().url().split(',');
 						if(s.size()==3){
 							QDate c=QDateTime::fromTime_t(s[1].toUInt()).date();
 							QByteArray data=reply->readAll();
-							int sta=data.indexOf("<max_count>")+11,end=data.indexOf("</max_count>");
-							int max=data.mid(sta,end-sta).toInt(),now=0;
-							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
-								set.insert(c);
-							}
-							if(c!=count.lastKey()){
-								auto iter=++count.find(c);
-								for(;;++iter){
-									if(iter==count.end()){
-										--iter;
-										break;
-									}
-									else if(iter.value()>=max){
-										break;
-									}
-									else if((now+=iter.value())>max){
-										--iter;
-										break;
+							if(c==count.firstKey()&&count.size()>=2){
+								int sta=data.indexOf("<max_count>")+11,end=data.indexOf("</max_count>");
+								int max=data.mid(sta,end-sta).toInt(),now=0,all=0;
+								for(auto iter=++count.begin();iter!=count.end();++iter){
+									now+=iter.value();
+									if(iter.value()>=max||iter+1==count.end()||(now+(iter+1).value())>max){
+										now=0;
+										++all;
+										manager->get(QNetworkRequest(url.arg(QDateTime(iter.key()).toTime_t())));
 									}
 								}
-								reply->manager()->get(QNetworkRequest(url.arg(QDateTime(iter.key()).toTime_t())));
-								progress.setValue(set.size());
+								progress.setMaximum(all);
 							}
-							else{
-								finish();
+							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili,true)){
+								set.insert(c);
 							}
+							progress.setValue(progress.value()+1);
 						}
 						reply->deleteLater();
 					});
 					manager->get(QNetworkRequest(url.arg(QDateTime(count.firstKey()).toTime_t())));
-					QObject::connect(&progress,&QProgressDialog::canceled,finish);
 					progress.exec();
+					delete manager;
+					Record load;
+					load.full=true;
+					load.danmaku=set.toList();
+					load.source=r.source;
+					Danmaku::instance()->appendToPool(load);
 				});
 			});
 			menu.addSeparator();

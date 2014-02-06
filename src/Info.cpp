@@ -154,7 +154,10 @@ Info::Info(QWidget *parent):
 			else{
 				path=Utils::defaultPath();
 			}
-			QString file=QFileDialog::getSaveFileName(parentWidget(),tr("Save File"),path,tr("Danmaku files (*.json)"));
+			QString file=QFileDialog::getSaveFileName(parentWidget(),
+													  tr("Save File"),
+													  path,
+													  tr("Danmaku files (*.json)"));
 			if(!file.isEmpty()){
 				if(!file.endsWith(".json")){
 					file.append(".json");

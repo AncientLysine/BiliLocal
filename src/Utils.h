@@ -118,7 +118,7 @@ public:
 	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
 	static QString splitString(QString text,int width);
-	static QList<Comment> parseComment(QByteArray data,Site site);
+	static QList<Comment> parseComment(QByteArray data,Site site,bool isSync=false);
 
 
 	template<class T>
