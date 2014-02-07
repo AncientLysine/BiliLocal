@@ -111,7 +111,7 @@ Editor::Editor(QWidget *parent):
 					}
 					QString url("http://comment.bilibili.tv/dmroll,%2,%1");
 					url=url.arg(cid);
-					QSet<Comment> set=r.danmaku.toSet();
+					QSet<Comment> set;
 					QProgressDialog progress(this);
 					progress.setWindowTitle(tr("Loading"));
 					QNetworkAccessManager *manager=new QNetworkAccessManager(this);
@@ -122,15 +122,18 @@ Editor::Editor(QWidget *parent):
 						if(s.size()==3){
 							QDate c=QDateTime::fromTime_t(s[1].toUInt()).date();
 							QByteArray data=reply->readAll();
-							if(c==count.firstKey()&&count.size()>=2){
+							if(c==count.lastKey()&&count.size()>=2){
 								int sta=data.indexOf("<max_count>")+11,end=data.indexOf("</max_count>");
 								int max=data.mid(sta,end-sta).toInt(),now=0,all=0;
-								for(auto iter=++count.begin();iter!=count.end();++iter){
+								for(auto iter=--count.end();;--iter){
 									now+=iter.value();
-									if(iter.value()>=max||iter+1==count.end()||(now+(iter+1).value())>max){
-										now=0;
+									if(now>max||iter==count.begin()){
+										now=iter.value();
 										++all;
 										manager->get(QNetworkRequest(url.arg(QDateTime(iter.key()).toTime_t())));
+										if(iter==count.begin()){
+											break;
+										}
 									}
 								}
 								progress.setMaximum(all);
@@ -142,7 +145,7 @@ Editor::Editor(QWidget *parent):
 						}
 						reply->deleteLater();
 					});
-					manager->get(QNetworkRequest(url.arg(QDateTime(count.firstKey()).toTime_t())));
+					manager->get(QNetworkRequest(url.arg(QDateTime(count.lastKey()).toTime_t())));
 					progress.exec();
 					delete manager;
 					Record load;
@@ -195,8 +198,12 @@ Editor::Editor(QWidget *parent):
 						url=QString("http://comment.bilibili.tv/%1.xml").arg(cid);
 					}
 					Utils::getReply(manager,QNetworkRequest(url),[=,&r](QNetworkReply *reply){
-						r.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili);
-						Danmaku::instance()->parse(0x1|0x2);
+						r.danmaku.clear();
+						Record load;
+						load.full=false;
+						load.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili,true);
+						load.source=r.source;
+						Danmaku::instance()->appendToPool(load);
 					});
 				}
 			}
