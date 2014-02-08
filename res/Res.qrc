@@ -7,7 +7,6 @@
         <file>version.png</file>
         <file>icon.png</file>
         <file>sound.png</file>
-        <file>bottom.png</file>
         <file>next.png</file>
         <file>previous.png</file>
     </qresource>

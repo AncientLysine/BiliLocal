@@ -276,9 +276,9 @@ void Danmaku::processDanmakuInBuffer()
 {
 	if(!buffer.isEmpty()){
 		QList<Graphic *> waiting;
-		int l=Utils::getConfig("/Shield/Density",100);
+		int l=Utils::getConfig("/Shield/Density",100),n=0;
 		const Comment *f=buffer.first();
-		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
+		while(!buffer.isEmpty()&&(n++<20||(buffer.first()->time==f->time&&buffer.first()->string==f->string))){
 			const Comment *c=buffer.takeFirst();
 			if(time-c->time>5000){
 				while(!buffer.isEmpty()&&time-c->time>1000){
@@ -314,21 +314,55 @@ void Danmaku::saveToFile(QString _file)
 {
 	QFile f(_file);
 	f.open(QIODevice::WriteOnly|QIODevice::Text);
-	QJsonArray a;
-	for(const Comment *c:danmaku){
-		QJsonObject o;
-		QStringList l;
-		l<<QString::number(c->time/1000.0);
-		l<<QString::number(c->color);
-		l<<QString::number(c->mode);
-		l<<QString::number(c->font);
-		l<<c->sender;
-		l<<QString::number(c->date);
-		o["c"]=l.join(',');
-		o["m"]=c->string;
-		a.append(o);
+	if(_file.endsWith("xml",Qt::CaseInsensitive)){
+		QXmlStreamWriter w(&f);
+		w.setAutoFormatting(true);
+		w.writeStartDocument();
+		w.writeStartElement("i");
+		w.writeStartElement("chatserver");
+		w.writeCharacters("chat.bilibili.tv");
+		w.writeEndElement();
+		w.writeStartElement("mission");
+		w.writeCharacters("0");
+		w.writeEndElement();
+		w.writeStartElement("source");
+		w.writeCharacters("k-v");
+		w.writeEndElement();
+		for(const Comment *c:danmaku){
+			w.writeStartElement("d");
+			QStringList l;
+			l<<QString::number(c->time/1000.0)<<
+			   QString::number(c->mode)<<
+			   QString::number(c->font)<<
+			   QString::number(c->color)<<
+			   QString::number(c->date)<<
+			   "0"<<
+			   c->sender<<
+			   "0";
+			w.writeAttribute("p",l.join(','));
+			w.writeCharacters(c->string);
+			w.writeEndElement();
+		}
+		w.writeEndElement();
+		w.writeEndDocument();
 	}
-	f.write(QJsonDocument(a).toJson());
+	else{
+		QJsonArray a;
+		for(const Comment *c:danmaku){
+			QJsonObject o;
+			QStringList l;
+			l<<QString::number(c->time/1000.0)<<
+			   QString::number(c->color)<<
+			   QString::number(c->mode)<<
+			   QString::number(c->font)<<
+			   c->sender<<
+			   QString::number(c->date);
+			o["c"]=l.join(',');
+			o["m"]=c->string;
+			a.append(o);
+		}
+		f.write(QJsonDocument(a).toJson());
+	}
 	f.close();
 }
 

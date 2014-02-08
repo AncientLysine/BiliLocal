@@ -34,30 +34,22 @@
 Post::Post(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
-	setMinimumSize(480,300);
+	setFixedSize(480,25);
 	setWindowTitle(tr("Post"));
-	setWindowOpacity(0.6);
 	setAttribute(Qt::WA_TranslucentBackground);
 	moveWithParent();
 	parent->installEventFilter(this);
-	close=QIcon::fromTheme("go-bottom.png",QIcon(":/Picture/bottom.png"));
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	auto layout=new QGridLayout(this);
+	auto layout=new QHBoxLayout(this);
 	layout->setMargin(0);
 	layout->setSpacing(0);
-	layout->setRowStretch(0,5);
-	commentP=new QLabel(this);
-	layout->addWidget(commentP,0,0,1,5);
-	commentS=new QComboBox(this);
-	layout->addWidget(commentS,1,3);
 	commentM=new QComboBox(this);
 	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
 	commentM->setCurrentIndex(1);
 	commentM->setFixedWidth(commentM->sizeHint().width());
-	connect(commentM,SIGNAL(currentIndexChanged(int)),this,SLOT(drawComment()));
-	layout->addWidget(commentM,1,0);
+	layout->addWidget(commentM);
 	commentC=new QPushButton(this);
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
@@ -65,19 +57,19 @@ Post::Post(QWidget *parent):
 		QColor color=QColorDialog::getColor(getColor(),parentWidget());
 		if(color.isValid()){
 			setColor(color);
-			drawComment();
 		}
 	});
-	layout->addWidget(commentC,1,1);
+	layout->addWidget(commentC);
 	commentL=new QLineEdit(this);
 	commentL->setFocus();
-	connect(commentL,&QLineEdit::textChanged,this,&Post::drawComment);
-	layout->addWidget(commentL,1,2);
+	layout->addWidget(commentL);
+	commentS=new QComboBox(this);
+	layout->addWidget(commentS);
 	commentB=new QPushButton(tr("Post"),this);
 	commentB->setDefault(true);
 	commentB->setFixedWidth(55);
 	commentB->setToolTip(tr("DA☆ZE!"));
-	layout->addWidget(commentB,1,4);
+	layout->addWidget(commentB);
 	commentA=new QAction(this);
 	commentA->setShortcut(QKeySequence("Ctrl+Enter"));
 	connect(commentB,&QPushButton::clicked,commentA,&QAction::trigger);
@@ -86,6 +78,7 @@ Post::Post(QWidget *parent):
 		if(!commentL->text().isEmpty()){
 			postComment();
 			commentL->clear();
+			hide();
 		}
 	});
 	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
@@ -143,27 +136,6 @@ Comment Post::getComment()
 	return c;
 }
 
-void Post::paintEvent(QPaintEvent *e)
-{
-	QPainter painter(this);
-	painter.setPen(QPen(Qt::black,1));
-	painter.setBrush(Qt::NoBrush);
-	painter.setOpacity(0.4);
-	QRect r=rect().adjusted(0,0,0,-commentM->height());
-	QPoint p[4]={r.bottomLeft(),r.topLeft(),r.topRight(),r.bottomRight()};
-	painter.drawPolyline(p,4);
-	painter.setOpacity(0.8);
-	close.paint(&painter,width()-20,4,16,16);
-	QDialog::paintEvent(e);
-}
-
-void Post::mouseReleaseEvent(QMouseEvent *e)
-{
-	if(e->x()>=width()-20&&e->y()<=20){
-		accept();
-	}
-}
-
 QList<const Record *> Post::getRecords()
 {
 	QList<const Record *> list;
@@ -178,43 +150,6 @@ QList<const Record *> Post::getRecords()
 void Post::setColor(QColor color)
 {
 	commentC->setStyleSheet(QString("background-color:%1").arg(color.name()));
-}
-
-void Post::drawComment()
-{
-	if(!commentL->text().isEmpty()){
-		Comment comment=getComment();
-		comment.string.replace("/n","\n");
-		Graphic *g=Graphic::create(comment,commentP->size());
-		if(g){
-			QRect r=g->currentRect().toRect();
-			QPixmap c(r.size());
-			c.fill(Qt::transparent);
-			QPainter p(&c);
-			p.translate(-r.topLeft());
-			g->draw(&p);
-			switch(g->getMode()){
-			case 1:
-				commentP->setAlignment(Qt::AlignCenter);
-				break;
-			case 4:
-				commentP->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
-				break;
-			case 5:
-				commentP->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-				break;
-			}
-			delete g;
-			commentP->setPixmap(c);
-			return;
-		}
-		else{
-			commentP->setText(tr("Error while rendering."));
-		}
-	}
-	else{
-		commentP->clear();
-	}
 }
 
 void Post::postComment()

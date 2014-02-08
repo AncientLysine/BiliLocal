@@ -40,10 +40,9 @@ class Post:public QDialog
 	Q_OBJECT
 public:
 	explicit Post(QWidget *parent);
-	static bool isValid(){return !getRecords().isEmpty();}
+	bool isValid(){return !getRecords().isEmpty();}
 
 private:
-	QLabel *commentP;
 	QAction *commentA;
 	QLineEdit *commentL;
 	QComboBox *commentS;
@@ -51,17 +50,13 @@ private:
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
-	QIcon close;
 	QColor getColor();
 	Comment getComment();
-	void paintEvent(QPaintEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
+	QList<const Record *> getRecords();
 	bool eventFilter(QObject *o,QEvent *e);
-	static QList<const Record *> getRecords();
 
 private slots:
 	void setColor(QColor color);
-	void drawComment();
 	void postComment();
 	void moveWithParent();
 };

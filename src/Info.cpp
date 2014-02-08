@@ -154,13 +154,17 @@ Info::Info(QWidget *parent):
 			else{
 				path=Utils::defaultPath();
 			}
+			QString type;
 			QString file=QFileDialog::getSaveFileName(parentWidget(),
 													  tr("Save File"),
 													  path,
-													  tr("Danmaku files (*.json)"));
+													  tr("Json files (*.json);;Xml files (*.xml)"),
+													  &type,
+													  QFileDialog::DontConfirmOverwrite);
 			if(!file.isEmpty()){
-				if(!file.endsWith(".json")){
-					file.append(".json");
+				type=type.indexOf("xml")!=-1?".xml":".json";
+				if(!file.endsWith(type,Qt::CaseInsensitive)){
+					file.append(type);
 				}
 				Danmaku::instance()->saveToFile(file);
 			}

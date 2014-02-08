@@ -159,7 +159,7 @@ Interface::Interface(QWidget *parent):
 		post->show();
 	});
 	connect(danmaku,&Danmaku::modelReset,[this](){
-		postA->setEnabled(Post::isValid());
+		postA->setEnabled(post->isValid());
 	});
 
 	QActionGroup *g;
@@ -337,6 +337,7 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 	if(!menu->geometry().contains(e->pos())&&!info->geometry().contains(e->pos())){
 		menu->push(true);
 		info->push(true);
+		post->hide();
 		setFocus();
 	}
 	sta=wgd=QPoint();

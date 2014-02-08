@@ -53,12 +53,13 @@ Menu::Menu(QWidget *parent):
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegularExpression regexp("[ad]([cvd](([0-9]+)(#)?([0-9]+)?)?)?");
+		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		auto iter=regexp.globalMatch(text);
 		QString match;
 		while(iter.hasNext()){
 			match=iter.next().captured();
 		}
-		danmL->setText(match);
+		danmL->setText(match.toLower());
 	});
 	danmC=new QCompleter(new QStandardItemModel(this),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);

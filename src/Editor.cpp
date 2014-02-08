@@ -113,6 +113,7 @@ Editor::Editor(QWidget *parent):
 					url=url.arg(cid);
 					QSet<Comment> set;
 					QProgressDialog progress(this);
+					progress.setFixedSize(progress.sizeHint());
 					progress.setWindowTitle(tr("Loading"));
 					QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 					manager->setCookieJar(Cookie::instance());

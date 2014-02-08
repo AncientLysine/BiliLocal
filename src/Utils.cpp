@@ -130,6 +130,21 @@ QString Utils::splitString(QString text,int width)
 	return result.join('\n');
 }
 
+static QString &parseXml(QString &string)
+{
+	string.replace("&lt;","<");
+	string.replace("&gt;",">");
+	string.replace("&amp;","&");
+	string.replace("&quot;","\"");
+	QString fixed;
+	for(auto c:string){
+		if(c>=32){
+			fixed.append(c);
+		}
+	}
+	return string=fixed;
+}
+
 QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 {
 	QList<Comment> list;
@@ -152,6 +167,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.color=args[3].toInt();
 			comment.sender=args[6];
 			comment.string=item.mid(sta,len);
+			parseXml(comment.string);
 			list.append(comment);
 			if(!isSync&&list.size()%50){
 				qApp->processEvents();
@@ -218,6 +234,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.color=args[2].toInt();
 			comment.sender=args[4];
 			comment.string=item.mid(sta,len);
+			parseXml(comment.string);
 			list.append(comment);
 			if(!isSync&&list.size()%50){
 				qApp->processEvents();
