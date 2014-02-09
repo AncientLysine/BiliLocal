@@ -27,11 +27,11 @@
 #include "Shield.h"
 #include "Utils.h"
 
-bool Shield::block[8];
+bool Shield::shieldG[8];
 QList<QString> Shield::shieldU;
 QList<QRegularExpression> Shield::shieldR;
 
-void Shield::init()
+void Shield::load()
 {
 	QJsonArray u=Utils::getConfig<QJsonArray>("/Shield/User");
 	QJsonArray r=Utils::getConfig<QJsonArray>("/Shield/Regexp");
@@ -43,12 +43,12 @@ void Shield::init()
 	}
 	int group=Utils::getConfig("/Shield/Group",0);
 	for(int i=7;i>=0;--i){
-		block[i]=group&1;
+		shieldG[i]=group&1;
 		group=group>>1;
 	}
 }
 
-void Shield::free()
+void Shield::save()
 {
 	QJsonArray u,r;
 	for(auto &item:shieldU){
@@ -61,27 +61,30 @@ void Shield::free()
 	Utils::setConfig("/Shield/Regexp",r);
 	int g=0;
 	for(int i=0;i<8;++i){
-		g=(g<<1)+block[i];
+		g=(g<<1)+shieldG[i];
 	}
 	Utils::setConfig("/Shield/Group",g);
 }
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(block[Whole]||comment.mode==8
-			||(comment.mode==1&&block[Slide])
-			||(comment.mode==4&&block[Bottom])
-			||(comment.mode==5&&block[Top])
-			||(comment.mode==6&&block[Reverse])
-			||(comment.mode==7&&block[Advanced])
-			||(comment.color!=0xFFFFFF&&block[Color])){
+	if(shieldG[Whole]||comment.mode==8
+			||(comment.mode==1&&shieldG[Slide])
+			||(comment.mode==4&&shieldG[Bottom])
+			||(comment.mode==5&&shieldG[Top])
+			||(comment.mode==6&&shieldG[Reverse])
+			||(comment.mode==7&&shieldG[Advanced])
+			||(comment.color!=0xFFFFFF&&shieldG[Color])){
 		return true;
 	}
-	if(block[Guest]){
+	if(shieldG[Guest]){
 		if(comment.sender.length()==14&&comment.sender[3]=='k'){
 			return true;
 		}
 		if(comment.sender.startsWith('D',Qt::CaseInsensitive)){
+			return true;
+		}
+		if(comment.sender=="0"){
 			return true;
 		}
 	}

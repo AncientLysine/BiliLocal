@@ -97,12 +97,13 @@ Info::Info(QWidget *parent):
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
 	danmV->setModel(Danmaku::instance());
+	Utils::setSelection(danmV);
 	QHeaderView *header=danmV->horizontalHeader();
 	header->setSectionResizeMode(0,QHeaderView::Fixed);
 	header->setSectionResizeMode(1,QHeaderView::Stretch);
 	header->setHighlightSections(false);
 	resizeHeader();
-	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Info::resizeHeader);
+	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Info::resizeHeader);
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
 		VPlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
@@ -124,7 +125,7 @@ Info::Info(QWidget *parent):
 				QList<QString> &list=Shield::shieldU;
 				for(const Comment *c:selected){
 					QString sender=c->sender;
-					if(!sender.isEmpty()&&!list.contains(sender)){
+					if(!sender.isEmpty()&&sender!="0"&&!list.contains(sender)){
 						list.append(sender);
 					}
 				}
@@ -135,7 +136,6 @@ Info::Info(QWidget *parent):
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config config(parentWidget(),2);
 			config.exec();
-			Danmaku::instance()->parse(0x2);
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
 			int state=VPlayer::instance()->getState();

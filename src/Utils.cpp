@@ -73,6 +73,17 @@ void Utils::setGround(QWidget *widget,QColor color)
 	widget->setPalette(palette);
 }
 
+void Utils::setSelection(QAbstractItemView *view)
+{
+	QObject::connect(view->selectionModel(),
+					 &QItemSelectionModel::selectionChanged,
+					 [view](QItemSelection selected){
+		if(selected.isEmpty()){
+			view->setCurrentIndex(QModelIndex());
+		}
+	});
+}
+
 QString Utils::defaultPath()
 {
 	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);

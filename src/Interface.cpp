@@ -132,20 +132,19 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
 		config.exec();
-		danmaku->parse(0x2);
 	});
 
 	toggA=new QAction(tr("Block All"),this);
 	toggA->setCheckable(true);
-	toggA->setChecked(Shield::block[7]);
+	toggA->setChecked(Shield::shieldG[7]);
 	toggA->setShortcut(QKeySequence("Ctrl+T"));
 	addAction(toggA);
 	connect(toggA,&QAction::triggered,[this](bool b){
-		Shield::block[7]=b;
+		Shield::shieldG[7]=b;
 		danmaku->parse(0x2);
 	});
 	connect(danmaku,&Danmaku::layoutChanged,[this](){
-		toggA->setChecked(Shield::block[7]);
+		toggA->setChecked(Shield::shieldG[7]);
 	});
 
 	postA=new QAction(tr("Post Danmaku"),this);

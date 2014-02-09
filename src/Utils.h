@@ -87,6 +87,12 @@ T fromJsonValue(QJsonValue v)
 }
 
 template<>
+QVariant fromJsonValue(QJsonValue v)
+{
+	return v.toVariant();
+}
+
+template<>
 QJsonArray fromJsonValue(QJsonValue v)
 {
 	return v.toArray();
@@ -96,6 +102,28 @@ template<>
 QJsonObject fromJsonValue(QJsonValue v)
 {
 	return v.toObject();
+}
+
+template<class T>
+QJsonValue toJsonValue(T v)
+{
+	return QJsonValue(v);
+}
+
+template<>
+QJsonValue toJsonValue(QVariant v)
+{
+	switch(v.type()){
+	case QVariant::Bool:
+		return v.toBool();
+	case QVariant::Int:
+	case QVariant::Double:
+		return v.toDouble();
+	case QVariant::String:
+		return v.toString();
+	default:
+		return QJsonValue();
+	}
 }
 }
 
@@ -114,6 +142,7 @@ public:
 	static Site getSite(QString url);
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
+	static void setSelection(QAbstractItemView *view);
 	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
 	static QString splitString(QString text,int width);
@@ -149,13 +178,16 @@ public:
 			path.append(cur);
 			cur=cur.value(k).toObject();
 		}
-		cur[last]=set;
-		while(!path.isEmpty()){
-			QJsonObject pre=path.takeLast();
-			pre[tree.takeLast()]=cur;
-			cur=pre;
+		QJsonValue val=toJsonValue(set);
+		if(!val.isNull()){
+			cur[last]=val;
+			while(!path.isEmpty()){
+				QJsonObject pre=path.takeLast();
+				pre[tree.takeLast()]=cur;
+				cur=pre;
+			}
+			config=cur;
 		}
-		config=cur;
 	}
 
 	template<class Func>

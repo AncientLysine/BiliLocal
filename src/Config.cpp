@@ -28,6 +28,40 @@
 #include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
+#include "Danmaku.h"
+
+static QHash<QString,QVariant> getRestart()
+{
+	QStringList path;
+	path<<"/Interface/Accelerated"<<
+		  "/Interface/Background"<<
+		  "/Interface/Font"<<
+		  "/Interface/Frameless"<<
+		  "/Interface/Top";
+	QHash<QString,QVariant> data;
+	for(QString iter:path){
+		data[iter]=Utils::getConfig<QVariant>(iter);
+	}
+	return data;
+}
+
+static QHash<QString,QVariant> getReparse()
+{
+	QHash<QString,QVariant> data;
+	int g=0;
+	for(int i=0;i<8;++i){
+		g=(g<<1)+Shield::shieldG[i];
+	}
+	data["/Shield/Group"]=g;
+	QStringList r;
+	for(const QRegularExpression &item:Shield::shieldR){
+		r.append(item.pattern());
+	}
+	data["/Shield/Regexp"]=r;
+	data["/Shield/User"]=QStringList(Shield::shieldU);
+	data["/Shield/Limit"]=Utils::getConfig("/Shield/Limit",5);
+	return data;
+}
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
@@ -370,6 +404,8 @@ Config::Config(QWidget *parent,int index):
 
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
+
+		restart=getRestart();
 	}
 	//Shield
 	{
@@ -382,9 +418,9 @@ Config::Config(QWidget *parent,int index):
 		for(int i=0;i<8;++i){
 			check[i]=new QCheckBox(list[i],widget[2]);
 			check[i]->setFixedHeight(40);
-			check[i]->setChecked(Shield::block[i]);
+			check[i]->setChecked(Shield::shieldG[i]);
 			connect(check[i],&QCheckBox::stateChanged,[=](int state){
-				Shield::block[i]=state==Qt::Checked;
+				Shield::shieldG[i]=state==Qt::Checked;
 			});
 			g->addWidget(check[i]);
 		}
@@ -401,6 +437,8 @@ Config::Config(QWidget *parent,int index):
 		sender->setSelectionMode(QListView::ExtendedSelection);
 		regexp->setModel(rm=new QStringListModel(regexp));
 		sender->setModel(sm=new QStringListModel(sender));
+		Utils::setSelection(regexp);
+		Utils::setSelection(sender);
 		connect(regexp,&QListView::pressed,[this](QModelIndex){sender->setCurrentIndex(QModelIndex());});
 		connect(sender,&QListView::pressed,[this](QModelIndex){regexp->setCurrentIndex(QModelIndex());});
 		QStringList re;
@@ -430,7 +468,7 @@ Config::Config(QWidget *parent,int index):
 				for(const QModelIndex &i:v->selectionModel()->selectedRows()){
 					rows.append(i.row());
 				}
-				qSort(rows);
+				std::sort(rows.begin(),rows.end());
 				while(!rows.isEmpty()){
 					int r=rows.takeFirst();
 					v->model()->removeRow(r);
@@ -478,6 +516,8 @@ Config::Config(QWidget *parent,int index):
 							rm->setData(rm->index(rm->rowCount()-1),text);
 						}
 					}
+					regexp->setCurrentIndex(QModelIndex());
+					sender->setCurrentIndex(QModelIndex());
 				}
 			}
 		});
@@ -550,6 +590,8 @@ Config::Config(QWidget *parent,int index):
 		grid->addWidget(label[1],4,0,1,4);
 
 		tab->addTab(widget[2],tr("Shield"));
+
+		reparse=getReparse();
 	}
 	//Thanks
 	{
@@ -582,6 +624,12 @@ Config::Config(QWidget *parent,int index):
 			Shield::shieldR.append(QRegularExpression(item));
 		}
 		Shield::shieldU=sm->stringList();
+		if(reparse!=getReparse()){
+			Danmaku::instance()->parse(0x2);
+		}
+		if(restart!=getRestart()){
+			qApp->exit(12450);
+		}
 	});
 	setMinimumWidth(540);
 	resize(540,outer->minimumSize().height());

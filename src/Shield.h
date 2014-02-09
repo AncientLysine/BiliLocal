@@ -35,11 +35,11 @@ class Shield
 {
 public:
 	enum {Top,Bottom,Slide,Reverse,Guest,Advanced,Color,Whole};
-	static bool block[8];
+	static bool shieldG[8];
 	static QList<QString> shieldU;
 	static QList<QRegularExpression> shieldR;
-	static void init();
-	static void free();
+	static void load();
+	static void save();
 	static bool isBlocked(const Comment &comment);
 };
 

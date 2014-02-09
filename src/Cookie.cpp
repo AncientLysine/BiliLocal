@@ -29,7 +29,7 @@
 
 Cookie Cookie::data;
 
-void Cookie::init()
+void Cookie::load()
 {
 	QByteArray buff;
 	buff=Utils::getConfig("/Interface/Cookie",QString()).toUtf8();
@@ -48,7 +48,7 @@ void Cookie::init()
 	data.setAllCookies(all);
 }
 
-void Cookie::free()
+void Cookie::save()
 {
 	QByteArray buff;
 	QDataStream save(&buff,QIODevice::WriteOnly);

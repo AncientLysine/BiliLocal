@@ -62,17 +62,21 @@ int main(int argc,char *argv[])
 	a.installTranslator(&myTrans);
 	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
-	Shield::init();
-	Cookie::init();
+	Shield::load();
+	Cookie::load();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
-		Cookie::free();
-		Shield::free();
+		Cookie::save();
+		Shield::save();
 		Utils::saveConfig();
 	});
 	qsrand(QTime::currentTime().msec());
 	Interface w;
 	w.show();
-	return a.exec();
+	int r;
+	if((r=a.exec())==12450){
+		QProcess::startDetached(a.applicationFilePath());
+	}
+	return r;
 }
