@@ -64,6 +64,7 @@ private:
 	QPushButton *click;
 	QNetworkAccessManager *manager;
 	QHash<QString,QVariant> restart;
+	QHash<QString,QVariant> getRestart();
 
 	//Shiled
 	QLineEdit *edit;
@@ -78,6 +79,7 @@ private:
 	QLineEdit *limit[2];
 	QGroupBox *label[2];
 	QHash<QString,QVariant> reparse;
+	QHash<QString,QVariant> getReparse();
 
 	//Thanks
 	QTextEdit *thanks;

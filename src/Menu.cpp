@@ -52,7 +52,7 @@ Menu::Menu(QWidget *parent):
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegularExpression regexp("[ad]([cvd](([0-9]+)(#)?([0-9]+)?)?)?");
+		QRegularExpression regexp("[ad]([cvd]((\\d+)(#)?(\\d+)?)?)?");
 		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		auto iter=regexp.globalMatch(text);
 		QString match;
@@ -116,7 +116,6 @@ Menu::Menu(QWidget *parent):
 		}
 		if(searchBox.exec()) {
 			setDanmaku(searchBox.getAid());
-			isStay=true;
 		}
 		sechL->setText(searchBox.getKey());
 	});
@@ -502,6 +501,7 @@ void Menu::setDanmaku(QString _code)
 		if(Utils::getConfig("/Playing/Clear",true)){
 			Danmaku::instance()->clearPool();
 		}
+		isStay=true;
 		manager->get(request);
 	}
 }

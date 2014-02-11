@@ -28,15 +28,15 @@
 #include "Utils.h"
 
 bool Shield::shieldG[8];
-QList<QString> Shield::shieldU;
+QSet<QString> Shield::shieldS;
 QList<QRegularExpression> Shield::shieldR;
 
 void Shield::load()
 {
-	QJsonArray u=Utils::getConfig<QJsonArray>("/Shield/User");
+	QJsonArray s=Utils::getConfig<QJsonArray>("/Shield/Sender");
 	QJsonArray r=Utils::getConfig<QJsonArray>("/Shield/Regexp");
-	for(const QJsonValue &item:u){
-		shieldU.append(item.toString());
+	for(const QJsonValue &item:s){
+		shieldS.insert(item.toString());
 	}
 	for(const QJsonValue &item:r){
 		shieldR.append(QRegularExpression(item.toString()));
@@ -50,11 +50,11 @@ void Shield::load()
 
 void Shield::save()
 {
-	QJsonArray u,r;
-	for(auto &item:shieldU){
-		u.append(item);
+	QJsonArray s,r;
+	for(auto &item:shieldS){
+		s.append(item);
 	}
-	Utils::setConfig("/Shield/User",u);
+	Utils::setConfig("/Shield/Sender",s);
 	for(auto &item:shieldR){
 		r.append(item.pattern());
 	}
@@ -88,7 +88,7 @@ bool Shield::isBlocked(const Comment &comment)
 			return true;
 		}
 	}
-	if(shieldU.contains(comment.sender)){
+	if(shieldS.contains(comment.sender)){
 		return true;
 	}
 	for(const QRegularExpression &r:shieldR){

@@ -459,10 +459,9 @@ void Interface::showContextMenu(QPoint p)
 				qApp->clipboard()->setText(cur->string);
 			});
 			connect(top.addAction(tr("Eliminate The Sender")),&QAction::triggered,[=](){
-				QList<QString> &list=Shield::shieldU;
 				QString sender=cur->sender;
-				if(!sender.isEmpty()&&!list.contains(sender)){
-					list.append(sender);
+				if(!sender.isEmpty()){
+					Shield::shieldS.insert(sender);
 				}
 				Danmaku::instance()->parse(0x2);
 			});

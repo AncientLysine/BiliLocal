@@ -30,39 +30,6 @@
 #include "Cookie.h"
 #include "Danmaku.h"
 
-static QHash<QString,QVariant> getRestart()
-{
-	QStringList path;
-	path<<"/Interface/Accelerated"<<
-		  "/Interface/Background"<<
-		  "/Interface/Font"<<
-		  "/Interface/Frameless"<<
-		  "/Interface/Top";
-	QHash<QString,QVariant> data;
-	for(QString iter:path){
-		data[iter]=Utils::getConfig<QVariant>(iter);
-	}
-	return data;
-}
-
-static QHash<QString,QVariant> getReparse()
-{
-	QHash<QString,QVariant> data;
-	int g=0;
-	for(int i=0;i<8;++i){
-		g=(g<<1)+Shield::shieldG[i];
-	}
-	data["/Shield/Group"]=g;
-	QStringList r;
-	for(const QRegularExpression &item:Shield::shieldR){
-		r.append(item.pattern());
-	}
-	data["/Shield/Regexp"]=r;
-	data["/Shield/User"]=QStringList(Shield::shieldU);
-	data["/Shield/Limit"]=Utils::getConfig("/Shield/Limit",5);
-	return data;
-}
-
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
 {
@@ -441,12 +408,16 @@ Config::Config(QWidget *parent,int index):
 		Utils::setSelection(sender);
 		connect(regexp,&QListView::pressed,[this](QModelIndex){sender->setCurrentIndex(QModelIndex());});
 		connect(sender,&QListView::pressed,[this](QModelIndex){regexp->setCurrentIndex(QModelIndex());});
-		QStringList re;
-		for(const auto &item:Shield::shieldR){
-			re.append(item.pattern());
+		QStringList r,s;
+		for(const auto &i:Shield::shieldR){
+			r.append(i.pattern());
 		}
-		rm->setStringList(re);
-		sm->setStringList(Shield::shieldU);
+		for(const auto &i:Shield::shieldS){
+			s.append(i);
+		}
+		std::sort(s.begin(),s.end());
+		rm->setStringList(r);
+		sm->setStringList(s);
 		action[0]=new QAction(tr("Add"),widget[2]);
 		action[1]=new QAction(tr("Del"),widget[2]);
 		action[2]=new QAction(tr("Import"),widget[2]);
@@ -546,9 +517,8 @@ Config::Config(QWidget *parent,int index):
 		widget[2]->addAction(action[3]);
 		button[0]=new QPushButton(tr("Add"),widget[2]);
 		button[1]=new QPushButton(tr("Del"),widget[2]);
-		int width=qMax(button[0]->sizeHint().width(),button[1]->sizeHint().width());
-		button[0]->setFixedWidth(width);
-		button[1]->setFixedWidth(width);
+		button[0]->setFixedWidth(60);
+		button[1]->setFixedWidth(60);
 		button[0]->setFocusPolicy(Qt::NoFocus);
 		button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
@@ -619,12 +589,12 @@ Config::Config(QWidget *parent,int index):
 	}
 	tab->setCurrentIndex(index);
 	connect(this,&QDialog::finished,[this](){
-		Shield::shieldR.clear();
-		for(QString item:rm->stringList()){
-			Shield::shieldR.append(QRegularExpression(item));
-		}
-		Shield::shieldU=sm->stringList();
 		if(reparse!=getReparse()){
+			Shield::shieldR.clear();
+			for(QString item:rm->stringList()){
+				Shield::shieldR.append(QRegularExpression(item));
+			}
+			Shield::shieldS=sm->stringList().toSet();
 			Danmaku::instance()->parse(0x2);
 		}
 		if(restart!=getRestart()){
@@ -634,4 +604,33 @@ Config::Config(QWidget *parent,int index):
 	setMinimumWidth(540);
 	resize(540,outer->minimumSize().height());
 	Utils::setCenter(this);
+}
+
+QHash<QString,QVariant> Config::getRestart()
+{
+	QStringList path;
+	path<<"/Interface/Accelerated"<<
+		  "/Interface/Background"<<
+		  "/Interface/Font"<<
+		  "/Interface/Frameless"<<
+		  "/Interface/Top";
+	QHash<QString,QVariant> data;
+	for(QString iter:path){
+		data[iter]=Utils::getConfig<QVariant>(iter);
+	}
+	return data;
+}
+
+QHash<QString,QVariant> Config::getReparse()
+{
+	QHash<QString,QVariant> data;
+	int g=0;
+	for(int i=0;i<8;++i){
+		g=(g<<1)+Shield::shieldG[i];
+	}
+	data["/Shield/Group"]=g;
+	data["/Shield/Regexp"]=rm->stringList();
+	data["/Shield/Sender"]=sm->stringList();
+	data["/Shield/Limit"]=Utils::getConfig("/Shield/Limit",5);
+	return data;
 }

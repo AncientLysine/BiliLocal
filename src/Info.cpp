@@ -122,11 +122,10 @@ Info::Info(QWidget *parent):
 				qApp->clipboard()->setText(list.join('\n'));
 			});
 			connect(menu.addAction(tr("Eliminate The Sender")),&QAction::triggered,[&](){
-				QList<QString> &list=Shield::shieldU;
 				for(const Comment *c:selected){
 					QString sender=c->sender;
-					if(!sender.isEmpty()&&sender!="0"&&!list.contains(sender)){
-						list.append(sender);
+					if(!sender.isEmpty()){
+						Shield::shieldS.insert(sender);
 					}
 				}
 				Danmaku::instance()->parse(0x2);
