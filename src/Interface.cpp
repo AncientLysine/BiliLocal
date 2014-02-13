@@ -72,6 +72,7 @@ Interface::Interface(QWidget *parent):
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
 	connect(vplayer,&VPlayer::begin,[this](){
 		if(!isFullScreen()){
+			geo=saveGeometry();
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
 		}
@@ -86,8 +87,9 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		vplayer->setRatio(0);
-		if(!isFullScreen()){
-			setCenter(QSize(),false);
+		if(!isFullScreen()&&!geo.isEmpty()){
+			restoreGeometry(geo);
+			geo.clear();
 		}
 		render->setTime(0);
 	});
@@ -116,6 +118,10 @@ Interface::Interface(QWidget *parent):
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
+			if(!geo.isNull()){
+				restoreGeometry(geo);
+				geo.clear();
+			}
 			if(vplayer->getState()!=VPlayer::Stop){
 				sca->setEnabled(true);
 			}

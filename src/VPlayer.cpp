@@ -353,6 +353,19 @@ void VPlayer::play()
 			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
+			QProgressDialog *wait=new QProgressDialog(qobject_cast<QWidget *>(parent()));
+			wait->setCancelButton(NULL);
+			wait->setWindowTitle(tr("Caching"));
+			wait->setLabelText(tr("Parts of BiliLocal need initialization."));
+			wait->setFixedSize(wait->sizeHint());
+			QTimer::singleShot(2000,wait,SLOT(show()));
+			QMetaObject::Connection *connect=new QMetaObject::Connection;
+			*connect=QObject::connect(this,&VPlayer::decode,[=](){
+				setVolume(Utils::getConfig("/Playing/Volume",100));
+				QObject::disconnect(*connect);
+				delete connect;
+				wait->deleteLater();
+			});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -426,12 +439,6 @@ void VPlayer::init()
 				connect(i,&QAction::triggered,[=](){libvlc_audio_set_track(mp,i->data().toInt());});
 				i->setChecked(i->data().toInt()==libvlc_audio_get_track(mp));
 			}
-			QMetaObject::Connection *connect=new QMetaObject::Connection;
-			*connect=QObject::connect(this,&VPlayer::decode,[=](){
-				setVolume(Utils::getConfig("/Playing/Volume",100));
-				QObject::disconnect(*connect);
-				delete connect;
-			});
 			emit begin();
 		}
 		if(state==Loop){

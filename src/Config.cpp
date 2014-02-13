@@ -60,7 +60,7 @@ Config::Config(QWidget *parent,int index):
 			Utils::setConfig("/Playing/Subtitle",state==Qt::Checked);
 		});
 		c->addWidget(danm[2]);
-		box[0]=new QGroupBox(tr("Loading"),widget[0]);
+		box[0]=new QGroupBox(tr("loading"),widget[0]);
 		box[0]->setLayout(c);
 		list->addWidget(box[0]);
 
@@ -138,7 +138,7 @@ Config::Config(QWidget *parent,int index):
 			Utils::setConfig("/Danmaku/Effect",(i<<1)|(int)(bold->checkState()==Qt::Checked));
 		});
 		g->addWidget(effect);
-		box[5]=new QGroupBox(tr("Style"),widget[0]);
+		box[5]=new QGroupBox(tr("style"),widget[0]);
 		box[5]->setLayout(g);
 
 		auto f=new QHBoxLayout;
@@ -149,7 +149,7 @@ Config::Config(QWidget *parent,int index):
 			Utils::setConfig("/Danmaku/Font",_font);
 		});
 		f->addWidget(dmfont);
-		box[6]=new QGroupBox(tr("Font"),widget[0]);
+		box[6]=new QGroupBox(tr("font"),widget[0]);
 		box[6]->setLayout(f);
 
 		auto v=new QHBoxLayout;

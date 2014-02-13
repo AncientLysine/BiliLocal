@@ -296,8 +296,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				isWaiting=false;
 			}
 			else if(Utils::getSite(url)==Utils::AcFun){
-				QByteArray data=reply->readAll();
-				QJsonObject json=QJsonDocument::fromJson(data.mid(10,data.size()-11)).object();
+				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				QJsonObject page=json["page"].toObject();
 				if(pageNum==-1){
 					pageNum=page["totalPage"].toDouble();

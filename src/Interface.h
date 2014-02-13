@@ -67,6 +67,7 @@ private:
 
 	QPoint sta;
 	QPoint wgd;
+	QByteArray geo;
 
 	bool sliding;
 

@@ -52,14 +52,14 @@ Menu::Menu(QWidget *parent):
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegularExpression regexp("[ad]([cvd]((\\d+)(#)?(\\d+)?)?)?");
+		QRegularExpression regexp("[ad]([cvd]((\\d+)([#_])?(\\d+)?)?)?");
 		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		auto iter=regexp.globalMatch(text);
 		QString match;
 		while(iter.hasNext()){
 			match=iter.next().captured();
 		}
-		danmL->setText(match.toLower());
+		danmL->setText(match.toLower().replace('_','#'));
 	});
 	danmC=new QCompleter(new QStandardItemModel(this),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
@@ -181,7 +181,7 @@ Menu::Menu(QWidget *parent):
 	});
 	loopT=new QLabel(this);
 	loopT->setGeometry(QRect(10,310,100,25));
-	loopT->setText(tr("Loop"));
+	loopT->setText(tr("Loop Playback"));
 	loopC=new QCheckBox(this);
 	loopC->setGeometry(QRect(168,310,25,25));
 	loopC->setChecked(Utils::getConfig("/Playing/Loop",false));

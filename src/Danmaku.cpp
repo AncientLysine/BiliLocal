@@ -276,9 +276,9 @@ void Danmaku::processDanmakuInBuffer()
 {
 	if(!buffer.isEmpty()){
 		QList<Graphic *> waiting;
-		int l=Utils::getConfig("/Shield/Density",100),n=0;
+		int l=Utils::getConfig("/Shield/Density",100);
 		const Comment *f=buffer.first();
-		while(!buffer.isEmpty()&&(n++<20||(buffer.first()->time==f->time&&buffer.first()->string==f->string))){
+		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
 			const Comment *c=buffer.takeFirst();
 			if(time-c->time>5000){
 				while(!buffer.isEmpty()&&time-c->time>1000){
