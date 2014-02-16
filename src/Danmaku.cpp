@@ -280,8 +280,8 @@ void Danmaku::processDanmakuInBuffer()
 		const Comment *f=buffer.first();
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
 			const Comment *c=buffer.takeFirst();
-			if(time-c->time>5000){
-				while(!buffer.isEmpty()&&time-c->time>1000){
+			if(time-c->time>2000){
+				while(!buffer.isEmpty()&&time-c->time>500){
 					c=buffer.takeFirst();
 				}
 			}
@@ -298,6 +298,7 @@ void Danmaku::processDanmakuInBuffer()
 			g->setEnabled(true);
 		}
 	}
+	qApp->removePostedEvents(this,RenderEvent::registeredType);
 	if(!buffer.isEmpty()){
 		qApp->postEvent(this,new RenderEvent);
 	}

@@ -306,12 +306,11 @@ qint64 VPlayer::getDuration()
 void VPlayer::setState(State _state)
 {
 #ifdef Q_OS_WIN32
-	if (_state == Play || _state == Loop)
-	{
-		SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
-	}
-	else
-	{
+	switch(_state){
+	case Play:
+	case Loop:
+		SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
+	default:
 		SetThreadExecutionState(ES_CONTINUOUS);
 	}
 #endif
@@ -466,15 +465,10 @@ void VPlayer::free()
 	}
 	else{
 		stop();
-		auto clear=[](QList<QAction *> &list){
-			for(QAction *i:list){
-				delete i;
-			}
-			list.clear();
-		};
-		clear(video);
-		clear(audio);
-		clear(subtitle);
+		qDeleteAll(video+audio+subtitle);
+		video.clear();
+		audio.clear();
+		subtitle.clear();
 	}
 }
 

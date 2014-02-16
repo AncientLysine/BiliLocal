@@ -237,11 +237,11 @@ void Interface::dropEvent(QDropEvent *e)
 
 void Interface::closeEvent(QCloseEvent *e)
 {
-	danmaku->clearBuffer();
 	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
 		QString size=Utils::getConfig("/Interface/Size",QString("960,540"));
 		Utils::setConfig("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
+	danmaku->clearBuffer();
 	QWidget::closeEvent(e);
 }
 

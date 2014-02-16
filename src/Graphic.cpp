@@ -349,42 +349,22 @@ static QPixmap getCache(QString string,
 						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
 						int opacity=Utils::getConfig("/Danmaku/Alpha",100))
 {
+	QPainter painter;
+	QColor base(color),edge=qGray(color)<30?Qt::white:Qt::black;
+	QPixmap src(size);
+	src.fill(Qt::transparent);
+	painter.begin(&src);
+	painter.setPen(base);
+	painter.setFont(font);
+	painter.drawText(src.rect().adjusted(2,2,-2,-2),string);
+	painter.end();
 	QPixmap fst(size);
 	fst.fill(Qt::transparent);
-	QPainter painter;
-	painter.begin(&fst);
-	painter.setFont(font);
-	auto draw=[&](QColor c,QPoint p){
-		QRect r(p+QPoint(2,2),size-QSize(4,4));
-		painter.setPen(c);
-		painter.drawText(r,string);
-	};
-	int base=color;
-	QColor edge=qGray(base)<30?Qt::white:Qt::black;
-	switch(effect){
-	case 0:
-		draw(edge,QPoint(+1,0));
-		draw(edge,QPoint(-1,0));
-		draw(edge,QPoint(0,+1));
-		draw(edge,QPoint(0,-1));
-		draw(base,QPoint(0,0));
-		break;
-	case 1:
-		draw(edge,QPoint(2,2));
-		draw(edge,QPoint(1,1));
-		draw(base,QPoint(0,0));
-		break;
-	case 2:
-	{
-		draw(base,QPoint(0,0));
-		painter.end();
-		QPixmap src;
+	if(effect==2){
 		QPixmapDropShadowFilter f;
 		f.setColor(edge);
 		f.setOffset(0,0);
 		f.setBlurRadius(4);
-		src=fst;
-		fst.fill(Qt::transparent);
 		painter.begin(&fst);
 		f.draw(&painter,QPointF(),src);
 		painter.end();
@@ -392,18 +372,30 @@ static QPixmap getCache(QString string,
 		fst.fill(Qt::transparent);
 		painter.begin(&fst);
 		f.draw(&painter,QPointF(),src);
-		break;
+		painter.end();
 	}
-	default:
-		draw(base,QPoint(0,0));
-		break;
+	else{
+		QPixmap edg=src;
+		painter.begin(&edg);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(edg.rect(),edge);
+		painter.end();
+		painter.begin(&fst);
+		switch(effect){
+		case 0:
+			painter.drawPixmap(+1,0,edg);
+			painter.drawPixmap(-1,0,edg);
+			painter.drawPixmap(0,+1,edg);
+			painter.drawPixmap(0,-1,edg);
+			break;
+		case 1:
+			painter.drawPixmap(2,2,edg);
+			painter.drawPixmap(1,1,edg);
+			break;
+		}
+		painter.drawPixmap(0,0,src);
+		painter.end();
 	}
-	if(Utils::getConfig("/Interface/Debug",false)){
-		painter.setPen(Qt::blue);
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRect(fst.rect().adjusted(0,0,-1,-1));
-	}
-	painter.end();
 	if(opacity==100){
 		return fst;
 	}
