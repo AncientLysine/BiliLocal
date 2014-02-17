@@ -601,6 +601,11 @@ void VPlayer::stop()
 		if(music){
 			fake->stop();
 		}
+		start=false;
+		qDeleteAll(video+audio+subtitle);
+		video.clear();
+		audio.clear();
+		subtitle.clear();
 		emit reach();
 	}
 }
@@ -675,7 +680,6 @@ void VPlayer::init()
 
 void VPlayer::free()
 {
-	start=false;
 	if(Utils::getConfig("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
 		setState(Loop);
@@ -684,10 +688,6 @@ void VPlayer::free()
 	}
 	else{
 		stop();
-		qDeleteAll(video+audio+subtitle);
-		video.clear();
-		audio.clear();
-		subtitle.clear();
 	}
 }
 
