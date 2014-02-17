@@ -1,4 +1,4 @@
-﻿/*=======================================================================
+/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -64,6 +64,77 @@ public:
 
 static Mutex data;
 
+static AVPixelFormat getFormat(char *chroma)
+{
+	static QHash<QString,AVPixelFormat> f;
+	if(f.isEmpty()){
+		f.insert("RV32",AV_PIX_FMT_RGB32);
+		f.insert("I410",AV_PIX_FMT_YUV410P);
+		f.insert("I411",AV_PIX_FMT_YUV411P);
+		f.insert("I420",AV_PIX_FMT_YUV420P);
+		f.insert("IYUV",AV_PIX_FMT_YUV420P);
+		f.insert("I422",AV_PIX_FMT_YUV422P);
+		f.insert("I440",AV_PIX_FMT_YUV440P);
+		f.insert("I444",AV_PIX_FMT_YUV444P);
+		f.insert("J420",AV_PIX_FMT_YUVJ420P);
+		f.insert("J422",AV_PIX_FMT_YUVJ422P);
+		f.insert("J440",AV_PIX_FMT_YUVJ440P);
+		f.insert("J444",AV_PIX_FMT_YUVJ444P);
+		f.insert("I40A",AV_PIX_FMT_YUVA420P);
+		f.insert("I42A",AV_PIX_FMT_YUVA422P);
+		f.insert("YUVA",AV_PIX_FMT_YUVA444P);
+		f.insert("NV12",AV_PIX_FMT_NV12);
+		f.insert("NV21",AV_PIX_FMT_NV21);
+		f.insert("NV16",AV_PIX_FMT_NV16);
+		f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
+		f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
+		f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
+		f.insert("I29B",AV_PIX_FMT_YUV422P9BE);
+		f.insert("I49L",AV_PIX_FMT_YUV444P9LE);
+		f.insert("I49B",AV_PIX_FMT_YUV444P9BE);
+		f.insert("I0AL",AV_PIX_FMT_YUV420P10LE);
+		f.insert("I0AB",AV_PIX_FMT_YUV420P10BE);
+		f.insert("I2AL",AV_PIX_FMT_YUV422P10LE);
+		f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
+		f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
+		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
+		f.insert("YUYV",AV_PIX_FMT_YUYV422);
+		f.insert("XY12",AV_PIX_FMT_XYZ12);
+	}
+	QString c=QString(chroma).toUpper();
+	if(!f.contains(c)){
+		if(c=="YV12"){
+			strcpy(chroma,"I420");
+		}
+		else if(c=="NV61"){
+			strcpy(chroma,"NV16");
+		}
+		else if(c=="UYVY"||
+				c=="UYNV"||
+				c=="UYNY"||
+				c=="Y422"||
+				c=="HDYC"||
+				c=="AVUI"||
+				c=="UYV1"||
+				c=="2VUY"||
+				c=="2VU1"||
+				c=="VYUY"||
+				c=="YUY2"||
+				c=="YUNV"||
+				c=="V422"||
+				c=="YVYU"||
+				c=="Y211"||
+				c=="CYUV"){
+			strcpy(chroma,"YUYV");
+		}
+		else{
+			strcpy(chroma,"RV32");
+		}
+		c=chroma;
+	}
+	return f[c];
+}
+
 class RasterPlayer:public VPlayer
 {
 public:
@@ -73,6 +144,7 @@ public:
 		swsctx=NULL;
 		srcFrame=NULL;
 		dstFrame=NULL;
+		dstFormat=AV_PIX_FMT_RGB32;
 		ins=this;
 	}
 
@@ -93,15 +165,36 @@ public:
 		}
 	}
 
-	uchar *getBuffer()
+	void getBuffer(void **planes)
 	{
-		return (uchar *)*srcFrame->data;
+		for(int i=0;i<8;++i){
+			if(srcFrame->linesize[i]==0){
+				break;
+			}
+			planes[i]=srcFrame->data[i];
+		}
+		start=true;
 	}
 
-	void setBuffer()
+	void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)
 	{
-		srcFrame=new AVPicture;
-		avpicture_alloc(srcFrame,PIX_FMT_RGB32,size.width(),size.height());
+		srcSize=QSize(*width,*height);
+		if(srcFrame){
+			avpicture_free(srcFrame);
+		}
+		else{
+			srcFrame=new AVPicture;
+		}
+		srcFormat=getFormat(chroma);
+		avpicture_alloc(srcFrame,srcFormat,srcSize.width(),srcSize.height());
+		for(int i=0;i<3;++i){
+			int l;
+			if((l=srcFrame->linesize[i])==0){
+				break;
+			}
+			pitches[i]=l;
+			lines[i]=srcSize.height();
+		}
 	}
 
 	void draw(QPainter *painter,QRect rect)
@@ -111,29 +204,30 @@ public:
 			if(music){
 				painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 			}
-			else{
+			else if(start){
 				QRect dest=getRect(rect);
 				data.lock();
-				if(frame.size()!=dest.size()){
+				if(dstSize!=dest.size()){
 					if(dstFrame){
 						avpicture_free(dstFrame);
 					}
 					else{
 						dstFrame=new AVPicture;
 					}
-					avpicture_alloc(dstFrame,PIX_FMT_RGB32,dest.width(),dest.height());
+					dstSize=dest.size();
+					avpicture_alloc(dstFrame,dstFormat,dstSize.width(),dstSize.height());
+					frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
 					dirty=true;
 				}
 				if(dirty){
 					swsctx=sws_getCachedContext(swsctx,
-												size.width(),size.height(),PIX_FMT_RGB32,
-												dest.width(),dest.height(),PIX_FMT_RGB32,
+												srcSize.width(),srcSize.height(),srcFormat,
+												dstSize.width(),dstSize.height(),dstFormat,
 												SWS_FAST_BILINEAR,NULL,NULL,NULL);
 					sws_scale(swsctx,
 							  srcFrame->data,srcFrame->linesize,
-							  0,size.height(),
+							  0,srcSize.height(),
 							  dstFrame->data,dstFrame->linesize);
-					frame=QImage((uchar *)*dstFrame->data,dest.width(),dest.height(),QImage::Format_RGB32);
 					dirty=false;
 				}
 				data.unlock();
@@ -144,19 +238,56 @@ public:
 
 private:
 	SwsContext *swsctx;
+	QSize srcSize;
+	QSize dstSize;
+	AVPixelFormat srcFormat;
+	AVPixelFormat dstFormat;
 	AVPicture *srcFrame;
 	AVPicture *dstFrame;
 	QImage frame;
 };
 
-class OpenGLPlayer:public VPlayer
+static const char *vs=
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
+
+static const char *fs=
+		"varying vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    vec3 yuv;\n"
+		"    vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+
+class OpenGLPlayer:public VPlayer,protected QOpenGLFunctions
 {
 public:
 	explicit OpenGLPlayer(QObject *parent=NULL):
 		VPlayer(parent)
 	{
-		frame=0;
-		buffer=NULL;
+		for(auto &iter:frame){
+			iter=0;
+		}
+		for(auto &iter:buffer){
+			iter=NULL;
+		}
+		vShader=fShader=program=0;
 		ins=this;
 	}
 
@@ -164,25 +295,51 @@ public:
 	{
 		release();
 		data.tryLock(500);
-		if(frame){
-			glDeleteTextures(1,&frame);
+		if(frame[0]){
+			glDeleteShader(vShader);
+			glDeleteShader(fShader);
+			glDeleteProgram(program);
+			glDeleteTextures(3,frame);
 		}
-		if(buffer){
-			delete buffer;
+		for(uchar *iter:buffer){
+			if(iter){
+				delete iter;
+			}
 		}
 	}
 
-	uchar *getBuffer()
+	void getBuffer(void **planes)
 	{
-		return buffer;
+		for(int i=0;i<3;++i){
+			if(buffer[i]==NULL){
+				break;
+			}
+			planes[i]=buffer[i];
+		}
+		start=true;
 	}
 
-	void setBuffer()
+	void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)
 	{
-		if(buffer){
-			delete buffer;
+		for(auto &iter:buffer){
+			if(iter){
+				delete iter;
+				iter=NULL;
+			}
 		}
-		buffer=new uchar[size.width()*size.height()*4];
+		strcpy(chroma,"I420");
+		int w=*width,h=*height;
+		inner=QSize(w,h);
+		if(buffer[0]){
+			qDeleteAll(buffer,buffer+2);
+		}
+		buffer[0]=new uchar[w*h];
+		buffer[1]=new uchar[w*h/4];
+		buffer[2]=new uchar[w*h/4];
+		pitches[0]=w;
+		pitches[1]=pitches[2]=w/2;
+		lines[0]=h;
+		lines[1]=lines[2]=h/2;
 	}
 
 	void draw(QPainter *painter,QRect rect)
@@ -192,37 +349,88 @@ public:
 			if(music){
 				painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 			}
-			else{
-				int w=size.width(),h=size.height();
+			else if(start){
 				QRect dest=getRect(rect);
 				data.lock();
 				painter->beginNativePainting();
 				if(dirty){
-					if(!frame){
-						glGenTextures(1,&frame);
-					};
-					glBindTexture(GL_TEXTURE_2D,frame);
-					glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,w,h,0,GL_BGRA,GL_UNSIGNED_BYTE,buffer);
+					if(!frame[0]){
+						glGenTextures(3,frame);
+						initializeOpenGLFunctions();
+						vShader=glCreateShader(GL_VERTEX_SHADER);
+						fShader=glCreateShader(GL_FRAGMENT_SHADER);
+						glShaderSource(vShader,1,&vs,NULL);
+						glShaderSource(fShader,1,&fs,NULL);
+						glCompileShader(vShader);
+						glCompileShader(fShader);
+						program=glCreateProgram();
+						glAttachShader(program,vShader);
+						glAttachShader(program,fShader);
+						glLinkProgram(program);
+					}
+					int w=inner.width(),h=inner.height();
+					uploadTexture(0,w,h);
+					uploadTexture(1,w/2,h/2);
+					uploadTexture(2,w/2,h/2);
 					dirty=false;
 				}
 				data.unlock();
-				glBindTexture(GL_TEXTURE_2D,frame);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-				GLfloat l=dest.left(),t=dest.top(),r=dest.right()+1,b=dest.bottom()+1;
-				GLfloat vtx[8]={l,t,r,t,r,b,l,b};
-				GLfloat tex[8]={0,0,1,0,1,1,0,1};
-				glVertexPointer(2,GL_FLOAT,0,vtx);
-				glTexCoordPointer(2,GL_FLOAT,0,tex);
-				glDrawArrays(GL_TRIANGLE_FAN,0,4);
+				GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
+				GLfloat vtx[8]={
+					-h,-v,
+					+h,-v,
+					-h,+v,
+					+h,+v,
+				};
+				GLfloat tex[8]={
+					0.0f,1.0f,
+					1.0f,1.0f,
+					0.0f,0.0f,
+					1.0f,0.0f,
+				};
+				glUseProgram(program);
+				GLint texY=glGetUniformLocation(program,"SamplerY");
+				GLint texU=glGetUniformLocation(program,"SamplerU");
+				GLint texV=glGetUniformLocation(program,"SamplerV");
+				glBindAttribLocation(program,0,"VtxCoord");
+				glBindAttribLocation(program,1,"TexCoord");
+				glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
+				glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
+				glEnableVertexAttribArray(0);
+				glEnableVertexAttribArray(1);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D,frame[0]);
+				glUniform1i(texY,0);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D,frame[1]);
+				glUniform1i(texU,1);
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D,frame[2]);
+				glUniform1i(texV,2);
+				glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 				painter->endNativePainting();
 			}
 		}
 	}
 
 private:
-	uchar *buffer;
-	GLuint frame;
+	QSize inner;
+	GLuint vShader;
+	GLuint fShader;
+	GLuint program;
+	GLuint frame[3];
+	uchar *buffer[3];
+
+	void uploadTexture(int i,int w,int h)
+	{
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D,frame[i]);
+		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+	}
 };
 
 VPlayer *VPlayer::create(QObject *parent)
@@ -235,10 +443,18 @@ VPlayer *VPlayer::create(QObject *parent)
 	}
 }
 
+static unsigned fmt(void **,char *chroma,
+					unsigned *width,unsigned *height,
+					unsigned *pitches, unsigned *lines)
+{
+	VPlayer::instance()->setBuffer(chroma,width,height,pitches,lines);
+	return 1;
+}
+
 static void *lck(void *,void **planes)
 {
 	data.lock();
-	*planes=VPlayer::instance()->getBuffer();
+	VPlayer::instance()->getBuffer(planes);
 	return NULL;
 }
 
@@ -278,6 +494,7 @@ VPlayer::VPlayer(QObject *parent):
 	mp=NULL;
 	state=Stop;
 	ratio=0;
+	start=false;
 	music=false;
 	dirty=false;
 	fake=new QTimer(this);
@@ -310,8 +527,10 @@ void VPlayer::setState(State _state)
 	case Play:
 	case Loop:
 		SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
+		break;
 	default:
 		SetThreadExecutionState(ES_CONTINUOUS);
+		break;
 	}
 #endif
 	state=_state;
@@ -348,8 +567,7 @@ void VPlayer::play()
 			if(music){
 				fake->start();
 			}
-			setBuffer();
-			libvlc_video_set_format(mp,"RV32",size.width(),size.height(),size.width()*4);
+			libvlc_video_set_format_callbacks(mp,fmt,NULL);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
 			QProgressDialog *wait=new QProgressDialog(qobject_cast<QWidget *>(parent()));
@@ -457,6 +675,7 @@ void VPlayer::init()
 
 void VPlayer::free()
 {
+	start=false;
 	if(Utils::getConfig("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
 		setState(Loop);

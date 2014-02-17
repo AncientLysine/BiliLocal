@@ -55,8 +55,8 @@ public:
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
 
-	virtual uchar *getBuffer()=0;
-	virtual void setBuffer()=0;
+	virtual void getBuffer(void **planes)=0;
+	virtual void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)=0;
 	virtual void draw(QPainter *painter,QRect rect)=0;
 
 	static VPlayer *create(QObject *parent=NULL);
@@ -77,6 +77,7 @@ private:
 	void setState(State _state);
 
 protected:
+	bool start;
 	bool music;
 	bool dirty;
 	QSize size;
@@ -108,4 +109,3 @@ public slots:
 };
 
 #endif // VPLAYER_H
-

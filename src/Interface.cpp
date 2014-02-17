@@ -67,6 +67,10 @@ Interface::Interface(QWidget *parent):
 		if(vplayer->getState()==VPlayer::Play&&!menu->isVisible()&&!info->isVisible()){
 			setCursor(QCursor(Qt::BlankCursor));
 		}
+		if(!sliding){
+			showprg=false;
+			render->setTime(0);
+		}
 	});
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
@@ -95,10 +99,10 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 
-	sliding=false;
+	showprg=sliding=false;
 	connect(vplayer,&VPlayer::timeChanged,[this](qint64 t){
 		if(!sliding&&vplayer->getState()!=VPlayer::Stop){
-			render->setTime(t/(double)vplayer->getDuration());
+			render->setTime(showprg?t/(double)vplayer->getDuration():-1);
 		}
 	});
 
@@ -309,6 +313,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 			}
 		}
 	}
+	showprg=true;
 	if(cursor().shape()==Qt::BlankCursor){
 		unsetCursor();
 	}
@@ -391,9 +396,10 @@ void Interface::checkForUpdate()
 		QJsonObject r=QJsonDocument::fromJson(info->readAll()).object();
 		if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
 			QMessageBox::StandardButton button;
+			QString information=r["String"].toString();
 			button=QMessageBox::information(this,
 											tr("Update"),
-											r["String"].toString(),
+											information,
 											QMessageBox::Ok|QMessageBox::Cancel);
 			if(button==QMessageBox::Ok){
 				QDesktopServices::openUrl(r["Url"].toString());

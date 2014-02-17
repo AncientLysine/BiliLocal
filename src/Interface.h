@@ -69,6 +69,7 @@ private:
 	QPoint wgd;
 	QByteArray geo;
 
+	bool showprg;
 	bool sliding;
 
 	void dropEvent(QDropEvent *e);
