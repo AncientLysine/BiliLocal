@@ -122,7 +122,7 @@ Interface::Interface(QWidget *parent):
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
-			if(!geo.isNull()){
+			if(!geo.isNull()&&vplayer->getState()==VPlayer::Stop){
 				restoreGeometry(geo);
 				geo.clear();
 			}
