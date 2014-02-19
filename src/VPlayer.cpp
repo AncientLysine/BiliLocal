@@ -56,13 +56,7 @@ void avpicture_free(AVPicture *picture)
 	av_free(picture->data[0]);
 }
 
-class Mutex:public QMutex
-{
-public:
-	~Mutex(){unlock();}
-};
-
-static Mutex data;
+static QMutex data;
 
 static AVPixelFormat getFormat(char *chroma)
 {
@@ -152,8 +146,7 @@ public:
 
 	~RasterPlayer()
 	{
-		release();
-		data.tryLock(500);
+		releaseAndWait();
 		if(swsctx){
 			sws_freeContext(swsctx);
 		}
@@ -293,8 +286,7 @@ public:
 
 	~OpenGLPlayer()
 	{
-		release();
-		data.tryLock(500);
+		releaseAndWait();
 		if(!initialize){
 			glDeleteShader(vShader);
 			glDeleteShader(fShader);
@@ -466,19 +458,19 @@ static void dsp(void *,void *)
 	data.unlock();
 }
 
-static void sta(const struct libvlc_event_t *,void *)
+static void sta(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
-static void mid(const struct libvlc_event_t *,void *)
+static void mid(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),
 							  "timeChanged",
 							  Q_ARG(qint64,VPlayer::instance()->getTime()));
 }
 
-static void end(const struct libvlc_event_t *,void *)
+static void end(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(VPlayer::instance(),"free");
 }
@@ -511,8 +503,6 @@ VPlayer::VPlayer(QObject *parent):
 
 VPlayer::~VPlayer()
 {
-	release();
-	libvlc_release(vlc);
 }
 
 qint64 VPlayer::getTime()
@@ -548,6 +538,37 @@ QRect VPlayer::getRect(QRect rect)
 	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
+}
+
+class ExitLoop:public QEventLoop
+{
+public:
+	bool exited;
+	ExitLoop():exited(false)
+	{
+	}
+	void quit(){
+		exited=true;
+		QEventLoop::quit();
+	}
+};
+
+void VPlayer::releaseAndWait()
+{
+	ExitLoop loop;
+	libvlc_set_exit_handler(vlc,[](void *opaque){
+		((ExitLoop *)opaque)->quit();
+	},&loop);
+	if(mp){
+		libvlc_media_player_release(mp);
+	}
+	if(m){
+		libvlc_media_release(m);
+	}
+	libvlc_release(vlc);
+	if(!loop.exited){
+		loop.exec();
+	}
 }
 
 void VPlayer::play()
@@ -693,18 +714,6 @@ void VPlayer::free()
 	}
 	else{
 		stop();
-	}
-}
-
-void VPlayer::release()
-{
-	if(mp){
-		libvlc_media_player_release(mp);
-		mp=NULL;
-	}
-	if(m){
-		libvlc_media_release(m);
-		m=NULL;
 	}
 }
 

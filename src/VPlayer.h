@@ -86,6 +86,7 @@ protected:
 
 	VPlayer(QObject *parent=0);
 	QRect getRect(QRect rect);
+	void releaseAndWait();
 
 signals:
 	void begin();
@@ -100,7 +101,6 @@ public slots:
 	void stop();
 	void init();
 	void free();
-	void release();
 	void setDirty();
 	void setTime(qint64 _time);
 	void setFile(QString _file);
