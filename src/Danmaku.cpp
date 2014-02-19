@@ -26,6 +26,7 @@
 
 #include "Danmaku.h"
 #include "Shield.h"
+#include "Render.h"
 #include "VPlayer.h"
 #include "Graphic.h"
 
@@ -40,6 +41,11 @@ public:
 
 QEvent::Type RenderEvent::registeredType=(QEvent::Type)registerEventType();
 
+Danmaku *Danmaku::create(QObject *parent)
+{
+	return new Danmaku(parent);
+}
+
 Danmaku::Danmaku(QObject *parent):
 	QAbstractItemModel(parent)
 {
@@ -49,9 +55,8 @@ Danmaku::Danmaku(QObject *parent):
 	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
 }
 
-void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
+void Danmaku::draw(QPainter *painter,QRect,qint64 move)
 {
-	size=rect.size();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
 		if(g->move(move)){
@@ -277,16 +282,16 @@ void Danmaku::processDanmakuInBuffer()
 	if(!buffer.isEmpty()){
 		QList<Graphic *> waiting;
 		int l=Utils::getConfig("/Shield/Density",100);
+		if(time-buffer.first()->time>2000){
+			while(!buffer.isEmpty()&&time-buffer.first()->time>500){
+				buffer.removeFirst();
+			}
+		}
 		const Comment *f=buffer.first();
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
 			const Comment *c=buffer.takeFirst();
-			if(time-c->time>2000){
-				while(!buffer.isEmpty()&&time-c->time>500){
-					c=buffer.takeFirst();
-				}
-			}
 			if(!c->blocked&&(c->mode==7||l==0||current.size()+waiting.size()<l)){
-				Graphic *g=Graphic::create(*c,size,current);
+				Graphic *g=Graphic::create(*c,Render::instance()->getWidget()->size(),current);
 				g->setEnabled(false);
 				current.append(g);
 				waiting.append(g);
@@ -401,7 +406,7 @@ void Danmaku::appendToPool(const Record &record)
 void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
 {
 	if(isLocal){
-		Graphic *graphic=Graphic::create(*comment,size,current);
+		Graphic *graphic=Graphic::create(*comment,Render::instance()->getWidget()->size(),current);
 		if(graphic){
 			graphic->setSource(NULL);
 			current.append(graphic);

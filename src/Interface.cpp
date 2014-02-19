@@ -44,7 +44,7 @@ Interface::Interface(QWidget *parent):
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
 	vplayer=VPlayer::create(this);
-	danmaku=new Danmaku(this);
+	danmaku=Danmaku::create(this);
 	render=Render::create(this);
 	menu=new Menu(this);
 	info=new Info(this);
@@ -312,6 +312,9 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 				info->pop();
 			}
 		}
+	}
+	if(!showprg&&vplayer->getState()!=VPlayer::Stop){
+		render->setTime(vplayer->getTime()/(double)vplayer->getDuration());
 	}
 	showprg=true;
 	if(cursor().shape()==Qt::BlankCursor){

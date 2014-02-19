@@ -28,6 +28,8 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
+Render *Render::ins=NULL;
+
 class Widget:public QWidget
 {
 public:
@@ -63,6 +65,7 @@ public:
 		Render(parent)
 	{
 		widget=new Widget(this,parent);
+		ins=this;
 	}
 
 public slots:
@@ -170,6 +173,7 @@ public:
 	{
 		window=new Window(this,parent);
 		widget=QWidget::createWindowContainer(window,parent);
+		ins=this;
 	}
 
 	~OpenGLRender()

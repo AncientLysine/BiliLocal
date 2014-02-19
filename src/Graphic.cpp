@@ -234,8 +234,8 @@ public:
 	Mode7(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
-	uint intersects(Graphic *other);
-	QRectF currentRect();
+	uint intersects(Graphic *){return 0;}
+	QRectF currentRect(){return QRectF();}
 
 private:
 	QPointF bPos;
@@ -424,6 +424,64 @@ static double getOverlap(double ff,double fs,double sf,double ss)
 	return 0;
 }
 
+static void setRectangle(QRectF &rect,
+						 Graphic *self,
+						 const QSize &size,
+						 const QList<Graphic *> &current)
+{
+	const Comment &comment=*self->getSource();
+	if(comment.font*(comment.string.count("\n")+1)>=360){
+		return;
+	}
+	double m=0;
+	QRectF r;
+	switch(self->getMode())
+	{
+	case 1:
+	case 5:
+	case 6:
+	{
+		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
+		for(int height=rect.top();height<limit;height+=10){
+			rect.moveTop(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=self->intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
+			}
+		}
+		rect=r;
+		break;
+	}
+	case 4:
+	{
+		int limit=rect.height();
+		for(int height=rect.bottom();height>limit;height-=10){
+			rect.moveBottom(height);
+			double c=0;
+			for(Graphic *iter:current){
+				c+=self->intersects(iter);
+			}
+			if(r.isNull()||c<m){
+				m=c;
+				r=rect;
+				if(c==0){
+					break;
+				}
+			}
+		}
+		rect=r;
+		break;
+	}
+	}
+}
+
 Graphic *Graphic::create(const Comment &comment,
 						 const QSize &size,
 						 const QList<Graphic *> &current)
@@ -453,9 +511,6 @@ Graphic *Graphic::create(const Comment &comment,
 	return graphic;
 }
 
-#define MIN 10
-#define MAX 360
-
 Plain::Plain(const Comment &comment,const QSize &size)
 {
 	source=&comment;
@@ -478,33 +533,13 @@ Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	if(comment.mode!=1){
 		return;
 	}
-	QSizeF bound=rect.size();
 	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
-	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=evaluate(expression))==0){
 		return;
 	}
 	rect.moveTopLeft(QPointF(size.width(),0));
-	if(comment.font*(comment.string.count("\n")+1)<MAX){
-		double m=0;
-		QRectF r;
-		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=rect.top();height<limit;height+=MIN){
-			rect.moveTop(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=intersects(iter);
-			}
-			if(r.isNull()||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-	}
+	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -544,34 +579,14 @@ Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	if(comment.mode!=4){
 		return;
 	}
-	QSizeF bound=rect.size();
 	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
-	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=evaluate(expression))==0){
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:0));
-	if(comment.font*(comment.string.count("\n")+1)<MAX){
-		double m=0;
-		QRectF r;
-		int limit=rect.height();
-		for(int height=rect.bottom();height>limit;height-=MIN){
-			rect.moveBottom(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=intersects(iter);
-			}
-			if(r.isNull()||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-	}
+	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -607,26 +622,7 @@ Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveTop(0);
-	if(comment.font*(comment.string.count("\n")+1)<MAX){
-		double m=0;
-		QRectF r;
-		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=rect.top();height<limit;height+=MIN){
-			rect.moveTop(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=intersects(iter);
-			}
-			if(r.isNull()||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-	}
+	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -654,33 +650,13 @@ Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	if(comment.mode!=6){
 		return;
 	}
-	QSizeF bound=rect.size();
 	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
-	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=evaluate(expression))==0){
 		return;
 	}
-	rect.moveTopLeft(QPointF(-bound.width(),0));
-	if(comment.font*(comment.string.count("\n")+1)<MAX){
-		double m=0;
-		QRectF r;
-		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=rect.top();height<limit;height+=MIN){
-			rect.moveTop(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=intersects(iter);
-			}
-			if(r.isNull()||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-	}
+	rect.moveTopLeft(QPointF(-rect.width(),0));
+	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -786,14 +762,4 @@ void Mode7::draw(QPainter *painter)
 		painter->drawPixmap(cPos,cache);
 		painter->restore();
 	}
-}
-
-uint Mode7::intersects(Graphic *)
-{
-	return 0;
-}
-
-QRectF Mode7::currentRect()
-{
-	return QRect();
 }

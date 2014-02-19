@@ -72,7 +72,6 @@ static AVPixelFormat getFormat(char *chroma)
 		f.insert("I410",AV_PIX_FMT_YUV410P);
 		f.insert("I411",AV_PIX_FMT_YUV411P);
 		f.insert("I420",AV_PIX_FMT_YUV420P);
-		f.insert("IYUV",AV_PIX_FMT_YUV420P);
 		f.insert("I422",AV_PIX_FMT_YUV422P);
 		f.insert("I440",AV_PIX_FMT_YUV440P);
 		f.insert("I444",AV_PIX_FMT_YUV444P);
@@ -98,34 +97,37 @@ static AVPixelFormat getFormat(char *chroma)
 		f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
 		f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
 		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
-		f.insert("YUYV",AV_PIX_FMT_YUYV422);
+		f.insert("UYVY",AV_PIX_FMT_UYVY422);
+		f.insert("YUY2",AV_PIX_FMT_YUYV422);
 		f.insert("XY12",AV_PIX_FMT_XYZ12);
 	}
 	QString c=QString(chroma).toUpper();
 	if(!f.contains(c)){
-		if(c=="YV12"){
-			strcpy(chroma,"I420");
-		}
-		else if(c=="NV61"){
+		if(c=="NV61"){
 			strcpy(chroma,"NV16");
 		}
-		else if(c=="UYVY"||
-				c=="UYNV"||
+		else if(c=="YV12"||
+				c=="IYUV"){
+			strcpy(chroma,"I420");
+		}
+		else if(c=="UYNV"||
 				c=="UYNY"||
 				c=="Y422"||
 				c=="HDYC"||
 				c=="AVUI"||
 				c=="UYV1"||
 				c=="2VUY"||
-				c=="2VU1"||
-				c=="VYUY"||
-				c=="YUY2"||
+				c=="2VU1"){
+			strcpy(chroma,"UYVY");
+		}
+		else if(c=="VYUY"||
+				c=="YUYV"||
 				c=="YUNV"||
 				c=="V422"||
 				c=="YVYU"||
 				c=="Y211"||
 				c=="CYUV"){
-			strcpy(chroma,"YUYV");
+			strcpy(chroma,"YUY2");
 		}
 		else{
 			strcpy(chroma,"RV32");
@@ -281,12 +283,10 @@ public:
 	explicit OpenGLPlayer(QObject *parent=NULL):
 		VPlayer(parent)
 	{
-		for(auto &iter:frame){
-			iter=0;
-		}
 		for(auto &iter:buffer){
 			iter=NULL;
 		}
+		initialize=true;
 		vShader=fShader=program=0;
 		ins=this;
 	}
@@ -295,7 +295,7 @@ public:
 	{
 		release();
 		data.tryLock(500);
-		if(frame[0]){
+		if(!initialize){
 			glDeleteShader(vShader);
 			glDeleteShader(fShader);
 			glDeleteProgram(program);
@@ -354,7 +354,7 @@ public:
 				data.lock();
 				painter->beginNativePainting();
 				if(dirty){
-					if(!frame[0]){
+					if(initialize){
 						glGenTextures(3,frame);
 						initializeOpenGLFunctions();
 						vShader=glCreateShader(GL_VERTEX_SHADER);
@@ -367,6 +367,7 @@ public:
 						glAttachShader(program,vShader);
 						glAttachShader(program,fShader);
 						glLinkProgram(program);
+						initialize=false;
 					}
 					int w=inner.width(),h=inner.height();
 					uploadTexture(0,w,h);
@@ -415,6 +416,7 @@ public:
 
 private:
 	QSize inner;
+	bool initialize;
 	GLuint vShader;
 	GLuint fShader;
 	GLuint program;
@@ -484,12 +486,15 @@ static void end(const struct libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent):
 	QObject(parent)
 {
-	QJsonArray args=Utils::getConfig<QJsonArray>("/Playing/Arguments");
-	int argc=0;char *argv[args.size()];
-	for(QJsonValue arg:args){
-		argv[argc++]=arg.toString().toUtf8().data();
+	QList<QByteArray> args;
+	for(QJsonValue arg:Utils::getConfig<QJsonArray>("/Playing/Arguments")){
+		args.append(arg.toString().toUtf8());
 	}
-	vlc=libvlc_new(argc,argv);
+	const char *argv[args.size()];
+	for(int i=0;i<args.size();++i){
+		argv[i]=args[i].data();
+	}
+	vlc=libvlc_new(args.size(),argv);
 	m=NULL;
 	mp=NULL;
 	state=Stop;

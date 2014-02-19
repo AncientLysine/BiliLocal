@@ -37,7 +37,6 @@ class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
 public:
-	explicit Danmaku(QObject *parent=0);
 	QList<Record> &getPool(){return pool;}
 	void draw(QPainter *painter,QRect rect,qint64 move);
 	QVariant data(const QModelIndex &index,int role) const;
@@ -47,16 +46,17 @@ public:
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	const Comment *commentAt(QPoint point) const;
+	static Danmaku *create(QObject *parent=NULL);
 	static Danmaku *instance(){return ins;}
 
 private:
 	int cur;
-	QSize size;
 	qint64 time;
 	QList<Record> pool;
 	QList<Graphic *> current;
 	QList<Comment *> danmaku;
 	static Danmaku *ins;
+	Danmaku(QObject *parent=0);
 	void setTime(qint64 _time);
 
 	QList<const Comment *> buffer;
