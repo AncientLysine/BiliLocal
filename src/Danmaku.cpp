@@ -109,7 +109,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 		}
 		if(index.column()==1&&role==Qt::ToolTipRole){
-			return Utils::splitString(comment.string,400);
+			return Qt::convertFromPlainText(comment.string);
 		}
 		if(index.column()==0&&role==Qt::TextAlignmentRole){
 			return Qt::AlignCenter;
@@ -165,6 +165,12 @@ const Comment *Danmaku::commentAt(QPoint point) const
 	return NULL;
 }
 
+void Danmaku::release()
+{
+	buffer.clear();
+	disconnect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
+}
+
 void Danmaku::resetTime()
 {
 	cur=0;
@@ -181,7 +187,7 @@ void Danmaku::clearPool()
 
 void Danmaku::clearCurrent()
 {
-	clearBuffer();
+	buffer.clear();
 	qDeleteAll(current);
 	current.clear();
 	emit layoutChanged();
@@ -255,8 +261,12 @@ void Danmaku::parse(int flag)
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
+	int l=Utils::getConfig("/Shield/Density",100);
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
-		appendToCurrent(danmaku[cur]);
+		const Comment *c=danmaku[cur];
+		if(!c->blocked&&(c->mode==7||l==0||current.size()+buffer.size()<l)){
+			appendToCurrent(c);
+		}
 	}
 	qApp->postEvent(this,new RenderEvent);
 }
@@ -272,16 +282,10 @@ bool Danmaku::event(QEvent *e)
 	}
 }
 
-void Danmaku::clearBuffer()
-{
-	buffer.clear();
-}
-
 void Danmaku::processDanmakuInBuffer()
 {
-	if(!buffer.isEmpty()){
+	while(!buffer.isEmpty()){
 		QList<Graphic *> waiting;
-		int l=Utils::getConfig("/Shield/Density",100);
 		if(time-buffer.first()->time>2000){
 			while(!buffer.isEmpty()&&time-buffer.first()->time>500){
 				buffer.removeFirst();
@@ -289,9 +293,8 @@ void Danmaku::processDanmakuInBuffer()
 		}
 		const Comment *f=buffer.first();
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
-			const Comment *c=buffer.takeFirst();
-			if(!c->blocked&&(c->mode==7||l==0||current.size()+waiting.size()<l)){
-				Graphic *g=Graphic::create(*c,Render::instance()->getWidget()->size(),current);
+			Graphic *g=Graphic::create(*buffer.takeFirst(),Render::instance()->getWidget()->size(),current);
+			if(g){
 				g->setEnabled(false);
 				current.append(g);
 				waiting.append(g);

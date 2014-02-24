@@ -243,6 +243,7 @@ private:
 };
 
 static const char *vs=
+		"#version 120\n"
 		"attribute vec4 VtxCoord;\n"
 		"attribute vec2 TexCoord;\n"
 		"varying vec2 TexCoordOut;\n"
@@ -253,6 +254,7 @@ static const char *vs=
 		"}\n";
 
 static const char *fs=
+		"#version 120\n"
 		"varying vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerU;\n"
@@ -293,7 +295,7 @@ public:
 			glDeleteProgram(program);
 			glDeleteTextures(3,frame);
 		}
-		for(uchar *iter:buffer){
+		for(auto *iter:buffer){
 			if(iter){
 				delete iter;
 			}
@@ -303,9 +305,6 @@ public:
 	void getBuffer(void **planes)
 	{
 		for(int i=0;i<3;++i){
-			if(buffer[i]==NULL){
-				break;
-			}
 			planes[i]=buffer[i];
 		}
 		start=true;
@@ -313,17 +312,13 @@ public:
 
 	void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)
 	{
-		for(auto &iter:buffer){
-			if(iter){
-				delete iter;
-				iter=NULL;
-			}
-		}
 		strcpy(chroma,"I420");
 		int w=*width,h=*height;
 		inner=QSize(w,h);
-		if(buffer[0]){
-			qDeleteAll(buffer,buffer+2);
+		for(auto *iter:buffer){
+			if(iter){
+				delete iter;
+			}
 		}
 		buffer[0]=new uchar[w*h];
 		buffer[1]=new uchar[w*h/4];
@@ -347,8 +342,8 @@ public:
 				painter->beginNativePainting();
 				if(dirty){
 					if(initialize){
-						glGenTextures(3,frame);
 						initializeOpenGLFunctions();
+						glGenTextures(3,frame);
 						vShader=glCreateShader(GL_VERTEX_SHADER);
 						fShader=glCreateShader(GL_FRAGMENT_SHADER);
 						glShaderSource(vShader,1,&vs,NULL);
@@ -419,11 +414,11 @@ private:
 	{
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D,frame[i]);
-		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
 	}
 };
 
@@ -489,6 +484,7 @@ VPlayer::VPlayer(QObject *parent):
 	vlc=libvlc_new(args.size(),argv);
 	m=NULL;
 	mp=NULL;
+	wait=NULL;
 	state=Stop;
 	ratio=0;
 	start=false;
@@ -540,25 +536,13 @@ QRect VPlayer::getRect(QRect rect)
 	return dest;
 }
 
-class ExitLoop:public QEventLoop
-{
-public:
-	bool exited;
-	ExitLoop():exited(false)
-	{
-	}
-	void quit(){
-		exited=true;
-		QEventLoop::quit();
-	}
-};
-
 void VPlayer::releaseAndWait()
 {
-	ExitLoop loop;
+	QMutex exit;
 	libvlc_set_exit_handler(vlc,[](void *opaque){
-		((ExitLoop *)opaque)->quit();
-	},&loop);
+		((QMutex *)opaque)->unlock();
+	},&exit);
+	exit.lock();
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
@@ -566,9 +550,8 @@ void VPlayer::releaseAndWait()
 		libvlc_media_release(m);
 	}
 	libvlc_release(vlc);
-	if(!loop.exited){
-		loop.exec();
-	}
+	exit.lock();
+	exit.unlock();
 }
 
 void VPlayer::play()
@@ -596,19 +579,12 @@ void VPlayer::play()
 			libvlc_video_set_format_callbacks(mp,fmt,NULL);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
-			QProgressDialog *wait=new QProgressDialog(qobject_cast<QWidget *>(parent()));
+			wait=new QProgressDialog(qobject_cast<QWidget *>(parent()));
 			wait->setCancelButton(NULL);
 			wait->setWindowTitle(tr("Caching"));
 			wait->setLabelText(tr("Parts of BiliLocal need initialization."));
 			wait->setFixedSize(wait->sizeHint());
 			QTimer::singleShot(2000,wait,SLOT(show()));
-			QMetaObject::Connection *connect=new QMetaObject::Connection;
-			*connect=QObject::connect(this,&VPlayer::decode,[=](){
-				setVolume(Utils::getConfig("/Playing/Volume",100));
-				QObject::disconnect(*connect);
-				delete connect;
-				wait->deleteLater();
-			});
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -639,6 +615,7 @@ void VPlayer::stop()
 void VPlayer::init()
 {
 	if(mp){
+		State s=state;
 		if(state==Stop){
 			setState(Play);
 			if(!Utils::getConfig("/Playing/Subtitle",true)){
@@ -701,6 +678,21 @@ void VPlayer::init()
 				if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
 			}
 		}
+		if(wait){
+			wait->deleteLater();
+			wait=NULL;
+		}
+		QMetaObject::Connection *connect=new QMetaObject::Connection;
+		*connect=QObject::connect(this,&VPlayer::decode,[=](){
+			if(s==Loop){
+				setVolume(Utils::getConfig("/Playing/Volume",100));
+			}
+			else{
+				emit volumeChanged(libvlc_audio_get_volume(mp));
+			}
+			QObject::disconnect(*connect);
+			delete connect;
+		});
 	}
 }
 
@@ -780,5 +772,6 @@ void VPlayer::setVolume(int _volume)
 {
 	if(mp){
 		libvlc_audio_set_volume(mp,_volume);
+		emit volumeChanged(_volume);
 	}
 }

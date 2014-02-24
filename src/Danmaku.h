@@ -64,9 +64,9 @@ private:
 	void processDanmakuInBuffer();
 
 public slots:
+	void release();
 	void resetTime();
 	void clearPool();
-	void clearBuffer();
 	void clearCurrent();
 	void parse(int flag=0);
 	void jumpToTime(qint64 _time);

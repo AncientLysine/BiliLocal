@@ -266,7 +266,7 @@ Menu::Menu(QWidget *parent):
 					}
 				}
 				if(flag){
-					id=QRegularExpression("((?<=cid=)|(?<=cid:'))\\d+",option).match(video).captured();
+					id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",option).match(video).captured();
 					if(!id.isEmpty()){
 						api="http://comment.bilibili.tv/%1.xml";
 						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));

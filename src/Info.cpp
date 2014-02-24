@@ -64,8 +64,10 @@ Info::Info(QWidget *parent):
 		}
 	});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
-		Utils::setConfig("Playing/Volume",_volm);
-		VPlayer::instance()->setVolume(_volm);
+		if(!updating){
+			Utils::setConfig("Playing/Volume",_volm);
+			VPlayer::instance()->setVolume(_volm);
+		}
 	});
 	playB=new QPushButton(this);
 	stopB=new QPushButton(this);
@@ -183,6 +185,11 @@ Info::Info(QWidget *parent):
 	});
 
 	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Info::setTime);
+	connect(VPlayer::instance(),&VPlayer::volumeChanged,[this](int volume){
+		updating=1;
+		volmS->setValue(volume);
+		updating=0;
+	});
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		setDuration(VPlayer::instance()->getDuration());
 	});

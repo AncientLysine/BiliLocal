@@ -33,6 +33,7 @@
 class libvlc_instance_t;
 class libvlc_media_t;
 class libvlc_media_player_t;
+class QProgressDialog;
 
 class VPlayer:public QObject
 {
@@ -67,6 +68,7 @@ private:
 	QTimer *fake;
 	double ratio;
 	QString file;
+	QProgressDialog *wait;
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
 	QList<QAction *> audio;
@@ -92,9 +94,10 @@ signals:
 	void begin();
 	void reach();
 	void decode();
-	void jumped(qint64 _time);
-	void timeChanged(qint64 _time);
-	void stateChanged(int _state);
+	void jumped(qint64);
+	void timeChanged(qint64);
+	void stateChanged(int);
+	void volumeChanged(int);
 
 public slots:
 	void play();

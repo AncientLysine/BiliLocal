@@ -598,7 +598,7 @@ Config::Config(QWidget *parent,int index):
 			Danmaku::instance()->parse(0x2);
 		}
 		if(restart!=getRestart()){
-			Danmaku::instance()->clearBuffer();
+			Danmaku::instance()->release();
 			qApp->exit(12450);
 		}
 	});

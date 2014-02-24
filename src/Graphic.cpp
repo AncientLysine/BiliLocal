@@ -180,7 +180,7 @@ public:
 protected:
 	Plain(const Comment &comment,const QSize &size);
 	QRectF rect;
-	QPixmap cache;
+	QImage cache;
 };
 
 class Mode1:public Plain
@@ -244,62 +244,11 @@ private:
 	double eAlpha;
 	double zRotate;
 	double yRotate;
-	QPixmap cache;
+	QImage cache;
 	double wait;
 	double stay;
 	double life;
 	double time;
-};
-
-class QPixmapFilterPrivate;
-class Q_WIDGETS_EXPORT QPixmapFilter : public QObject
-{
-	Q_OBJECT
-	Q_DECLARE_PRIVATE(QPixmapFilter)
-public:
-	virtual ~QPixmapFilter() = 0;
-
-	enum FilterType {
-		ConvolutionFilter,
-		ColorizeFilter,
-		DropShadowFilter,
-		BlurFilter,
-
-		UserFilter = 1024
-	};
-
-	FilterType type() const;
-
-	virtual QRectF boundingRectFor(const QRectF &rect) const;
-
-	virtual void draw(QPainter *painter, const QPointF &p, const QPixmap &src, const QRectF &srcRect = QRectF()) const = 0;
-
-protected:
-	QPixmapFilter(QPixmapFilterPrivate &d, FilterType type, QObject *parent);
-	QPixmapFilter(FilterType type, QObject *parent);
-};
-class QPixmapDropShadowFilterPrivate;
-class Q_WIDGETS_EXPORT QPixmapDropShadowFilter : public QPixmapFilter
-{
-	Q_OBJECT
-	Q_DECLARE_PRIVATE(QPixmapDropShadowFilter)
-
-public:
-	QPixmapDropShadowFilter(QObject *parent = 0);
-	~QPixmapDropShadowFilter();
-
-	QRectF boundingRectFor(const QRectF &rect) const;
-	void draw(QPainter *p, const QPointF &pos, const QPixmap &px, const QRectF &src = QRectF()) const;
-
-	qreal blurRadius() const;
-	void setBlurRadius(qreal radius);
-
-	QColor color() const;
-	void setColor(const QColor &color);
-
-	QPointF offset() const;
-	void setOffset(const QPointF &offset);
-	inline void setOffset(qreal dx, qreal dy) { setOffset(QPointF(dx, dy)); }
 };
 
 static QFont getFont(int pixelSize,QString family=Utils::getConfig("/Danmaku/Font",QFont().family()))
@@ -325,12 +274,7 @@ static QSize getSize(QString string,QFont font)
 
 static QSizeF getPlayer(qint64 date)
 {
-	if(date<=1384099200){
-		return QSizeF(545,388);
-	}
-	else{
-		return QSizeF(672,438);
-	}
+	return date<=1384099200?QSizeF(545,388):QSizeF(862,568);
 }
 
 static double getScale(int mode,qint64 date,QSize size)
@@ -342,40 +286,54 @@ static double getScale(int mode,qint64 date,QSize size)
 	return qMin(size.width()/player.width(),size.height()/player.height());
 }
 
-static QPixmap getCache(QString string,
-						int color,
-						QFont font,
-						QSize size,
-						int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
-						int opacity=Utils::getConfig("/Danmaku/Alpha",100))
+void qt_blurImage(QPainter *p,QImage &blurImage,qreal radius,
+				  bool quality,bool alphaOnly,int transposed);
+
+static QImage getCache(QString string,
+					   int color,
+					   QFont font,
+					   QSize size,
+					   int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
+					   int opacity=Utils::getConfig("/Danmaku/Alpha",100))
 {
 	QPainter painter;
 	QColor base(color),edge=qGray(color)<30?Qt::white:Qt::black;
-	QPixmap src(size);
+	QImage src(size,QImage::Format_ARGB32_Premultiplied);
 	src.fill(Qt::transparent);
 	painter.begin(&src);
 	painter.setPen(base);
 	painter.setFont(font);
 	painter.drawText(src.rect().adjusted(2,2,-2,-2),string);
 	painter.end();
-	QPixmap fst(size);
+	QImage fst(size,QImage::Format_ARGB32_Premultiplied);
 	fst.fill(Qt::transparent);
 	if(effect==2){
-		QPixmapDropShadowFilter f;
-		f.setColor(edge);
-		f.setOffset(0,0);
-		f.setBlurRadius(4);
+		QImage blr=src;
 		painter.begin(&fst);
-		f.draw(&painter,QPointF(),src);
+		painter.save();
+		qt_blurImage(&painter,blr,4,false,true,0);
+		painter.restore();
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(src.rect(),edge);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		painter.drawImage(0,0,src);
 		painter.end();
-		src=fst;
-		fst.fill(Qt::transparent);
-		painter.begin(&fst);
-		f.draw(&painter,QPointF(),src);
+		QImage sec(size,QImage::Format_ARGB32_Premultiplied);
+		sec.fill(Qt::transparent);
+		painter.begin(&sec);
+		blr=fst;
+		painter.save();
+		qt_blurImage(&painter,blr,4,false,true,0);
+		painter.restore();
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(sec.rect(),edge);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		painter.drawImage(0,0,fst);
 		painter.end();
+		fst=sec;
 	}
 	else{
-		QPixmap edg=src;
+		QImage edg=src;
 		painter.begin(&edg);
 		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
 		painter.fillRect(edg.rect(),edge);
@@ -383,28 +341,28 @@ static QPixmap getCache(QString string,
 		painter.begin(&fst);
 		switch(effect){
 		case 0:
-			painter.drawPixmap(+1,0,edg);
-			painter.drawPixmap(-1,0,edg);
-			painter.drawPixmap(0,+1,edg);
-			painter.drawPixmap(0,-1,edg);
+			painter.drawImage(+1,0,edg);
+			painter.drawImage(-1,0,edg);
+			painter.drawImage(0,+1,edg);
+			painter.drawImage(0,-1,edg);
 			break;
 		case 1:
-			painter.drawPixmap(2,2,edg);
-			painter.drawPixmap(1,1,edg);
+			painter.drawImage(2,2,edg);
+			painter.drawImage(1,1,edg);
 			break;
 		}
-		painter.drawPixmap(0,0,src);
+		painter.drawImage(0,0,src);
 		painter.end();
 	}
 	if(opacity==100){
 		return fst;
 	}
 	else{
-		QPixmap sec(size);
+		QImage sec(size,QImage::Format_ARGB32_Premultiplied);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
 		painter.setOpacity(opacity/100.0);
-		painter.drawPixmap(QPoint(0,0),fst);
+		painter.drawImage(QPoint(0,0),fst);
 		painter.end();
 		return sec;
 	}
@@ -433,8 +391,8 @@ static void setRectangle(QRectF &rect,
 	if(comment.font*(comment.string.count("\n")+1)>=360){
 		return;
 	}
-	double m=0;
-	QRectF r;
+	double m=-1;
+	QRectF r=rect;
 	switch(self->getMode())
 	{
 	case 1:
@@ -448,7 +406,7 @@ static void setRectangle(QRectF &rect,
 			for(Graphic *iter:current){
 				c+=self->intersects(iter);
 			}
-			if(r.isNull()||c<m){
+			if(m==-1||c<m){
 				m=c;
 				r=rect;
 				if(c==0){
@@ -468,7 +426,7 @@ static void setRectangle(QRectF &rect,
 			for(Graphic *iter:current){
 				c+=self->intersects(iter);
 			}
-			if(r.isNull()||c<m){
+			if(m==-1||c<m){
 				m=c;
 				r=rect;
 				if(c==0){
@@ -523,7 +481,7 @@ Plain::Plain(const Comment &comment,const QSize &size)
 void Plain::draw(QPainter *painter)
 {
 	if(enabled){
-		painter->drawPixmap(rect.topLeft(),cache);
+		painter->drawImage(rect.topLeft(),cache);
 	}
 }
 
@@ -759,7 +717,7 @@ void Mode7::draw(QPainter *painter)
 		painter->save();
 		painter->setTransform(rotate);
 		painter->setOpacity(bAlpha+(eAlpha-bAlpha)*time/life);
-		painter->drawPixmap(cPos,cache);
+		painter->drawImage(cPos,cache);
 		painter->restore();
 	}
 }

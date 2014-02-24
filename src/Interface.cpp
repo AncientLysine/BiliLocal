@@ -245,7 +245,7 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=Utils::getConfig("/Interface/Size",QString("960,540"));
 		Utils::setConfig("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
-	danmaku->clearBuffer();
+	danmaku->release();
 	QWidget::closeEvent(e);
 }
 

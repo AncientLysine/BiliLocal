@@ -288,7 +288,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 							row->setText(2,iter.next().captured());
 							sta=item.indexOf("class=\"intro\">",sta)+14;
 							end=item.indexOf("</div>",sta);
-							row->setToolTip(3,Utils::splitString(trans(item.mid(sta,end-sta)),400));
+							row->setToolTip(3,item.mid(sta,end-sta));
 						}
 					}
 				}
@@ -318,7 +318,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
 					row->setSizeHint(0,QSize(120,92));
-					row->setToolTip(3,Utils::splitString(trans(item["description"].toString()),400));
+					row->setToolTip(3,item["description"].toString());
 					QNetworkRequest request(QUrl(item["titleImg"].toString()));
 					request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
 					reply->manager()->get(request);

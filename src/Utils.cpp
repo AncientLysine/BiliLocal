@@ -124,36 +124,19 @@ QString Utils::defaultFont(bool monospace)
 	}
 }
 
-QString Utils::splitString(QString text,int width)
-{
-	QStringList result;
-	QTextBoundaryFinder finder(QTextBoundaryFinder::Word,text);
-	int sta=0,lst=0,end;
-	while((end=finder.toNextBoundary())!=-1){
-		QString line=text.mid(sta,end-sta);
-		if(qApp->fontMetrics().width(line)>width){
-			result.append(line);
-			sta=lst;
-		}
-		lst=end;
-	}
-	result.append(text.mid(sta));
-	return result.join('\n');
-}
-
-static QString &parseXml(QString &string)
+static QString decodeXml(QString string)
 {
 	string.replace("&lt;","<");
 	string.replace("&gt;",">");
 	string.replace("&amp;","&");
 	string.replace("&quot;","\"");
 	QString fixed;
-	for(auto c:string){
-		if(c>=32){
-			fixed.append(c);
+	for(QChar c:string){
+		if(c>=' '){
+			fixed+=c;
 		}
 	}
-	return string=fixed;
+	return fixed;
 }
 
 QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
@@ -177,8 +160,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.font=args[2].toInt();
 			comment.color=args[3].toInt();
 			comment.sender=args[6];
-			comment.string=item.mid(sta,len);
-			parseXml(comment.string);
+			comment.string=decodeXml(item.mid(sta,len));
 			list.append(comment);
 			if(!isSync&&list.size()%50){
 				qApp->processEvents();
@@ -244,8 +226,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.font=args[1].toInt();
 			comment.color=args[2].toInt();
 			comment.sender=args[4];
-			comment.string=item.mid(sta,len);
-			parseXml(comment.string);
+			comment.string=decodeXml(item.mid(sta,len));
 			list.append(comment);
 			if(!isSync&&list.size()%50){
 				qApp->processEvents();
