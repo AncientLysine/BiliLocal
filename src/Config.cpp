@@ -225,7 +225,7 @@ Config::Config(QWidget *parent,int index):
 			QString path=back->text().isEmpty()?QDir::currentPath():QFileInfo(back->text()).absolutePath();
 			QString file=QFileDialog::getOpenFileName(this,tr("Open File"),path);
 			if(!file.isEmpty()){
-				back->setText(file);
+				back->setText(file.startsWith(QDir::currentPath())?QDir::current().relativeFilePath(file):file);
 			}
 		});
 		b->addWidget(open);

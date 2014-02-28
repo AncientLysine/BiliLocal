@@ -1,5 +1,5 @@
 {
-    "Version": "0.3.0",
-    "String": "[2014/1/30]\nVer_0.3.0\n增加硬件加速渲染\n增加更多弹幕格式的支持",
-    "Url": "https://github.com/AncientLysine/BiliLocal"
+    "Version": "0.3.1",
+    "String": "[2014/2/28]\nVer_0.3.1\n增加硬件解码\n增加历史弹幕\n优化资源占用",
+    "Url": "http://tieba.baidu.com/p/2892411158"
 }

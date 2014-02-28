@@ -76,7 +76,10 @@ int main(int argc,char *argv[])
 	w.show();
 	int r;
 	if((r=a.exec())==12450){
-		QProcess::startDetached(a.applicationFilePath());
+		QProcess::startDetached(a.applicationFilePath(),QStringList());
+		return 0;
 	}
-	return r;
+	else{
+		return r;
+	}
 }
