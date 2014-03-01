@@ -53,6 +53,14 @@ int main(int argc,char *argv[])
 {
 	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
+	QLocalSocket socket;
+	socket.connectToServer("BiliLocalInstance");
+	if(socket.waitForConnected()){
+		QDataStream s(&socket);
+		s<<a.arguments();
+		socket.waitForBytesWritten();
+		return 0;
+	}
 	QDir::setCurrent(a.applicationDirPath());
 	QString locale=QLocale::system().name();
 	QTranslator myTrans;
@@ -74,6 +82,18 @@ int main(int argc,char *argv[])
 	qsrand(QTime::currentTime().msec());
 	Interface w;
 	w.show();
+	w.parseArgs(a.arguments());
+	QLocalServer single;
+	single.listen("BiliLocalInstance");
+	QObject::connect(&single,&QLocalServer::newConnection,[&](){
+		QLocalSocket *r=single.nextPendingConnection();
+		r->waitForReadyRead();
+		QDataStream s(r);
+		QStringList args;
+		s>>args;
+		r->deleteLater();
+		w.parseArgs(args);
+	});
 	int r;
 	if((r=a.exec())==12450){
 		QProcess::startDetached(a.applicationFilePath(),QStringList());

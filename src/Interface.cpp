@@ -223,11 +223,15 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
-	for(const QString &file:QApplication::arguments().mid(1)){
-		menu->openLocal(file);
-	}
 	setFocus();
 	checkForUpdate();
+}
+
+void Interface::parseArgs(QStringList args)
+{
+	for(const QString &file:args.mid(1)){
+		menu->openLocal(file);
+	}
 }
 
 void Interface::dropEvent(QDropEvent *e)

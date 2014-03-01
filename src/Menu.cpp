@@ -452,6 +452,7 @@ void Menu::openLocal(QString _file)
 		}
 		else{
 			setFile(_file);
+			VPlayer::instance()->play();
 		}
 	}
 }
