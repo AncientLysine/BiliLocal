@@ -91,7 +91,10 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		vplayer->setRatio(0);
-		if(!isFullScreen()&&!geo.isEmpty()){
+		if(!geo.isEmpty()){
+			if(isFullScreen()){
+				fullA->toggle();
+			}
 			restoreGeometry(geo);
 			geo.clear();
 		}
@@ -122,10 +125,6 @@ Interface::Interface(QWidget *parent):
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
-			if(!geo.isNull()&&vplayer->getState()==VPlayer::Stop){
-				restoreGeometry(geo);
-				geo.clear();
-			}
 			if(vplayer->getState()!=VPlayer::Stop){
 				sca->setEnabled(true);
 			}

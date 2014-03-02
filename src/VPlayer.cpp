@@ -398,42 +398,21 @@ public:
 				GLint texV=glGetUniformLocation(program,"SamplerV");
 				glBindAttribLocation(program,0,"VtxCoord");
 				glBindAttribLocation(program,1,"TexCoord");
-				if(isOpenGLES){
-					int x1,y1,x2,y2;
-					dest.getCoords(&x1,&y1,&x2,&y2);
-					GLfloat w=rect.width(),h=rect.height();
-					GLfloat vtx[8]={
-						x1/w,y1/h,
-						x2/w,y1/h,
-						x1/w,y2/h,
-						x2/w,y2/h
-					};
-					GLfloat tex[8]={
-						-1.0f, 1.0f,
-						1.0f, 1.0f,
-						-1.0f,-1.0f,
-						1.0f,-1.0f
-					};
-					glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
-					glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
-				}
-				else{
-					GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
-					GLfloat vtx[8]={
-						-h,-v,
-						+h,-v,
-						-h,+v,
-						+h,+v
-					};
-					GLfloat tex[8]={
-						0.0f,1.0f,
-						1.0f,1.0f,
-						0.0f,0.0f,
-						1.0f,0.0f
-					};
-					glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
-					glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
-				}
+				GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
+				GLfloat vtx[8]={
+					-h,-v,
+					+h,-v,
+					-h,+v,
+					+h,+v
+				};
+				GLfloat tex[8]={
+					0,1,
+					1,1,
+					0,0,
+					1,0
+				};
+				glVertexAttribPointer(0,2,GL_FLOAT,0,0,isOpenGLES?tex:vtx);
+				glVertexAttribPointer(1,2,GL_FLOAT,0,0,isOpenGLES?vtx:tex);
 				glEnableVertexAttribArray(0);
 				glEnableVertexAttribArray(1);
 				glActiveTexture(GL_TEXTURE0);
@@ -460,7 +439,6 @@ private:
 	GLuint program;
 	GLuint frame[3];
 	uchar *buffer[3];
-	QSurfaceFormat::RenderableType format;
 
 	void uploadTexture(int i,int w,int h)
 	{

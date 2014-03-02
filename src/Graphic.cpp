@@ -347,7 +347,6 @@ static QImage getCache(QString string,
 			painter.drawImage(0,-1,edg);
 			break;
 		case 1:
-			painter.drawImage(2,2,edg);
 			painter.drawImage(1,1,edg);
 			break;
 		}
