@@ -84,6 +84,151 @@ void Utils::setSelection(QAbstractItemView *view)
 	});
 }
 
+namespace{
+template<class T>
+class SStack
+{
+public:
+	inline T &top()
+	{
+		if(isEmpty()){
+			QT_THROW("Empty");
+		}
+		return stk.top();
+	}
+
+	inline T pop()
+	{
+		if(isEmpty()){
+			QT_THROW("Empty");
+		}
+		return stk.pop();
+	}
+
+	inline void push(const T &i)
+	{
+		stk.push(i);
+	}
+
+	inline bool isEmpty()
+	{
+		return stk.isEmpty();
+	}
+
+private:
+	QStack<T> stk;
+};
+}
+
+double Utils::evaluate(QString expression)
+{
+	auto Operator=[](QChar o){
+		switch(o.toLatin1())
+		{
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+			return 1;
+		default:
+			return 0;
+		}
+	};
+
+	auto Priority=[](QChar o){
+		switch(o.toLatin1())
+		{
+		case '(':
+			return 1;
+		case '+':
+		case '-':
+			return 2;
+		case '*':
+		case '/':
+			return 3;
+		default:
+			return 0;
+		}
+	};
+
+	QT_TRY{
+		QString pst;
+		SStack<QChar> opt;
+		int i=0;
+		opt.push('#');
+		while(i<expression.length()){
+			if(expression[i].isDigit()||expression[i]=='.'){
+				pst.append(expression[i]);
+			}
+			else if(expression[i]=='('){
+				opt.push(expression[i]);
+			}
+			else if(expression[i]==')'){
+				while(opt.top()!='('){
+					pst.append(opt.pop());
+				}
+				opt.pop();
+			}
+			else if(Operator(expression[i])){
+				pst.append(' ');
+				while(Priority(expression[i])<=Priority(opt.top())){
+					pst.append(opt.pop());
+				}
+				opt.push(expression[i]);
+			}
+			i++;
+		}
+		while(!opt.isEmpty()){
+			pst.append(opt.pop());
+		}
+		SStack<double> num;
+		i=0;
+		while(pst[i]!='#'){
+			if(pst[i].isDigit()||pst[i]=='.'){
+				double n=0;
+				while(pst[i].isDigit()){
+					n=n*10+pst[i++].toLatin1()-'0';
+				}
+				if(pst[i]=='.'){
+					++i;
+					double d=1;
+					while(pst[i].isDigit()){
+						n+=(d/=10)*(pst[i++].toLatin1()-'0');
+					}
+				}
+				num.push(n);
+			}
+			else if(pst[i]==' '){
+				i++;
+			}
+			else if(pst[i]=='+'){
+				double r=num.pop(),l=num.pop();
+				num.push(l+r);
+				i++;
+			}
+			else if(pst[i]=='-'){
+				double r=num.pop(),l=num.pop();
+				num.push(l-r);
+				i++;
+			}
+			else if(pst[i]=='*'){
+				double r=num.pop(),l=num.pop();
+				num.push(l*r);
+				i++;
+			}
+			else if(pst[i]=='/'){
+				double r=num.pop(),l=num.pop();
+				num.push(l/r);
+				i++;
+			}
+		}
+		return num.top();
+	}
+	QT_CATCH(...){
+		return 0;
+	}
+}
+
 QString Utils::defaultPath()
 {
 	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);

@@ -109,6 +109,7 @@ public slots:
 	void setFile(QString _file);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
+	void addSubtitle(QString _file);
 };
 
 #endif // VPLAYER_H

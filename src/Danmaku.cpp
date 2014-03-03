@@ -370,7 +370,7 @@ void Danmaku::saveToFile(QString _file)
 			o["m"]=c->string;
 			a.append(o);
 		}
-		f.write(QJsonDocument(a).toJson());
+		f.write(QJsonDocument(a).toJson(QJsonDocument::Compact));
 	}
 	f.close();
 }

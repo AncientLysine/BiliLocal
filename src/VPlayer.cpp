@@ -805,3 +805,32 @@ void VPlayer::setVolume(int _volume)
 		emit volumeChanged(_volume);
 	}
 }
+
+void VPlayer::addSubtitle(QString _file)
+{
+	if(mp){
+		QAction *outside=new QAction(this);
+		QFileInfo info(_file);
+		outside->setCheckable(true);
+		outside->setText(qApp->fontMetrics().elidedText(info.fileName(),Qt::ElideMiddle,200));
+		outside->setData(info.absoluteFilePath());
+		connect(outside,&QAction::triggered,[=](){
+			libvlc_video_set_subtitle_file(mp,outside->data().toString().toUtf8());
+		});
+		if(subtitle.isEmpty()){
+			QActionGroup *group=new QActionGroup(this);
+			QAction *action=group->addAction(tr("Disable"));
+			action->setCheckable(true);
+			connect(action,&QAction::triggered,[this](){
+				libvlc_video_set_spu(mp,-1);
+			});
+			subtitle+=action;
+			group->addAction(outside);
+		}
+		else{
+			subtitle.first()->actionGroup()->addAction(outside);
+		}
+		outside->trigger();
+		subtitle.append(outside);
+	}
+}

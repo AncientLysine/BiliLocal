@@ -245,10 +245,10 @@ void Editor::load()
 		edit->show();
 		connect(edit,&QLineEdit::editingFinished,[this,edit](){
 			int index=time.indexOf(edit);
-			QRegExp regexp("-?\\d+");
+			QString expression=QRegularExpression("-?[\\d\\.\\+\\-*/()]+").match(edit->text()).captured();
 			const Record &r=Danmaku::instance()->getPool()[index];
-			if(regexp.indexIn(edit->text())!=-1){
-				delayRecord(index,regexp.cap().toInt()*1000-r.delay);
+			if(!expression.isEmpty()){
+				delayRecord(index,Utils::evaluate(expression)*1000-r.delay);
 			}
 			else{
 				edit->setText(tr("Delay: %1s").arg(r.delay/1000));

@@ -26,151 +26,6 @@
 
 #include "Graphic.h"
 
-namespace{
-template<class T>
-class Stack
-{
-public:
-	inline T &top()
-	{
-		if(isEmpty()){
-			QT_THROW("Empty");
-		}
-		return stk.top();
-	}
-
-	inline T pop()
-	{
-		if(isEmpty()){
-			QT_THROW("Empty");
-		}
-		return stk.pop();
-	}
-
-	inline void push(const T &i)
-	{
-		stk.push(i);
-	}
-
-	inline bool isEmpty()
-	{
-		return stk.isEmpty();
-	}
-
-private:
-	QStack<T> stk;
-};
-
-static double evaluate(QString exp)
-{
-	auto Operator=[](QChar o){
-		switch(o.toLatin1())
-		{
-		case '+':
-		case '-':
-		case '*':
-		case '/':
-			return 1;
-		default:
-			return 0;
-		}
-	};
-
-	auto Priority=[](QChar o){
-		switch(o.toLatin1())
-		{
-		case '(':
-			return 1;
-		case '+':
-		case '-':
-			return 2;
-		case '*':
-		case '/':
-			return 3;
-		default:
-			return 0;
-		}
-	};
-
-	QT_TRY{
-		QString pst;
-		Stack<QChar> opt;
-		int i=0;
-		opt.push('#');
-		while(i<exp.length()){
-			if(exp[i].isDigit()||exp[i]=='.'){
-				pst.append(exp[i]);
-			}
-			else if(exp[i]=='('){
-				opt.push(exp[i]);
-			}
-			else if(exp[i]==')'){
-				while(opt.top()!='('){
-					pst.append(opt.pop());
-				}
-				opt.pop();
-			}
-			else if(Operator(exp[i])){
-				pst.append(' ');
-				while(Priority(exp[i])<=Priority(opt.top())){
-					pst.append(opt.pop());
-				}
-				opt.push(exp[i]);
-			}
-			i++;
-		}
-		while(!opt.isEmpty()){
-			pst.append(opt.pop());
-		}
-		Stack<double> num;
-		i=0;
-		while(pst[i]!='#'){
-			if(pst[i].isDigit()||pst[i]=='.'){
-				double n=0;
-				while(pst[i].isDigit()){
-					n=n*10+pst[i++].toLatin1()-'0';
-				}
-				if(pst[i]=='.'){
-					++i;
-					double d=1;
-					while(pst[i].isDigit()){
-						n+=(d/=10)*(pst[i++].toLatin1()-'0');
-					}
-				}
-				num.push(n);
-			}
-			else if(pst[i]==' '){
-				i++;
-			}
-			else if(pst[i]=='+'){
-				double r=num.pop(),l=num.pop();
-				num.push(l+r);
-				i++;
-			}
-			else if(pst[i]=='-'){
-				double r=num.pop(),l=num.pop();
-				num.push(l-r);
-				i++;
-			}
-			else if(pst[i]=='*'){
-				double r=num.pop(),l=num.pop();
-				num.push(l*r);
-				i++;
-			}
-			else if(pst[i]=='/'){
-				double r=num.pop(),l=num.pop();
-				num.push(l/r);
-				i++;
-			}
-		}
-		return num.top();
-	}
-	QT_CATCH(...){
-		return 0;
-	}
-}
-}
-
 class Plain:public Graphic
 {
 public:
@@ -492,7 +347,7 @@ Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
-	if((speed=evaluate(expression))==0){
+	if((speed=Utils::evaluate(expression))==0){
 		return;
 	}
 	rect.moveTopLeft(QPointF(size.width(),0));
@@ -538,7 +393,7 @@ Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
-	if((life=evaluate(expression))==0){
+	if((life=Utils::evaluate(expression))==0){
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
@@ -574,7 +429,7 @@ Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	QSizeF bound=rect.size();
 	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
-	if((life=evaluate(expression))==0){
+	if((life=Utils::evaluate(expression))==0){
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
@@ -609,7 +464,7 @@ Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
-	if((speed=evaluate(expression))==0){
+	if((speed=Utils::evaluate(expression))==0){
 		return;
 	}
 	rect.moveTopLeft(QPointF(-rect.width(),0));

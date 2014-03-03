@@ -132,6 +132,21 @@ Info::Info(QWidget *parent):
 				}
 				Danmaku::instance()->parse(0x2);
 			});
+			bool flag=false;
+			for(const Comment *c:selected){
+				if(Shield::shieldS.contains(c->sender)){
+					flag=true;
+					break;
+				}
+			}
+			if(flag){
+				connect(menu.addAction(tr("Recover The Sender")),&QAction::triggered,[&](){
+					for(const Comment *c:selected){
+						Shield::shieldS.remove(c->sender);
+					}
+					Danmaku::instance()->parse(0x2);
+				});
+			}
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){

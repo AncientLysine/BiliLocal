@@ -143,6 +143,7 @@ public:
 	static void setCenter(QWidget *widget);
 	static void setGround(QWidget *widget,QColor color);
 	static void setSelection(QAbstractItemView *view);
+	static double evaluate(QString expression);
 	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
 	static QList<Comment> parseComment(QByteArray data,Site site,bool isSync=false);

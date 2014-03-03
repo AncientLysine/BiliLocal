@@ -490,21 +490,30 @@ void Interface::showContextMenu(QPoint p)
 		top.addAction(toggA);
 		top.addActions(menu->actions());
 		top.addAction(postA);
-		QMenu *sub=new QMenu(tr("Subtitle"),this);
-		QMenu *vid=new QMenu(tr("Video Track"),this);
-		QMenu *aud=new QMenu(tr("Audio Track"),this);
-		sub->addActions(vplayer->getSubtitles());
-		sub->setEnabled(!sub->isEmpty());
-		vid->addActions(vplayer->getVideoTracks());
-		vid->setEnabled(!vid->isEmpty());
-		aud->addActions(vplayer->getAudioTracks());
-		aud->setEnabled(!aud->isEmpty());
-		QMenu *tra=new QMenu(tr("Track"),this);
-		tra->addMenu(sub);
-		tra->addMenu(vid);
-		tra->addMenu(aud);
-		tra->setEnabled(vplayer->getState()!=VPlayer::Stop);
-		top.addMenu(tra);
+		QMenu sub(tr("Subtitle"),this);
+		QMenu vid(tr("Video Track"),this);
+		QMenu aud(tr("Audio Track"),this);
+		connect(sub.addAction(tr("From File")),&QAction::triggered,[this](){
+			QString file=QFileDialog::getOpenFileName(this,
+													  tr("Open File"),
+													  vplayer->getFile());
+			if(!file.isEmpty()){
+				vplayer->addSubtitle(file);
+			}
+		});
+		sub.addSeparator();
+		sub.addActions(vplayer->getSubtitles());
+		sub.setEnabled(!sub.isEmpty());
+		vid.addActions(vplayer->getVideoTracks());
+		vid.setEnabled(!vid.isEmpty());
+		aud.addActions(vplayer->getAudioTracks());
+		aud.setEnabled(!aud.isEmpty());
+		QMenu tra(tr("Track"),this);
+		tra.addMenu(&sub);
+		tra.addMenu(&vid);
+		tra.addMenu(&aud);
+		tra.setEnabled(vplayer->getState()!=VPlayer::Stop);
+		top.addMenu(&tra);
 		top.addMenu(sca);
 		top.addMenu(rat);
 		top.addAction(confA);
