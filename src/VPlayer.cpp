@@ -27,14 +27,6 @@
 #include "VPlayer.h"
 #include "Utils.h"
 
-extern "C"
-{
-#include <vlc/vlc.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-#include <libswscale/swscale.h>
-}
-
 #ifdef Q_OS_WIN32
 #include <winbase.h>
 #endif

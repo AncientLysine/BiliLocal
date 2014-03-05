@@ -139,7 +139,7 @@ Editor::Editor(QWidget *parent):
 								}
 								progress.setMaximum(all);
 							}
-							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili,true)){
+							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
 								set.insert(c);
 							}
 							progress.setValue(progress.value()+1);
@@ -202,7 +202,7 @@ Editor::Editor(QWidget *parent):
 						r.danmaku.clear();
 						Record load;
 						load.full=false;
-						load.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili,true);
+						load.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili);
 						load.source=r.source;
 						Danmaku::instance()->appendToPool(load);
 					});

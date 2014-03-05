@@ -240,9 +240,6 @@ void Danmaku::parse(int flag)
 		for(int i=0;i<danmaku.size();++i){
 			Comment &c=*danmaku[i];
 			c.blocked=c.blocked||(l==0?false:set.contains(clean[i]))||Shield::isBlocked(c);
-			if(i%100==0){
-				qApp->processEvents();
-			}
 		}
 		for(auto iter=current.begin();iter!=current.end();){
 			const Comment *cur=(*iter)->getSource();
@@ -307,9 +304,6 @@ void Danmaku::processDanmakuInBuffer()
 		}
 	}
 	qApp->removePostedEvents(this,RenderEvent::registeredType);
-	if(!buffer.isEmpty()){
-		qApp->postEvent(this,new RenderEvent);
-	}
 }
 
 void Danmaku::jumpToTime(qint64 _time)

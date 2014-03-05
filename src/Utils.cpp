@@ -284,7 +284,7 @@ static QString decodeXml(QString string)
 	return fixed;
 }
 
-QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
+QList<Comment> Utils::parseComment(QByteArray data,Site site)
 {
 	QList<Comment> list;
 	switch(site){
@@ -307,9 +307,6 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.sender=args[6];
 			comment.string=decodeXml(item.mid(sta,len));
 			list.append(comment);
-			if(!isSync&&list.size()%50){
-				qApp->processEvents();
-			}
 		}
 		break;
 	}
@@ -328,9 +325,6 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.sender=args[4];
 			comment.string=item["m"].toString();
 			list.append(comment);
-			if(!isSync&&list.size()%50){
-				qApp->processEvents();
-			}
 		}
 		break;
 	}
@@ -348,9 +342,6 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.sender=QString::number(item["UId"].toInt());
 			comment.string=item["Message"].toString();
 			list.append(comment);
-			if(!isSync&&list.size()%50){
-				qApp->processEvents();
-			}
 		}
 		break;
 	}
@@ -373,9 +364,6 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site,bool isSync)
 			comment.sender=args[4];
 			comment.string=decodeXml(item.mid(sta,len));
 			list.append(comment);
-			if(!isSync&&list.size()%50){
-				qApp->processEvents();
-			}
 		}
 		break;
 	}
