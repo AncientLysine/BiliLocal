@@ -380,7 +380,8 @@ uint Mode1::intersects(Graphic *other)
 		}
 	}
 	else{
-		w=qMax<double>(f.rect.right()-f.speed*s.rect.left()/s.speed,0);
+		double o=f.rect.right()-f.speed*s.rect.left()/s.speed;
+		w=o>0?qMin(qMin(f.rect.width(),s.rect.width()),o):0;
 	}
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
@@ -497,7 +498,8 @@ uint Mode6::intersects(Graphic *other)
 		}
 	}
 	else{
-		w=qMax<double>(f.rect.left()-f.speed*s.rect.right()/s.speed,0);
+		double o=f.rect.left()-f.speed*s.rect.right()/s.speed;
+		w=o>0?qMin(qMin(f.rect.width(),s.rect.width()),o):0;
 	}
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
 }
