@@ -649,10 +649,7 @@ void VPlayer::init()
 				QActionGroup *group=new QActionGroup(this);
 				group->setExclusive(true);
 				while(iter){
-					QString title=iter->psz_name;
-					title.replace("Track"  ,tr("Track"));
-					title.replace("Disable",tr("Disable"));
-					QAction *action=group->addAction(title);
+					QAction *action=group->addAction(iter->psz_name);
 					action->setCheckable(true);
 					action->setData(iter->i_id);
 					iter=iter->p_next;

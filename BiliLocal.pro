@@ -55,9 +55,8 @@ RESOURCES += \
     res/Res.qrc
 
 TRANSLATIONS += \
-    trans/zh_CN.ts \
-    trans/zh_HK.ts \
-    trans/zh_TW.ts
+    res/zh_CN.ts \
+    res/zh_TW.ts
 
 win32{
 RC_ICONS = BiliLocal.ico

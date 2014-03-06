@@ -30,6 +30,24 @@
 #include "Interface.h"
 #include <QtCore>
 
+static void loadTranslator()
+{
+	QString path="./locale/"+QLocale::system().name();
+	QFileInfoList list=QDir(path).entryInfoList();
+	list.append(QFileInfo(path+".qm"));
+	for(QFileInfo info:list){
+		if(info.isFile()){
+			QTranslator *trans=new QTranslator(qApp);
+			if(trans->load(info.absoluteFilePath())){
+				qApp->installTranslator(trans);
+			}
+			else{
+				delete trans;
+			}
+		}
+	}
+}
+
 static void setDefaultFont()
 {
 	QString def=Utils::defaultFont();
@@ -62,16 +80,10 @@ int main(int argc,char *argv[])
 		return 0;
 	}
 	QDir::setCurrent(a.applicationDirPath());
-	QString locale=QLocale::system().name();
-	QTranslator myTrans;
-	myTrans.load(locale+".qm","./translations");
-	QTranslator qtTrans;
-	qtTrans.load(locale+".qt.qm","./translations");
-	a.installTranslator(&myTrans);
-	a.installTranslator(&qtTrans);
 	Utils::loadConfig();
 	Shield::load();
 	Cookie::load();
+	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
