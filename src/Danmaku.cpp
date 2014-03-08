@@ -74,47 +74,61 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 {
 	if(index.isValid()){
 		const Comment &comment=*danmaku[index.row()];
-		if(comment.blocked){
+		switch(role){
+		case Qt::DisplayRole:
 			if(index.column()==0){
-				if(role==Qt::DisplayRole){
+				if(comment.blocked){
 					return tr("Blocked");
 				}
-				if(role==Qt::ForegroundRole){
+				else{
+					QString time("%1:%2");
+					qint64 sec=comment.time/1000;
+					if(sec<0){
+						time.prepend("-");
+						sec=-sec;
+					}
+					time=time.arg(sec/60,2,10,QChar('0'));
+					time=time.arg(sec%60,2,10,QChar('0'));
+					return time;
+				}
+			}
+			else{
+				if(comment.mode==7){
+					QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
+					return data.size()>=5?data.at(4).toString():QString();
+				}
+				else{
+					return QString(comment.string).remove('\n');
+				}
+			}
+		case Qt::ForegroundRole:
+			if(index.column()==0){
+				if(comment.blocked){
 					return QColor(Qt::red);
 				}
 			}
-			if(index.column()==1){
-				if(role==Qt::DisplayRole){
-					return comment.string;
-				}
-				if(role==Qt::ForegroundRole){
+			else{
+				if(comment.blocked){
 					return QColor(Qt::gray);
 				}
 			}
-		}
-		else{
-			if(index.column()==0&&role==Qt::DisplayRole){
-				QString time("%1:%2");
-				qint64 sec=comment.time/1000;
-				if(sec<0){
-					time.prepend("-");
-					sec=-sec;
-				}
-				time=time.arg(sec/60,2,10,QChar('0'));
-				time=time.arg(sec%60,2,10,QChar('0'));
-				return time;
+			break;
+		case Qt::ToolTipRole:
+			if(index.column()==1){
+				return Qt::convertFromPlainText(comment.string);
 			}
-			if(index.column()==1&&role==Qt::DisplayRole){
-				return QString(comment.string).remove("\n");
+			break;
+		case Qt::TextAlignmentRole:
+			if(index.column()==0){
+				return Qt::AlignCenter;
 			}
-		}
-		if(index.column()==1&&role==Qt::ToolTipRole){
-			return Qt::convertFromPlainText(comment.string);
-		}
-		if(index.column()==0&&role==Qt::TextAlignmentRole){
-			return Qt::AlignCenter;
-		}
-		if(role==Qt::UserRole){
+			break;
+		case Qt::BackgroundRole:
+			if(comment.mode==7){
+				return QColor(208,255,204);
+			}
+			break;
+		case Qt::UserRole:
 			return (quintptr)&comment;
 		}
 	}
