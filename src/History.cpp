@@ -25,8 +25,6 @@
 =========================================================================*/
 
 #include "History.h"
-#include "Utils.h"
-#include "Danmaku.h"
 
 History::History(QWidget *parent):
 	QDialog(parent,Qt::Popup)

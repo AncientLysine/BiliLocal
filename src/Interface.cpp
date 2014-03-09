@@ -59,7 +59,6 @@ Interface::Interface(QWidget *parent):
 			if(y<-60||y>h+60||x<-100||x>w+100){
 				menu->push();
 				info->push();
-				setFocus();
 			}
 		}
 	});
@@ -163,7 +162,6 @@ Interface::Interface(QWidget *parent):
 	connect(postA,&QAction::triggered,[this](){
 		menu->push();
 		info->push();
-		setFocus();
 		post->show();
 	});
 	connect(danmaku,&Danmaku::modelReset,[this](){
@@ -222,7 +220,6 @@ Interface::Interface(QWidget *parent):
 	if(Utils::getConfig("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
-	setFocus();
 	checkForUpdate();
 }
 
@@ -297,15 +294,9 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	if(isActiveWindow()){
 		if(x>250){
 			menu->push();
-			if(!info->isShown()){
-				setFocus();
-			}
 		}
 		if(x<w-250){
 			info->push();
-			if(!menu->isShown()){
-				setFocus();
-			}
 		}
 		if(y<=h-25){
 			if(x>=0&&x<50){
@@ -354,7 +345,6 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		menu->push(true);
 		info->push(true);
 		post->hide();
-		setFocus();
 	}
 	sta=wgd=QPoint();
 	if(sliding&&e->button()==Qt::LeftButton){

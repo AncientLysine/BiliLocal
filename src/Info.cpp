@@ -234,6 +234,9 @@ void Info::pop()
 void Info::push(bool force)
 {
 	if(isPoped&&animation->state()==QAbstractAnimation::Stopped&&(!preferStay()||force)){
+		if(force){
+			isStay=false;
+		}
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()+QPoint(200,0));
 		animation->start();

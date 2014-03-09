@@ -273,13 +273,17 @@ void Editor::paintEvent(QPaintEvent *e)
 	for(int i=e->rect().top()/length;i<l;++i){
 		const Record &r=Danmaku::instance()->getPool()[i];
 		int w=width()-100,h=i*length;
-		painter.fillRect(0,h,100-2,length-2,Qt::white);
+		painter.save();
+		painter.fillRect(0,h,100-2,length-2 ,Qt::white);
 		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,QFileInfo(r.source).fileName());
-		int m=0,d=duration/(w/5)+1;
+		int m=0,d=duration/(w/5)+1,t=0;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){
 			if(com.blocked){
 				continue;
+			}
+			if(com.time>=0&&com.time<=duration){
+				++t;
 			}
 			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
 			c.insert(k,v);
@@ -304,7 +308,13 @@ void Editor::paintEvent(QPaintEvent *e)
 			int he=c[j/5]*(length-2)/m;
 			painter.fillRect(o+j+100,h+length-2-he,5,he,Qt::white);
 		}
-		painter.setClipping(false);
+		painter.setPen(Qt::white);
+		QString count=QString("%1/%2").arg(t).arg(r.danmaku.size());
+		QRect rect=painter.fontMetrics().boundingRect(100,h,w,length-2,Qt::AlignRight,count);
+		rect.adjust(-5,0,0,0);
+		painter.fillRect(rect,QColor(160,160,164,100));
+		painter.drawText(rect,Qt::AlignCenter,count);
+		painter.restore();
 	}
 	if(current>=0){
 		painter.fillRect(current*(width()-100)/duration+100,0,1,height(),Qt::red);

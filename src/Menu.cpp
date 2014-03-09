@@ -105,7 +105,14 @@ Menu::Menu(QWidget *parent):
 			}
 		}
 		else{
-			setDanmaku(danmL->text());
+			if(danmL->text().isEmpty()){
+				pop();
+				isStay=true;
+				danmL->setFocus();
+			}
+			else{
+				setDanmaku(danmL->text());
+			}
 		}
 	});
 	connect(sechA,&QAction::triggered,[this](){
@@ -394,6 +401,9 @@ void Menu::pop()
 void Menu::push(bool force)
 {
 	if(isPoped&&animation->state()==QAbstractAnimation::Stopped&&(!preferStay()||force)){
+		if(force){
+			isStay=false;
+		}
 		animation->setStartValue(pos());
 		animation->setEndValue(pos()-QPoint(200,0));
 		animation->start();
