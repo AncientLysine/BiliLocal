@@ -43,7 +43,7 @@ private:
 
 	//Playing
 	QGroupBox *box[7];
-	QCheckBox *danm[3];
+	QCheckBox *load[4];
 	QCheckBox *scale[2];
 	QCheckBox *bold;
 	QComboBox *dmfont;

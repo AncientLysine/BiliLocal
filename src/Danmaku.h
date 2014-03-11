@@ -55,13 +55,10 @@ private:
 	QList<Record> pool;
 	QList<Graphic *> current;
 	QList<Comment *> danmaku;
+	mutable QReadWriteLock lock;
 	static Danmaku *ins;
 	Danmaku(QObject *parent=0);
 	void setTime(qint64 _time);
-
-	QList<const Comment *> buffer;
-	bool event(QEvent *e);
-	void processDanmakuInBuffer();
 
 public slots:
 	void release();
@@ -72,7 +69,7 @@ public slots:
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
-	void appendToCurrent(const Comment *comment,bool isLocal=false);
+	void appendToCurrent(const Comment *comment);
 };
 
 #endif // DANMAKU_H

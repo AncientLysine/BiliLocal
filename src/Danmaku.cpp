@@ -30,16 +30,9 @@
 #include "VPlayer.h"
 #include "Graphic.h"
 
+#define qThreadPool QThreadPool::globalInstance()
+
 Danmaku *Danmaku::ins=NULL;
-
-class RenderEvent:public QEvent
-{
-public:
-	static Type registeredType;
-	RenderEvent():QEvent(registeredType){}
-};
-
-QEvent::Type RenderEvent::registeredType=(QEvent::Type)registerEventType();
 
 Danmaku *Danmaku::create(QObject *parent)
 {
@@ -57,10 +50,10 @@ Danmaku::Danmaku(QObject *parent):
 
 void Danmaku::draw(QPainter *painter,QRect,qint64 move)
 {
+	lock.lockForWrite();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
 		if(g->move(move)){
-			g->draw(painter);
 			++iter;
 		}
 		else{
@@ -68,6 +61,12 @@ void Danmaku::draw(QPainter *painter,QRect,qint64 move)
 			iter=current.erase(iter);
 		}
 	}
+	lock.unlock();
+	lock.lockForRead();
+	for(Graphic *g:current){
+		g->draw(painter);
+	}
+	lock.unlock();
 }
 
 QVariant Danmaku::data(const QModelIndex &index,int role) const
@@ -173,16 +172,21 @@ QVariant Danmaku::headerData(int section,Qt::Orientation orientation,int role) c
 
 const Comment *Danmaku::commentAt(QPoint point) const
 {
+	lock.lockForRead();
 	for(Graphic *g:current){
-		if(g->currentRect().contains(point)) return g->getSource();
+		if(g->currentRect().contains(point)){
+			lock.unlock();
+			return g->getSource();
+		}
 	}
+	lock.unlock();
 	return NULL;
 }
 
 void Danmaku::release()
 {
-	buffer.clear();
 	disconnect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
+	clearCurrent();
 }
 
 void Danmaku::resetTime()
@@ -201,9 +205,12 @@ void Danmaku::clearPool()
 
 void Danmaku::clearCurrent()
 {
-	buffer.clear();
+	qThreadPool->clear();
+	qThreadPool->waitForDone();
+	lock.lockForWrite();
 	qDeleteAll(current);
 	current.clear();
+	lock.unlock();
 	emit layoutChanged();
 }
 
@@ -255,6 +262,9 @@ void Danmaku::parse(int flag)
 			Comment &c=*danmaku[i];
 			c.blocked=c.blocked||(l==0?false:set.contains(clean[i]))||Shield::isBlocked(c);
 		}
+		qThreadPool->clear();
+		qThreadPool->waitForDone();
+		lock.lockForWrite();
 		for(auto iter=current.begin();iter!=current.end();){
 			const Comment *cur=(*iter)->getSource();
 			if(cur&&cur->blocked){
@@ -265,59 +275,121 @@ void Danmaku::parse(int flag)
 				++iter;
 			}
 		}
+		lock.unlock();
 		emit layoutChanged();
 	}
 }
+
+class Process:public QRunnable
+{
+public:
+	Process(qint64 &t,QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
+		time(t),lock(l),current(c),wait(w)
+	{
+	}
+
+	void run()
+	{
+		QList<Graphic *> ready;
+		QSize s=Render::instance()->getWidget()->size();
+		while(!wait.isEmpty()){
+			const Comment *c=wait.takeFirst();
+			if(c->time>time+500){
+				qThreadPool->clear();
+				break;
+			}
+			Graphic *g=Graphic::create(*c,s);
+			if(g){
+				lock->lockForRead();
+				if(c->font*(c->string.count("\n")+1)<360){
+					double m=-1;
+					QRectF r=g->currentRect();
+					switch(g->getMode())
+					{
+					case 1:
+					case 5:
+					case 6:
+					{
+						int limit=s.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-r.height();
+						for(int height=r.top();height<limit;height+=10){
+							g->currentRect().moveTop(height);
+							double c=0;
+							for(Graphic *iter:current){
+								c+=g->intersects(iter);
+							}
+							if(m==-1||c<m){
+								m=c;
+								r=g->currentRect();
+								if(c==0){
+									break;
+								}
+							}
+						}
+						g->currentRect()=r;
+						break;
+					}
+					case 4:
+					{
+						int limit=r.height();
+						for(int height=r.bottom();height>limit;height-=10){
+							g->currentRect().moveTop(height);
+							double c=0;
+							for(Graphic *iter:current){
+								c+=g->intersects(iter);
+							}
+							if(m==-1||c<m){
+								m=c;
+								r=g->currentRect();
+								if(c==0){
+									break;
+								}
+							}
+						}
+						g->currentRect()=r;
+						break;
+					}
+					}
+				}
+				lock->unlock();
+				g->setEnabled(false);
+				ready.append(g);
+				lock->lockForWrite();
+				current.append(g);
+				lock->unlock();
+			}
+		}
+		for(Graphic *g:ready){
+			g->setEnabled(true);
+		}
+	}
+
+private:
+	qint64 &time;
+	QReadWriteLock *lock;
+	QList<Graphic *> &current;
+	QList<const Comment *> wait;
+};
 
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
 	int l=Utils::getConfig("/Shield/Density",100);
+	QList<const Comment *> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];
 		if(!c->blocked&&(c->mode==7||l==0||current.size()+buffer.size()<l)){
-			appendToCurrent(c);
+			buffer.append(c);
 		}
 	}
-	qApp->postEvent(this,new RenderEvent);
-}
-
-bool Danmaku::event(QEvent *e)
-{
-	if(e->type()==RenderEvent::registeredType){
-		processDanmakuInBuffer();
-		return true;
-	}
-	else{
-		return QAbstractItemModel::event(e);
-	}
-}
-
-void Danmaku::processDanmakuInBuffer()
-{
 	while(!buffer.isEmpty()){
-		QList<Graphic *> waiting;
-		if(time-buffer.first()->time>2000){
-			while(!buffer.isEmpty()&&time-buffer.first()->time>500){
-				buffer.removeFirst();
-			}
-		}
 		const Comment *f=buffer.first();
+		QList<const Comment *> wait;
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
-			Graphic *g=Graphic::create(*buffer.takeFirst(),Render::instance()->getWidget()->size(),current);
-			if(g){
-				g->setEnabled(false);
-				current.append(g);
-				waiting.append(g);
-				qApp->removePostedEvents(this,RenderEvent::registeredType);
-				qApp->processEvents();
-			}
+			wait.append(buffer.takeFirst());
 		}
-		for(Graphic *g:waiting){
-			g->setEnabled(true);
-		}
+		qThreadPool->start(new Process(time,&lock,current,wait));
 	}
-	qApp->removePostedEvents(this,RenderEvent::registeredType);
+	qDebug()<<current.size();
 }
 
 void Danmaku::jumpToTime(qint64 _time)
@@ -414,16 +486,8 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
-void Danmaku::appendToCurrent(const Comment *comment,bool isLocal)
+void Danmaku::appendToCurrent(const Comment *comment)
 {
-	if(isLocal){
-		Graphic *graphic=Graphic::create(*comment,Render::instance()->getWidget()->size(),current);
-		if(graphic){
-			graphic->setSource(NULL);
-			current.append(graphic);
-		}
-	}
-	else{
-		buffer.append(comment);
-	}
+	Process p(time,&lock,current,QList<const Comment *>()<<comment);
+	p.run();
 }

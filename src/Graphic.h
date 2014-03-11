@@ -37,7 +37,7 @@ public:
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
 	virtual uint intersects(Graphic *other)=0;
-	virtual QRectF currentRect()=0;
+	virtual QRectF &currentRect(){return rect;}
 	virtual ~Graphic(){}
 	int getMode(){return source?source->mode:0;}
 
@@ -48,11 +48,11 @@ public:
 	void setSource(Comment *_source){source=_source;}
 
 	static Graphic *create(const Comment &comment,
-						   const QSize &size,
-						   const QList<Graphic *> &current=QList<Graphic *>());
+						   const QSize &size);
 
 protected:
 	bool enabled;
+	QRectF rect;
 	const Comment *source;
 	Graphic():enabled(false),source(NULL){}
 };

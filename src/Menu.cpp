@@ -437,6 +437,9 @@ void Menu::setFile(QString _file)
 			}
 		}
 	}
+	if(Utils::getConfig("/Playing/Immediate",false)){
+		VPlayer::instance()->play();
+	}
 }
 
 void Menu::setPower(qint16 fps)
@@ -462,7 +465,6 @@ void Menu::openLocal(QString _file)
 		}
 		else{
 			setFile(_file);
-			VPlayer::instance()->play();
 		}
 	}
 }

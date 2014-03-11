@@ -31,9 +31,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtNetwork>
-
-class Record;
-class Comment;
+#include "Utils.h"
 
 class Post:public QDialog
 {
@@ -49,6 +47,7 @@ private:
 	QComboBox *commentM;
 	QPushButton *commentC;
 	QPushButton *commentB;
+	QList<Comment> sended;
 	QNetworkAccessManager *manager;
 	QColor getColor();
 	Comment getComment();

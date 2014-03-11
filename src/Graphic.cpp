@@ -30,18 +30,16 @@ class Plain:public Graphic
 {
 public:
 	virtual void draw(QPainter *painter);
-	virtual QRectF currentRect(){return rect;}
 
 protected:
 	Plain(const Comment &comment,const QSize &size);
-	QRectF rect;
 	QImage cache;
 };
 
 class Mode1:public Plain
 {
 public:
-	Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
+	Mode1(const Comment &comment,const QSize &size);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -52,7 +50,7 @@ private:
 class Mode4:public Plain
 {
 public:
-	Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
+	Mode4(const Comment &comment,const QSize &size);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -63,7 +61,7 @@ private:
 class Mode5:public Plain
 {
 public:
-	Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
+	Mode5(const Comment &comment,const QSize &size);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -74,7 +72,7 @@ private:
 class Mode6:public Plain
 {
 public:
-	Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
+	Mode6(const Comment &comment,const QSize &size);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -86,11 +84,10 @@ private:
 class Mode7:public Graphic
 {
 public:
-	Mode7(const Comment &comment,const QSize &size,const QList<Graphic *> &current);
+	Mode7(const Comment &comment,const QSize &size);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	uint intersects(Graphic *){return 0;}
-	QRectF currentRect(){return QRectF();}
 
 private:
 	QPointF bPos;
@@ -236,84 +233,25 @@ static double getOverlap(double ff,double fs,double sf,double ss)
 	return 0;
 }
 
-static void setRectangle(QRectF &rect,
-						 Graphic *self,
-						 const QSize &size,
-						 const QList<Graphic *> &current)
-{
-	const Comment &comment=*self->getSource();
-	if(comment.font*(comment.string.count("\n")+1)>=360){
-		return;
-	}
-	double m=-1;
-	QRectF r=rect;
-	switch(self->getMode())
-	{
-	case 1:
-	case 5:
-	case 6:
-	{
-		int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-rect.height();
-		for(int height=rect.top();height<limit;height+=10){
-			rect.moveTop(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=self->intersects(iter);
-			}
-			if(m==-1||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-		break;
-	}
-	case 4:
-	{
-		int limit=rect.height();
-		for(int height=rect.bottom();height>limit;height-=10){
-			rect.moveBottom(height);
-			double c=0;
-			for(Graphic *iter:current){
-				c+=self->intersects(iter);
-			}
-			if(m==-1||c<m){
-				m=c;
-				r=rect;
-				if(c==0){
-					break;
-				}
-			}
-		}
-		rect=r;
-		break;
-	}
-	}
-}
-
 Graphic *Graphic::create(const Comment &comment,
-						 const QSize &size,
-						 const QList<Graphic *> &current)
+						 const QSize &size)
 {
 	Graphic *graphic=NULL;
 	switch(comment.mode){
 	case 1:
-		graphic=new Mode1(comment,size,current);
+		graphic=new Mode1(comment,size);
 		break;
 	case 4:
-		graphic=new Mode4(comment,size,current);
+		graphic=new Mode4(comment,size);
 		break;
 	case 5:
-		graphic=new Mode5(comment,size,current);
+		graphic=new Mode5(comment,size);
 		break;
 	case 6:
-		graphic=new Mode6(comment,size,current);
+		graphic=new Mode6(comment,size);
 		break;
 	case 7:
-		graphic=new Mode7(comment,size,current);
+		graphic=new Mode7(comment,size);
 		break;
 	}
 	if(graphic!=NULL&&!graphic->isEnabled()){
@@ -339,7 +277,7 @@ void Plain::draw(QPainter *painter)
 	}
 }
 
-Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+Mode1::Mode1(const Comment &comment,const QSize &size):
 	Plain(comment,size)
 {
 	if(comment.mode!=1){
@@ -351,7 +289,6 @@ Mode1::Mode1(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		return;
 	}
 	rect.moveTopLeft(QPointF(size.width(),0));
-	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -370,6 +307,10 @@ uint Mode1::intersects(Graphic *other)
 	}
 	const Mode1 &f=*dynamic_cast<Mode1 *>(other);
 	const Mode1 &s=*this;
+	int h;
+	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
+		return 0;
+	}
 	int w=0;
 	if(f.rect.intersects(s.rect)){
 		if(f.speed>s.speed){
@@ -383,10 +324,10 @@ uint Mode1::intersects(Graphic *other)
 		double o=f.rect.right()-f.speed*s.rect.left()/s.speed;
 		w=o>0?qMin(qMin(f.rect.width(),s.rect.width()),o):0;
 	}
-	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
+	return h*w;
 }
 
-Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+Mode4::Mode4(const Comment &comment,const QSize &size):
 	Plain(comment,size)
 {
 	if(comment.mode!=4){
@@ -399,7 +340,6 @@ Mode4::Mode4(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:0));
-	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -421,7 +361,7 @@ uint Mode4::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+Mode5::Mode5(const Comment &comment,const QSize &size):
 	Plain(comment,size)
 {
 	if(comment.mode!=5){
@@ -435,7 +375,6 @@ Mode5::Mode5(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
 	rect.moveTop(0);
-	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -457,7 +396,7 @@ uint Mode5::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &current):
+Mode6::Mode6(const Comment &comment,const QSize &size):
 	Plain(comment,size),size(size)
 {
 	if(comment.mode!=6){
@@ -469,7 +408,6 @@ Mode6::Mode6(const Comment &comment,const QSize &size,const QList<Graphic *> &cu
 		return;
 	}
 	rect.moveTopLeft(QPointF(-rect.width(),0));
-	setRectangle(rect,this,size,current);
 	enabled=true;
 }
 
@@ -488,6 +426,10 @@ uint Mode6::intersects(Graphic *other)
 	}
 	const Mode6 &f=*dynamic_cast<Mode6 *>(other);
 	const Mode6 &s=*this;
+	int h;
+	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
+		return 0;
+	}
 	int w=0;
 	if(f.rect.intersects(s.rect)){
 		if(f.speed>s.speed){
@@ -501,10 +443,10 @@ uint Mode6::intersects(Graphic *other)
 		double o=f.rect.left()-f.speed*s.rect.right()/s.speed;
 		w=o>0?qMin(qMin(f.rect.width(),s.rect.width()),o):0;
 	}
-	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*w;
+	return h*w;
 }
 
-Mode7::Mode7(const Comment &comment,const QSize &size,const QList<Graphic *> &)
+Mode7::Mode7(const Comment &comment,const QSize &size)
 {
 	if(comment.mode!=7){
 		return;

@@ -41,25 +41,31 @@ Config::Config(QWidget *parent,int index):
 	{
 		widget[0]=new QWidget(this);
 		auto list=new QVBoxLayout(widget[0]);
-		auto c=new QHBoxLayout;
-		danm[0]=new QCheckBox(tr("clear when reloading"),widget[0]);
-		danm[0]->setChecked(Utils::getConfig("/Playing/Clear",true));
-		connect(danm[0],&QCheckBox::stateChanged,[this](int state){
+		auto c=new QGridLayout;
+		load[0]=new QCheckBox(tr("clear when reloading"),widget[0]);
+		load[0]->setChecked(Utils::getConfig("/Playing/Clear",true));
+		connect(load[0],&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Playing/Clear",state==Qt::Checked);
 		});
-		c->addWidget(danm[0]);
-		danm[1]=new QCheckBox(tr("auto delay after loaded"),widget[0]);
-		danm[1]->setChecked(Utils::getConfig("/Playing/Delay",false));
-		connect(danm[1],&QCheckBox::stateChanged,[this](int state){
+		c->addWidget(load[0],0,0);
+		load[1]=new QCheckBox(tr("auto delay after loaded"),widget[0]);
+		load[1]->setChecked(Utils::getConfig("/Playing/Delay",false));
+		connect(load[1],&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Playing/Delay",state==Qt::Checked);
 		});
-		c->addWidget(danm[1]);
-		danm[2]=new QCheckBox(tr("load local subtitles"),widget[0]);
-		danm[2]->setChecked(Utils::getConfig("/Playing/Subtitle",true));
-		connect(danm[2],&QCheckBox::stateChanged,[this](int state){
+		c->addWidget(load[1],0,1);
+		load[2]=new QCheckBox(tr("load local subtitles"),widget[0]);
+		load[2]->setChecked(Utils::getConfig("/Playing/Subtitle",true));
+		connect(load[2],&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Playing/Subtitle",state==Qt::Checked);
 		});
-		c->addWidget(danm[2]);
+		c->addWidget(load[2],1,0);
+		load[3]=new QCheckBox(tr("auto play after loaded"),widget[0]);
+		load[3]->setChecked(Utils::getConfig("/Playing/Immediate",false));
+		connect(load[3],&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig("/Playing/Immediate",state==Qt::Checked);
+		});
+		c->addWidget(load[3],1,1);
 		box[0]=new QGroupBox(tr("loading"),widget[0]);
 		box[0]->setLayout(c);
 		list->addWidget(box[0]);

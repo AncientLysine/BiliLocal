@@ -206,7 +206,8 @@ void Post::postComment()
 			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
 		}
 		else{
-			Danmaku::instance()->appendToCurrent(&c,true);
+			sended.append(c);
+			Danmaku::instance()->appendToCurrent(&sended.last());
 		}
 		reply->deleteLater();
 	});

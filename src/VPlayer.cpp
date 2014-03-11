@@ -233,8 +233,36 @@ private:
 	AVPicture *dstFrame;
 	QImage frame;
 };
+#ifdef QT_OPENGL_ES_2
+static const char *vShaderCode=
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
 
-static const char *vShaderDesktop=
+static const char *fShaderCode=
+		"varying lowp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    lowp vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+#else
+static const char *vShaderCode=
 		"#version 120\n"
 		"attribute vec4 VtxCoord;\n"
 		"attribute vec2 TexCoord;\n"
@@ -245,7 +273,7 @@ static const char *vShaderDesktop=
 		"  TexCoordOut = TexCoord;\n"
 		"}\n";
 
-static const char *fShaderDesktop=
+static const char *fShaderCode=
 		"#version 120\n"
 		"varying vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
@@ -263,35 +291,7 @@ static const char *fShaderDesktop=
 		"               1.596, -0.813, 0) * yuv;\n"
 		"    gl_FragColor = vec4(rgb, 1);\n"
 		"}";
-
-static const char *vShaderMobile=
-		"attribute vec4 VtxCoord;\n"
-		"attribute vec2 TexCoord;\n"
-		"varying vec2 TexCoordOut;\n"
-		"void main(void)\n"
-		"{\n"
-		"  gl_Position = VtxCoord;\n"
-		"  TexCoordOut = TexCoord;\n"
-		"}\n";
-
-static const char *fShaderMobile=
-		"varying lowp vec2 TexCoordOut;\n"
-		"uniform sampler2D SamplerY;\n"
-		"uniform sampler2D SamplerU;\n"
-		"uniform sampler2D SamplerV;\n"
-		"void main(void)\n"
-		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    lowp vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
-		"}";
-
+#endif
 class OpenGLPlayer:public VPlayer,protected QOpenGLFunctions
 {
 public:
@@ -363,17 +363,18 @@ public:
 				if(dirty){
 					if(initialize){
 						initializeOpenGLFunctions();
-						isOpenGLES=QOpenGLContext::currentContext()->format().renderableType()==QSurfaceFormat::OpenGLES;
 						glGenTextures(3,frame);
 						vShader=glCreateShader(GL_VERTEX_SHADER);
 						fShader=glCreateShader(GL_FRAGMENT_SHADER);
-						glShaderSource(vShader,1,isOpenGLES?&vShaderMobile:&vShaderDesktop,NULL);
-						glShaderSource(fShader,1,isOpenGLES?&fShaderMobile:&fShaderDesktop,NULL);
+						glShaderSource(vShader,1,&vShaderCode,NULL);
+						glShaderSource(fShader,1,&fShaderCode,NULL);
 						glCompileShader(vShader);
 						glCompileShader(fShader);
 						program=glCreateProgram();
 						glAttachShader(program,vShader);
 						glAttachShader(program,fShader);
+						glBindAttribLocation(program,0,"VtxCoord");
+						glBindAttribLocation(program,1,"TexCoord");
 						glLinkProgram(program);
 						initialize=false;
 					}
@@ -388,8 +389,6 @@ public:
 				GLint texY=glGetUniformLocation(program,"SamplerY");
 				GLint texU=glGetUniformLocation(program,"SamplerU");
 				GLint texV=glGetUniformLocation(program,"SamplerV");
-				glBindAttribLocation(program,0,"VtxCoord");
-				glBindAttribLocation(program,1,"TexCoord");
 				GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
 				GLfloat vtx[8]={
 					-h,-v,
@@ -403,8 +402,8 @@ public:
 					0,0,
 					1,0
 				};
-				glVertexAttribPointer(0,2,GL_FLOAT,0,0,isOpenGLES?tex:vtx);
-				glVertexAttribPointer(1,2,GL_FLOAT,0,0,isOpenGLES?vtx:tex);
+				glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
+				glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
 				glEnableVertexAttribArray(0);
 				glEnableVertexAttribArray(1);
 				glActiveTexture(GL_TEXTURE0);
@@ -424,7 +423,6 @@ public:
 
 private:
 	QSize inner;
-	bool isOpenGLES;
 	bool initialize;
 	GLuint vShader;
 	GLuint fShader;
