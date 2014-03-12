@@ -26,7 +26,6 @@
 
 #include "Danmaku.h"
 #include "Shield.h"
-#include "Render.h"
 #include "VPlayer.h"
 #include "Graphic.h"
 
@@ -48,8 +47,9 @@ Danmaku::Danmaku(QObject *parent):
 	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
 }
 
-void Danmaku::draw(QPainter *painter,QRect,qint64 move)
+void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 {
+	size=rect.size();
 	lock.lockForWrite();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
@@ -283,22 +283,21 @@ void Danmaku::parse(int flag)
 class Process:public QRunnable
 {
 public:
-	Process(qint64 &t,QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
-		time(t),lock(l),current(c),wait(w)
+	Process(QSize &s,qint64 &t,QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
+		size(s),time(t),lock(l),current(c),wait(w)
 	{
 	}
 
 	void run()
 	{
 		QList<Graphic *> ready;
-		QSize s=Render::instance()->getWidget()->size();
 		while(!wait.isEmpty()){
 			const Comment *c=wait.takeFirst();
 			if(c->time>time+500){
 				qThreadPool->clear();
 				break;
 			}
-			Graphic *g=Graphic::create(*c,s);
+			Graphic *g=Graphic::create(*c,size);
 			if(g){
 				lock->lockForRead();
 				if(c->font*(c->string.count("\n")+1)<360){
@@ -310,7 +309,7 @@ public:
 					case 5:
 					case 6:
 					{
-						int limit=s.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-r.height();
+						int limit=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-r.height();
 						for(int height=r.top();height<limit;height+=10){
 							g->currentRect().moveTop(height);
 							double c=0;
@@ -364,6 +363,7 @@ public:
 	}
 
 private:
+	QSize &size;
 	qint64 &time;
 	QReadWriteLock *lock;
 	QList<Graphic *> &current;
@@ -387,9 +387,8 @@ void Danmaku::setTime(qint64 _time)
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
 			wait.append(buffer.takeFirst());
 		}
-		qThreadPool->start(new Process(time,&lock,current,wait));
+		qThreadPool->start(new Process(size,time,&lock,current,wait));
 	}
-	qDebug()<<current.size();
 }
 
 void Danmaku::jumpToTime(qint64 _time)
@@ -488,6 +487,6 @@ void Danmaku::appendToPool(const Record &record)
 
 void Danmaku::appendToCurrent(const Comment *comment)
 {
-	Process p(time,&lock,current,QList<const Comment *>()<<comment);
+	Process p(size,time,&lock,current,QList<const Comment *>()<<comment);
 	p.run();
 }

@@ -138,7 +138,7 @@ public:
 
 	~RasterPlayer()
 	{
-		releaseAndWait();
+		release();
 		if(swsctx){
 			sws_freeContext(swsctx);
 		}
@@ -308,7 +308,7 @@ public:
 
 	~OpenGLPlayer()
 	{
-		releaseAndWait();
+		release();
 		if(!initialize){
 			glDeleteShader(vShader);
 			glDeleteShader(fShader);
@@ -386,9 +386,6 @@ public:
 				}
 				data.unlock();
 				glUseProgram(program);
-				GLint texY=glGetUniformLocation(program,"SamplerY");
-				GLint texU=glGetUniformLocation(program,"SamplerU");
-				GLint texV=glGetUniformLocation(program,"SamplerV");
 				GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
 				GLfloat vtx[8]={
 					-h,-v,
@@ -408,13 +405,13 @@ public:
 				glEnableVertexAttribArray(1);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D,frame[0]);
-				glUniform1i(texY,0);
+				glUniform1i(glGetUniformLocation(program,"SamplerY"),0);
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D,frame[1]);
-				glUniform1i(texU,1);
+				glUniform1i(glGetUniformLocation(program,"SamplerU"),1);
 				glActiveTexture(GL_TEXTURE2);
 				glBindTexture(GL_TEXTURE_2D,frame[2]);
-				glUniform1i(texV,2);
+				glUniform1i(glGetUniformLocation(program,"SamplerV"),2);
 				glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 				painter->endNativePainting();
 			}
@@ -556,7 +553,7 @@ QRect VPlayer::getRect(QRect rect)
 	return dest;
 }
 
-void VPlayer::releaseAndWait()
+void VPlayer::release()
 {
 	QMutex exit;
 	libvlc_set_exit_handler(vlc,[](void *opaque){

@@ -92,7 +92,7 @@ protected:
 
 	VPlayer(QObject *parent=0);
 	QRect getRect(QRect rect);
-	void releaseAndWait();
+	void release();
 
 signals:
 	void begin();

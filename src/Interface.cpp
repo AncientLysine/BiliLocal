@@ -403,6 +403,7 @@ void Interface::checkForUpdate()
 		}
 		info->manager()->deleteLater();
 	});
+	QTimer::singleShot(5000,manager,SLOT(deleteLater()));
 }
 
 void Interface::setCenter(QSize _s,bool f)

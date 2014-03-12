@@ -51,6 +51,7 @@ public:
 
 private:
 	int cur;
+	QSize size;
 	qint64 time;
 	QList<Record> pool;
 	QList<Graphic *> current;
