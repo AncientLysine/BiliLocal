@@ -64,8 +64,7 @@ public:
 	virtual void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)=0;
 	virtual void draw(QPainter *painter,QRect rect)=0;
 
-	static VPlayer *create(QObject *parent=NULL);
-	static VPlayer *instance(){return ins;}
+	static VPlayer *instance();
 
 private:
 	State state;

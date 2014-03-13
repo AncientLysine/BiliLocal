@@ -38,7 +38,6 @@ public:
 	~Render(){}
 	QWidget *getWidget(){return widget;}
 	static Render *create(QWidget *parent=NULL);
-	static Render *instance(){return ins;}
 
 private:
 	QMovie tv;
@@ -48,7 +47,6 @@ private:
 
 protected:
 	QWidget *widget;
-	static Render *ins;
 	explicit Render(QWidget *parent=0);
 
 public slots:

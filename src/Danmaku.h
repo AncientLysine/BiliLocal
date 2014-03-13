@@ -46,16 +46,15 @@ public:
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	const Comment *commentAt(QPoint point) const;
-	static Danmaku *create(QObject *parent=NULL);
-	static Danmaku *instance(){return ins;}
+	static Danmaku *instance();
 
 private:
 	int cur;
 	QSize size;
 	qint64 time;
 	QList<Record> pool;
-	QList<Graphic *> current;
 	QList<Comment *> danmaku;
+	QLinkedList<Graphic *> current;
 	mutable QReadWriteLock lock;
 	static Danmaku *ins;
 	Danmaku(QObject *parent=0);

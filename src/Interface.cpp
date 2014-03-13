@@ -43,8 +43,8 @@ Interface::Interface(QWidget *parent):
 	setMinimumSize(480,360);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
-	vplayer=VPlayer::create(this);
-	danmaku=Danmaku::create(this);
+	vplayer=VPlayer::instance();
+	danmaku=Danmaku::instance();
 	render=Render::create(this);
 	menu=new Menu(this);
 	info=new Info(this);

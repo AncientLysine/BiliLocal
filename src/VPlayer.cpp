@@ -439,13 +439,16 @@ private:
 	}
 };
 
-VPlayer *VPlayer::create(QObject *parent)
+VPlayer *VPlayer::instance()
 {
+	if(ins){
+		return ins;
+	}
 	if(Utils::getConfig("/Interface/Accelerated",false)){
-		return new OpenGLPlayer(parent);
+		return new OpenGLPlayer(qApp);
 	}
 	else{
-		return new RasterPlayer(parent);
+		return new RasterPlayer(qApp);
 	}
 }
 

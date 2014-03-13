@@ -44,6 +44,9 @@ public:
 	bool isEnabled(){return enabled;}
 	void setEnabled(bool _enabled){enabled=_enabled;}
 
+	quint64 getIndex(){return index;}
+	void setIndex(quint64 _index){index=_index;}
+
 	const Comment *getSource(){return source;}
 	void setSource(Comment *_source){source=_source;}
 
@@ -53,6 +56,7 @@ public:
 protected:
 	bool enabled;
 	QRectF rect;
+	quint64 index;
 	const Comment *source;
 	Graphic():enabled(false),source(NULL){}
 };
