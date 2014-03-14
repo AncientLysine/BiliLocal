@@ -54,7 +54,7 @@ private:
 	qint64 time;
 	QList<Record> pool;
 	QList<Comment *> danmaku;
-	QLinkedList<Graphic *> current;
+	QList<Graphic *> current;
 	mutable QReadWriteLock lock;
 	static Danmaku *ins;
 	Danmaku(QObject *parent=0);

@@ -63,9 +63,11 @@ void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 		}
 	}
 	lock.unlock();
+	lock.lockForRead();
 	for(Graphic *g:current){
 		g->draw(painter);
 	}
+	lock.unlock();
 }
 
 QVariant Danmaku::data(const QModelIndex &index,int role) const
@@ -279,13 +281,13 @@ void Danmaku::parse(int flag)
 	}
 }
 
-static quint64 index=0;
+static quint64 globalIndex=0;
 
 class Process:public QRunnable
 {
 public:
-	Process(QSize &s,QReadWriteLock *l,const QList<const Comment *> &w,QLinkedList<Graphic *> &c):
-		size(s),lock(l),wait(w),current(c)
+	Process(QSize &s,QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
+		size(s),lock(l),current(c),wait(w)
 	{
 	}
 
@@ -299,6 +301,7 @@ public:
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
 					int b=0,e=0,s=0;
 					QRectF &r=g->currentRect();
+					std::function<bool(int,int)> f;
 					switch(c->mode){
 					case 1:
 					case 5:
@@ -306,19 +309,20 @@ public:
 						b=r.top();
 						e=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-r.height();
 						s=10;
+						f=std::less_equal<int>();
 						break;
 					case 4:
 						b=r.top();
 						e=0;
 						s=-10;
+						f=std::greater_equal<int>();
 						break;
 					}
-					e+=s-(e-b)%s;
-					QVector<uint> result((e-b)/s,0);
-					auto calculate=[&](const QLinkedList<Graphic *> &data){
+					QVector<uint> result(qMax((e-b)/s+1,0),0);
+					auto calculate=[&](const QList<Graphic *> &data){
 						QRectF t=r;
 						int i=0,h=b;
-						for(;h!=e;h+=s,++i){
+						for(;f(h,e);h+=s,++i){
 							r.moveTop(h);
 							for(Graphic *iter:data){
 								result[i]+=g->intersects(iter);
@@ -333,8 +337,8 @@ public:
 					g->setEnabled(false);
 					ready.append(g);
 					lock->lockForWrite();
-					QLinkedList<Graphic *> addtion;
-					QLinkedListIterator<Graphic *> iter(current);
+					QList<Graphic *> addtion;
+					QListIterator<Graphic *> iter(current);
 					iter.toBack();
 					while(iter.hasPrevious()){
 						Graphic *p=iter.previous();
@@ -346,7 +350,7 @@ public:
 					calculate(addtion);
 					uint m=UINT_MAX;
 					int i=0,h=b;
-					for(;h!=e;h+=s,++i){
+					for(;f(h,e);h+=s,++i){
 						if(m>result[i]){
 							r.moveTop(h);
 							if(m==0){
@@ -361,7 +365,7 @@ public:
 					ready.append(g);
 					lock->lockForWrite();
 				}
-				g->setIndex(index++);
+				g->setIndex(globalIndex++);
 				current.append(g);
 				lock->unlock();
 			}
@@ -376,8 +380,8 @@ public:
 private:
 	QSize &size;
 	QReadWriteLock *lock;
+	QList<Graphic *> &current;
 	QList<const Comment *> wait;
-	QLinkedList<Graphic *> &current;
 };
 
 void Danmaku::setTime(qint64 _time)
@@ -397,7 +401,7 @@ void Danmaku::setTime(qint64 _time)
 		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
 			wait.append(buffer.takeFirst());
 		}
-		qThreadPool->start(new Process(size,&lock,wait,current));
+		qThreadPool->start(new Process(size,&lock,current,wait));
 	}
 }
 
@@ -497,6 +501,6 @@ void Danmaku::appendToPool(const Record &record)
 
 void Danmaku::appendToCurrent(const Comment *comment)
 {
-	Process p(size,&lock,QList<const Comment *>()<<comment,current);
+	Process p(size,&lock,current,QList<const Comment *>()<<comment);
 	p.run();
 }
