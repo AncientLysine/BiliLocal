@@ -531,6 +531,17 @@ qint64 VPlayer::getDuration()
 	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
+QString VPlayer::getFile()
+{
+	if(m){
+		QUrl u(libvlc_media_get_mrl(m));
+		if(u.isLocalFile()){
+			return u.toLocalFile();
+		}
+	}
+	return QString();
+}
+
 void VPlayer::setState(State _state)
 {
 #ifdef Q_OS_WIN32
@@ -752,7 +763,7 @@ void VPlayer::setTime(qint64 _time)
 	}
 }
 
-void VPlayer::setFile(QString _file)
+void VPlayer::setMedia(QString _mrl)
 {
 	stop();
 	if(m){
@@ -761,8 +772,7 @@ void VPlayer::setFile(QString _file)
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
-	file=_file;
-	m=libvlc_media_new_path(vlc,file.toUtf8());
+	m=libvlc_media_new_location(vlc,_mrl.toUtf8());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){

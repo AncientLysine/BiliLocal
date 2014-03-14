@@ -424,7 +424,7 @@ void Menu::setFile(QString _file)
 	fileL->setText(file.fileName());
 	fileL->setCursorPosition(0);
 	Utils::setConfig("/Playing/Path",file.absolutePath());
-	VPlayer::instance()->setFile(QDir::toNativeSeparators(file.absoluteFilePath()));
+	VPlayer::instance()->setMedia(QUrl::fromLocalFile(file.absoluteFilePath()).toString());
 	bool only=Utils::getConfig("/Playing/Clear",true);
 	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){

@@ -51,10 +51,12 @@ Danmaku::Danmaku(QObject *parent):
 void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 {
 	size=rect.size();
+	QList<Graphic *> dirty;
 	lock.lockForWrite();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
 		if(g->move(move)){
+			dirty.append(g);
 			++iter;
 		}
 		else{
@@ -63,11 +65,9 @@ void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 		}
 	}
 	lock.unlock();
-	lock.lockForRead();
-	for(Graphic *g:current){
+	for(Graphic *g:dirty){
 		g->draw(painter);
 	}
-	lock.unlock();
 }
 
 QVariant Danmaku::data(const QModelIndex &index,int role) const
@@ -296,6 +296,10 @@ public:
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){
 			const Comment *c=wait.takeFirst();
+			if(c->time>VPlayer::instance()->getTime()+1000){
+				qThreadPool->clear();
+				break;
+			}
 			Graphic *g=Graphic::create(*c,size);
 			if(g){
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){

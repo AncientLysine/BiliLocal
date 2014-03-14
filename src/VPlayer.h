@@ -51,11 +51,11 @@ public:
 		Loop
 	};
 	~VPlayer();
-	State getState(){return state;}
 	qint64 getTime();
 	qint64 getDuration();
+	QString getFile();
 	QSize getSize(){return size;}
-	QString getFile(){return file;}
+	State getState(){return state;}
 	QList<QAction *> getSubtitles(){return subtitle;}
 	QList<QAction *> getVideoTracks(){return video;}
 	QList<QAction *> getAudioTracks(){return audio;}
@@ -70,7 +70,6 @@ private:
 	State state;
 	QTimer *fake;
 	double ratio;
-	QString file;
 	QProgressDialog *wait;
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
@@ -109,7 +108,7 @@ public slots:
 	void free();
 	void setDirty();
 	void setTime(qint64 _time);
-	void setFile(QString _file);
+	void setMedia(QString _mrl);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void addSubtitle(QString _file);

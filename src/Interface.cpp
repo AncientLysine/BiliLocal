@@ -485,9 +485,10 @@ void Interface::showContextMenu(QPoint p)
 		QMenu vid(tr("Video Track"),this);
 		QMenu aud(tr("Audio Track"),this);
 		connect(sub.addAction(tr("From File")),&QAction::triggered,[this](){
+			QFileInfo info( vplayer->getFile());
 			QString file=QFileDialog::getOpenFileName(this,
 													  tr("Open File"),
-													  vplayer->getFile());
+													  info.absolutePath());
 			if(!file.isEmpty()){
 				vplayer->addSubtitle(file);
 			}
