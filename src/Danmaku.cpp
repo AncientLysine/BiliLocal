@@ -51,7 +51,7 @@ Danmaku::Danmaku(QObject *parent):
 void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
 {
 	size=rect.size();
-	QList<Graphic *> dirty;
+	QVector<Graphic *> dirty;
 	lock.lockForWrite();
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
@@ -239,8 +239,10 @@ void Danmaku::parse(int flag)
 		QSet<QString> set;
 		int l=Utils::getConfig("/Shield/Limit",5);
 		QVector<QString> clean;
+		clean.reserve(danmaku.size());
 		if(l!=0){
-			QRegExp r("\\W");
+			QRegularExpression r("\\W");
+			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
 			for(const Comment *c:danmaku){
 				clean.append(QString(c->string).remove(r));
 			}
@@ -293,13 +295,12 @@ public:
 
 	void run()
 	{
+		if(wait.isEmpty()||wait.first()->time<VPlayer::instance()->getTime()-500){
+			return;
+		}
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){
 			const Comment *c=wait.takeFirst();
-			if(c->time>VPlayer::instance()->getTime()+1000){
-				qThreadPool->clear();
-				break;
-			}
 			Graphic *g=Graphic::create(*c,size);
 			if(g){
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
@@ -311,7 +312,7 @@ public:
 					case 5:
 					case 6:
 						b=r.top();
-						e=size.height()-(Utils::getConfig("/Danmaku/Protect",false)?80:0)-r.height();
+						e=size.height()*(Utils::getConfig("/Danmaku/Protect",false)?0.85:1)-r.height();
 						s=10;
 						f=std::less_equal<int>();
 						break;
@@ -391,21 +392,19 @@ private:
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
-	int l=Utils::getConfig("/Shield/Density",100);
-	QList<const Comment *> buffer;
+	int l=Utils::getConfig("/Shield/Density",100),n=0;
+	QMap<qint64,QHash<QString,QList<const Comment *>>> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];
-		if(!c->blocked&&(c->mode==7||l==0||current.size()+buffer.size()<l)){
-			buffer.append(c);
+		if(!c->blocked&&(c->mode==7||l==0||current.size()+n<l)){
+			++n;
+			buffer[c->time][c->string].append(c);
 		}
 	}
-	while(!buffer.isEmpty()){
-		const Comment *f=buffer.first();
-		QList<const Comment *> wait;
-		while(!buffer.isEmpty()&&buffer.first()->time==f->time&&buffer.first()->string==f->string){
-			wait.append(buffer.takeFirst());
+	for(const auto &sameTime:buffer){
+		for(const auto &sameText:sameTime){
+			qThreadPool->start(new Process(size,&lock,current,sameText));
 		}
-		qThreadPool->start(new Process(size,&lock,current,wait));
 	}
 }
 

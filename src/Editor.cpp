@@ -221,22 +221,17 @@ Editor::Editor(QWidget *parent):
 
 void Editor::load()
 {
-	duration=VPlayer::instance()->getDuration();
-	const QList<Record> &pool=Danmaku::instance()->getPool();
-	for(QLineEdit *iter:time){
-		delete iter;
-	}
+	qDeleteAll(time);
 	time.clear();
+	duration=VPlayer::instance()->getDuration();
+	bool undefined=duration==-1;
+	const QList<Record> &pool=Danmaku::instance()->getPool();
 	for(int i=0;i<pool.size();++i){
 		const Record &line=pool[i];
-		bool f=true;
-		qint64 t;
-		for(const Comment &c:line.danmaku){
-			t=f?c.time:qMax(c.time,t);
-			f=false;
-		}
-		if(!f){
-			duration=qMax(duration,t-line.delay);
+		if(undefined){
+			for(const Comment &c:line.danmaku){
+				duration=qMax(c.time-line.delay,duration);
+			}
 		}
 		QLineEdit *edit=new QLineEdit(tr("Delay: %1s").arg(line.delay/1000),this);
 		edit->setGeometry(0,73+i*length,98,25);
@@ -257,10 +252,8 @@ void Editor::load()
 		time.append(edit);
 	}
 	magnet<<0<<current<<duration;
-	QRect rect=geometry();
 	resize(width(),pool.count()*length);
-	update();
-	parentWidget()->update(rect);
+	parentWidget()->update();
 }
 
 void Editor::paintEvent(QPaintEvent *e)

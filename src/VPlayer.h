@@ -29,7 +29,6 @@
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
 extern "C"
 {
@@ -70,7 +69,6 @@ private:
 	State state;
 	QTimer *fake;
 	double ratio;
-	QProgressDialog *wait;
 	QList<QAction *> subtitle;
 	QList<QAction *> video;
 	QList<QAction *> audio;
@@ -101,11 +99,13 @@ signals:
 	void stateChanged(int);
 	void volumeChanged(int);
 
+private slots:
+	void init();
+	void free();
+
 public slots:
 	void play();
 	void stop();
-	void init();
-	void free();
 	void setDirty();
 	void setTime(qint64 _time);
 	void setMedia(QString _mrl);

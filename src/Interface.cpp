@@ -45,6 +45,8 @@ Interface::Interface(QWidget *parent):
 	setCenter(QSize(),true);
 	vplayer=VPlayer::instance();
 	danmaku=Danmaku::instance();
+	vplayer->setParent(this);
+	danmaku->setParent(this);
 	render=Render::create(this);
 	menu=new Menu(this);
 	info=new Info(this);

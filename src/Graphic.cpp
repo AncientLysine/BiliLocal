@@ -339,7 +339,7 @@ Mode4::Mode4(const Comment &comment,const QSize &size):
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveBottom(size.height()-(Utils::getConfig("/Danmaku/Protect",false)?size.height()/10:0));
+	rect.moveBottom(size.height()*(Utils::getConfig("/Danmaku/Protect",false)?0.85:1));
 	enabled=true;
 }
 

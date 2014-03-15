@@ -499,12 +499,11 @@ VPlayer::VPlayer(QObject *parent):
 	}
 	const char *argv[args.size()];
 	for(int i=0;i<args.size();++i){
-		argv[i]=args[i].data();
+		argv[i]=args[i];
 	}
 	vlc=libvlc_new(args.size(),argv);
 	m=NULL;
 	mp=NULL;
-	wait=NULL;
 	state=Stop;
 	ratio=0;
 	start=false;
@@ -610,12 +609,6 @@ void VPlayer::play()
 			libvlc_video_set_format_callbacks(mp,fmt,NULL);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
-			wait=new QProgressDialog(qobject_cast<QWidget *>(parent()));
-			wait->setCancelButton(NULL);
-			wait->setWindowTitle(tr("Caching"));
-			wait->setLabelText(tr("Parts of BiliLocal need initialization."));
-			wait->setFixedSize(wait->sizeHint());
-			QTimer::singleShot(2000,wait,SLOT(show()));
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -705,10 +698,6 @@ void VPlayer::init()
 			for(QAction *i:audio){
 				if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
 			}
-		}
-		if(wait){
-			wait->deleteLater();
-			wait=NULL;
 		}
 		QMetaObject::Connection *connect=new QMetaObject::Connection;
 		*connect=QObject::connect(this,&VPlayer::decode,[=](){

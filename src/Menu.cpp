@@ -150,7 +150,7 @@ Menu::Menu(QWidget *parent):
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
-	powerL->setValidator(new QIntValidator(powerL));
+	powerL->setValidator(new QRegularExpressionValidator(QRegularExpression("^\\w*$")));
 	powerC=new QTimer(this);
 	powerC->setTimerType(Qt::PreciseTimer);
 	setPower(Utils::getConfig("/Danmaku/Power",60));
