@@ -220,9 +220,17 @@ namespace
 class Compare
 {
 public:
+	inline bool operator ()(const Comment *c,qint64 time)
+	{
+		return c->time<time;
+	}
+	inline bool operator ()(qint64 time,const Comment *c)
+	{
+		return time<c->time;
+	}
 	inline bool operator ()(const Comment *f,const Comment *s)
 	{
-		return *f<*s;
+		return f->time<s->time;
 	}
 };
 }
@@ -424,7 +432,7 @@ void Danmaku::jumpToTime(qint64 _time)
 {
 	clearCurrent();
 	time=_time;
-	for(cur=0;cur<danmaku.size()&&danmaku[cur]->time<time;++cur);
+	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }
 
 void Danmaku::saveToFile(QString _file)
