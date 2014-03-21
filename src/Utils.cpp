@@ -299,7 +299,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			QStringList args=item.mid(sta,len).split(',');
 			sta=item.indexOf(">")+1;
 			len=item.indexOf("<",sta)-sta;
-			comment.time=args[0].toDouble()*1000;
+			comment.time=args[0].toDouble()*1000+0.5;
 			comment.date=args[4].toInt();
 			comment.mode=args[1].toInt();
 			comment.font=args[2].toInt();
@@ -317,7 +317,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			Comment comment;
 			QJsonObject item=i.toObject();
 			QStringList args=item["c"].toString().split(',');
-			comment.time=args[0].toDouble()*1000;
+			comment.time=args[0].toDouble()*1000+0.5;
 			comment.date=args[5].toInt();
 			comment.mode=args[2].toInt();
 			comment.font=args[3].toInt();
@@ -334,7 +334,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 		for(QJsonValue i:a){
 			Comment comment;
 			QJsonObject item=i.toObject();
-			comment.time=item["Time"].toDouble()*1000;
+			comment.time=item["Time"].toDouble()*1000+0.5;
 			comment.date=item["Timestamp"].toInt();
 			comment.mode=item["Mode"].toInt();
 			comment.font=25;
@@ -356,7 +356,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			QStringList args=item.mid(sta,len).split(',');
 			sta=item.indexOf("<![CDATA[")+9;
 			len=item.indexOf("]]>",sta)-sta;
-			comment.time=args[0].toDouble()*1000;
+			comment.time=args[0].toDouble()*1000+0.5;
 			comment.date=args[5].toInt();
 			comment.mode=args[3].toInt();
 			comment.font=args[1].toInt();

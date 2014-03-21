@@ -39,16 +39,17 @@ public:
 	virtual uint intersects(Graphic *other)=0;
 	virtual QRectF &currentRect(){return rect;}
 	virtual ~Graphic(){}
-	int getMode(){return source?source->mode:0;}
 
-	bool isEnabled(){return enabled;}
-	void setEnabled(bool _enabled){enabled=_enabled;}
+	inline int getMode(){return source?source->mode:0;}
 
-	quint64 getIndex(){return index;}
-	void setIndex(quint64 _index){index=_index;}
+	inline bool isEnabled(){return enabled;}
+	inline void setEnabled(bool _enabled){enabled=_enabled;}
 
-	const Comment *getSource(){return source;}
-	void setSource(Comment *_source){source=_source;}
+	inline quint64 getIndex(){return index;}
+	inline void setIndex(quint64 _index){index=_index;}
+
+	inline const Comment *getSource(){return source;}
+	inline void setSource(const Comment *_source){source=_source;}
 
 	static Graphic *create(const Comment &comment,
 						   const QSize &size);

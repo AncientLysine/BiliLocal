@@ -47,8 +47,8 @@ private:
 	QComboBox *commentM;
 	QPushButton *commentC;
 	QPushButton *commentB;
-	QList<Comment> sended;
 	QNetworkAccessManager *manager;
+
 	QColor getColor();
 	Comment getComment();
 	QList<const Record *> getRecords();

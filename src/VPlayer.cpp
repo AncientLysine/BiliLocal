@@ -752,7 +752,7 @@ void VPlayer::setTime(qint64 _time)
 	}
 }
 
-void VPlayer::setMedia(QString _mrl)
+void VPlayer::setMedia(QString _file)
 {
 	stop();
 	if(m){
@@ -761,7 +761,7 @@ void VPlayer::setMedia(QString _mrl)
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
-	m=libvlc_media_new_location(vlc,_mrl.toUtf8());
+	m=libvlc_media_new_path(vlc,QDir::toNativeSeparators(_file).toUtf8());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
@@ -799,7 +799,7 @@ void VPlayer::addSubtitle(QString _file)
 		QFileInfo info(_file);
 		outside->setCheckable(true);
 		outside->setText(qApp->fontMetrics().elidedText(info.fileName(),Qt::ElideMiddle,200));
-		outside->setData(info.absoluteFilePath());
+		outside->setData(QDir::toNativeSeparators(info.absoluteFilePath()));
 		connect(outside,&QAction::triggered,[=](){
 			libvlc_video_set_subtitle_file(mp,outside->data().toString().toUtf8());
 		});

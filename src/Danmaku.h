@@ -57,6 +57,7 @@ private:
 	QList<Graphic *> current;
 	mutable QReadWriteLock lock;
 	static Danmaku *ins;
+
 	Danmaku(QObject *parent=0);
 	void setTime(qint64 _time);
 
@@ -69,7 +70,7 @@ public slots:
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
-	void appendToCurrent(const Comment *comment);
+	bool appendToPool(QString source,const Comment &comment);
 };
 
 #endif // DANMAKU_H

@@ -206,7 +206,7 @@ Menu::Menu(QWidget *parent):
 	});
 
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
-		auto error=[this](int code){
+		auto error=[this](int code=203){
 			isStay=false;
 			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(code));
 		};
@@ -279,7 +279,7 @@ Menu::Menu(QWidget *parent):
 						reply->manager()->get(QNetworkRequest(QUrl(api.arg(id))));
 					}
 					else{
-						error(404);
+						error();
 					}
 				}
 			}
@@ -292,7 +292,7 @@ Menu::Menu(QWidget *parent):
 						reply->manager()->get(QNetworkRequest(jsonUrl));
 					}
 					else{
-						error(404);
+						error();
 					}
 				}
 				else{
@@ -331,7 +331,7 @@ Menu::Menu(QWidget *parent):
 							reply->manager()->get(QNetworkRequest(id.prepend("http://www.acfun.tv/video/getVideo.aspx?id=")));
 						}
 						else{
-							error(404);
+							error();
 						}
 					}
 				}
@@ -354,14 +354,14 @@ Menu::Menu(QWidget *parent):
 					cur+=regex.matchedLength();
 				}
 				if(model->rowCount()==0){
-					error(404);
+					error();
 				}
 				else if(isVisible()){
 					danmC->complete();
 				}
 			}
 			else{
-				error(404);
+				error();
 			}
 		}
 		else{
@@ -424,7 +424,7 @@ void Menu::setFile(QString _file)
 	fileL->setText(file.fileName());
 	fileL->setCursorPosition(0);
 	Utils::setConfig("/Playing/Path",file.absolutePath());
-	VPlayer::instance()->setMedia(QUrl::fromLocalFile(file.absoluteFilePath()).toString());
+	VPlayer::instance()->setMedia(file.absoluteFilePath());
 	bool only=Utils::getConfig("/Playing/Clear",true);
 	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){

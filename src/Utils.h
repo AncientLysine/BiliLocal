@@ -47,9 +47,13 @@ public:
 		mode=font=color=time=date=0;
 		blocked=false;
 	}
-	inline bool operator ==(const Comment &o) const
+	inline bool operator <(const Comment &o) const
 	{
-		return mode==o.mode&&font==o.font&&color==o.color&&sender==o.sender&&string==o.string&&date==o.date&&qAbs(time-o.time)<10;
+		return time<o.time;
+	}
+	inline bool operator==(const Comment &o) const
+	{
+		return mode==o.mode&&font==o.font&&color==o.color&&time==o.time&&date==o.date&&sender==o.sender&&string==o.string;
 	}
 };
 
@@ -58,6 +62,7 @@ inline uint qHash(const Comment &c,uint seed)
 	uint h=qHash(c.mode,seed);
 	h=(h<<1)^qHash(c.font,seed);
 	h=(h<<1)^qHash(c.color,seed);
+	h=(h<<1)^qHash(c.time,seed);
 	h=(h<<1)^qHash(c.date,seed);
 	h=(h<<1)^qHash(c.sender,seed);
 	h=(h<<1)^qHash(c.string,seed);

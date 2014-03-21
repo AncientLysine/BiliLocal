@@ -108,7 +108,7 @@ public slots:
 	void stop();
 	void setDirty();
 	void setTime(qint64 _time);
-	void setMedia(QString _mrl);
+	void setMedia(QString _file);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void addSubtitle(QString _file);

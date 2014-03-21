@@ -188,29 +188,27 @@ void Post::postComment()
 		params["Message"]=c.string;
 		data=QJsonDocument(params).toJson();
 	}
-	QNetworkReply *reply=manager->post(request,data);
-	connect(reply,&QNetworkReply::finished,[=](){
-		int error=reply->error();
-		QString url=reply->url().toString();
-		if(error==QNetworkReply::NoError){
-			if(url.startsWith("http://interface.bilibili.tv/")){
-				error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+	if(Danmaku::instance()->appendToPool(r->source,c)){
+		QNetworkReply *reply=manager->post(request,data);
+		connect(reply,&QNetworkReply::finished,[=](){
+			int error=reply->error();
+			QString url=reply->url().toString();
+			if(error==QNetworkReply::NoError){
+				if(url.startsWith("http://interface.bilibili.tv/")){
+					error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+				}
+				if(url.startsWith("http://acplay.net/")){
+					QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
+					error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
+				}
 			}
-			if(url.startsWith("http://acplay.net/")){
-				QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
-				error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
+			if(error!=QNetworkReply::NoError){
+				QString info=tr("Network error occurred, error code: %1");
+				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
 			}
-		}
-		if(error!=QNetworkReply::NoError){
-			QString info=tr("Network error occurred, error code: %1");
-			QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
-		}
-		else{
-			sended.append(c);
-			Danmaku::instance()->appendToCurrent(&sended.last());
-		}
-		reply->deleteLater();
-	});
+			reply->deleteLater();
+		});
+	}
 }
 
 void Post::moveWithParent()

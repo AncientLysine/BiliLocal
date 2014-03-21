@@ -215,6 +215,18 @@ void Danmaku::clearCurrent()
 	emit layoutChanged();
 }
 
+namespace
+{
+class Compare
+{
+public:
+	inline bool operator ()(const Comment *f,const Comment *s)
+	{
+		return *f<*s;
+	}
+};
+}
+
 void Danmaku::parse(int flag)
 {
 	if((flag&0x1)>0){
@@ -226,7 +238,7 @@ void Danmaku::parse(int flag)
 				danmaku.append(&comment);
 			}
 		}
-		std::stable_sort(danmaku.begin(),danmaku.end(),[](const Comment *f,const Comment *s){return f->time<s->time;});
+		std::stable_sort(danmaku.begin(),danmaku.end(),Compare());
 		jumpToTime(time);
 		endResetModel();
 	}
@@ -502,8 +514,16 @@ void Danmaku::appendToPool(const Record &record)
 	parse(0x1|0x2);
 }
 
-void Danmaku::appendToCurrent(const Comment *comment)
+bool Danmaku::appendToPool(QString source,const Comment &comment)
 {
-	Process p(size,&lock,current,QList<const Comment *>()<<comment);
-	p.run();
+	for(Record &r:pool){
+		if(r.source==source){
+			r.danmaku.append(comment);
+			Comment *c=&r.danmaku.last();
+			danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
+			parse(0x2);
+			return true;
+		}
+	}
+	return false;
 }

@@ -303,7 +303,7 @@ bool Mode1::move(qint64 time)
 uint Mode1::intersects(Graphic *other)
 {
 	if(other->getMode()!=1){
-		return false;
+		return 0;
 	}
 	const Mode1 &f=*dynamic_cast<Mode1 *>(other);
 	const Mode1 &s=*this;
@@ -354,7 +354,7 @@ bool Mode4::move(qint64 time)
 uint Mode4::intersects(Graphic *other)
 {
 	if(other->getMode()!=4){
-		return false;
+		return 0;
 	}
 	const Mode4 &f=*this;
 	const Mode4 &s=*dynamic_cast<Mode4 *>(other);
@@ -389,7 +389,7 @@ bool Mode5::move(qint64 time)
 uint Mode5::intersects(Graphic *other)
 {
 	if(other->getMode()!=5){
-		return false;
+		return 0;
 	}
 	const Mode5 &f=*this;
 	const Mode5 &s=*dynamic_cast<Mode5 *>(other);
