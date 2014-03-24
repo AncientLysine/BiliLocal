@@ -639,7 +639,6 @@ void VPlayer::stop()
 void VPlayer::init()
 {
 	if(mp){
-		State s=state;
 		if(state==Stop){
 			setState(Play);
 			if(!Utils::getConfig("/Playing/Subtitle",true)){
@@ -701,12 +700,7 @@ void VPlayer::init()
 		}
 		QMetaObject::Connection *connect=new QMetaObject::Connection;
 		*connect=QObject::connect(this,&VPlayer::decode,[=](){
-			if(s==Loop){
-				setVolume(Utils::getConfig("/Playing/Volume",100));
-			}
-			else{
-				emit volumeChanged(libvlc_audio_get_volume(mp));
-			}
+			setVolume(Utils::getConfig("/Playing/Volume",50));
 			QObject::disconnect(*connect);
 			delete connect;
 		});

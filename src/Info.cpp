@@ -55,7 +55,7 @@ Info::Info(QWidget *parent):
 	timeS->setRange(0,0);
 	volmS->setRange(0,100);
 	timeS->setValue(0);
-	volmS->setValue(Utils::getConfig("/Playing/Volume",100));
+	volmS->setValue(Utils::getConfig("/Playing/Volume",50));
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){

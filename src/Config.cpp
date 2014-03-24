@@ -29,6 +29,7 @@
 #include "Shield.h"
 #include "Cookie.h"
 #include "Danmaku.h"
+#include "VPlayer.h"
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent)
@@ -518,7 +519,6 @@ Config::Config(QWidget *parent,int index):
 				stream<<"</filters>";
 			}
 		});
-		widget[2]->addAction(action[1]);
 		widget[2]->addAction(action[2]);
 		widget[2]->addAction(action[3]);
 		button[0]=new QPushButton(tr("Add"),widget[2]);
@@ -604,8 +604,14 @@ Config::Config(QWidget *parent,int index):
 			Danmaku::instance()->parse(0x2);
 		}
 		if(restart!=getRestart()){
-			Danmaku::instance()->release();
-			qApp->exit(12450);
+			bool stoped=VPlayer::instance()->getState()==VPlayer::Stop;
+			if(stoped||QMessageBox::warning(this,
+											tr("Warning"),
+											tr("Restart to apply changes?"),
+											QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
+				Danmaku::instance()->release();
+				qApp->exit(12450);
+			}
 		}
 	});
 	setMinimumWidth(540);
