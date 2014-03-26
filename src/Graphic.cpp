@@ -145,6 +145,7 @@ static QImage getCache(QString string,
 					   int color,
 					   QFont font,
 					   QSize size,
+					   bool frame,
 					   int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
 					   int opacity=Utils::getConfig("/Danmaku/Alpha",100))
 {
@@ -205,18 +206,23 @@ static QImage getCache(QString string,
 		painter.drawImage(0,0,src);
 		painter.end();
 	}
-	if(opacity==100){
-		return fst;
+	if(frame){
+		painter.begin(&fst);
+		painter.setPen(QColor(100,255,255));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(fst.rect().adjusted(0,0,-1,-1));
+		painter.end();
 	}
-	else{
+	if(opacity!=100){
 		QImage sec(size,QImage::Format_ARGB32_Premultiplied);
 		sec.fill(Qt::transparent);
 		painter.begin(&sec);
 		painter.setOpacity(opacity/100.0);
 		painter.drawImage(QPoint(0,0),fst);
 		painter.end();
-		return sec;
+		fst=sec;
 	}
+	return fst;
 }
 
 static double getOverlap(double ff,double fs,double sf,double ss)
@@ -267,7 +273,7 @@ Plain::Plain(const Comment &comment,const QSize &size)
 	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize need=getSize(comment.string,font);
 	rect.setSize(need);
-	cache=getCache(comment.string,comment.color,font,need);
+	cache=getCache(comment.string,comment.color,font,need,comment.isLocal());
 }
 
 void Plain::draw(QPainter *painter)
@@ -485,7 +491,7 @@ Mode7::Mode7(const Comment &comment,const QSize &size)
 	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
 	QFont font=getFont(scale?comment.font*scale:comment.font,l<13?Utils::defaultFont(true):data[12].toString());
 	QString string=data[4].toString();
-	cache=getCache(string,comment.color,font,getSize(string,font),effect,100);
+	cache=getCache(string,comment.color,font,getSize(string,font),comment.isLocal(),effect,100);
 	zRotate=l<6?0:getDouble(5);
 	yRotate=l<7?0:getDouble(6);
 	wait=l<11?0:getDouble(10)/1000;

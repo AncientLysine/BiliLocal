@@ -55,6 +55,10 @@ public:
 	{
 		return mode==o.mode&&font==o.font&&color==o.color&&time==o.time&&date==o.date&&sender==o.sender&&string==o.string;
 	}
+	inline bool isLocal() const
+	{
+		return date==0&&sender.isEmpty();
+	}
 };
 
 inline uint qHash(const Comment &c,uint seed)
