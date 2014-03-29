@@ -588,24 +588,6 @@ void VPlayer::play()
 {
 	if(mp){
 		if(state==Stop){
-			libvlc_media_track_t **info;
-			libvlc_media_parse(m);
-			int n=libvlc_media_tracks_get(m,&info);
-			music=true;
-			size=QSize();
-			for(int i=0;i<n;++i){
-				if(info[i]->i_type==libvlc_track_video){
-					libvlc_video_track_t *v=info[i]->video;
-					music=false;
-					double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
-					size=QSize(v->i_width*r,v->i_height);
-					break;
-				}
-			}
-			libvlc_media_tracks_release(info,n);
-			if(music){
-				fake->start();
-			}
 			libvlc_video_set_format_callbacks(mp,fmt,NULL);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
@@ -639,70 +621,87 @@ void VPlayer::stop()
 void VPlayer::init()
 {
 	if(mp){
-		if(state==Stop){
-			setState(Play);
-			if(!Utils::getConfig("/Playing/Subtitle",true)){
-				libvlc_video_set_spu(mp,-1);
-			}
-			auto transTracks=[this](libvlc_track_description_t *head)
-			{
-				libvlc_track_description_t *iter=head;
-				QActionGroup *group=new QActionGroup(this);
-				group->setExclusive(true);
-				while(iter){
-					QAction *action=group->addAction(iter->psz_name);
-					action->setCheckable(true);
-					action->setData(iter->i_id);
-					iter=iter->p_next;
+		auto *connection=new QMetaObject::Connection;
+		*connection=QObject::connect(this,&VPlayer::timeChanged,[=](){
+			if(state==Stop){
+				setState(Play);
+				libvlc_media_track_t **info;
+				int n=libvlc_media_tracks_get(m,&info);
+				music=true;
+				size=QSize();
+				for(int i=0;i<n;++i){
+					if(info[i]->i_type==libvlc_track_video){
+						libvlc_video_track_t *v=info[i]->video;
+						music=false;
+						double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
+						size=QSize(v->i_width*r,v->i_height);
+						break;
+					}
 				}
-				libvlc_track_description_list_release(head);
-				return group->actions();
-			};
-			subtitle=transTracks(libvlc_video_get_spu_description(mp));
-			video=transTracks(libvlc_video_get_track_description(mp));
-			audio=transTracks(libvlc_audio_get_track_description(mp));
-			for(QAction *i:subtitle){
-				connect(i,&QAction::triggered,[=](){libvlc_video_set_spu(mp,i->data().toInt());});
-				i->setChecked(i->data().toInt()==libvlc_video_get_spu(mp));
-			}
-			for(QAction *i:video){
-				int t=i->data().toInt();
-				connect(i,&QAction::triggered,[=](){
-					libvlc_video_set_track(mp,t);
-					if(t==-1){
-						fake->start();
-						music=1;
+				libvlc_media_tracks_release(info,n);
+				if(music){
+					fake->start();
+				}
+				if(!Utils::getConfig("/Playing/Subtitle",true)){
+					libvlc_video_set_spu(mp,-1);
+				}
+				auto transTracks=[this](libvlc_track_description_t *head)
+				{
+					libvlc_track_description_t *iter=head;
+					QActionGroup *group=new QActionGroup(this);
+					group->setExclusive(true);
+					while(iter){
+						QAction *action=group->addAction(iter->psz_name);
+						action->setCheckable(true);
+						action->setData(iter->i_id);
+						iter=iter->p_next;
 					}
-					else{
-						fake->stop();
-						music=0;
-					}
-				});
-				i->setChecked(t==libvlc_video_get_track(mp));
+					libvlc_track_description_list_release(head);
+					return group->actions();
+				};
+				subtitle=transTracks(libvlc_video_get_spu_description(mp));
+				video=transTracks(libvlc_video_get_track_description(mp));
+				audio=transTracks(libvlc_audio_get_track_description(mp));
+				for(QAction *i:subtitle){
+					connect(i,&QAction::triggered,[=](){libvlc_video_set_spu(mp,i->data().toInt());});
+					i->setChecked(i->data().toInt()==libvlc_video_get_spu(mp));
+				}
+				for(QAction *i:video){
+					int t=i->data().toInt();
+					connect(i,&QAction::triggered,[=](){
+						libvlc_video_set_track(mp,t);
+						if(t==-1){
+							fake->start();
+							music=1;
+						}
+						else{
+							fake->stop();
+							music=0;
+						}
+					});
+					i->setChecked(t==libvlc_video_get_track(mp));
+				}
+				for(QAction *i:audio){
+					connect(i,&QAction::triggered,[=](){libvlc_audio_set_track(mp,i->data().toInt());});
+					i->setChecked(i->data().toInt()==libvlc_audio_get_track(mp));
+				}
+				emit begin();
 			}
-			for(QAction *i:audio){
-				connect(i,&QAction::triggered,[=](){libvlc_audio_set_track(mp,i->data().toInt());});
-				i->setChecked(i->data().toInt()==libvlc_audio_get_track(mp));
+			if(state==Loop){
+				setState(Play);
+				for(QAction *i:subtitle){
+					if(i->isChecked()) libvlc_video_set_spu(mp,i->data().toInt());
+				}
+				for(QAction *i:video){
+					if(i->isChecked()) libvlc_video_set_track(mp,i->data().toInt());
+				}
+				for(QAction *i:audio){
+					if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
+				}
 			}
-			emit begin();
-		}
-		if(state==Loop){
-			setState(Play);
-			for(QAction *i:subtitle){
-				if(i->isChecked()) libvlc_video_set_spu(mp,i->data().toInt());
-			}
-			for(QAction *i:video){
-				if(i->isChecked()) libvlc_video_set_track(mp,i->data().toInt());
-			}
-			for(QAction *i:audio){
-				if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
-			}
-		}
-		QMetaObject::Connection *connect=new QMetaObject::Connection;
-		*connect=QObject::connect(this,&VPlayer::decode,[=](){
 			setVolume(Utils::getConfig("/Playing/Volume",50));
-			QObject::disconnect(*connect);
-			delete connect;
+			QObject::disconnect(*connection);
+			delete connection;
 		});
 	}
 }

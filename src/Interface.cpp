@@ -300,7 +300,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		if(x<w-250){
 			info->push();
 		}
-		if(y<=h-25){
+		if(y<=h-50){
 			if(x>=0&&x<50){
 				menu->pop();
 			}
