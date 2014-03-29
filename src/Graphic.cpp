@@ -131,9 +131,13 @@ static QSizeF getPlayer(qint64 date)
 
 static double getScale(int mode,qint64 date,QSize size)
 {
-	int scale=Utils::getConfig("/Danmaku/Scale",0x1);
-	if(mode<=6&&(scale&0x2)==0) return 1;
-	if(mode==7&&(scale&0x1)==0) return 0;
+	int m=Utils::getConfig("/Danmaku/Scale/Fitted",0x1);
+	if(mode==7&&(m&0x1)==0){
+		return 0;
+	}
+	if(mode<=6&&(m&0x2)==0){
+		return Utils::getConfig("/Danmaku/Scale/Factor",1.0);
+	}
 	QSizeF player=getPlayer(date);
 	return qMin(size.width()/player.width(),size.height()/player.height());
 }

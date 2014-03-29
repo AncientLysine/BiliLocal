@@ -54,6 +54,7 @@ private:
 	QGroupBox *ui[5];
 	QComboBox *font;
 	QCheckBox *acce;
+	QCheckBox *vers;
 	QCheckBox *stay;
 	QCheckBox *less;
 	QLineEdit *size;

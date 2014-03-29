@@ -96,7 +96,7 @@ Config::Config(QWidget *parent,int index):
 		list->addWidget(box[2]);
 
 		auto e=new QHBoxLayout;
-		int state=Utils::getConfig("/Danmaku/Scale",0x1);
+		int state=Utils::getConfig("/Danmaku/Scale/Fitted",0x1);
 		scale[0]=new QCheckBox(tr("ordinary"),widget[0]);
 		scale[0]->setChecked((state&0x2)>0);
 		scale[1]=new QCheckBox(tr("advanced"),widget[0]);
@@ -104,7 +104,7 @@ Config::Config(QWidget *parent,int index):
 		auto slot=[this](){
 			int n=scale[0]->checkState()==Qt::Checked;
 			int a=scale[1]->checkState()==Qt::Checked;
-			Utils::setConfig("/Danmaku/Scale",(n<<1)+a);
+			Utils::setConfig("/Danmaku/Scale/Fitted",(n<<1)+a);
 		};
 		connect(scale[0],&QCheckBox::stateChanged,slot);
 		connect(scale[1],&QCheckBox::stateChanged,slot);
@@ -186,34 +186,40 @@ Config::Config(QWidget *parent,int index):
 		auto f=new QHBoxLayout;
 		font=new QComboBox(widget[1]);
 		font->addItems(QFontDatabase().families());
-		font->setCurrentText(Utils::getConfig("/Interface/Font",QFont().family()));
+		font->setCurrentText(Utils::getConfig("/Interface/Font/Family",QFont().family()));
 		connect(font,&QComboBox::currentTextChanged,[this](QString _font){
-			Utils::setConfig("/Interface/Font",_font);
+			Utils::setConfig("/Interface/Font/Family",_font);
 		});
 		f->addWidget(font);
 		ui[1]=new QGroupBox(tr("interface font"),widget[1]);
 		ui[1]->setLayout(f);
 		lines->addWidget(ui[1]);
 
-		auto t=new QHBoxLayout;
+		auto t=new QGridLayout;
 		acce=new QCheckBox(tr("hardware accelerated"),widget[1]);
 		acce->setChecked(Utils::getConfig("/Interface/Accelerated",false));
 		connect(acce,&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Interface/Accelerated",state==Qt::Checked);
 		});
-		t->addWidget(acce);
+		t->addWidget(acce,0,0);
+		vers=new QCheckBox(tr("version information"),widget[1]);
+		vers->setChecked(Utils::getConfig("/Interface/Version",true));
+		connect(vers,&QCheckBox::stateChanged,[this](int state){
+			Utils::setConfig("/Interface/Version",state==Qt::Checked);
+		});
+		t->addWidget(vers,1,0);
 		stay=new QCheckBox(tr("stay on top"),widget[1]);
 		stay->setChecked(Utils::getConfig("/Interface/Top",false));
 		connect(stay,&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Interface/Top",state==Qt::Checked);
 		});
-		t->addWidget(stay);
+		t->addWidget(stay,0,1);
 		less=new QCheckBox(tr("frameless"),widget[1]);
 		less->setChecked(Utils::getConfig("/Interface/Frameless",false));
 		connect(less,&QCheckBox::stateChanged,[this](int state){
 			Utils::setConfig("/Interface/Frameless",state==Qt::Checked);
 		});
-		t->addWidget(less);
+		t->addWidget(less,1,1);
 		ui[2]=new QGroupBox(tr("window flag"),widget[1]);
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
@@ -604,8 +610,8 @@ Config::Config(QWidget *parent,int index):
 			Danmaku::instance()->parse(0x2);
 		}
 		if(restart!=getRestart()){
-			bool stoped=VPlayer::instance()->getState()==VPlayer::Stop;
-			if(stoped||QMessageBox::warning(this,
+			bool flag=VPlayer::instance()->getState()==VPlayer::Stop&&Danmaku::instance()->rowCount()==0;
+			if(flag||QMessageBox::warning(this,
 											tr("Warning"),
 											tr("Restart to apply changes?"),
 											QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
@@ -626,7 +632,8 @@ QHash<QString,QVariant> Config::getRestart()
 		  "/Interface/Background"<<
 		  "/Interface/Font"<<
 		  "/Interface/Frameless"<<
-		  "/Interface/Top";
+		  "/Interface/Top"<<
+		  "/Interface/Version";
 	QHash<QString,QVariant> data;
 	for(QString iter:path){
 		data[iter]=Utils::getConfig<QVariant>(iter);

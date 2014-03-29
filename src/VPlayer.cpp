@@ -490,6 +490,11 @@ static void end(const libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"free");
 }
 
+static void err(const libvlc_event_t *,void *)
+{
+	QMetaObject::invokeMethod(VPlayer::instance(),"fail");
+}
+
 VPlayer::VPlayer(QObject *parent):
 	QObject(parent)
 {
@@ -509,6 +514,7 @@ VPlayer::VPlayer(QObject *parent):
 	start=false;
 	music=false;
 	dirty=false;
+	wait=NULL;
 	fake=new QTimer(this);
 	fake->setInterval(33);
 	fake->setTimerType(Qt::PreciseTimer);
@@ -591,6 +597,21 @@ void VPlayer::play()
 			libvlc_video_set_format_callbacks(mp,fmt,NULL);
 			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
 			libvlc_media_player_play(mp);
+			if(!wait){
+				wait=new QTimer(this);
+				wait->setInterval(2000);
+				wait->setSingleShot(true);
+				wait->connect(wait,&QTimer::timeout,[this](){
+					QProgressDialog dialog(qobject_cast<QWidget *>(parent()));
+					dialog.setCancelButton(NULL);
+					dialog.setWindowTitle(tr("Caching"));
+					dialog.setLabelText(tr("Parts of BiliLocal need initialization."));
+					dialog.setFixedSize(dialog.sizeHint());
+					connect(wait,&QTimer::destroyed,&dialog,&QDialog::accept);
+					dialog.exec();
+				});
+			}
+			wait->start();
 		}
 		else{
 			libvlc_media_player_pause(mp);
@@ -620,6 +641,10 @@ void VPlayer::stop()
 
 void VPlayer::init()
 {
+	if(wait){
+		delete wait;
+		wait=NULL;
+	}
 	if(mp){
 		auto *connection=new QMetaObject::Connection;
 		*connection=QObject::connect(this,&VPlayer::timeChanged,[=](){
@@ -719,6 +744,14 @@ void VPlayer::free()
 	}
 }
 
+void VPlayer::fail()
+{
+	if(wait){
+		delete wait;
+		wait=NULL;
+	}
+}
+
 void VPlayer::setDirty()
 {
 	if(state!=Pause){
@@ -768,6 +801,9 @@ void VPlayer::setMedia(QString _file)
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEndReached,
 								end,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerEncounteredError,
+								err,NULL);
 		}
 	}
 }

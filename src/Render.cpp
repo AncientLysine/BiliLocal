@@ -195,19 +195,23 @@ Render *Render::create(QWidget *parent)
 }
 
 Render::Render(QWidget *parent):
-	QObject(parent),tv(":/Picture/tv.gif"),me(":/Picture/version.png")
+	QObject(parent)
 {
 	time=0;
-	tv.start();
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
-	connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
-	connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
-	connect(&tv,&QMovie::updated,[this](){
-		QImage cf=tv.currentImage();
-		QPoint ps=widget->rect().center()-cf.rect().center();
-		ps.ry()-=40;
-		draw(QRect(ps,cf.size()));
-	});
+	if(Utils::getConfig("/Interface/Version",true)){
+		tv.setFileName(":/Picture/tv.gif");
+		tv.start();
+		me=QImage(":/Picture/version.png");
+		connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
+		connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
+		connect(&tv,&QMovie::updated,[this](){
+			QImage cf=tv.currentImage();
+			QPoint ps=widget->rect().center()-cf.rect().center();
+			ps.ry()-=40;
+			draw(QRect(ps,cf.size()));
+		});
+	}
 	QString path=Utils::getConfig("/Interface/Background",QString());
 	if(!path.isEmpty()){
 		background=QImage(path);

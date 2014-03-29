@@ -55,7 +55,8 @@ static void setDefaultFont()
 	if(!QFontDatabase().families().contains(def)){
 		def=QFontInfo(f).family();
 	}
-	f.setFamily(Utils::getConfig("/Interface/Font",def));
+	f.setFamily(Utils::getConfig("/Interface/Font/Family",def));
+	f.setPointSizeF(Utils::getConfig("/Interface/Font/Size",9.0));
 	qApp->setFont(f);
 }
 
