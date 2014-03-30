@@ -67,6 +67,7 @@ public slots:
 	void clearPool();
 	void clearCurrent();
 	void parse(int flag=0);
+	void delayAll(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);

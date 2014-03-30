@@ -170,6 +170,37 @@ Interface::Interface(QWidget *parent):
 		postA->setEnabled(post->isValid());
 	});
 
+	QAction *delA=new QAction(this);
+	delA->setShortcut(QKeySequence("Ctrl+Right"));
+	connect(delA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),+1000));
+	QAction *ahdA=new QAction(this);
+	ahdA->setShortcut(QKeySequence("Ctrl+Left"));
+	connect(ahdA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),-1000));
+	addAction(delA);
+	addAction(ahdA);
+
+	QAction *fwdA=new QAction(this);
+	fwdA->setShortcut(QKeySequence("Right"));
+	connect(fwdA,&QAction::triggered,[this](){
+		vplayer->setTime(vplayer->getTime()+Utils::getConfig("Playing/Interval",10)*1000);
+	});
+	QAction *bwdA=new QAction(this);
+	bwdA->setShortcut(QKeySequence("Left"));
+	connect(bwdA,&QAction::triggered,[this](){
+		vplayer->setTime(vplayer->getTime()-Utils::getConfig("Playing/Interval",10)*1000);
+	});
+	addAction(fwdA);
+	addAction(bwdA);
+
+	QAction *escA=new QAction(this);
+	escA->setShortcut(Qt::Key_Escape);
+	connect(escA,&QAction::triggered,[this](){
+		if(isFullScreen()){
+			fullA->toggle();
+		}
+	});
+	addAction(escA);
+
 	QActionGroup *g;
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
@@ -268,25 +299,6 @@ void Interface::resizeEvent(QResizeEvent *e)
 	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
 	info->setGeometry(info->isShown()?w-200:w,0,200,h);
 	QWidget::resizeEvent(e);
-}
-
-void Interface::keyPressEvent(QKeyEvent *e)
-{
-	int jmp=Utils::getConfig("Playing/Interval",10)*1000;
-	switch(e->key()){
-	case Qt::Key_Left:
-		jmp=-jmp;
-	case Qt::Key_Right:
-		if(vplayer->getState()==VPlayer::Play){
-			vplayer->setTime(vplayer->getTime()+jmp);
-		}
-		break;
-	case Qt::Key_Escape:
-		if(isFullScreen()){
-			fullA->toggle();
-		}
-	}
-	QWidget::keyPressEvent(e);
 }
 
 void Interface::mouseMoveEvent(QMouseEvent *e)

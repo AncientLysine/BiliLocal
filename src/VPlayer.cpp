@@ -762,7 +762,7 @@ void VPlayer::setDirty()
 
 void VPlayer::setTime(qint64 _time)
 {
-	if(mp){
+	if(mp&&state!=Stop){
 		if(getDuration()==_time){
 			if(Utils::getConfig("/Playing/Loop",false)){
 				setTime(0);

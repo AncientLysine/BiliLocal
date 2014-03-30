@@ -428,6 +428,18 @@ void Danmaku::setTime(qint64 _time)
 	}
 }
 
+void Danmaku::delayAll(qint64 _time)
+{
+	for(Record &r:pool){
+		r.delay+=_time;
+		for(Comment &c:r.danmaku){
+			c.time+=_time;
+		}
+	}
+	jumpToTime(_time);
+	emit layoutChanged();
+}
+
 void Danmaku::jumpToTime(qint64 _time)
 {
 	clearCurrent();
