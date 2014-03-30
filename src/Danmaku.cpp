@@ -124,10 +124,14 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 			break;
 		case Qt::BackgroundRole:
-			if(comment.mode==7){
-				return QColor(208,255,204);
+			switch(comment.mode){
+			case 7:
+				return QColor(200,255,200);
+			case 8:
+				return QColor(255,255,160);
+			default:
+				break;
 			}
-			break;
 		case Qt::UserRole:
 			return (quintptr)&comment;
 		}
@@ -436,7 +440,7 @@ void Danmaku::delayAll(qint64 _time)
 			c.time+=_time;
 		}
 	}
-	jumpToTime(_time);
+	jumpToTime(time);
 	emit layoutChanged();
 }
 

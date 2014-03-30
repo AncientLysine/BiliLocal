@@ -48,7 +48,7 @@ void avpicture_free(AVPicture *picture)
 	av_free(picture->data[0]);
 }
 
-static QMutex data,time;
+static QMutex data;
 
 static AVPixelFormat getFormat(char *chroma)
 {
@@ -480,12 +480,9 @@ static void sta(const libvlc_event_t *,void *)
 
 static void mid(const libvlc_event_t *,void *)
 {
-	if(time.tryLock()){
-		QMetaObject::invokeMethod(VPlayer::instance(),
-								  "timeChanged",
-								  Q_ARG(qint64,VPlayer::instance()->getTime()));
-		time.unlock();
-	}
+	QMetaObject::invokeMethod(VPlayer::instance(),
+							  "timeChanged",
+							  Q_ARG(qint64,VPlayer::instance()->getTime()));
 }
 
 static void end(const libvlc_event_t *,void *)
@@ -775,10 +772,8 @@ void VPlayer::setTime(qint64 _time)
 			}
 		}
 		else{
-			time.lock();
 			emit jumped(_time);
 			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
-			time.unlock();
 		}
 	}
 }
