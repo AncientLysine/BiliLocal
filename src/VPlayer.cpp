@@ -641,13 +641,13 @@ void VPlayer::stop()
 
 void VPlayer::init()
 {
-	if(wait){
-		delete wait;
-		wait=NULL;
-	}
 	if(mp){
 		auto *connection=new QMetaObject::Connection;
 		*connection=QObject::connect(this,&VPlayer::timeChanged,[=](){
+			if(wait){
+				delete wait;
+				wait=NULL;
+			}
 			if(state==Stop){
 				setState(Play);
 				libvlc_media_track_t **info;
