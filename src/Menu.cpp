@@ -296,43 +296,38 @@ Menu::Menu(QWidget *parent):
 					}
 				}
 				else{
-					bool flag=true;
-					QString video(reply->readAll()),id;
-					int sta,end;
-					if(url.indexOf("_")==-1&&(sta=video.indexOf("<div id=\"area-part-view\" class=\"\""))!=-1){
-						sta=video.indexOf("<div class=\"l\">",sta);
-						end=video.indexOf("</div>",sta);
-						QString select=video.mid(sta,end-sta);
+					QList<QStandardItem *> parts;
+					QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
+					while(match.hasNext()){
+						QStandardItem *item=new QStandardItem;
+						QString part=match.next().captured();
+						QRegularExpression r;
+						r.setPattern("(?<=>)[^>]+?(?=</a>)");
+						item->setData(r.match(part).captured(),Qt::EditRole);
+						r.setPattern("(?<=data-vid=\").+?(?=\")");
+						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),Qt::UserRole);
+						parts.append(item);
+					}
+					if(url.indexOf('_')==-1&&parts.size()>=2){
 						QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 						model->clear();
-						sta=0;
-						while((sta=select.indexOf("href=\"",sta))!=-1){
-							QStandardItem *item=new QStandardItem();
-							sta+=6;
-							end=select.indexOf('\"',sta);
-							item->setData(QUrl(select.mid(sta,end-sta).prepend("http://www.acfun.tv")),Qt::UserRole);
-							end=select.indexOf("</a>",end);
-							sta=select.lastIndexOf(">",end)+1;
-							item->setData(select.mid(sta,end-sta),Qt::EditRole);
+						for(QStandardItem *item:parts){
 							model->appendRow(item);
 						}
-						if(model->rowCount()>0){
-							if(isVisible()){
-								danmC->complete();
-							}
-							flag=false;
+						if(isVisible()){
+							danmC->complete();
 						}
 					}
-					if(flag){
-						sta=video.indexOf("<a class=\"btn success active\" data-vid=\"")+40;
-						end=video.indexOf('\"',sta);
-						id=video.mid(sta,end-sta);
-						if(!id.isEmpty()){
-							reply->manager()->get(QNetworkRequest(id.prepend("http://www.acfun.tv/video/getVideo.aspx?id=")));
+					else{
+						int i=url.indexOf('_');
+						i=(i==-1)?0:(url.mid(i+1).toInt()-1);
+						if(i>=0&&i<parts.size()){
+							reply->manager()->get(QNetworkRequest(parts[i]->data(Qt::UserRole).toUrl()));
 						}
 						else{
 							error();
 						}
+						qDeleteAll(parts);
 					}
 				}
 			}
@@ -486,7 +481,7 @@ void Menu::setDanmaku(QString _code)
 			request.setUrl(url);
 		}
 		if(s=="ac"){
-			url=QString("http://www.acfun.tv/v/ac%1").arg(i);
+			url=QString("http://www.acfun.com/v/ac%1").arg(i);
 			if(!p.isEmpty()){
 				url+=QString("_%1").arg(p);
 			}

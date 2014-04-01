@@ -30,10 +30,10 @@ QJsonObject Utils::config;
 
 Utils::Site Utils::getSite(QString url)
 {
-	if(url.startsWith("http://www.bilibili.tv")||url.startsWith("http://bilibili.kankanews.com")){
+	if(url.startsWith("http://www.bilibili")||url.startsWith("http://bilibili.kankanews")){
 		return Bilibili;
 	}
-	else if(url.startsWith("http://www.acfun.tv")||url.startsWith("http://api.acfun.tv")){
+	else if(url.startsWith("http://www.acfun")||url.startsWith("http://api.acfun")){
 		return AcFun;
 	}
 	else if(url.startsWith("http://comic.letv.com")){
