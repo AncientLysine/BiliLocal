@@ -120,23 +120,10 @@ private:
 };
 }
 
-double Utils::evaluate(QString expression)
+double Utils::evaluate(QString exp)
 {
-	auto Operator=[](QChar o){
-		switch(o.toLatin1())
-		{
-		case '+':
-		case '-':
-		case '*':
-		case '/':
-			return 1;
-		default:
-			return 0;
-		}
-	};
-
-	auto Priority=[](QChar o){
-		switch(o.toLatin1())
+	auto priority=[](QChar o){
+		switch(o.unicode())
 		{
 		case '(':
 			return 1;
@@ -146,6 +133,9 @@ double Utils::evaluate(QString expression)
 		case '*':
 		case '/':
 			return 3;
+		case '+'+128:
+		case '-'+128:
+			return 4;
 		default:
 			return 0;
 		}
@@ -156,27 +146,41 @@ double Utils::evaluate(QString expression)
 		SStack<QChar> opt;
 		int i=0;
 		opt.push('#');
-		while(i<expression.length()){
-			if(expression[i].isDigit()||expression[i]=='.'){
-				pst.append(expression[i]);
+		while(i<exp.length()){
+			if(exp[i].isDigit()||exp[i]=='.'){
+				pst.append(exp[i]);
 			}
-			else if(expression[i]=='('){
-				opt.push(expression[i]);
-			}
-			else if(expression[i]==')'){
-				while(opt.top()!='('){
-					pst.append(opt.pop());
+			else{
+				switch(exp[i].unicode()){
+				case '(':
+					opt.push(exp[i]);
+					break;
+				case ')':
+					while(opt.top()!='('){
+						pst.append(opt.pop());
+					}
+					opt.pop();
+					break;
+				case '+':
+				case '-':
+					if((i==0||exp[i-1]=='(')&&(i+1)<exp.length()&&(exp[i+1].isDigit()||exp[i+1]=='(')){
+						exp[i].unicode()+=128;
+					}
+				case '*':
+				case '/':
+					pst.append(' ');
+					while(priority(exp[i])<=priority(opt.top())){
+						pst.append(opt.pop());
+					}
+					opt.push(exp[i]);
+					break;
+				case ' ':
+					break;
+				default:
+					QT_THROW("Invalid");
 				}
-				opt.pop();
 			}
-			else if(Operator(expression[i])){
-				pst.append(' ');
-				while(Priority(expression[i])<=Priority(opt.top())){
-					pst.append(opt.pop());
-				}
-				opt.push(expression[i]);
-			}
-			i++;
+			++i;
 		}
 		while(!opt.isEmpty()){
 			pst.append(opt.pop());
@@ -198,27 +202,39 @@ double Utils::evaluate(QString expression)
 				}
 				num.push(n);
 			}
-			else if(pst[i]==' '){
-				i++;
-			}
-			else if(pst[i]=='+'){
-				double r=num.pop(),l=num.pop();
-				num.push(l+r);
-				i++;
-			}
-			else if(pst[i]=='-'){
-				double r=num.pop(),l=num.pop();
-				num.push(l-r);
-				i++;
-			}
-			else if(pst[i]=='*'){
-				double r=num.pop(),l=num.pop();
-				num.push(l*r);
-				i++;
-			}
-			else if(pst[i]=='/'){
-				double r=num.pop(),l=num.pop();
-				num.push(l/r);
+			else{
+				switch(pst[i].unicode()){
+				case '+'+128:
+					num.push(+num.pop());
+					break;
+				case '-'+128:
+					num.push(-num.pop());
+					break;
+				case '+':
+				{
+					double r=num.pop(),l=num.pop();
+					num.push(l+r);
+					break;
+				}
+				case '-':
+				{
+					double r=num.pop(),l=num.pop();
+					num.push(l-r);
+					break;
+				}
+				case '*':
+				{
+					double r=num.pop(),l=num.pop();
+					num.push(l*r);
+					break;
+				}
+				case '/':
+				{
+					double r=num.pop(),l=num.pop();
+					num.push(l/r);
+					break;
+				}
+				}
 				i++;
 			}
 		}
