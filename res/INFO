@@ -1,5 +1,5 @@
 {
-    "Version": "0.3.1",
-    "String": "[2014/2/28]\nVer_0.3.1\n增加硬件解码\n增加历史弹幕\n优化资源占用",
-    "Url": "http://tieba.baidu.com/p/2892411158"
+    "Version": "0.3.2",
+    "String": "[2014/4/2]\nVer_0.3.2\n弹幕渲染多线程优化\n硬件加速兼容性改进",
+    "Url": "http://tieba.baidu.com/p/2958261648"
 }
