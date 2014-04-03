@@ -260,7 +260,7 @@ Menu::Menu(QWidget *parent):
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem();
 							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
-							item->setData(select.mid(sta,select.indexOf('<',sta)-sta),Qt::EditRole);
+							item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
 							model->appendRow(item);
 							cur+=regex.matchedLength();
 						}
@@ -303,7 +303,7 @@ Menu::Menu(QWidget *parent):
 						QString part=match.next().captured();
 						QRegularExpression r;
 						r.setPattern("(?<=>)[^>]+?(?=</a>)");
-						item->setData(r.match(part).captured(),Qt::EditRole);
+						item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 						r.setPattern("(?<=data-vid=\").+?(?=\")");
 						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),Qt::UserRole);
 						parts.append(item);
@@ -344,7 +344,7 @@ Menu::Menu(QWidget *parent):
 					QStandardItem *item=new QStandardItem();
 					item->setData(true,Qt::UserRole+1);
 					item->setData(QUrl(api.arg(regex.cap().mid(5))),Qt::UserRole);
-					item->setData(video.mid(sta,video.indexOf('<',sta)-sta),Qt::EditRole);
+					item->setData(Utils::decodeXml(video.mid(sta,video.indexOf('<',sta)-sta)),Qt::EditRole);
 					model->appendRow(item);
 					cur+=regex.matchedLength();
 				}

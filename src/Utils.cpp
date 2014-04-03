@@ -285,19 +285,60 @@ QString Utils::defaultFont(bool monospace)
 	}
 }
 
-static QString decodeXml(QString string)
+QString Utils::decodeXml(QString string,bool fast)
 {
-	string.replace("&lt;","<");
-	string.replace("&gt;",">");
-	string.replace("&amp;","&");
-	string.replace("&quot;","\"");
-	QString fixed;
-	for(QChar c:string){
-		if(c>=' '){
-			fixed+=c;
+	if(fast){
+		QString fixed;
+		fixed.reserve(string.length());
+		int i=0,l=string.length();
+		for(i=0;i<l;++i){
+			QChar c=string[i];
+			if(c>=' '||c=='\n'){
+				bool f=true;
+				if(c=='&'&&l-i>=4){
+					switch(string[i+1].unicode()){
+					case 'l':
+						if(string[i+2]=='t'&&string[i+3]==';'){
+							fixed+='<';
+							f=false;
+							i+=3;
+						}
+						break;
+					case 'g':
+						if(string[i+2]=='t'&&string[i+3]==';'){
+							fixed+='>';
+							f=false;
+							i+=3;
+						}
+						break;
+					case 'a':
+						if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
+							fixed+='&';
+							f=false;
+							i+=4;
+						}
+						break;
+					case 'q':
+						if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
+							fixed+='\\';
+							f=false;
+							i+=5;
+						}
+						break;
+					}
+				}
+				if(f){
+					fixed+=c;
+				}
+			}
 		}
+		return fixed;
 	}
-	return fixed;
+	else{
+		QTextDocument text;
+		text.setHtml(string);
+		return text.toPlainText();
+	}
 }
 
 QList<Comment> Utils::parseComment(QByteArray data,Site site)
@@ -321,7 +362,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			comment.font=args[2].toInt();
 			comment.color=args[3].toInt();
 			comment.sender=args[6];
-			comment.string=decodeXml(item.mid(sta,len));
+			comment.string=decodeXml(item.mid(sta,len),true);
 			list.append(comment);
 		}
 		break;
@@ -378,7 +419,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			comment.font=args[1].toInt();
 			comment.color=args[2].toInt();
 			comment.sender=args[4];
-			comment.string=decodeXml(item.mid(sta,len));
+			comment.string=decodeXml(item.mid(sta,len),true);
 			list.append(comment);
 		}
 		break;

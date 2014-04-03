@@ -155,6 +155,7 @@ public:
 	static double evaluate(QString expression);
 	static QString defaultPath();
 	static QString defaultFont(bool monospace=false);
+	static QString decodeXml(QString string,bool fast=false);
 	static QList<Comment> parseComment(QByteArray data,Site site);
 
 

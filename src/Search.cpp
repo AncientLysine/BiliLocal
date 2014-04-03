@@ -227,11 +227,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 			clearSearch();
 			isWaiting=false;
 		};
-		auto trans=[](QString html){
-			QTextDocument document;
-			document.setHtml(html);
-			return document.toPlainText();
-		};
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
 			if(Utils::getSite(url)==Utils::Bilibili){
@@ -273,14 +268,14 @@ Search::Search(QWidget *parent):QDialog(parent)
 							reply->manager()->get(request);
 							sta=item.indexOf("<span>",end)+6;
 							end=item.indexOf("</span>",sta);
-							row->setText(4,trans(item.mid(sta,end-sta)));
+							row->setText(4,Utils::decodeXml(item.mid(sta,end-sta)));
 							sta=end+7;
 							end=item.indexOf("</div>",sta);
-							row->setText(3,trans(item.mid(sta,end-sta)));
+							row->setText(3,Utils::decodeXml(item.mid(sta,end-sta)));
 							sta=item.indexOf("class=\"upper\"",end);
 							sta=item.indexOf("\">",sta)+2;
 							end=item.indexOf("</a>",sta);
-							row->setText(5,trans(item.mid(sta,end-sta)));
+							row->setText(5,Utils::decodeXml(item.mid(sta,end-sta)));
 							sta=item.indexOf("class=\"gk\"",end);
 							auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(sta));
 							row->setText(1,iter.next().captured());
@@ -310,11 +305,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 						continue;
 					}
 					QStringList content;
-					content<<""<<QString::number((int)item["views"].toDouble())
-							<<QString::number((int)item["comments"].toDouble())
-							<<trans(item["title"].toString())
-							<<getChannel("AcFun")[channelId]
-							  <<trans(item["username"].toString());
+					content+="";
+					content+=QString::number((int)item["views"].toDouble());
+					content+=QString::number((int)item["comments"].toDouble());
+					content+=Utils::decodeXml(item["title"].toString());
+					content+=getChannel("AcFun")[channelId];
+					content+=Utils::decodeXml(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
 					row->setSizeHint(0,QSize(120,92));
@@ -331,7 +327,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 				for(QJsonValue iter:json["Matches"].toArray()){
 					QJsonObject item=iter.toObject();
 					QStringList content;
-					content<<item["AnimeTitle"].toString()<<""<<""<<item["EpisodeTitle"].toString()<<getChannel("AcPlay")[item["Type"].toInt()]<<"";
+					content+=item["AnimeTitle"].toString();
+					content+="";
+					content+="";
+					content+=item["EpisodeTitle"].toString();
+					content+=getChannel("AcPlay")[item["Type"].toInt()];
+					content+="";
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("dd%1").arg(item["EpisodeId"].toInt()));
 					row->setSizeHint(0,QSize(120,92));
