@@ -182,12 +182,12 @@ Interface::Interface(QWidget *parent):
 	QAction *fwdA=new QAction(this);
 	fwdA->setShortcut(QKeySequence("Right"));
 	connect(fwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()+Utils::getConfig("Playing/Interval",10)*1000);
+		vplayer->setTime(vplayer->getTime()+Utils::getConfig("/Interface/Interval",10)*1000);
 	});
 	QAction *bwdA=new QAction(this);
 	bwdA->setShortcut(QKeySequence("Left"));
 	connect(bwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()-Utils::getConfig("Playing/Interval",10)*1000);
+		vplayer->setTime(vplayer->getTime()-Utils::getConfig("/Interface/Interval",10)*1000);
 	});
 	addAction(fwdA);
 	addAction(bwdA);
@@ -422,7 +422,7 @@ void Interface::checkForUpdate()
 void Interface::setCenter(QSize _s,bool f)
 {
 	if(!_s.isValid()){
-		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(QRegExp("\\D"),QString::SkipEmptyParts);
+		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(',',QString::SkipEmptyParts);
 		if(l.size()>=2){
 			_s=QSize(l[0].toInt(),l[1].toInt());
 		}

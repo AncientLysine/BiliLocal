@@ -56,7 +56,7 @@ static void setDefaultFont()
 		def=QFontInfo(f).family();
 	}
 	f.setFamily(Utils::getConfig("/Interface/Font/Family",def));
-	f.setPointSizeF(Utils::getConfig("/Interface/Font/Size",9.0));
+	f.setPointSizeF(Utils::getConfig("/Interface/Font/Size",f.pointSizeF()));
 	qApp->setFont(f);
 }
 
@@ -72,16 +72,19 @@ int main(int argc,char *argv[])
 {
 	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
-	QLocalSocket socket;
-	socket.connectToServer("BiliLocalInstance");
-	if(socket.waitForConnected()){
-		QDataStream s(&socket);
-		s<<a.arguments();
-		socket.waitForBytesWritten();
-		return 0;
-	}
 	QDir::setCurrent(a.applicationDirPath());
 	Utils::loadConfig();
+	int single;
+	if((single=Utils::getConfig("/Interface/Single",1))){
+		QLocalSocket socket;
+		socket.connectToServer("BiliLocalInstance");
+		if(socket.waitForConnected()){
+			QDataStream s(&socket);
+			s<<a.arguments();
+			socket.waitForBytesWritten();
+			return 0;
+		}
+	}
 	Shield::load();
 	Cookie::load();
 	loadTranslator();
@@ -96,17 +99,19 @@ int main(int argc,char *argv[])
 	Interface w;
 	w.show();
 	w.parseArgs(a.arguments());
-	QLocalServer single;
-	single.listen("BiliLocalInstance");
-	QObject::connect(&single,&QLocalServer::newConnection,[&](){
-		QLocalSocket *r=single.nextPendingConnection();
-		r->waitForReadyRead();
-		QDataStream s(r);
-		QStringList args;
-		s>>args;
-		r->deleteLater();
-		w.parseArgs(args);
-	});
+	if(single){
+		QLocalServer *server=new QLocalServer(qApp);
+		server->listen("BiliLocalInstance");
+		QObject::connect(server,&QLocalServer::newConnection,[&](){
+			QLocalSocket *r=server->nextPendingConnection();
+			r->waitForReadyRead();
+			QDataStream s(r);
+			QStringList args;
+			s>>args;
+			r->deleteLater();
+			w.parseArgs(args);
+		});
+	}
 	int r;
 	if((r=a.exec())==12450){
 		QProcess::startDetached(a.applicationFilePath(),QStringList());

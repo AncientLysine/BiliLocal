@@ -44,19 +44,22 @@ private:
 	//Playing
 	QGroupBox *box[7];
 	QCheckBox *load[4];
-	QCheckBox *scale[2];
+	QCheckBox *fitted[2];
+	QLineEdit *factor;
 	QCheckBox *bold;
 	QComboBox *dmfont;
 	QComboBox *effect;
-	QLineEdit *play[3];
+	QLineEdit *play[2];
 
 	//Interface
-	QGroupBox *ui[5];
+	QGroupBox *ui[7];
 	QComboBox *font;
+	QComboBox *reop;
 	QCheckBox *acce;
 	QCheckBox *vers;
 	QCheckBox *stay;
 	QCheckBox *less;
+	QLineEdit *jump;
 	QLineEdit *size;
 	QLineEdit *back;
 	QPushButton *open;

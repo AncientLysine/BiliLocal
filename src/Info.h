@@ -57,7 +57,7 @@ private:
 	QPushButton *stopB;
 	QAction *playA;
 	QAction *stopA;
-	QIcon playI,stopI,pauseI;
+	QIcon playI,stopI,pausI;
 	QPropertyAnimation *animation;
 	void resizeEvent(QResizeEvent *e);
 	void setTime(qint64 _time);

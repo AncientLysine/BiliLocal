@@ -75,18 +75,18 @@ Info::Info(QWidget *parent):
 	stopB->setGeometry(QRect(40,15,25,25));
 	playI=QIcon::fromTheme("media-playback-start",QIcon(":/Picture/play.png"));
 	stopI=QIcon::fromTheme("media-playback-stop",QIcon(":/Picture/stop.png"));
-	pauseI=QIcon::fromTheme("media-playback-pause",QIcon(":/Picture/pause.png"));
+	pausI=QIcon::fromTheme("media-playback-pause",QIcon(":/Picture/pause.png"));
 	playB->setIcon(playI);
 	stopB->setIcon(stopI);
 	playA=new QAction(playI,tr("Play"),this);
 	stopA=new QAction(stopI,tr("Stop"),this);
+	playA->setShortcuts(QList<QKeySequence>()<<Qt::Key_Space<<Qt::Key_MediaPlay<<Qt::Key_MediaPause<<Qt::Key_MediaTogglePlayPause);
 	addAction(playA);
 	addAction(stopA);
 	connect(playA,&QAction::triggered,VPlayer::instance(),&VPlayer::play);
 	connect(stopA,&QAction::triggered,VPlayer::instance(),&VPlayer::stop);
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
-	playA->setShortcut(QKeySequence(Qt::Key_Space));
 	durT=new QLabel(this);
 	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	durT->setGeometry(QRect(70,15,120,25));
@@ -213,8 +213,8 @@ Info::Info(QWidget *parent):
 	});
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](int state){
 		bool playing=state==VPlayer::Play;
-		playB->setIcon(playing?pauseI:playI);
-		playA->setIcon(playing?pauseI:playI);
+		playB->setIcon(playing?pausI:playI);
+		playA->setIcon(playing?pausI:playI);
 		playA->setText(playing?tr("Pause"):tr("Play"));
 	});
 	hide();

@@ -97,31 +97,31 @@ Config::Config(QWidget *parent,int index):
 
 		auto e=new QHBoxLayout;
 		int state=Utils::getConfig("/Danmaku/Scale/Fitted",0x1);
-		scale[0]=new QCheckBox(tr("ordinary"),widget[0]);
-		scale[0]->setChecked((state&0x2)>0);
-		scale[1]=new QCheckBox(tr("advanced"),widget[0]);
-		scale[1]->setChecked((state&0x1)>0);
+		fitted[0]=new QCheckBox(tr("ordinary"),widget[0]);
+		fitted[0]->setChecked((state&0x2)>0);
+		fitted[1]=new QCheckBox(tr("advanced"),widget[0]);
+		fitted[1]->setChecked((state&0x1)>0);
 		auto slot=[this](){
-			int n=scale[0]->checkState()==Qt::Checked;
-			int a=scale[1]->checkState()==Qt::Checked;
+			int n=fitted[0]->checkState()==Qt::Checked;
+			int a=fitted[1]->checkState()==Qt::Checked;
 			Utils::setConfig("/Danmaku/Scale/Fitted",(n<<1)+a);
 		};
-		connect(scale[0],&QCheckBox::stateChanged,slot);
-		connect(scale[1],&QCheckBox::stateChanged,slot);
-		e->addWidget(scale[0]);
-		e->addWidget(scale[1]);
-		box[3]=new QGroupBox(tr("force scale"),widget[0]);
+		connect(fitted[0],&QCheckBox::stateChanged,slot);
+		connect(fitted[1],&QCheckBox::stateChanged,slot);
+		e->addWidget(fitted[0],1);
+		e->addWidget(fitted[1],1);
+		box[3]=new QGroupBox(tr("scale to fitted"),widget[0]);
 		box[3]->setLayout(e);
 
-		auto j=new QHBoxLayout;
-		play[2]=new QLineEdit(widget[0]);
-		play[2]->setText(QString::number(Utils::getConfig("/Playing/Interval",10),'f',2));
-		connect(play[2],&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Playing/Interval",play[2]->text().toDouble());
+		auto a=new QHBoxLayout;
+		factor=new QLineEdit(widget[0]);
+		factor->setText(QString::number(Utils::getConfig("/Danmaku/Scale/Factor",1.0),'f',2));
+		connect(factor,&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Danmaku/Scale/Factor",factor->text().toDouble());
 		});
-		j->addWidget(play[2]);
-		box[4]=new QGroupBox(tr("skip time"),widget[0]);
-		box[4]->setLayout(j);
+		a->addWidget(factor);
+		box[4]=new QGroupBox(tr("scale by factor"),widget[0]);
+		box[4]->setLayout(a);
 
 		auto o=new QHBoxLayout;
 		o->addWidget(box[3],1);
@@ -176,24 +176,31 @@ Config::Config(QWidget *parent,int index):
 		size=new QLineEdit(widget[1]);
 		size->setText(Utils::getConfig("/Interface/Size",QString("960,540")).trimmed());
 		connect(size,&QLineEdit::editingFinished,[this](){
-			Utils::setConfig("/Interface/Size",size->text()+" ");
+			QRegularExpression r("\\D");
+			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
+			QString s=size->text().trimmed();
+			s.replace(r,",");
+			size->setText(s);
+			Utils::setConfig("/Interface/Size",s+" ");
 		});
 		s->addWidget(size);
 		ui[0]=new QGroupBox(tr("initialize size"),widget[1]);
 		ui[0]->setLayout(s);
-		lines->addWidget(ui[0]);
 
-		auto f=new QHBoxLayout;
-		font=new QComboBox(widget[1]);
-		font->addItems(QFontDatabase().families());
-		font->setCurrentText(Utils::getConfig("/Interface/Font/Family",QFont().family()));
-		connect(font,&QComboBox::currentTextChanged,[this](QString _font){
-			Utils::setConfig("/Interface/Font/Family",_font);
+		auto j=new QHBoxLayout;
+		jump=new QLineEdit(widget[0]);
+		jump->setText(QString::number(Utils::getConfig("/Interface/Interval",10),'f',2));
+		connect(jump,&QLineEdit::editingFinished,[this](){
+			Utils::setConfig("/Interface/Interval",jump->text().toDouble());
 		});
-		f->addWidget(font);
-		ui[1]=new QGroupBox(tr("interface font"),widget[1]);
-		ui[1]->setLayout(f);
-		lines->addWidget(ui[1]);
+		j->addWidget(jump);
+		ui[1]=new QGroupBox(tr("skip time"),widget[1]);
+		ui[1]->setLayout(j);
+
+		auto q=new QHBoxLayout;
+		q->addWidget(ui[0]);
+		q->addWidget(ui[1]);
+		lines->addLayout(q);
 
 		auto t=new QGridLayout;
 		acce=new QCheckBox(tr("hardware accelerated"),widget[1]);
@@ -224,6 +231,33 @@ Config::Config(QWidget *parent,int index):
 		ui[2]->setLayout(t);
 		lines->addWidget(ui[2]);
 
+		auto f=new QHBoxLayout;
+		font=new QComboBox(widget[1]);
+		font->addItems(QFontDatabase().families());
+		font->setCurrentText(Utils::getConfig("/Interface/Font/Family",QFont().family()));
+		connect(font,&QComboBox::currentTextChanged,[this](QString _font){
+			Utils::setConfig("/Interface/Font/Family",_font);
+		});
+		f->addWidget(font);
+		ui[3]=new QGroupBox(tr("interface font"),widget[1]);
+		ui[3]->setLayout(f);
+
+		auto r=new QHBoxLayout;
+		reop=new QComboBox(widget[1]);
+		reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window")<<tr("append to playing list"));
+		reop->setCurrentIndex(Utils::getConfig("/Interface/Single",1));
+		connect<void (QComboBox::*)(int)>(reop,&QComboBox::currentIndexChanged,[this](int i){
+			Utils::setConfig("/Interface/Single",i);
+		});
+		r->addWidget(reop);
+		ui[4]=new QGroupBox(tr("reopen action"),widget[1]);
+		ui[4]->setLayout(r);
+
+		auto v=new QHBoxLayout;
+		v->addWidget(ui[3],1);
+		v->addWidget(ui[4],1);
+		lines->addLayout(v);
+
 		auto b=new QHBoxLayout;
 		back=new QLineEdit(widget[1]);
 		back->setText(Utils::getConfig("/Interface/Background",QString()));
@@ -242,9 +276,9 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		b->addWidget(open);
-		ui[3]=new QGroupBox(tr("background"),widget[1]);
-		ui[3]->setLayout(b);
-		lines->addWidget(ui[3]);
+		ui[5]=new QGroupBox(tr("background"),widget[1]);
+		ui[5]->setLayout(b);
+		lines->addWidget(ui[5]);
 
 		auto l=new QHBoxLayout;
 		input[0]=new QLineEdit(widget[1]);
@@ -301,6 +335,7 @@ Config::Config(QWidget *parent,int index):
 				input[1]->clear();
 				input[2]->clear();
 				click->setText(tr("logout"));
+				setFocus();
 			}
 			else{
 				loadValid();
@@ -378,9 +413,9 @@ Config::Config(QWidget *parent,int index):
 			setLogged(flag);
 		});
 		l->addWidget(click);
-		ui[4]=new QGroupBox(tr("login"),widget[1]);
-		ui[4]->setLayout(l);
-		lines->addWidget(ui[4]);
+		ui[6]=new QGroupBox(tr("login"),widget[1]);
+		ui[6]->setLayout(l);
+		lines->addWidget(ui[6]);
 
 		lines->addStretch(10);
 		tab->addTab(widget[1],tr("Interface"));
@@ -632,6 +667,7 @@ QHash<QString,QVariant> Config::getRestart()
 		  "/Interface/Background"<<
 		  "/Interface/Font"<<
 		  "/Interface/Frameless"<<
+		  "/Interface/Single"<<
 		  "/Interface/Top"<<
 		  "/Interface/Version";
 	QHash<QString,QVariant> data;
