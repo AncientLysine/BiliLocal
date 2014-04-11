@@ -244,7 +244,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto r=new QHBoxLayout;
 		reop=new QComboBox(widget[1]);
-		reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window")<<tr("append to playing list"));
+		reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window"));
 		reop->setCurrentIndex(Utils::getConfig("/Interface/Single",1));
 		connect<void (QComboBox::*)(int)>(reop,&QComboBox::currentIndexChanged,[this](int i){
 			Utils::setConfig("/Interface/Single",i);
@@ -645,11 +645,12 @@ Config::Config(QWidget *parent,int index):
 			Danmaku::instance()->parse(0x2);
 		}
 		if(restart!=getRestart()){
-			bool flag=VPlayer::instance()->getState()==VPlayer::Stop&&Danmaku::instance()->rowCount()==0;
-			if(flag||QMessageBox::warning(this,
-											tr("Warning"),
-											tr("Restart to apply changes?"),
-											QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
+			if((VPlayer::instance()->getState()==VPlayer::Stop&&
+				Danmaku::instance()->rowCount()==0)||
+					QMessageBox::warning(this,
+										 tr("Warning"),
+										 tr("Restart to apply changes?"),
+										 QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
 				Danmaku::instance()->release();
 				qApp->exit(12450);
 			}

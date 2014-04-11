@@ -426,14 +426,9 @@ void Menu::setFile(QString _file)
 			QString suffix=info.suffix().toLower();
 			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){
 				setDanmaku(info.absoluteFilePath());
-				if(only){
-					break;
-				}
+				if(only) break;
 			}
 		}
-	}
-	if(Utils::getConfig("/Playing/Immediate",false)){
-		VPlayer::instance()->play();
 	}
 }
 

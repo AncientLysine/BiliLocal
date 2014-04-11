@@ -135,11 +135,6 @@
         <translation>在当前窗口打开</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="247"/>
-        <source>append to playing list</source>
-        <translation>加入播放列表中</translation>
-    </message>
-    <message>
         <location filename="../src/Config.cpp" line="253"/>
         <source>reopen action</source>
         <translation>多次打开</translation>
@@ -213,7 +208,7 @@
     </message>
     <message>
         <location filename="../src/Config.cpp" line="370"/>
-        <location filename="../src/Config.cpp" line="650"/>
+        <location filename="../src/Config.cpp" line="651"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
@@ -336,7 +331,7 @@
         <translation>许可</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="651"/>
+        <location filename="../src/Config.cpp" line="652"/>
         <source>Restart to apply changes?</source>
         <translation>重启应用更改？</translation>
     </message>
@@ -904,17 +899,17 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="607"/>
+        <location filename="../src/VPlayer.cpp" line="726"/>
         <source>Caching</source>
         <translation>缓存</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="608"/>
+        <location filename="../src/VPlayer.cpp" line="727"/>
         <source>Parts of BiliLocal need initialization.</source>
         <translation>BiliLocal的一些组件需要初始化。</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="838"/>
+        <location filename="../src/VPlayer.cpp" line="848"/>
         <source>Disable</source>
         <translation>关闭</translation>
     </message>

@@ -26,6 +26,7 @@
 
 #include "VPlayer.h"
 #include "Utils.h"
+#include <atomic>
 
 #ifdef Q_OS_WIN32
 #include <winbase.h>
@@ -478,8 +479,13 @@ static void sta(const libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
+static std::atomic_int drop(0);
+
 static void mid(const libvlc_event_t *,void *)
 {
+	if(drop-->0){
+		return;
+	}
 	QMetaObject::invokeMethod(VPlayer::instance(),
 							  "timeChanged",
 							  Q_ARG(qint64,VPlayer::instance()->getTime()));
@@ -547,96 +553,12 @@ QString VPlayer::getFile()
 	return QString();
 }
 
-void VPlayer::setState(State _state)
-{
-#ifdef Q_OS_WIN32
-	switch(_state){
-	case Play:
-	case Loop:
-		SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
-		break;
-	default:
-		SetThreadExecutionState(ES_CONTINUOUS);
-		break;
-	}
-#endif
-	state=_state;
-	emit stateChanged(state);
-}
-
 QRect VPlayer::getRect(QRect rect)
 {
 	QRect dest;
 	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
-}
-
-void VPlayer::release()
-{
-	QMutex exit;
-	libvlc_set_exit_handler(vlc,[](void *opaque){
-		((QMutex *)opaque)->unlock();
-	},&exit);
-	exit.lock();
-	if(mp){
-		libvlc_media_player_release(mp);
-	}
-	if(m){
-		libvlc_media_release(m);
-	}
-	libvlc_release(vlc);
-	exit.lock();
-	exit.unlock();
-}
-
-void VPlayer::play()
-{
-	if(mp){
-		if(state==Stop){
-			libvlc_video_set_format_callbacks(mp,fmt,NULL);
-			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
-			libvlc_media_player_play(mp);
-			if(!wait){
-				wait=new QTimer(this);
-				wait->setInterval(2000);
-				wait->setSingleShot(true);
-				wait->connect(wait,&QTimer::timeout,[this](){
-					QProgressDialog dialog(qobject_cast<QWidget *>(parent()));
-					dialog.setCancelButton(NULL);
-					dialog.setWindowTitle(tr("Caching"));
-					dialog.setLabelText(tr("Parts of BiliLocal need initialization."));
-					dialog.setFixedSize(dialog.sizeHint());
-					connect(wait,&QTimer::destroyed,&dialog,&QDialog::accept);
-					dialog.exec();
-				});
-			}
-			wait->start();
-		}
-		else{
-			libvlc_media_player_pause(mp);
-			setState(state==Play?Pause:Play);
-		}
-	}
-}
-
-void VPlayer::stop()
-{
-	if(mp&&state!=Stop){
-		libvlc_media_player_stop(mp);
-		size=QSize();
-		ratio=0;
-		setState(Stop);
-		if(music){
-			fake->stop();
-		}
-		start=false;
-		qDeleteAll(video+audio+subtitle);
-		video.clear();
-		audio.clear();
-		subtitle.clear();
-		emit reach();
-	}
 }
 
 void VPlayer::init()
@@ -752,6 +674,90 @@ void VPlayer::fail()
 	}
 }
 
+void VPlayer::release()
+{
+	QMutex exit;
+	libvlc_set_exit_handler(vlc,[](void *opaque){
+		((QMutex *)opaque)->unlock();
+	},&exit);
+	exit.lock();
+	if(mp){
+		libvlc_media_player_release(mp);
+	}
+	if(m){
+		libvlc_media_release(m);
+	}
+	libvlc_release(vlc);
+	exit.lock();
+	exit.unlock();
+}
+
+void VPlayer::setState(State _state)
+{
+#ifdef Q_OS_WIN32
+	switch(_state){
+	case Play:
+	case Loop:
+		SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
+		break;
+	default:
+		SetThreadExecutionState(ES_CONTINUOUS);
+		break;
+	}
+#endif
+	state=_state;
+	emit stateChanged(state);
+}
+
+void VPlayer::play()
+{
+	if(mp){
+		if(state==Stop){
+			libvlc_video_set_format_callbacks(mp,fmt,NULL);
+			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
+			libvlc_media_player_play(mp);
+			if(!wait){
+				wait=new QTimer(this);
+				wait->setInterval(2000);
+				wait->setSingleShot(true);
+				wait->connect(wait,&QTimer::timeout,[this](){
+					QProgressDialog dialog(qobject_cast<QWidget *>(parent()));
+					dialog.setCancelButton(NULL);
+					dialog.setWindowTitle(tr("Caching"));
+					dialog.setLabelText(tr("Parts of BiliLocal need initialization."));
+					dialog.setFixedSize(dialog.sizeHint());
+					connect(wait,&QTimer::destroyed,&dialog,&QDialog::accept);
+					dialog.exec();
+				});
+			}
+			wait->start();
+		}
+		else{
+			libvlc_media_player_pause(mp);
+			setState(state==Play?Pause:Play);
+		}
+	}
+}
+
+void VPlayer::stop()
+{
+	if(mp&&state!=Stop){
+		libvlc_media_player_stop(mp);
+		size=QSize();
+		ratio=0;
+		setState(Stop);
+		if(music){
+			fake->stop();
+		}
+		start=false;
+		qDeleteAll(video+audio+subtitle);
+		video.clear();
+		audio.clear();
+		subtitle.clear();
+		emit reach();
+	}
+}
+
 void VPlayer::setDirty()
 {
 	if(state!=Pause){
@@ -773,6 +779,7 @@ void VPlayer::setTime(qint64 _time)
 		}
 		else{
 			emit jumped(_time);
+			drop=2;
 			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 		}
 	}
@@ -804,6 +811,9 @@ void VPlayer::setMedia(QString _file)
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEncounteredError,
 								err,NULL);
+			if(Utils::getConfig("/Playing/Immediate",false)){
+				play();
+			}
 		}
 	}
 }

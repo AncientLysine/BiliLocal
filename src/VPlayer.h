@@ -77,8 +77,6 @@ private:
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
 
-	void setState(State _state);
-
 protected:
 	bool start;
 	bool music;
@@ -89,7 +87,6 @@ protected:
 
 	VPlayer(QObject *parent=0);
 	QRect getRect(QRect rect);
-	void release();
 
 signals:
 	void begin();
@@ -100,10 +97,13 @@ signals:
 	void stateChanged(int);
 	void volumeChanged(int);
 
-private slots:
+
+protected slots:
 	void init();
 	void free();
 	void fail();
+	void release();
+	void setState(State _state);
 
 public slots:
 	void play();
