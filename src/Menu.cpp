@@ -215,6 +215,7 @@ Menu::Menu(QWidget *parent):
 			QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 			if(redirect.isValid()){
 				reply->manager()->get(QNetworkRequest(redirect));
+				reply->deleteLater();
 				return;
 			}
 			isStay=false;

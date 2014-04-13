@@ -312,6 +312,7 @@ Config::Config(QWidget *parent,int index):
 		info=new QLabel(widget[1]);
 		info->setFixedWidth(100);
 		info->setAlignment(Qt::AlignCenter);
+		info->setText(tr("waiting"));
 		l->addWidget(info);
 		manager=new QNetworkAccessManager(this);
 		manager->setCookieJar(Cookie::instance());
@@ -326,10 +327,12 @@ Config::Config(QWidget *parent,int index):
 						info->setPixmap(pixmap.scaledToHeight(25,Qt::SmoothTransformation));
 					}
 				}
+				if(!info->pixmap()){
+					info->setText(tr("error"));
+				}
 			});
 		};
 		auto setLogged=[this,loadValid](bool logged){
-			info->clear();
 			if(logged){
 				info->setText(tr("logged"));
 				input[1]->clear();
@@ -387,7 +390,7 @@ Config::Config(QWidget *parent,int index):
 		click->setFixedWidth(50);
 		click->setFocusPolicy(Qt::NoFocus);
 		connect(click,&QPushButton::clicked,[=](){
-			if(info->text().isEmpty()){
+			if(click->text()==tr("login")){
 				for(QLineEdit *iter:input){
 					if(iter->text().isEmpty()){
 						return;

@@ -479,16 +479,22 @@ static void sta(const libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
-static std::atomic_int drop(0);
+static QMutex time;
+static bool drop=0;
 
 static void mid(const libvlc_event_t *,void *)
 {
-	if(drop-->0){
-		return;
+	if(time.tryLock()){
+		if(!drop){
+			QMetaObject::invokeMethod(VPlayer::instance(),
+									  "timeChanged",
+									  Q_ARG(qint64,VPlayer::instance()->getTime()));
+		}
+		else{
+			drop=false;
+		}
+		time.unlock();
 	}
-	QMetaObject::invokeMethod(VPlayer::instance(),
-							  "timeChanged",
-							  Q_ARG(qint64,VPlayer::instance()->getTime()));
 }
 
 static void end(const libvlc_event_t *,void *)
@@ -778,9 +784,11 @@ void VPlayer::setTime(qint64 _time)
 			}
 		}
 		else{
+			time.lock();
 			emit jumped(_time);
-			drop=2;
+			drop=true;
 			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
+			time.unlock();
 		}
 	}
 }
