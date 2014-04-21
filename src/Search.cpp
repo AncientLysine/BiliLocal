@@ -219,6 +219,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){
 			reply->manager()->get(QNetworkRequest(redirect));
+			reply->deleteLater();
 			return;
 		}
 		auto error=[this](int code){
@@ -229,7 +230,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 		};
 		QString url=reply->url().url();
 		if(reply->error()==QNetworkReply::NoError){
-			if(Utils::getSite(url)==Utils::Bilibili){
+			switch(Utils::getSite(url)){
+			case Utils::Bilibili:
+			{
 				QString data(reply->readAll());
 				int sta,end;
 				if(pageNum==-1){
@@ -290,7 +293,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
-			else if(Utils::getSite(url)==Utils::AcFun){
+			case Utils::AcFun:
+			{
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				QJsonObject page=json["page"].toObject();
 				if(pageNum==-1){
@@ -322,7 +326,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
-			else if(Utils::getSite(url)==Utils::AcPlay){
+			case Utils::AcPlay:
+			{
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				for(QJsonValue iter:json["Matches"].toArray()){
 					QJsonObject item=iter.toObject();
@@ -342,7 +347,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
 			}
-			else{
+			default:
+			{
 				QTreeWidgetItem *line=resultW->topLevelItem(reply->request().attribute(QNetworkRequest::User).toInt());
 				if(line!=NULL&&line->icon(0).isNull()){
 					QPixmap pixmap;
@@ -352,6 +358,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					}
 					line->setIcon(0,QIcon(pixmap));
 				}
+			}
 			}
 		}
 		else if(Utils::getSite(url)!=Utils::Unknown){

@@ -36,7 +36,7 @@ Utils::Site Utils::getSite(QString url)
 	else if(url.startsWith("http://www.acfun")||url.startsWith("http://api.acfun")){
 		return AcFun;
 	}
-	else if(url.startsWith("http://comic.letv.com")){
+	else if(url.startsWith("http://bilibili.hz.letv.com")){
 		return Letv;
 	}
 	else if(url.startsWith("http://api.acplay.net")){

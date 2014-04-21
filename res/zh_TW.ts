@@ -212,6 +212,7 @@
     <message>
         <location filename="../src/Config.cpp" line="345"/>
         <location filename="../src/Config.cpp" line="389"/>
+        <location filename="../src/Config.cpp" line="393"/>
         <location filename="../src/Config.cpp" line="419"/>
         <source>login</source>
         <translation>登錄</translation>
@@ -476,88 +477,88 @@
 <context>
     <name>Interface</name>
     <message>
-        <location filename="../src/Interface.cpp" line="116"/>
+        <location filename="../src/Interface.cpp" line="118"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="121"/>
+        <location filename="../src/Interface.cpp" line="123"/>
         <source>Full Screen</source>
         <translation>全熒幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="147"/>
+        <location filename="../src/Interface.cpp" line="149"/>
         <source>Block All</source>
         <translation>關閉彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="139"/>
+        <location filename="../src/Interface.cpp" line="141"/>
         <source>Config</source>
         <translation>設置</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="160"/>
+        <location filename="../src/Interface.cpp" line="162"/>
         <source>Post Danmaku</source>
         <translation>發送彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="411"/>
+        <location filename="../src/Interface.cpp" line="414"/>
         <source>Update</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="480"/>
+        <location filename="../src/Interface.cpp" line="483"/>
         <source>Copy</source>
         <translation>複製</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="497"/>
+        <location filename="../src/Interface.cpp" line="500"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="498"/>
+        <location filename="../src/Interface.cpp" line="501"/>
         <source>Video Track</source>
         <translation>視頻軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="499"/>
+        <location filename="../src/Interface.cpp" line="502"/>
         <source>Audio Track</source>
         <translation>音頻軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="500"/>
+        <location filename="../src/Interface.cpp" line="503"/>
         <source>From File</source>
         <translation>選擇文件</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="503"/>
+        <location filename="../src/Interface.cpp" line="506"/>
         <source>Open File</source>
         <translation>打開文件</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="516"/>
+        <location filename="../src/Interface.cpp" line="519"/>
         <source>Track</source>
         <translation>軌道</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="205"/>
+        <location filename="../src/Interface.cpp" line="207"/>
         <source>Ratio</source>
         <translation>寬高比</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="208"/>
-        <location filename="../src/Interface.cpp" line="218"/>
+        <location filename="../src/Interface.cpp" line="210"/>
+        <location filename="../src/Interface.cpp" line="220"/>
         <source>Default</source>
         <translation>默認</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="230"/>
+        <location filename="../src/Interface.cpp" line="232"/>
         <source>Scale</source>
         <translation>縮放</translation>
     </message>
     <message>
-        <location filename="../src/Interface.cpp" line="483"/>
+        <location filename="../src/Interface.cpp" line="486"/>
         <source>Eliminate The Sender</source>
         <translation>屏蔽發送者</translation>
     </message>
@@ -565,121 +566,148 @@
 <context>
     <name>Menu</name>
     <message>
-        <location filename="../src/Menu.cpp" line="83"/>
-        <location filename="../src/Menu.cpp" line="175"/>
+        <location filename="../src/Menu.cpp" line="77"/>
+        <location filename="../src/Menu.cpp" line="169"/>
         <source>Open</source>
         <translation>打開</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="85"/>
+        <location filename="../src/Menu.cpp" line="79"/>
         <source>Search</source>
         <translation>搜尋</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="84"/>
-        <location filename="../src/Menu.cpp" line="175"/>
+        <location filename="../src/Menu.cpp" line="78"/>
+        <location filename="../src/Menu.cpp" line="169"/>
         <source>Load</source>
         <translation>加載</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="50"/>
-        <location filename="../src/Menu.cpp" line="176"/>
+        <location filename="../src/Menu.cpp" line="47"/>
+        <location filename="../src/Menu.cpp" line="170"/>
         <source>av/ac/dd</source>
         <translation>av/ac/dd</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="86"/>
-        <location filename="../src/Menu.cpp" line="91"/>
-        <location filename="../src/Menu.cpp" line="100"/>
+        <location filename="../src/Menu.cpp" line="80"/>
+        <location filename="../src/Menu.cpp" line="85"/>
+        <location filename="../src/Menu.cpp" line="94"/>
         <source>Open File</source>
         <translation>打開文件</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="87"/>
+        <location filename="../src/Menu.cpp" line="81"/>
         <source>Load Danmaku</source>
         <translation>載入彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="88"/>
+        <location filename="../src/Menu.cpp" line="82"/>
         <source>Search Danmaku</source>
         <translation>搜尋彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="164"/>
+        <location filename="../src/Menu.cpp" line="158"/>
         <source>Local Danmaku</source>
         <translation>本地彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="139"/>
+        <location filename="../src/Menu.cpp" line="133"/>
         <source>Danmaku Alpha</source>
         <translation>不透明度</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="102"/>
+        <location filename="../src/Menu.cpp" line="96"/>
         <source>Danmaku files (*.xml *.json)</source>
         <translation>彈幕文件 (*.xml *.json)</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="150"/>
+        <location filename="../src/Menu.cpp" line="144"/>
         <source>Danmaku Power</source>
         <translation>彈幕增壓</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="182"/>
+        <location filename="../src/Menu.cpp" line="176"/>
         <source>Protect Sub</source>
         <translation>保護字幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="191"/>
+        <location filename="../src/Menu.cpp" line="185"/>
         <source>Loop Playback</source>
         <translation>洗腦循環</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="211"/>
+        <location filename="../src/Menu.cpp" line="223"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="211"/>
+        <location filename="../src/Menu.cpp" line="223"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
 </context>
 <context>
+    <name>Next</name>
+    <message>
+        <location filename="../src/Next.cpp" line="51"/>
+        <source>play immediately</source>
+        <translation>立即播放</translation>
+    </message>
+    <message>
+        <location filename="../src/Next.cpp" line="55"/>
+        <source>inherit danmaku</source>
+        <translation>繼承彈幕</translation>
+    </message>
+    <message>
+        <location filename="../src/Next.cpp" line="56"/>
+        <source>wait until ended</source>
+        <translation>等待結束</translation>
+    </message>
+    <message>
+        <location filename="../src/Next.cpp" line="57"/>
+        <source>do not continnue</source>
+        <translation>取消連播</translation>
+    </message>
+    <message>
+        <location filename="../src/Next.cpp" line="62"/>
+        <source>Action</source>
+        <translation>動作設置</translation>
+    </message>
+</context>
+<context>
     <name>Post</name>
     <message>
-        <location filename="../src/Post.cpp" line="206"/>
+        <location filename="../src/Post.cpp" line="205"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="207"/>
+        <location filename="../src/Post.cpp" line="206"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="49"/>
+        <location filename="../src/Post.cpp" line="48"/>
         <source>Top</source>
         <translation>頂端</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="49"/>
+        <location filename="../src/Post.cpp" line="48"/>
         <source>Slide</source>
         <translation>滑動</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="49"/>
+        <location filename="../src/Post.cpp" line="48"/>
         <source>Bottom</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="38"/>
-        <location filename="../src/Post.cpp" line="68"/>
+        <location filename="../src/Post.cpp" line="67"/>
         <source>Post</source>
         <translation>發送</translation>
     </message>
     <message>
-        <location filename="../src/Post.cpp" line="71"/>
+        <location filename="../src/Post.cpp" line="70"/>
         <source>DA☆ZE!</source>
         <translation>毁灭地喷射白光!da!</translation>
     </message>
@@ -694,7 +722,7 @@
     </message>
     <message>
         <location filename="../src/Search.cpp" line="84"/>
-        <location filename="../src/Search.cpp" line="497"/>
+        <location filename="../src/Search.cpp" line="504"/>
         <source>Ready</source>
         <translation>就緒</translation>
     </message>
@@ -709,49 +737,49 @@
         <translation>跳轉</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
-        <location filename="../src/Search.cpp" line="382"/>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="383"/>
+        <location filename="../src/Search.cpp" line="389"/>
+        <location filename="../src/Search.cpp" line="395"/>
         <source>Title</source>
         <translation>標題</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
-        <location filename="../src/Search.cpp" line="382"/>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="383"/>
+        <location filename="../src/Search.cpp" line="389"/>
+        <location filename="../src/Search.cpp" line="395"/>
         <source>Typename</source>
         <translation>分類</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
-        <location filename="../src/Search.cpp" line="382"/>
+        <location filename="../src/Search.cpp" line="383"/>
+        <location filename="../src/Search.cpp" line="389"/>
         <source>Author</source>
         <translation>UP主</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
-        <location filename="../src/Search.cpp" line="382"/>
+        <location filename="../src/Search.cpp" line="383"/>
+        <location filename="../src/Search.cpp" line="389"/>
         <source>Cover</source>
         <translation>封面</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
-        <location filename="../src/Search.cpp" line="382"/>
+        <location filename="../src/Search.cpp" line="383"/>
+        <location filename="../src/Search.cpp" line="389"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="376"/>
+        <location filename="../src/Search.cpp" line="383"/>
         <source>Danmaku</source>
         <translation>彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="382"/>
+        <location filename="../src/Search.cpp" line="389"/>
         <source>Comment</source>
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="453"/>
+        <location filename="../src/Search.cpp" line="460"/>
         <source>Please open a video or type in the file path.</source>
         <translation>請打開視頻或輸入路徑。</translation>
     </message>
@@ -786,47 +814,47 @@
         <translation>沒有視頻被選擇。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="395"/>
         <source>Episode</source>
         <translation>節目</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="389"/>
+        <location filename="../src/Search.cpp" line="396"/>
         <source>TVAnime</source>
         <translation>TV動畫</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="389"/>
+        <location filename="../src/Search.cpp" line="396"/>
         <source>Other</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="389"/>
+        <location filename="../src/Search.cpp" line="396"/>
         <source>FileMatch</source>
         <translation>文件匹配</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="453"/>
-        <location filename="../src/Search.cpp" line="464"/>
-        <location filename="../src/Search.cpp" line="473"/>
+        <location filename="../src/Search.cpp" line="460"/>
+        <location filename="../src/Search.cpp" line="471"/>
+        <location filename="../src/Search.cpp" line="480"/>
         <source>Match Error</source>
         <translation>匹配錯誤</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="464"/>
-        <location filename="../src/Search.cpp" line="473"/>
+        <location filename="../src/Search.cpp" line="471"/>
+        <location filename="../src/Search.cpp" line="480"/>
         <source>Format {anime}#{episode} needed.</source>
         <translation>按{動畫}#{集數}格式填寫。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="486"/>
+        <location filename="../src/Search.cpp" line="493"/>
         <source>Requesting</source>
         <translation>請求中</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="290"/>
-        <location filename="../src/Search.cpp" line="322"/>
-        <location filename="../src/Search.cpp" line="342"/>
+        <location filename="../src/Search.cpp" line="293"/>
+        <location filename="../src/Search.cpp" line="326"/>
+        <location filename="../src/Search.cpp" line="347"/>
         <source>Finished</source>
         <translation>已完成</translation>
     </message>
@@ -846,12 +874,12 @@
         <translation>確認</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="226"/>
+        <location filename="../src/Search.cpp" line="227"/>
         <source>Network Error</source>
         <translation>網絡錯誤</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="225"/>
+        <location filename="../src/Search.cpp" line="226"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出現網絡錯誤，錯誤代碼：%1</translation>
     </message>
@@ -909,17 +937,17 @@
 <context>
     <name>VPlayer</name>
     <message>
-        <location filename="../src/VPlayer.cpp" line="732"/>
+        <location filename="../src/VPlayer.cpp" line="725"/>
         <source>Caching</source>
         <translation>緩存</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="733"/>
+        <location filename="../src/VPlayer.cpp" line="726"/>
         <source>Parts of BiliLocal need initialization.</source>
         <translation>BiliLocal的一些組件需要初始化。</translation>
     </message>
     <message>
-        <location filename="../src/VPlayer.cpp" line="856"/>
+        <location filename="../src/VPlayer.cpp" line="850"/>
         <source>Disable</source>
         <translation>關閉</translation>
     </message>

@@ -519,6 +519,7 @@ void Danmaku::appendToPool(const Record &record)
 	if(append==NULL){
 		Record r;
 		r.source=record.source;
+		r.string=record.string;
 		r.delay=Utils::getConfig("/Playing/Delay",false)?time:0;
 		pool.append(r);
 		append=&pool.last();

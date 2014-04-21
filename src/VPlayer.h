@@ -95,6 +95,7 @@ signals:
 	void jumped(qint64);
 	void timeChanged(qint64);
 	void stateChanged(int);
+	void mediaChanged(QString);
 	void volumeChanged(int);
 
 

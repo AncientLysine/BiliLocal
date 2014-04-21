@@ -80,6 +80,7 @@ public:
 	qint64 delay;
 	qint64 limit;
 	QString source;
+	QString string;
 	QList<Comment> danmaku;
 	Record()
 	{

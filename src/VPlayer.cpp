@@ -26,7 +26,6 @@
 
 #include "VPlayer.h"
 #include "Utils.h"
-#include <atomic>
 
 #ifdef Q_OS_WIN32
 #include <winbase.h>
@@ -480,19 +479,13 @@ static void sta(const libvlc_event_t *,void *)
 }
 
 static QMutex time;
-static bool drop=0;
 
 static void mid(const libvlc_event_t *,void *)
 {
 	if(time.tryLock()){
-		if(!drop){
-			QMetaObject::invokeMethod(VPlayer::instance(),
-									  "timeChanged",
-									  Q_ARG(qint64,VPlayer::instance()->getTime()));
-		}
-		else{
-			drop=false;
-		}
+		QMetaObject::invokeMethod(VPlayer::instance(),
+								  "timeChanged",
+								  Q_ARG(qint64,VPlayer::instance()->getTime()));
 		time.unlock();
 	}
 }
@@ -785,8 +778,8 @@ void VPlayer::setTime(qint64 _time)
 		}
 		else{
 			time.lock();
+			qApp->processEvents();
 			emit jumped(_time);
-			drop=true;
 			libvlc_media_player_set_time(mp,qBound<qint64>(0,_time,getDuration()));
 			time.unlock();
 		}
@@ -803,6 +796,7 @@ void VPlayer::setMedia(QString _file)
 		libvlc_media_player_release(mp);
 	}
 	m=libvlc_media_new_path(vlc,QDir::toNativeSeparators(_file).toUtf8());
+	emit mediaChanged(m?getFile():QString());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){

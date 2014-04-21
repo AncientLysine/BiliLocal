@@ -36,6 +36,7 @@
 class Menu;
 class Info;
 class Post;
+class Next;
 class Render;
 class VPlayer;
 class Danmaku;
@@ -62,6 +63,7 @@ private:
 	Menu *menu;
 	Info *info;
 	Post *post;
+	Next *next;
 	Render *render;
 	VPlayer *vplayer;
 	Danmaku *danmaku;

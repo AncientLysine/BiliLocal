@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Menu.h
-*   Time:        2013/04/05
+*   Filename:    Next.h
+*   Time:        2013/03/18
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,57 +24,37 @@
 *
 =========================================================================*/
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef NEXT_H
+#define NEXT_H
 
 #include <QtCore>
 #include <QtWidgets>
 
-class Menu:public QWidget
+class Next:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Menu(QWidget *parent=0);
-	bool isShown(){return isPoped;}
-	QTimer *getPower(){return powerC;}
-	bool preferStay(){return isStay||!danmC->popup()->isHidden();}
+	enum Action
+	{
+		DoNotContinnue,
+		WaitUntilEnded,
+		InheritDanmaku,
+		PlayImmediately
+	};
+	explicit Next(QWidget *parent);
+	QString getNext(){return fileN;}
 
 private:
-	bool isStay;
-	bool isPoped;
+	QString fileP;
+	QString fileN;
 	QLineEdit *fileL;
-	QLineEdit *danmL;
-	QLineEdit *sechL;
-	QCompleter *danmC;
-	QPushButton *fileB;
-	QPushButton *danmB;
-	QPushButton *sechB;
-	QAction *fileA;
-	QAction *danmA;
-	QAction *sechA;
-	QLabel *alphaT;
-	QSlider *alphaS;
-	QLabel *powerT;
-	QTimer *powerC;
-	QLineEdit *powerL;
-	QLabel *localT;
-	QCheckBox *localC;
-	QLabel *subT;
-	QCheckBox *subC;
-	QLabel *loopT;
-	QCheckBox *loopC;
-	QPropertyAnimation *animation;
-
+	QMenu *nextM;
+	QPushButton *nextB;
 	bool eventFilter(QObject *o,QEvent *e);
 
-public slots:
-	void pop();
-	void push(bool force=false);
-	void terminate();
-	void setPower(qint16 fps);
-	void setMedia(QString _file);
-	void tryLocal(QString _file);
-	
+private slots:
+	void moveWithParent();
+	void showNextDialog();
 };
 
-#endif // MENU_H
+#endif // NEXT_H

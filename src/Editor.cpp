@@ -268,7 +268,7 @@ void Editor::paintEvent(QPaintEvent *e)
 		int w=width()-100,h=i*length;
 		painter.save();
 		painter.fillRect(0,h,100-2,length-2 ,Qt::white);
-		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,QFileInfo(r.source).fileName());
+		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,r.string);
 		int m=0,d=duration/(w/5)+1,t=0;
 		QHash<int,int> c;
 		for(const Comment &com:r.danmaku){

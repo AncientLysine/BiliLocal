@@ -30,6 +30,7 @@
 #include "Menu.h"
 #include "Info.h"
 #include "Post.h"
+#include "Next.h"
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
@@ -51,6 +52,7 @@ Interface::Interface(QWidget *parent):
 	menu=new Menu(this);
 	info=new Info(this);
 	post=new Post(this);
+	next=new Next(this);
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(1000);
@@ -92,7 +94,7 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		vplayer->setRatio(0);
-		if(!geo.isEmpty()){
+		if(!geo.isEmpty()&&next->getNext().isEmpty()){
 			if(isFullScreen()){
 				fullA->toggle();
 			}
@@ -259,7 +261,7 @@ Interface::Interface(QWidget *parent):
 void Interface::parseArgs(QStringList args)
 {
 	for(const QString &file:args.mid(1)){
-		menu->openLocal(file);
+		menu->tryLocal(file);
 	}
 }
 
@@ -267,7 +269,7 @@ void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
-			menu->openLocal(QUrl(item).toLocalFile().trimmed());
+			menu->tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}
 }
@@ -359,6 +361,7 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		menu->push(true);
 		info->push(true);
 		post->hide();
+		next->hide();
 	}
 	sta=wgd=QPoint();
 	if(sliding&&e->button()==Qt::LeftButton){

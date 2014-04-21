@@ -26,7 +26,9 @@ SOURCES += \
     src/Graphic.cpp \
     src/Post.cpp \
     src/Render.cpp \
-    src/History.cpp
+    src/History.cpp \
+    src/Next.cpp \
+    src/Load.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -43,7 +45,9 @@ HEADERS  += \
     src/Graphic.h \
     src/Post.h \
     src/Render.h \
-    src/History.h
+    src/History.h \
+    src/Next.h \
+    src/Load.h
 
 LIBS += \
     -lvlc \

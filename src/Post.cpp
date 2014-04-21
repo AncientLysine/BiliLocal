@@ -35,7 +35,6 @@ Post::Post(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
 	setFixedSize(480,25);
-	setWindowTitle(tr("Post"));
 	setAttribute(Qt::WA_TranslucentBackground);
 	moveWithParent();
 	parent->installEventFilter(this);
