@@ -21,8 +21,8 @@ public:
 	~Load();
 	static Load *instance();
 	void getReply(QNetworkRequest request,QString string=QString());
-	QString getString(){return current?current->request().attribute(QNetworkRequest::User).toString():QString();}
-	QList<QStandardItem *> getParts(){return parts;}
+	QString getString();
+	QList<QStandardItem *> takeParts();
 
 private:
 	QList<QStandardItem *> parts;

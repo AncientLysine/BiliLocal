@@ -207,9 +207,7 @@ Menu::Menu(QWidget *parent):
 			if(isVisible()){
 				QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
 				model->clear();
-				for(QStandardItem *item:Load::instance()->getParts()){
-					model->appendRow(item);
-				}
+				model->appendColumn(Load::instance()->takeParts());
 				danmC->complete();
 				danmC->popup()->setCurrentIndex(model->index(0,0));
 			}

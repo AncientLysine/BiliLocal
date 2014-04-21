@@ -206,6 +206,18 @@ void Load::getReply(QNetworkRequest request,QString string)
 	current=manager->get(request);
 }
 
+QString Load::getString()
+{
+	return current?current->request().attribute(QNetworkRequest::User).toString():QString();
+}
+
+QList<QStandardItem *> Load::takeParts()
+{
+	QList<QStandardItem *> p(parts);
+	parts.clear();
+	return p;
+}
+
 void Load::loadDanmaku(QString _code)
 {
 	QNetworkRequest request;
