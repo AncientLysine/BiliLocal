@@ -58,7 +58,7 @@ Menu::Menu(QWidget *parent):
 		}
 		danmL->setText(match.toLower().replace('_','#'));
 	});
-	danmC=new QCompleter(new QStandardItemModel(this),this);
+	danmC=new QCompleter(Load::instance()->getModel(),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setCaseSensitivity(Qt::CaseInsensitive);
 	danmC->setWidget(danmL);
@@ -205,11 +205,8 @@ Menu::Menu(QWidget *parent):
 			break;
 		case Load::Part:
 			if(isVisible()){
-				QStandardItemModel *model=dynamic_cast<QStandardItemModel *>(danmC->model());
-				model->clear();
-				model->appendColumn(Load::instance()->takeParts());
 				danmC->complete();
-				danmC->popup()->setCurrentIndex(model->index(0,0));
+				danmC->popup()->setCurrentIndex(Load::instance()->getModel()->index(0,0));
 			}
 		case Load::File:
 			danmL->setText(Load::instance()->getString());

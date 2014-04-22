@@ -205,6 +205,9 @@ void Post::postComment()
 				QString info=tr("Network error occurred, error code: %1");
 				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
 			}
+			else{
+				emit posted((quintptr)&c);
+			}
 			reply->deleteLater();
 		});
 	}

@@ -14,6 +14,7 @@ Load *Load::instance()
 Load::Load(QObject *parent):
 	QObject(parent)
 {
+	model=new QStandardItemModel(this);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
@@ -68,18 +69,17 @@ Load::Load(QObject *parent):
 						QRegExp regex("value\\='[^']+");
 						int cur=0;
 						api="http://www.bilibili.tv";
-						qDeleteAll(parts);
-						parts.clear();
+						model->clear();
 						while((cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem;
 							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
-							item->setData((str+"#%1").arg(parts.size()+1),Qt::UserRole+1);
+							item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
 							item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
-							parts.append(item);
+							model->appendRow(item);
 							cur+=regex.matchedLength();
 						}
-						if(parts.size()>0){
+						if(model->rowCount()>0){
 							emit stateChanged(Part);
 							flag=false;
 						}
@@ -111,8 +111,7 @@ Load::Load(QObject *parent):
 					}
 				}
 				else{
-					qDeleteAll(parts);
-					parts.clear();
+					model->clear();
 					QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
 					while(match.hasNext()){
 						QStandardItem *item=new QStandardItem;
@@ -122,29 +121,27 @@ Load::Load(QObject *parent):
 						item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 						r.setPattern("(?<=data-vid=\").+?(?=\")");
 						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),Qt::UserRole);
-						item->setData((str+"#%1").arg(parts.size()+1),Qt::UserRole+1);
-						parts.append(item);
+						item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+						model->appendRow(item);
 					}
-					if(url.indexOf('_')==-1&&parts.size()>=2){
+					if(url.indexOf('_')==-1&&model->rowCount()>=2){
 						emit stateChanged(Part);
 					}
 					else{
 						int i=url.indexOf('_');
 						i=(i==-1)?0:(url.mid(i+1).toInt()-1);
-						if(i>=0&&i<parts.size()){
-							getReply(QNetworkRequest(parts[i]->data(Qt::UserRole).toUrl()),"");
+						if(i>=0&&i<model->rowCount()){
+							getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
 							emit stateChanged(File);
 						}
 						else{
 							error();
 						}
-						qDeleteAll(parts);
 					}
 				}
 			}
 			else if(site==Utils::Letv){
-				qDeleteAll(parts);
-				parts.clear();
+				model->clear();
 				QRegularExpressionMatchIterator match=QRegularExpression("cid\\=.*?</a>").globalMatch(reply->readAll());
 				while(match.hasNext()){
 					QStandardItem *item=new QStandardItem;
@@ -154,17 +151,17 @@ Load::Load(QObject *parent):
 					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 					r.setPattern("(?<=cid=\").+?(?=\")");
 					item->setData("http://comment.bilibili.tv/"+r.match(part).captured()+".xml",Qt::UserRole);
-					item->setData((str+"#%1").arg(parts.size()+1),Qt::UserRole+1);
-					parts.append(item);
+					item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+					model->appendRow(item);
 				}
-				if(str.indexOf('#')==-1&&parts.size()>=2){
+				if(str.indexOf('#')==-1&&model->rowCount()>=2){
 					emit stateChanged(Part);
 				}
 				else{
 					int i=str.indexOf('#');
 					i=(i==-1)?0:(str.mid(i+1).toInt()-1);
-					if(i>=0&&i<parts.size()){
-						getReply(QNetworkRequest(parts[i]->data(Qt::UserRole).toUrl()),"");
+					if(i>=0&&i<model->rowCount()){
+						getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
 						emit stateChanged(File);
 					}
 					else{
@@ -182,11 +179,6 @@ Load::Load(QObject *parent):
 		reply->deleteLater();
 	});
 	ins=this;
-}
-
-Load::~Load()
-{
-	qDeleteAll(parts);
 }
 
 void Load::getReply(QNetworkRequest request,QString string)
@@ -211,11 +203,9 @@ QString Load::getString()
 	return current?current->request().attribute(QNetworkRequest::User).toString():QString();
 }
 
-QList<QStandardItem *> Load::takeParts()
+QStandardItemModel *Load::getModel()
 {
-	QList<QStandardItem *> p(parts);
-	parts.clear();
-	return p;
+	return model;
 }
 
 void Load::loadDanmaku(QString _code)

@@ -54,6 +54,9 @@ private:
 	QList<const Record *> getRecords();
 	bool eventFilter(QObject *o,QEvent *e);
 
+signals:
+	void posted(quintptr comment);
+
 private slots:
 	void setColor(QColor color);
 	void postComment();

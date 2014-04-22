@@ -18,14 +18,13 @@ public:
 		File=384
 	};
 
-	~Load();
 	static Load *instance();
 	void getReply(QNetworkRequest request,QString string=QString());
 	QString getString();
-	QList<QStandardItem *> takeParts();
+	QStandardItemModel *getModel();
 
 private:
-	QList<QStandardItem *> parts;
+	QStandardItemModel *model;
 	QNetworkAccessManager *manager;
 	QPointer<QNetworkReply> current;
 	static Load *ins;
