@@ -28,6 +28,7 @@
 #include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
+#include "Plugin.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 
@@ -613,29 +614,76 @@ Config::Config(QWidget *parent,int index):
 
 		reparse=getReparse();
 	}
-	//Thanks
+	//Plugin
 	{
 		widget[3]=new QWidget(this);
 		auto w=new QGridLayout(widget[3]);
-		QFile t(":/Text/THANKS");
-		t.open(QIODevice::ReadOnly|QIODevice::Text);
-		thanks=new QTextEdit(widget[3]);
-		thanks->setReadOnly(true);
-		thanks->setText(t.readAll());
-		w->addWidget(thanks);
-		tab->addTab(widget[3],tr("Thanks"));
+		list=new QTreeWidget(widget[3]);
+		list->setSelectionMode(QAbstractItemView::NoSelection);
+		list->setHeaderLabels(QStringList()<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"");
+		list->setColumnWidth(0,60);
+		list->setColumnWidth(1,75);
+		list->setColumnWidth(2,50);
+		list->setColumnWidth(3,200);
+		list->setColumnWidth(4,75);
+		list->setColumnWidth(5,30);
+		w->addWidget(list);
+		for(Plugin &iter:Plugin::plugins){
+			QStringList content;
+			content+="";
+			content+=iter.string("Name");
+			content+=iter.string("Version");
+			content+=iter.string("Description");
+			content+=iter.string("Author");
+			content+=tr("options");
+			QTreeWidgetItem *row=new QTreeWidgetItem(list,content);
+			row->setCheckState(0,Utils::getConfig("/Plugin/"+iter.string("Name"),true)?Qt::Checked:Qt::Unchecked);
+			row->setData(0,Qt::UserRole,(quintptr)&iter);
+			QFont f;
+			f.setUnderline(true);
+			row->setData(5,Qt::FontRole,f);
+			row->setData(5,Qt::ForegroundRole,qApp->palette().color(QPalette::Highlight));
+			row->setTextAlignment(5,Qt::AlignCenter);
+			row->setSizeHint(0,QSize(60,40));
+		}
+		connect(list,&QTreeWidget::itemChanged,[this](QTreeWidgetItem *item){
+			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
+			Utils::setConfig("/Plugin/"+p->string("Name"),item->checkState(0)==Qt::Checked);
+		});
+		connect(list,&QTreeWidget::itemClicked,[this](QTreeWidgetItem *item,int column){
+			if(column==5){
+				((Plugin *)item->data(0,Qt::UserRole).value<quintptr>())->config();
+			}
+		});
+		connect(list,&QTreeWidget::currentItemChanged,[this](){
+			list->setCurrentItem(NULL);
+		});
+
+		tab->addTab(widget[3],tr("Plugin"));
 	}
-	//License
+	//Thanks
 	{
 		widget[4]=new QWidget(this);
 		auto w=new QGridLayout(widget[4]);
+		QFile t(":/Text/THANKS");
+		t.open(QIODevice::ReadOnly|QIODevice::Text);
+		thanks=new QTextEdit(widget[4]);
+		thanks->setReadOnly(true);
+		thanks->setText(t.readAll());
+		w->addWidget(thanks);
+		tab->addTab(widget[4],tr("Thanks"));
+	}
+	//License
+	{
+		widget[5]=new QWidget(this);
+		auto w=new QGridLayout(widget[5]);
 		QFile l(":/Text/COPYING");
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
-		license=new QTextEdit(widget[4]);
+		license=new QTextEdit(widget[5]);
 		license->setReadOnly(true);
 		license->setText(l.readAll());
 		w->addWidget(license);
-		tab->addTab(widget[4],tr("License"));
+		tab->addTab(widget[5],tr("License"));
 	}
 	tab->setCurrentIndex(index);
 	connect(this,&QDialog::finished,[this](){
@@ -673,7 +721,8 @@ QHash<QString,QVariant> Config::getRestart()
 		  "/Interface/Frameless"<<
 		  "/Interface/Single"<<
 		  "/Interface/Top"<<
-		  "/Interface/Version";
+		  "/Interface/Version"<<
+		  "/Plugin";
 	QHash<QString,QVariant> data;
 	for(QString iter:path){
 		data[iter]=Utils::getConfig<QVariant>(iter);

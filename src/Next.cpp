@@ -3,7 +3,7 @@
 *   Copyright (C) 2013 Lysine.
 *
 *   Filename:    Next.cpp
-*   Time:        2013/03/18
+*   Time:        2013/04/22
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering

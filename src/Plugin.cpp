@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Next.h
-*   Time:        2013/04/22
+*   Filename:    Plugin.cpp
+*   Time:        2013/04/23
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,37 +24,51 @@
 *
 =========================================================================*/
 
-#ifndef NEXT_H
-#define NEXT_H
+#include "Plugin.h"
+#include "Utils.h"
 
-#include <QtCore>
-#include <QtWidgets>
 
-class Next:public QDialog
+QList<Plugin> Plugin::plugins;
+QHash<QString,QObject *> Plugin::objects;
+
+Plugin::Plugin(QString path)
 {
-	Q_OBJECT
-public:
-	enum Action
-	{
-		DoNotContinnue,
-		WaitUntilEnded,
-		InheritDanmaku,
-		PlayImmediately
-	};
-	explicit Next(QWidget *parent);
-	QString getNext(){return fileN;}
+	m_regist=(Regist)QLibrary::resolve(path,"regist");
+	m_config=(Config)QLibrary::resolve(path,"config");
+	m_string=(String)QLibrary::resolve(path,"string");
+}
 
-private:
-	QString fileP;
-	QString fileN;
-	QLineEdit *fileL;
-	QMenu *nextM;
-	QPushButton *nextB;
-	bool eventFilter(QObject *o,QEvent *e);
+bool Plugin::loaded()
+{
+	return m_regist&&m_config&&m_string;
+}
 
-private slots:
-	void moveWithParent();
-	void showNextDialog();
-};
+void Plugin::regist(const QHash<QString,QObject *> &objects)
+{
+	m_regist(objects);
+}
 
-#endif // NEXT_H
+void Plugin::config()
+{
+	m_config();
+}
+
+QString Plugin::string(QString query)
+{
+	return m_string(query);
+}
+
+void Plugin::loadPlugins()
+{
+	for(QFileInfo info:QDir("./plugins/bililocal/").entryInfoList()){
+		if(info.isFile()&&QLibrary::isLibrary(info.fileName())){
+			Plugin lib(info.absoluteFilePath());
+			if(lib.loaded()){
+				if(Utils::getConfig("/Plugin/"+lib.string("Name"),true)){
+					lib.regist(objects);
+				}
+				plugins.append(lib);
+			}
+		}
+	}
+}

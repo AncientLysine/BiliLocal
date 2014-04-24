@@ -240,7 +240,7 @@ void Editor::load()
 		edit->show();
 		connect(edit,&QLineEdit::editingFinished,[this,edit](){
 			int index=time.indexOf(edit);
-			QString expression=QRegularExpression("-?[\\s\\d\\.\\+\\-*/()]+").match(edit->text()).captured();
+			QString expression=QRegularExpression("[\\s\\d\\.\\+\\-\\*\\/\\(\\)]+").match(edit->text()).captured();
 			const Record &r=Danmaku::instance()->getPool()[index];
 			if(!expression.isEmpty()){
 				delayRecord(index,Utils::evaluate(expression)*1000-r.delay);

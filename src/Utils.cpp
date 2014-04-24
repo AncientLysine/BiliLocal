@@ -140,7 +140,7 @@ double Utils::evaluate(QString exp)
 			return 0;
 		}
 	};
-
+	exp=exp.trimmed();
 	QT_TRY{
 		QString pst;
 		SStack<QChar> opt;

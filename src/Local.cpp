@@ -27,6 +27,7 @@
 #include "Utils.h"
 #include "Shield.h"
 #include "Cookie.h"
+#include "Plugin.h"
 #include "Interface.h"
 #include <QtCore>
 
@@ -97,6 +98,7 @@ int main(int argc,char *argv[])
 	});
 	qsrand(QTime::currentTime().msec());
 	Interface w;
+	Plugin::loadPlugins();
 	w.show();
 	w.parseArgs(a.arguments());
 	if(single){

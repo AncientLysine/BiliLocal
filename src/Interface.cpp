@@ -34,6 +34,7 @@
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
+#include "Plugin.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -256,6 +257,14 @@ Interface::Interface(QWidget *parent):
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
 	checkForUpdate();
+	Plugin::objects["Interface"]=this;
+	Plugin::objects["Danmaku"]=danmaku;
+	Plugin::objects["VPlayer"]=vplayer;
+	Plugin::objects["Info"]=info;
+	Plugin::objects["Menu"]=menu;
+	Plugin::objects["Next"]=next;
+	Plugin::objects["Post"]=post;
+	Plugin::objects["Render"]=render;
 }
 
 void Interface::parseArgs(QStringList args)

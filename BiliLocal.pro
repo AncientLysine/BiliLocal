@@ -28,7 +28,8 @@ SOURCES += \
     src/Render.cpp \
     src/History.cpp \
     src/Next.cpp \
-    src/Load.cpp
+    src/Load.cpp \
+    src/Plugin.cpp
 
 HEADERS  += \
     src/Interface.h \
@@ -47,7 +48,8 @@ HEADERS  += \
     src/Render.h \
     src/History.h \
     src/Next.h \
-    src/Load.h
+    src/Load.h \
+    src/Plugin.h
 
 LIBS += \
     -lvlc \

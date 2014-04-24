@@ -39,7 +39,7 @@ public:
 
 private:
 	QTabWidget *tab;
-	QWidget *widget[5];
+	QWidget *widget[6];
 
 	//Playing
 	QGroupBox *box[7];
@@ -67,8 +67,6 @@ private:
 	QLineEdit *input[3];
 	QPushButton *click;
 	QNetworkAccessManager *manager;
-	QHash<QString,QVariant> restart;
-	QHash<QString,QVariant> getRestart();
 
 	//Shiled
 	QLineEdit *edit;
@@ -82,14 +80,20 @@ private:
 	QPushButton *button[2];
 	QLineEdit *limit[2];
 	QGroupBox *label[2];
-	QHash<QString,QVariant> reparse;
-	QHash<QString,QVariant> getReparse();
+
+	//Plugin
+	QTreeWidget *list;
 
 	//Thanks
 	QTextEdit *thanks;
 
 	//License
 	QTextEdit *license;
+
+	QHash<QString,QVariant> restart;
+	QHash<QString,QVariant> getRestart();
+	QHash<QString,QVariant> reparse;
+	QHash<QString,QVariant> getReparse();
 };
 
 #endif // CONFIG_H

@@ -292,6 +292,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				}
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
+				break;
 			}
 			case Utils::AcFun:
 			{
@@ -325,6 +326,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				}
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
+				break;
 			}
 			case Utils::AcPlay:
 			{
@@ -346,6 +348,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				pageNuL->setText("/1");
 				statusL->setText(tr("Finished"));
 				isWaiting=false;
+				break;
 			}
 			default:
 			{
@@ -358,6 +361,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					}
 					line->setIcon(0,QIcon(pixmap));
 				}
+				break;
 			}
 			}
 		}

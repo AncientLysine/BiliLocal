@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Next.h
-*   Time:        2013/04/22
+*   Filename:    Plugin.h
+*   Time:        2013/04/23
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,37 +24,33 @@
 *
 =========================================================================*/
 
-#ifndef NEXT_H
-#define NEXT_H
+#ifndef PLUGIN_H
+#define PLUGIN_H
 
 #include <QtCore>
-#include <QtWidgets>
 
-class Next:public QDialog
+class Plugin
 {
-	Q_OBJECT
 public:
-	enum Action
-	{
-		DoNotContinnue,
-		WaitUntilEnded,
-		InheritDanmaku,
-		PlayImmediately
-	};
-	explicit Next(QWidget *parent);
-	QString getNext(){return fileN;}
+	typedef void (*Regist)(const QHash<QString,QObject *> &);
+	typedef void (*Config)();
+	typedef QString (*String)(QString);
+
+	static QList<Plugin> plugins;
+	static QHash<QString,QObject *> objects;
+
+	static void loadPlugins();
+
+	Plugin(QString path);
+	bool loaded();
+	void regist(const QHash<QString,QObject *> &);
+	void config();
+	QString string(QString query);
 
 private:
-	QString fileP;
-	QString fileN;
-	QLineEdit *fileL;
-	QMenu *nextM;
-	QPushButton *nextB;
-	bool eventFilter(QObject *o,QEvent *e);
-
-private slots:
-	void moveWithParent();
-	void showNextDialog();
+	Regist m_regist;
+	Config m_config;
+	String m_string;
 };
 
-#endif // NEXT_H
+#endif // PLUGIN_H
