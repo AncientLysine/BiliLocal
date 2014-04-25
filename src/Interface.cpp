@@ -290,6 +290,9 @@ void Interface::closeEvent(QCloseEvent *e)
 		Utils::setConfig("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
 	danmaku->release();
+	if(!update.isNull()){
+		update->abort();
+	}
 	QWidget::closeEvent(e);
 }
 
@@ -411,11 +414,12 @@ void Interface::checkForUpdate()
 {
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 	QNetworkRequest request(QUrl("https://raw.github.com/AncientLysine/BiliLocal/master/res/INFO"));
-	Utils::getReply(manager,request,[this](QNetworkReply *info){
+	update=manager->get(request);
+	connect(update.data(),&QNetworkReply::finished,[this](){
 		QFile local(":/Text/DATA");
 		local.open(QIODevice::ReadOnly);
 		QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
-		QJsonObject r=QJsonDocument::fromJson(info->readAll()).object();
+		QJsonObject r=QJsonDocument::fromJson(update->readAll()).object();
 		if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
 			QMessageBox::StandardButton button;
 			QString information=r["String"].toString();
@@ -427,7 +431,8 @@ void Interface::checkForUpdate()
 				QDesktopServices::openUrl(r["Url"].toString());
 			}
 		}
-		info->manager()->deleteLater();
+		update->deleteLater();
+		update->manager()->deleteLater();
 	});
 }
 

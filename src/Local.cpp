@@ -101,8 +101,9 @@ int main(int argc,char *argv[])
 	Plugin::loadPlugins();
 	w.show();
 	w.parseArgs(a.arguments());
+	QLocalServer *server=NULL;
 	if(single){
-		QLocalServer *server=new QLocalServer(qApp);
+		server=new QLocalServer(qApp);
 		server->listen("BiliLocalInstance");
 		QObject::connect(server,&QLocalServer::newConnection,[&](){
 			QLocalSocket *r=server->nextPendingConnection();
@@ -116,6 +117,9 @@ int main(int argc,char *argv[])
 	}
 	int r;
 	if((r=a.exec())==12450){
+		if(server){
+			delete server;
+		}
 		QProcess::startDetached(a.applicationFilePath(),QStringList());
 		return 0;
 	}

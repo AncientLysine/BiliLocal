@@ -27,10 +27,6 @@
 #include "VPlayer.h"
 #include "Utils.h"
 
-#ifdef Q_OS_WIN32
-#include <winbase.h>
-#endif
-
 VPlayer *VPlayer::ins=NULL;
 
 int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
@@ -693,17 +689,6 @@ void VPlayer::release()
 
 void VPlayer::setState(State _state)
 {
-#ifdef Q_OS_WIN32
-	switch(_state){
-	case Play:
-	case Loop:
-		SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
-		break;
-	default:
-		SetThreadExecutionState(ES_CONTINUOUS);
-		break;
-	}
-#endif
 	state=_state;
 	emit stateChanged(state);
 }
