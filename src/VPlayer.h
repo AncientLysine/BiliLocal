@@ -63,6 +63,8 @@ public:
 	virtual void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)=0;
 	virtual void draw(QPainter *painter,QRect rect)=0;
 
+	static QMutex data;
+	static QMutex time;
 	static VPlayer *instance();
 
 private:

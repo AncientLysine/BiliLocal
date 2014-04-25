@@ -27,6 +27,8 @@
 #include "VPlayer.h"
 #include "Utils.h"
 
+QMutex VPlayer::data;
+QMutex VPlayer::time;
 VPlayer *VPlayer::ins=NULL;
 
 int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
@@ -43,8 +45,6 @@ void avpicture_free(AVPicture *picture)
 {
 	av_free(picture->data[0]);
 }
-
-static QMutex data;
 
 static AVPixelFormat getFormat(char *chroma)
 {
@@ -458,7 +458,7 @@ static unsigned fmt(void **,char *chroma,
 
 static void *lck(void *,void **planes)
 {
-	data.lock();
+	VPlayer::data.lock();
 	VPlayer::instance()->getBuffer(planes);
 	return NULL;
 }
@@ -466,7 +466,7 @@ static void *lck(void *,void **planes)
 static void dsp(void *,void *)
 {
 	VPlayer::instance()->setDirty();
-	data.unlock();
+	VPlayer::data.unlock();
 }
 
 static void sta(const libvlc_event_t *,void *)
@@ -474,15 +474,13 @@ static void sta(const libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(VPlayer::instance(),"init");
 }
 
-static QMutex time;
-
 static void mid(const libvlc_event_t *,void *)
 {
-	if(time.tryLock()){
+	if (VPlayer::time.tryLock()) {
 		QMetaObject::invokeMethod(VPlayer::instance(),
 								  "timeChanged",
 								  Q_ARG(qint64,VPlayer::instance()->getTime()));
-		time.unlock();
+		VPlayer::time.unlock();
 	}
 }
 

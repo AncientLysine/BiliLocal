@@ -50,6 +50,7 @@ private:
 	QLineEdit *fileL;
 	QMenu *nextM;
 	QPushButton *nextB;
+	static qint64 time;
 	bool eventFilter(QObject *o,QEvent *e);
 
 private slots:

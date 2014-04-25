@@ -29,7 +29,7 @@
 #include "VPlayer.h"
 #include "Danmaku.h"
 
-static qint64 time;
+qint64 Next::time;
 
 Next::Next(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
