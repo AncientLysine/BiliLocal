@@ -25,8 +25,7 @@
 =========================================================================*/
 
 #include "Utils.h"
-
-QJsonObject Utils::config;
+#include "Config.h"
 
 Utils::Site Utils::getSite(QString url)
 {
@@ -248,7 +247,7 @@ double Utils::evaluate(QString exp)
 QString Utils::defaultPath()
 {
 	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-	return getConfig("/Playing/Path",paths.isEmpty()?QDir::homePath():paths.last());
+	return Config::getValue("/Playing/Path",paths.isEmpty()?QDir::homePath():paths.last());
 }
 
 QString Utils::defaultFont(bool monospace)
@@ -429,20 +428,3 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 	}
 	return list;
 }
-
-void Utils::loadConfig()
-{
-	QFile conf("./Config.txt");
-	conf.open(QIODevice::ReadOnly|QIODevice::Text);
-	config=QJsonDocument::fromJson(conf.readAll()).object();
-	conf.close();
-}
-
-void Utils::saveConfig()
-{
-	QFile conf("./Config.txt");
-	conf.open(QIODevice::WriteOnly|QIODevice::Text);
-	conf.write(QJsonDocument(config).toJson());
-	conf.close();
-}
-

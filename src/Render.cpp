@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Render.h"
+#include "Config.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -186,7 +187,7 @@ public slots:
 
 Render *Render::create(QWidget *parent)
 {
-	if(Utils::getConfig("/Interface/Accelerated",false)){
+	if(Config::getValue("/Interface/Accelerated",false)){
 		return new OpenGLRender(parent);
 	}
 	else{
@@ -199,7 +200,7 @@ Render::Render(QWidget *parent):
 {
 	time=0;
 	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
-	if(Utils::getConfig("/Interface/Version",true)){
+	if(Config::getValue("/Interface/Version",true)){
 		tv.setFileName(":/Picture/tv.gif");
 		tv.start();
 		me=QImage(":/Picture/version.png");
@@ -212,7 +213,7 @@ Render::Render(QWidget *parent):
 			draw(QRect(ps,cf.size()));
 		});
 	}
-	QString path=Utils::getConfig("/Interface/Background",QString());
+	QString path=Config::getValue("/Interface/Background",QString());
 	if(!path.isEmpty()){
 		background=QImage(path);
 	}

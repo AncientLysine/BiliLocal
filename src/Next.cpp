@@ -26,6 +26,7 @@
 
 #include "Next.h"
 #include "Load.h"
+#include "Config.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 
@@ -59,7 +60,7 @@ Next::Next(QWidget *parent):
 		fileN.clear();
 	});
 	connect(nextM,&QMenu::aboutToShow,[this](){
-		nextM->setDefaultAction(nextM->actions()[Utils::getConfig("/Playing/Continue",true)?2:3]);
+		nextM->setDefaultAction(nextM->actions()[Config::getValue("/Playing/Continue",true)?2:3]);
 	});
 
 	nextB=new QPushButton(tr("Action"),this);
@@ -74,7 +75,7 @@ Next::Next(QWidget *parent):
 	});
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		hide();
-		setResult(Utils::getConfig("/Playing/Continue",true));
+		setResult(Config::getValue("/Playing/Continue",true));
 		fileP=fileN=QString();
 	});
 	connect(VPlayer::instance(),&VPlayer::reach,[this](){

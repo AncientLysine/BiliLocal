@@ -25,8 +25,8 @@
 =========================================================================*/
 
 #include "Utils.h"
+#include "Config.h"
 #include "Shield.h"
-#include "Cookie.h"
 #include "Plugin.h"
 #include "Interface.h"
 #include <QtCore>
@@ -56,8 +56,8 @@ static void setDefaultFont()
 	if(!QFontDatabase().families().contains(def)){
 		def=QFontInfo(f).family();
 	}
-	f.setFamily(Utils::getConfig("/Interface/Font/Family",def));
-	f.setPointSizeF(Utils::getConfig("/Interface/Font/Size",f.pointSizeF()));
+	f.setFamily(Config::getValue("/Interface/Font/Family",def));
+	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
 	qApp->setFont(f);
 }
 
@@ -74,9 +74,9 @@ int main(int argc,char *argv[])
 	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
 	QDir::setCurrent(a.applicationDirPath());
-	Utils::loadConfig();
+	Config::load();
 	int single;
-	if((single=Utils::getConfig("/Interface/Single",1))){
+	if((single=Config::getValue("/Interface/Single",1))){
 		QLocalSocket socket;
 		socket.connectToServer("BiliLocalInstance");
 		if(socket.waitForConnected()){
@@ -87,14 +87,12 @@ int main(int argc,char *argv[])
 		}
 	}
 	Shield::load();
-	Cookie::load();
 	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
 	a.connect(&a,&QApplication::aboutToQuit,[](){
-		Cookie::save();
 		Shield::save();
-		Utils::saveConfig();
+		Config::save();
 	});
 	qsrand(QTime::currentTime().msec());
 	Interface w;

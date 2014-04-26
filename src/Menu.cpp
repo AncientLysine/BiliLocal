@@ -28,6 +28,7 @@
 #include "Menu.h"
 #include "Load.h"
 #include "Utils.h"
+#include "Config.h"
 #include "Search.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
@@ -89,7 +90,7 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
-		if(Utils::getConfig("/Danmaku/Local",false)){
+		if(Config::getValue("/Danmaku/Local",false)){
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),
 													   tr("Open File"),
 													   Utils::defaultPath(),
@@ -135,9 +136,13 @@ Menu::Menu(QWidget *parent):
 	alphaS->setOrientation(Qt::Horizontal);
 	alphaS->setGeometry(QRect(10,170,180,15));
 	alphaS->setRange(0,100);
-	alphaS->setValue(Utils::getConfig("/Danmaku/Alpha",100));
+	alphaS->setValue(Config::getValue("/Danmaku/Alpha",100));
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){
-		Utils::setConfig("/Danmaku/Alpha",_alpha);
+		Config::setValue("/Danmaku/Alpha",_alpha);
+		QPoint p;
+		p.setX(QCursor::pos().x());
+		p.setY(alphaS->mapToGlobal(alphaS->rect().center()).y());
+		QToolTip::showText(p,QString::number(_alpha));
 	});
 	powerT=new QLabel(this);
 	powerT->setGeometry(QRect(10,205,100,20));
@@ -147,11 +152,11 @@ Menu::Menu(QWidget *parent):
 	powerL->setValidator(new QRegularExpressionValidator(QRegularExpression("^\\w*$")));
 	powerC=new QTimer(this);
 	powerC->setTimerType(Qt::PreciseTimer);
-	setPower(Utils::getConfig("/Danmaku/Power",60));
+	setPower(Config::getValue("/Danmaku/Power",60));
 	connect(powerL,&QLineEdit::editingFinished,[this](){
 		int p=powerL->text().toInt();
 		setPower(p);
-		Utils::setConfig("/Danmaku/Power",p);
+		Config::setValue("/Danmaku/Power",p);
 	});
 	localT=new QLabel(this);
 	localT->setGeometry(QRect(10,240,100,25));
@@ -168,26 +173,26 @@ Menu::Menu(QWidget *parent):
 		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
 		danmL->setPlaceholderText(local?QString():tr("av/ac/dd"));
-		Utils::setConfig("/Danmaku/Local",local);
+		Config::setValue("/Danmaku/Local",local);
 	});
-	localC->setChecked(Utils::getConfig("/Danmaku/Local",false));
+	localC->setChecked(Config::getValue("/Danmaku/Local",false));
 	subT=new QLabel(this);
 	subT->setGeometry(QRect(10,275,100,25));
 	subT->setText(tr("Protect Sub"));
 	subC=new QCheckBox(this);
 	subC->setGeometry(QRect(168,275,25,25));
-	subC->setChecked(Utils::getConfig("/Danmaku/Protect",false));
+	subC->setChecked(Config::getValue("/Danmaku/Protect",false));
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
-		Utils::setConfig("/Danmaku/Protect",state==Qt::Checked);
+		Config::setValue("/Danmaku/Protect",state==Qt::Checked);
 	});
 	loopT=new QLabel(this);
 	loopT->setGeometry(QRect(10,310,100,25));
 	loopT->setText(tr("Loop Playback"));
 	loopC=new QCheckBox(this);
 	loopC->setGeometry(QRect(168,310,25,25));
-	loopC->setChecked(Utils::getConfig("/Playing/Loop",false));
+	loopC->setChecked(Config::getValue("/Playing/Loop",false));
 	connect(loopC,&QCheckBox::stateChanged,[this](int state){
-		Utils::setConfig("/Playing/Loop",state==Qt::Checked);
+		Config::setValue("/Playing/Loop",state==Qt::Checked);
 	});
 
 	animation=new QPropertyAnimation(this,"pos",this);
@@ -292,10 +297,10 @@ void Menu::setMedia(QString _file)
 	QFileInfo file(_file);
 	fileL->setText(file.fileName());
 	fileL->setCursorPosition(0);
-	Utils::setConfig("/Playing/Path",file.absolutePath());
+	Config::setValue("/Playing/Path",file.absolutePath());
 	VPlayer::instance()->setMedia(file.absoluteFilePath());
-	bool only=Utils::getConfig("/Playing/Clear",true);
-	if(Utils::getConfig("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
+	bool only=Config::getValue("/Playing/Clear",true);
+	if(Config::getValue("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){
 			QString suffix=info.suffix().toLower();
 			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){

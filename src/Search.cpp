@@ -27,7 +27,7 @@
 
 #include "Search.h"
 #include "Utils.h"
-#include "Cookie.h"
+#include "Config.h"
 #include "VPlayer.h"
 
 static QHash<int,QString> getChannel(QString name)
@@ -213,8 +213,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	manager=new QNetworkAccessManager(this);
 	manager->setCache(cache);
-	manager->setCookieJar(Cookie::instance());
-	Cookie::instance()->setParent(NULL);
+	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){

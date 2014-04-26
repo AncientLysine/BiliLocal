@@ -26,6 +26,7 @@
 
 #include "Shield.h"
 #include "Utils.h"
+#include "Config.h"
 
 bool Shield::shieldG[8];
 QSet<QString> Shield::shieldS;
@@ -33,15 +34,15 @@ QList<QRegularExpression> Shield::shieldR;
 
 void Shield::load()
 {
-	QJsonArray s=Utils::getConfig<QJsonArray>("/Shield/Sender");
-	QJsonArray r=Utils::getConfig<QJsonArray>("/Shield/Regexp");
+	QJsonArray s=Config::getValue<QJsonArray>("/Shield/Sender");
+	QJsonArray r=Config::getValue<QJsonArray>("/Shield/Regexp");
 	for(const QJsonValue &item:s){
 		shieldS.insert(item.toString());
 	}
 	for(const QJsonValue &item:r){
 		shieldR.append(QRegularExpression(item.toString()));
 	}
-	int group=Utils::getConfig("/Shield/Group",0);
+	int group=Config::getValue("/Shield/Group",0);
 	for(int i=7;i>=0;--i){
 		shieldG[i]=group&1;
 		group=group>>1;
@@ -54,16 +55,16 @@ void Shield::save()
 	for(auto &item:shieldS){
 		s.append(item);
 	}
-	Utils::setConfig("/Shield/Sender",s);
+	Config::setValue("/Shield/Sender",s);
 	for(auto &item:shieldR){
 		r.append(item.pattern());
 	}
-	Utils::setConfig("/Shield/Regexp",r);
+	Config::setValue("/Shield/Regexp",r);
 	int g=0;
 	for(int i=0;i<8;++i){
 		g=(g<<1)+shieldG[i];
 	}
-	Utils::setConfig("/Shield/Group",g);
+	Config::setValue("/Shield/Group",g);
 }
 
 bool Shield::isBlocked(const Comment &comment)

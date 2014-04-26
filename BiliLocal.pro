@@ -22,7 +22,6 @@ SOURCES += \
     src/Shield.cpp \
     src/Config.cpp \
     src/Editor.cpp \
-    src/Cookie.cpp \
     src/Graphic.cpp \
     src/Post.cpp \
     src/Render.cpp \
@@ -41,7 +40,6 @@ HEADERS  += \
     src/Shield.h \
     src/Config.h \
     src/Editor.h \
-    src/Cookie.h \
     src/Graphic.h \
     src/Post.h \
     src/Render.h \

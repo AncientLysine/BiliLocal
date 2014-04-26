@@ -26,7 +26,7 @@
 
 #include "Editor.h"
 #include "Utils.h"
-#include "Cookie.h"
+#include "Config.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 
@@ -359,8 +359,7 @@ Editor::Editor(QWidget *parent):
 	scroll=new MScroll(this);
 	scroll->setSingleStep(20);
 	manager=new QNetworkAccessManager(this);
-	manager->setCookieJar(Cookie::instance());
-	Cookie::instance()->setParent(NULL);
+	Config::setManager(manager);
 	parseRecords();
 	setFocus();
 	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
@@ -389,7 +388,8 @@ Editor::Editor(QWidget *parent):
 			connect(menu.addAction(tr("Full")),&QAction::triggered,[this,&r](){
 				QString cid=QFileInfo(r.source).baseName();
 				QString api("http://comment.bilibili.tv/rolldate,%1");
-				Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[=,&r](QNetworkReply *reply){
+				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
+				connect(reply,&QNetworkReply::finished,[=,&r](){
 					QMap<QDate,int> count=parseCount(reply->readAll());
 					if(count.isEmpty()){
 						return;
@@ -401,8 +401,7 @@ Editor::Editor(QWidget *parent):
 					progress.setFixedSize(progress.sizeHint());
 					progress.setWindowTitle(tr("Loading"));
 					QNetworkAccessManager *manager=new QNetworkAccessManager(this);
-					manager->setCookieJar(Cookie::instance());
-					Cookie::instance()->setParent(NULL);
+					Config::setManager(manager);
 					connect(manager,&QNetworkAccessManager::finished,[&](QNetworkReply *reply){
 						QStringList s=reply->url().url().split(',');
 						if(s.size()==3){
@@ -460,7 +459,8 @@ Editor::Editor(QWidget *parent):
 			else{
 				QString cid=QFileInfo(r.source).baseName();
 				QString api("http://comment.bilibili.tv/rolldate,%1");
-				Utils::getReply(manager,QNetworkRequest(api.arg(cid)),[&](QNetworkReply *reply){
+				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
+				connect(reply,&QNetworkReply::finished,[&](){
 					count=parseCount(reply->readAll());
 					count[QDate::currentDate().addDays(1)]=0;
 					history.setCount(count);
@@ -483,7 +483,8 @@ Editor::Editor(QWidget *parent):
 					else{
 						url=QString("http://comment.bilibili.tv/%1.xml").arg(cid);
 					}
-					Utils::getReply(manager,QNetworkRequest(url),[=,&r](QNetworkReply *reply){
+					QNetworkReply *reply=manager->get(QNetworkRequest(url));
+					connect(reply,&QNetworkReply::finished,[=,&r](){
 						r.danmaku.clear();
 						Record load;
 						load.full=false;

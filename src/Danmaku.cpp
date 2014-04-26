@@ -26,6 +26,7 @@
 
 #include "Danmaku.h"
 #include "Shield.h"
+#include "Config.h"
 #include "VPlayer.h"
 #include "Graphic.h"
 
@@ -43,7 +44,7 @@ Danmaku::Danmaku(QObject *parent):
 {
 	cur=time=0;
 	ins=this;
-	QThreadPool::globalInstance()->setMaxThreadCount(Utils::getConfig("/Danmaku/Thread",QThread::idealThreadCount()));
+	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
 	connect(VPlayer::instance(),&VPlayer::jumped,this,&Danmaku::jumpToTime);
 	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
 }
@@ -261,7 +262,7 @@ void Danmaku::parse(int flag)
 			}
 		}
 		QSet<QString> set;
-		int l=Utils::getConfig("/Shield/Limit",5);
+		int l=Config::getValue("/Shield/Limit",5);
 		QVector<QString> clean;
 		clean.reserve(danmaku.size());
 		if(l!=0){
@@ -336,7 +337,7 @@ public:
 					case 5:
 					case 6:
 						b=r.top();
-						e=size.height()*(Utils::getConfig("/Danmaku/Protect",false)?0.85:1)-r.height();
+						e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-r.height();
 						s=10;
 						f=std::less_equal<int>();
 						break;
@@ -416,7 +417,7 @@ private:
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
-	int l=Utils::getConfig("/Shield/Density",100),n=0;
+	int l=Config::getValue("/Shield/Density",100),n=0;
 	QMap<qint64,QHash<QString,QList<const Comment *>>> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];
@@ -451,10 +452,11 @@ void Danmaku::jumpToTime(qint64 _time)
 	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }
 
-void Danmaku::saveToFile(QString _file)
+static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 {
 	QFile f(_file);
 	f.open(QIODevice::WriteOnly|QIODevice::Text);
+	bool skip=Config::getValue("/Interface/Save/Skip",false);
 	if(_file.endsWith("xml",Qt::CaseInsensitive)){
 		QXmlStreamWriter w(&f);
 		w.setAutoFormatting(true);
@@ -469,7 +471,10 @@ void Danmaku::saveToFile(QString _file)
 		w.writeStartElement("source");
 		w.writeCharacters("k-v");
 		w.writeEndElement();
-		for(const Comment *c:danmaku){
+		for(const Comment *c:data){
+			if(c->blocked&&skip){
+				continue;
+			}
 			w.writeStartElement("d");
 			QStringList l;
 			l<<QString::number(c->time/1000.0)<<
@@ -489,7 +494,10 @@ void Danmaku::saveToFile(QString _file)
 	}
 	else{
 		QJsonArray a;
-		for(const Comment *c:danmaku){
+		for(const Comment *c:data){
+			if(c->blocked&&skip){
+				continue;
+			}
 			QJsonObject o;
 			QStringList l;
 			l<<QString::number(c->time/1000.0)<<
@@ -507,6 +515,31 @@ void Danmaku::saveToFile(QString _file)
 	f.close();
 }
 
+void Danmaku::saveToFile(QString _file)
+{
+	QList<const Comment *> d;
+	if(Config::getValue("/Interface/Save/Single",true)){
+		for(const Comment *c:danmaku){
+			d.append(c);
+		}
+		saveToSingleFile(_file,d);
+	}
+	else{
+		QFileInfo info(_file);
+		for(const Record &r:pool){
+			QString s=QFileInfo(r.string).suffix().toLower();
+			if(s=="xml"||s=="json"){
+				continue;
+			}
+			d.clear();
+			for(const Comment &c:r.danmaku){
+				d.append(&c);
+			}
+			saveToSingleFile(QFileInfo(info.dir(),"["+r.string+"]"+info.fileName()).absoluteFilePath(),d);
+		}
+	}
+}
+
 void Danmaku::appendToPool(const Record &record)
 {
 	Record *append=NULL;
@@ -520,7 +553,7 @@ void Danmaku::appendToPool(const Record &record)
 		Record r;
 		r.source=record.source;
 		r.string=record.string;
-		r.delay=Utils::getConfig("/Playing/Delay",false)?time:0;
+		r.delay=Config::getValue("/Playing/Delay",false)?time:0;
 		pool.append(r);
 		append=&pool.last();
 	}

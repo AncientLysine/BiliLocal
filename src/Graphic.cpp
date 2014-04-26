@@ -25,6 +25,8 @@
 =========================================================================*/
 
 #include "Graphic.h"
+#include "Config.h"
+
 
 class Plain:public Graphic
 {
@@ -103,10 +105,10 @@ private:
 	double time;
 };
 
-static QFont getFont(int pixelSize,QString family=Utils::getConfig("/Danmaku/Font",QFont().family()))
+static QFont getFont(int pixelSize,QString family=Config::getValue("/Danmaku/Font",QFont().family()))
 {
 	QFont font;
-	font.setBold(Utils::getConfig("/Danmaku/Effect",5)%2);
+	font.setBold(Config::getValue("/Danmaku/Effect",5)%2);
 	font.setFamily(family);
 	font.setPixelSize(pixelSize);
 	return font;
@@ -131,12 +133,12 @@ static QSizeF getPlayer(qint64 date)
 
 static double getScale(int mode,qint64 date,QSize size)
 {
-	int m=Utils::getConfig("/Danmaku/Scale/Fitted",0x1);
+	int m=Config::getValue("/Danmaku/Scale/Fitted",0x1);
 	if(mode==7&&(m&0x1)==0){
 		return 0;
 	}
 	if(mode<=6&&(m&0x2)==0){
-		return Utils::getConfig("/Danmaku/Scale/Factor",1.0);
+		return Config::getValue("/Danmaku/Scale/Factor",1.0);
 	}
 	QSizeF player=getPlayer(date);
 	return qMin(size.width()/player.width(),size.height()/player.height());
@@ -150,8 +152,8 @@ static QImage getCache(QString string,
 					   QFont font,
 					   QSize size,
 					   bool frame,
-					   int effect=Utils::getConfig("/Danmaku/Effect",5)/2,
-					   int opacity=Utils::getConfig("/Danmaku/Alpha",100))
+					   int effect=Config::getValue("/Danmaku/Effect",5)/2,
+					   int opacity=Config::getValue("/Danmaku/Alpha",100))
 {
 	QPainter painter;
 	QColor base(color),edge=qGray(color)<30?Qt::white:Qt::black;
@@ -293,7 +295,7 @@ Mode1::Mode1(const Comment &comment,const QSize &size):
 	if(comment.mode!=1){
 		return;
 	}
-	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
 		return;
@@ -343,13 +345,13 @@ Mode4::Mode4(const Comment &comment,const QSize &size):
 	if(comment.mode!=4){
 		return;
 	}
-	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
+	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
 		return;
 	}
 	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveBottom(size.height()*(Utils::getConfig("/Danmaku/Protect",false)?0.85:1));
+	rect.moveBottom(size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1));
 	enabled=true;
 }
 
@@ -378,7 +380,7 @@ Mode5::Mode5(const Comment &comment,const QSize &size):
 		return;
 	}
 	QSizeF bound=rect.size();
-	QString expression=Utils::getConfig<QString>("/Danmaku/Life","5");
+	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
 		return;
@@ -412,7 +414,7 @@ Mode6::Mode6(const Comment &comment,const QSize &size):
 	if(comment.mode!=6){
 		return;
 	}
-	QString expression=Utils::getConfig<QString>("/Danmaku/Speed","125+%{width}/5");
+	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
 		return;
@@ -492,7 +494,7 @@ Mode7::Mode7(const Comment &comment,const QSize &size)
 	eAlpha=alpha[1].toDouble();
 	life=getDouble(3);
 	QJsonValue v=l<12?QJsonValue(true):data[11];
-	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Utils::getConfig("/Danmaku/Effect",5)/2:-1;
+	int effect=(v.isString()?v.toString()=="true":v.toVariant().toBool())?Config::getValue("/Danmaku/Effect",5)/2:-1;
 	QFont font=getFont(scale?comment.font*scale:comment.font,l<13?Utils::defaultFont(true):data[12].toString());
 	QString string=data[4].toString();
 	cache=getCache(string,comment.color,font,getSize(string,font),comment.isLocal(),effect,100);

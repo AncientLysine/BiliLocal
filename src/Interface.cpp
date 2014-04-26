@@ -185,12 +185,12 @@ Interface::Interface(QWidget *parent):
 	QAction *fwdA=new QAction(this);
 	fwdA->setShortcut(QKeySequence("Right"));
 	connect(fwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()+Utils::getConfig("/Interface/Interval",10)*1000);
+		vplayer->setTime(vplayer->getTime()+Config::getValue("/Interface/Interval",10)*1000);
 	});
 	QAction *bwdA=new QAction(this);
 	bwdA->setShortcut(QKeySequence("Left"));
 	connect(bwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()-Utils::getConfig("/Interface/Interval",10)*1000);
+		vplayer->setTime(vplayer->getTime()-Config::getValue("/Interface/Interval",10)*1000);
 	});
 	addAction(fwdA);
 	addAction(bwdA);
@@ -250,10 +250,10 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 
-	if(Utils::getConfig("/Interface/Frameless",false)){
+	if(Config::getValue("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
 	}
-	if(Utils::getConfig("/Interface/Top",false)){
+	if(Config::getValue("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
 	checkForUpdate();
@@ -286,8 +286,8 @@ void Interface::dropEvent(QDropEvent *e)
 void Interface::closeEvent(QCloseEvent *e)
 {
 	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
-		QString size=Utils::getConfig("/Interface/Size",QString("960,540"));
-		Utils::setConfig("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
+		QString size=Config::getValue("/Interface/Size",QString("960,540"));
+		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
 	danmaku->release();
 	if(!update.isNull()){
@@ -439,7 +439,7 @@ void Interface::checkForUpdate()
 void Interface::setCenter(QSize _s,bool f)
 {
 	if(!_s.isValid()){
-		QStringList l=Utils::getConfig("/Interface/Size",QString("960,540")).split(',',QString::SkipEmptyParts);
+		QStringList l=Config::getValue("/Interface/Size",QString("960,540")).split(',',QString::SkipEmptyParts);
 		if(l.size()>=2){
 			_s=QSize(l[0].toInt(),l[1].toInt());
 		}

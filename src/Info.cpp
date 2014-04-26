@@ -55,7 +55,7 @@ Info::Info(QWidget *parent):
 	timeS->setRange(0,0);
 	volmS->setRange(0,100);
 	timeS->setValue(0);
-	volmS->setValue(Utils::getConfig("/Playing/Volume",50));
+	volmS->setValue(Config::getValue("/Playing/Volume",50));
 	timeS->setTracking(false);
 	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
@@ -63,9 +63,15 @@ Info::Info(QWidget *parent):
 			VPlayer::instance()->setTime(duration*_time/400);
 		}
 	});
+	connect(volmS,&QSlider::sliderMoved,[this](int _volm){
+		QPoint p;
+		p.setX(QCursor::pos().x());
+		p.setY(volmS->mapToGlobal(volmS->rect().center()).y());
+		QToolTip::showText(p,QString::number(_volm));
+	});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
 		if(!updating){
-			Utils::setConfig("Playing/Volume",_volm);
+			Config::setValue("Playing/Volume",_volm);
 			VPlayer::instance()->setVolume(_volm);
 		}
 	});

@@ -26,6 +26,7 @@
 
 #include "Plugin.h"
 #include "Utils.h"
+#include "Config.h"
 
 
 QList<Plugin> Plugin::plugins;
@@ -33,9 +34,9 @@ QHash<QString,QObject *> Plugin::objects;
 
 Plugin::Plugin(QString path)
 {
-	m_regist=(Regist)QLibrary::resolve(path,"regist");
-	m_config=(Config)QLibrary::resolve(path,"config");
-	m_string=(String)QLibrary::resolve(path,"string");
+	m_regist=(RegistPtr)QLibrary::resolve(path,"regist");
+	m_config=(ConfigPtr)QLibrary::resolve(path,"config");
+	m_string=(StringPtr)QLibrary::resolve(path,"string");
 }
 
 bool Plugin::loaded()
@@ -64,7 +65,7 @@ void Plugin::loadPlugins()
 		if(info.isFile()&&QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());
 			if(lib.loaded()){
-				if(Utils::getConfig("/Plugin/"+lib.string("Name"),true)){
+				if(Config::getValue("/Plugin/"+lib.string("Name"),true)){
 					lib.regist(objects);
 				}
 				plugins.append(lib);

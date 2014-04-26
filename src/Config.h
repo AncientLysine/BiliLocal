@@ -31,69 +31,114 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
+namespace{
+template<class T>
+T fromJsonValue(QJsonValue v)
+{
+	return v.toVariant().value<T>();
+}
+
+template<>
+QVariant fromJsonValue(QJsonValue v)
+{
+	return v.toVariant();
+}
+
+template<>
+QJsonArray fromJsonValue(QJsonValue v)
+{
+	return v.toArray();
+}
+
+template<>
+QJsonObject fromJsonValue(QJsonValue v)
+{
+	return v.toObject();
+}
+
+template<class T>
+QJsonValue toJsonValue(T v)
+{
+	return QJsonValue(v);
+}
+
+template<>
+QJsonValue toJsonValue(QVariant v)
+{
+	switch(v.type()){
+	case QVariant::Bool:
+		return v.toBool();
+	case QVariant::Int:
+	case QVariant::Double:
+		return v.toDouble();
+	case QVariant::String:
+		return v.toString();
+	default:
+		return QJsonValue();
+	}
+}
+}
+
+class ConfigPrivate;
+
 class Config:public QDialog
 {
 	Q_OBJECT
 public:
 	explicit Config(QWidget *parent=0,int index=0);
+	~Config();
+
+	template<class T>
+	static T getValue(QString key,T def=T())
+	{
+		QStringList tree=key.split('/',QString::SkipEmptyParts);
+		QString last=tree.takeLast();
+		QJsonObject cur=config;
+		for(const QString &k:tree){
+			cur=cur.value(k).toObject();
+		}
+		if(cur.contains(last)){
+			return fromJsonValue<T>(cur.value(last));
+		}
+		else{
+			setValue(key,def);
+			return def;
+		}
+	}
+
+	template<class T>
+	static void setValue(QString key,T set)
+	{
+		QStringList tree=key.split('/',QString::SkipEmptyParts);
+		QString last=tree.takeLast();
+		QJsonObject cur=config;
+		QList<QJsonObject> path;
+		for(const QString &k:tree){
+			path.append(cur);
+			cur=cur.value(k).toObject();
+		}
+		QJsonValue val=toJsonValue(set);
+		if(!val.isNull()){
+			cur[last]=val;
+			while(!path.isEmpty()){
+				QJsonObject pre=path.takeLast();
+				pre[tree.takeLast()]=cur;
+				cur=pre;
+			}
+			config=cur;
+		}
+	}
+
+	static void load();
+	static void save();
+
+	static void setManager(QNetworkAccessManager *manager);
 
 private:
-	QTabWidget *tab;
-	QWidget *widget[6];
+	ConfigPrivate * const d_ptr;
+	Q_DECLARE_PRIVATE(Config)
 
-	//Playing
-	QGroupBox *box[7];
-	QCheckBox *load[4];
-	QCheckBox *fitted[2];
-	QLineEdit *factor;
-	QCheckBox *bold;
-	QComboBox *dmfont;
-	QComboBox *effect;
-	QLineEdit *play[2];
-
-	//Interface
-	QGroupBox *ui[7];
-	QComboBox *font;
-	QComboBox *reop;
-	QCheckBox *acce;
-	QCheckBox *vers;
-	QCheckBox *stay;
-	QCheckBox *less;
-	QLineEdit *jump;
-	QLineEdit *size;
-	QLineEdit *back;
-	QPushButton *open;
-	QLabel *info;
-	QLineEdit *input[3];
-	QPushButton *click;
-	QNetworkAccessManager *manager;
-
-	//Shiled
-	QLineEdit *edit;
-	QCheckBox *check[8];
-	QComboBox *type;
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[4];
-	QPushButton *button[2];
-	QLineEdit *limit[2];
-	QGroupBox *label[2];
-
-	//Plugin
-	QTreeWidget *list;
-
-	//Thanks
-	QTextEdit *thanks;
-
-	//License
-	QTextEdit *license;
-
-	QHash<QString,QVariant> restart;
-	QHash<QString,QVariant> getRestart();
-	QHash<QString,QVariant> reparse;
-	QHash<QString,QVariant> getReparse();
+	static QJsonObject config;
 };
 
 #endif // CONFIG_H

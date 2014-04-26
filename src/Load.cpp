@@ -26,7 +26,7 @@
 
 #include "Load.h"
 #include "Utils.h"
-#include "Cookie.h"
+#include "Config.h"
 #include "Danmaku.h"
 #include <QtWidgets>
 
@@ -42,8 +42,7 @@ Load::Load(QObject *parent):
 {
 	model=new QStandardItemModel(this);
 	manager=new QNetworkAccessManager(this);
-	manager->setCookieJar(Cookie::instance());
-	Cookie::instance()->setParent(NULL);
+	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code=203){
 			if(code!=QNetworkReply::OperationCanceledError){
@@ -272,7 +271,7 @@ void Load::loadDanmaku(QString _code)
 	}
 	getReply(request,_code);
 	emit stateChanged(request.url().isLocalFile()?File:Page);
-	if(Utils::getConfig("/Playing/Clear",true)){
+	if(Config::getValue("/Playing/Clear",true)){
 		Danmaku::instance()->clearPool();
 	}
 }

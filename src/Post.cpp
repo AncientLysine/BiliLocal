@@ -26,7 +26,7 @@
 =========================================================================*/
 
 #include "Post.h"
-#include "Cookie.h"
+#include "Config.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 #include "Graphic.h"
@@ -39,8 +39,7 @@ Post::Post(QWidget *parent):
 	moveWithParent();
 	parent->installEventFilter(this);
 	manager=new QNetworkAccessManager(this);
-	manager->setCookieJar(Cookie::instance());
-	Cookie::instance()->setParent(NULL);
+	Config::setManager(manager);
 	auto layout=new QHBoxLayout(this);
 	layout->setMargin(0);
 	layout->setSpacing(0);

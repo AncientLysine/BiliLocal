@@ -29,7 +29,6 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include <QtNetwork>
 
 class Comment
 {
@@ -89,57 +88,8 @@ public:
 	}
 };
 
-namespace{
-template<class T>
-T fromJsonValue(QJsonValue v)
+namespace Utils
 {
-	return v.toVariant().value<T>();
-}
-
-template<>
-QVariant fromJsonValue(QJsonValue v)
-{
-	return v.toVariant();
-}
-
-template<>
-QJsonArray fromJsonValue(QJsonValue v)
-{
-	return v.toArray();
-}
-
-template<>
-QJsonObject fromJsonValue(QJsonValue v)
-{
-	return v.toObject();
-}
-
-template<class T>
-QJsonValue toJsonValue(T v)
-{
-	return QJsonValue(v);
-}
-
-template<>
-QJsonValue toJsonValue(QVariant v)
-{
-	switch(v.type()){
-	case QVariant::Bool:
-		return v.toBool();
-	case QVariant::Int:
-	case QVariant::Double:
-		return v.toDouble();
-	case QVariant::String:
-		return v.toString();
-	default:
-		return QJsonValue();
-	}
-}
-}
-
-class Utils
-{
-public:
 	enum Site
 	{
 		Unknown,
@@ -149,74 +99,15 @@ public:
 		AcPlay,
 		AcfunLocalizer
 	};
-	static Site getSite(QString url);
-	static void setCenter(QWidget *widget);
-	static void setGround(QWidget *widget,QColor color);
-	static void setSelection(QAbstractItemView *view);
-	static double evaluate(QString expression);
-	static QString defaultPath();
-	static QString defaultFont(bool monospace=false);
-	static QString decodeXml(QString string,bool fast=false);
-	static QList<Comment> parseComment(QByteArray data,Site site);
-
-
-	template<class T>
-	static T getConfig(QString key,T def=T())
-	{
-		QStringList tree=key.split('/',QString::SkipEmptyParts);
-		QString last=tree.takeLast();
-		QJsonObject cur=config;
-		for(const QString &k:tree){
-			cur=cur.value(k).toObject();
-		}
-		if(cur.contains(last)){
-			return fromJsonValue<T>(cur.value(last));
-		}
-		else{
-			setConfig(key,def);
-			return def;
-		}
-	}
-
-	template<class T>
-	static void setConfig(QString key,T set)
-	{
-		QStringList tree=key.split('/',QString::SkipEmptyParts);
-		QString last=tree.takeLast();
-		QJsonObject cur=config;
-		QList<QJsonObject> path;
-		for(const QString &k:tree){
-			path.append(cur);
-			cur=cur.value(k).toObject();
-		}
-		QJsonValue val=toJsonValue(set);
-		if(!val.isNull()){
-			cur[last]=val;
-			while(!path.isEmpty()){
-				QJsonObject pre=path.takeLast();
-				pre[tree.takeLast()]=cur;
-				cur=pre;
-			}
-			config=cur;
-		}
-	}
-
-	template<class Func>
-	static void getReply(QNetworkAccessManager *manager,const QNetworkRequest &request,Func func)
-	{
-		QNetworkReply *reply=manager->get(request);
-		reply->connect(reply,&QNetworkReply::finished,[reply,func](){
-			func(reply);
-			reply->deleteLater();
-		});
-	}
-
-	static void loadConfig();
-	static void saveConfig();
-
-private:
-	static QJsonObject config;
-
-};
+	Site getSite(QString url);
+	void setCenter(QWidget *widget);
+	void setGround(QWidget *widget,QColor color);
+	void setSelection(QAbstractItemView *view);
+	double evaluate(QString expression);
+	QString defaultPath();
+	QString defaultFont(bool monospace=false);
+	QString decodeXml(QString string,bool fast=false);
+	QList<Comment> parseComment(QByteArray data,Site site);
+}
 
 #endif // UTILS_H

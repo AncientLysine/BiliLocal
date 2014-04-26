@@ -32,9 +32,9 @@
 class Plugin
 {
 public:
-	typedef void (*Regist)(const QHash<QString,QObject *> &);
-	typedef void (*Config)();
-	typedef QString (*String)(QString);
+	typedef void (*RegistPtr)(const QHash<QString,QObject *> &);
+	typedef void (*ConfigPtr)();
+	typedef QString (*StringPtr)(QString);
 
 	static QList<Plugin> plugins;
 	static QHash<QString,QObject *> objects;
@@ -48,9 +48,9 @@ public:
 	QString string(QString query);
 
 private:
-	Regist m_regist;
-	Config m_config;
-	String m_string;
+	RegistPtr m_regist;
+	ConfigPtr m_config;
+	StringPtr m_string;
 };
 
 #endif // PLUGIN_H

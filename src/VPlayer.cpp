@@ -25,7 +25,7 @@
 =========================================================================*/
 
 #include "VPlayer.h"
-#include "Utils.h"
+#include "Config.h"
 
 QMutex VPlayer::data;
 QMutex VPlayer::time;
@@ -440,7 +440,7 @@ VPlayer *VPlayer::instance()
 	if(ins){
 		return ins;
 	}
-	if(Utils::getConfig("/Interface/Accelerated",false)){
+	if(Config::getValue("/Interface/Accelerated",false)){
 		return new OpenGLPlayer(qApp);
 	}
 	else{
@@ -498,7 +498,7 @@ VPlayer::VPlayer(QObject *parent):
 	QObject(parent)
 {
 	QList<QByteArray> args;
-	for(QJsonValue arg:Utils::getConfig<QJsonArray>("/Playing/Arguments")){
+	for(QJsonValue arg:Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
 	}
 	const char *argv[args.size()];
@@ -582,7 +582,7 @@ void VPlayer::init()
 				if(music){
 					fake->start();
 				}
-				if(!Utils::getConfig("/Playing/Subtitle",true)){
+				if(!Config::getValue("/Playing/Subtitle",true)){
 					libvlc_video_set_spu(mp,-1);
 				}
 				auto transTracks=[this](libvlc_track_description_t *head)
@@ -639,7 +639,7 @@ void VPlayer::init()
 					if(i->isChecked()) libvlc_audio_set_track(mp,i->data().toInt());
 				}
 			}
-			setVolume(Utils::getConfig("/Playing/Volume",50));
+			setVolume(Config::getValue("/Playing/Volume",50));
 			QObject::disconnect(*connection);
 			delete connection;
 		});
@@ -648,7 +648,7 @@ void VPlayer::init()
 
 void VPlayer::free()
 {
-	if(Utils::getConfig("/Playing/Loop",false)){
+	if(Config::getValue("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
 		setState(Loop);
 		libvlc_media_player_play(mp);
@@ -752,7 +752,7 @@ void VPlayer::setTime(qint64 _time)
 {
 	if(mp&&state!=Stop){
 		if(getDuration()==_time){
-			if(Utils::getConfig("/Playing/Loop",false)){
+			if(Config::getValue("/Playing/Loop",false)){
 				setTime(0);
 			}
 			else{
@@ -796,7 +796,7 @@ void VPlayer::setMedia(QString _file)
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEncounteredError,
 								err,NULL);
-			if(Utils::getConfig("/Playing/Immediate",false)){
+			if(Config::getValue("/Playing/Immediate",false)){
 				play();
 			}
 		}
