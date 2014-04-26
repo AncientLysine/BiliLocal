@@ -26,7 +26,6 @@ SOURCES += \
     src/Graphic.cpp \
     src/Post.cpp \
     src/Render.cpp \
-    src/History.cpp \
     src/Next.cpp \
     src/Load.cpp \
     src/Plugin.cpp
@@ -46,7 +45,6 @@ HEADERS  += \
     src/Graphic.h \
     src/Post.h \
     src/Render.h \
-    src/History.h \
     src/Next.h \
     src/Load.h \
     src/Plugin.h

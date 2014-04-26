@@ -32,29 +32,20 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
-class Editor:public QWidget
+class Editor:public QDialog
 {
 	Q_OBJECT
 public:
-	static int exec(QWidget *parent=0);
+	Editor(QWidget *parent=0);
 
 private:
-	int scale;
-	int length;
-	QPoint point;
-	qint64 current;
-	qint64 duration;
-	QList<qint64> magnet;
-	QList<QLineEdit *> time;
+	QWidget *widget;
+	QScrollBar *scroll;
 	QNetworkAccessManager *manager;
+	void resizeEvent(QResizeEvent *e);
 
-	Editor(QWidget *parent=0);
-	void load();
-	void paintEvent(QPaintEvent *e);
-	void wheelEvent(QWheelEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void delayRecord(int index,qint64 delay);
+public slots:
+	void parseRecords();
 };
 
 #endif // EDITOR_H

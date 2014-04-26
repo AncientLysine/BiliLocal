@@ -25,53 +25,315 @@
 =========================================================================*/
 
 #include "Editor.h"
+#include "Utils.h"
 #include "Cookie.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
-#include "History.h"
 
 namespace{
-class Resizer:public QObject
+class History:public QDialog
 {
 public:
-	Resizer(QWidget *src,QWidget *dst):
-		QObject(src),src(src),dst(dst)
+	explicit History(QWidget *parent=0):
+		QDialog(parent,Qt::Popup)
 	{
-		src->installEventFilter(this);
+		auto layout=new QGridLayout(this);
+		date=new QLabel(this);
+		date->setAlignment(Qt::AlignCenter);
+		layout->addWidget(date,0,1);
+		prev=new QToolButton(this);
+		next=new QToolButton(this);
+		prev->setIcon(QIcon(":/Picture/previous.png"));
+		next->setIcon(QIcon(":/Picture/next.png"));
+		connect(prev,&QToolButton::clicked,[this](){
+			setCurrentPage(page.addMonths(-1));
+		});
+		connect(next,&QToolButton::clicked,[this](){
+			setCurrentPage(page.addMonths(+1));
+		});
+		layout->addWidget(prev,0,0);
+		layout->addWidget(next,0,2);
+		table=new QTableWidget(7,7,this);
+		table->setShowGrid(false);
+		table->setSelectionMode(QAbstractItemView::SingleSelection);
+		table->verticalHeader()->hide();
+		table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		table->horizontalHeader()->hide();
+		table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		connect(table,&QTableWidget::itemDoubleClicked,this,&QDialog::accept);
+		layout->addWidget(table,1,0,1,3);
 	}
 
-	bool eventFilter(QObject *o, QEvent *e)
+	QDate selectedDate()
 	{
-		if(e->type()==QEvent::Resize){
-			dst->resize(src->width(),dst->height());
-			return false;
+		QTableWidgetItem *item=table->currentItem();
+		if(item!=NULL){
+			QDate selected=item->data(Qt::UserRole).toDate();
+			if(selected<=QDate::currentDate()){
+				return selected;
+			}
 		}
-		else{
-			return QObject::eventFilter(o,e);
+		return QDate();
+	}
+
+	void setCurrentDate(QDate _d)
+	{
+		curr=_d;
+	}
+
+	void setCurrentPage(QDate _d)
+	{
+		page.setDate(_d.year(),_d.month(),1);
+		table->clear();
+		for(int day=1;day<=7;++day){
+			QTableWidgetItem *item=new QTableWidgetItem(QDate::shortDayName(day));
+			item->setFlags(0);
+			QFont f=item->font();
+			f.setBold(true);
+			item->setFont(f);
+			item->setData(Qt::TextColorRole,QColor(Qt::black));
+			table->setItem(0,day-1,item);
 		}
+		int row=1;
+		for(QDate iter=page;iter.month()==page.month();iter=iter.addDays(1)){
+			QTableWidgetItem *item=new QTableWidgetItem(QString::number(iter.day()));
+			item->setData(Qt::UserRole,iter);
+			item->setData(Qt::TextAlignmentRole,Qt::AlignCenter);
+			if(!count.contains(iter)){
+				item->setFlags(0);
+			}
+			else{
+				item->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable);
+			}
+			if(iter==curr){
+				item->setData(Qt::BackgroundRole,QColor(Qt::gray));
+			}
+			table->setItem(row,iter.dayOfWeek()-1,item);
+			if(item->column()==6){
+				++row;
+			}
+		}
+		for(int r=0;r<7;++r){
+			for(int c=0;c<7;++c){
+				if(table->item(r,c)==0){
+					QTableWidgetItem *item=new QTableWidgetItem;
+					item->setFlags(0);
+					table->setItem(r,c,item);
+				}
+			}
+		}
+		QDate last(page.year(),page.month(),page.daysInMonth());
+		prev->setEnabled(page>count.firstKey());
+		next->setEnabled(last<count.lastKey());
+		date->setText(page.toString("MMM yyyy"));
+	}
+
+	void setCount(const QMap<QDate,int> &_c)
+	{
+		count=_c;
 	}
 
 private:
-	QWidget *src;
-	QWidget *dst;
+	QDate page;
+	QDate curr;
+	QLabel *date;
+	QToolButton *prev;
+	QToolButton *next;
+	QTableWidget *table;
+	QMap<QDate,int> count;
+	QDate currentLimit();
 };
-}
 
-int Editor::exec(QWidget *parent)
+class Track:public QWidget
 {
-	QDialog dialog(parent);
-	auto layout=new QGridLayout(&dialog);
-	auto scroll=new QScrollArea(&dialog);
-	auto widget=new Editor(&dialog);
-	new Resizer(scroll->viewport(),widget);
-	layout->addWidget(scroll);
-	scroll->setWidget(widget);
-	scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	dialog.resize(640,450);
-	dialog.setMinimumSize(300,200);
-	dialog.setWindowTitle(tr("Editor"));
-	Utils::setCenter(&dialog);
-	return dialog.exec();
+public:
+	explicit Track(QWidget *parent=0):
+		QWidget(parent)
+	{
+		resize(parent->width(),100);
+		parent->installEventFilter(this);
+		m_record=NULL;
+		m_wheel=0;
+		m_magnet<<0<<0<<0;
+		m_lable=new QLabel(this);
+		m_lable->setGeometry(0,0,98,73);
+		m_lable->setWordWrap(true);
+		m_lable->setAlignment(Qt::AlignCenter);
+		m_delay=new QLineEdit(this);
+		m_delay->setGeometry(0,73,98,25);
+		m_delay->setFrame(false);
+		m_delay->setAlignment(Qt::AlignCenter);
+		connect(m_delay,&QLineEdit::editingFinished,[this](){
+			QString expression=QRegularExpression("[\\s\\d\\.\\+\\-\\*\\/\\(\\)]+").match(m_delay->text()).captured();
+			if(!expression.isEmpty()){
+				delayRecord(Utils::evaluate(expression)*1000-m_record->delay);
+			}
+			else{
+				m_delay->setText(m_prefix.arg(m_record->delay/1000));
+			}
+		});
+	}
+
+	void setRecord(Record *r)
+	{
+		m_record=r;
+		m_lable->setText(r->string);
+		m_delay->setText(m_prefix.arg(r->delay/1000));
+	}
+
+	void setPrefix(QString p){
+		m_prefix=p;
+	}
+
+	void setCurrent(qint64 c)
+	{
+		m_current=c;
+		m_magnet[1]=c;
+	}
+
+	void setDuration(qint64 d)
+	{
+		m_duration=d;
+		m_magnet[2]=d;
+	}
+
+private:
+	QLabel *m_lable;
+	QLineEdit *m_delay;
+
+	Record *m_record;
+	QString m_prefix;
+	qint64 m_current;
+	qint64 m_duration;
+	QPoint m_point;
+	QList<int> m_magnet;
+	int m_wheel;
+
+	void paintEvent(QPaintEvent *e)
+	{
+		QPainter painter(this);
+		painter.fillRect(e->rect(),Qt::gray);
+		painter.fillRect(0,0,98,98,Qt::white);
+		int w=width()-100,m=0,d=m_duration/(w/5)+1,t=0;
+		QHash<int,int> c;
+		for(const Comment &com:m_record->danmaku){
+			if(com.blocked){
+				continue;
+			}
+			if(com.time>=0&&com.time<=m_duration){
+				++t;
+			}
+			int k=(com.time-m_record->delay)/d,v=c.value(k,0)+1;
+			c.insert(k,v);
+			m=v>m?v:m;
+		}
+		if(m!=0){
+			int o=w*m_record->delay/m_duration;
+			if(!m_point.isNull()){
+				o+=mapFromGlobal(QCursor::pos()).x()-m_point.x();
+				for(qint64 p:m_magnet){
+					p=p*w/m_duration;
+					if(qAbs(o-p)<5){
+						o=p;
+						break;
+					}
+				}
+			}
+			painter.setClipRect(100,0,w,100);
+			for(int j=0;j<w;j+=5){
+				int he=c[j/5]*98/m;
+				painter.fillRect(o+j+100,98-he,5,he,Qt::white);
+			}
+			painter.setPen(Qt::white);
+			QString count=QString("%1/%2").arg(t).arg(m_record->danmaku.size());
+			QRect rect=painter.fontMetrics().boundingRect(100,0,w,98,Qt::AlignRight,count);
+			rect.adjust(-5,0,0,0);
+			painter.fillRect(rect,QColor(160,160,164,100));
+			painter.drawText(rect,Qt::AlignCenter,count);
+			if(m_current>=0){
+				painter.fillRect(m_current*w/m_duration+100,0,1,100,Qt::red);
+			}
+		}
+	}
+
+	void wheelEvent(QWheelEvent *e)
+	{
+		m_wheel+=e->angleDelta().y();
+		if(qAbs(m_wheel)>=120){
+			qint64 d=(m_record->delay/1000)*1000;
+			d+=m_wheel>0?-1000:1000;
+			d-=m_record->delay;
+			delayRecord(d);
+			m_wheel=0;
+		}
+		e->accept();
+	}
+
+	void mouseMoveEvent(QMouseEvent *e)
+	{
+		if(!m_point.isNull()){
+			update();
+		}
+		else{
+			m_point=e->pos();
+		}
+	}
+
+	void mouseReleaseEvent(QMouseEvent *e)
+	{
+		if(!m_point.isNull()){
+			int w=width()-100;
+			qint64 d=(e->x()-m_point.x())*m_duration/w;
+			for(qint64 p:m_magnet){
+				if(qAbs(d+m_record->delay-p)<m_duration/(w/5)+1){
+					d=p-m_record->delay;
+					break;
+				}
+			}
+			delayRecord(d);
+		}
+		m_point=QPoint();
+	}
+
+	bool eventFilter(QObject *,QEvent *e)
+	{
+		if(e->type()==QEvent::Resize){
+			resize(dynamic_cast<QResizeEvent *>(e)->size().width(),100);
+		}
+		return false;
+	}
+
+	void delayRecord(qint64 delay)
+	{
+		m_record->delay+=delay;
+		for(Comment &c:m_record->danmaku){
+			c.time+=delay;
+		}
+		update();
+		m_delay->setText(m_prefix.arg(m_record->delay/1000));
+	}
+};
+
+class MScroll:public QScrollBar
+{
+public:
+	explicit MScroll(QWidget *parent=0):
+		QScrollBar(parent)
+	{
+	}
+
+private:
+	void paintEvent(QPaintEvent *e)
+	{
+		QScrollBar::paintEvent(e);
+		QPainter painter(this);
+		painter.setPen(Qt::gray);
+		QPoint points[4]={rect().topLeft(),rect().topRight(),rect().bottomRight(),rect().bottomLeft()};
+		painter.drawPolyline(points,4);
+	}
+};
 }
 
 static QMap<QDate,int> parseCount(QByteArray data)
@@ -86,18 +348,41 @@ static QMap<QDate,int> parseCount(QByteArray data)
 }
 
 Editor::Editor(QWidget *parent):
-	QWidget(parent)
+	QDialog(parent)
 {
-	scale=0;
-	length=100;
-	current=VPlayer::instance()->getTime();
+	resize(640,450);
+	setMinimumSize(300,200);
+	setWindowTitle(tr("Editor"));
+	Utils::setCenter(this);
+	widget=new QWidget(this);
+	widget->setFocusPolicy(Qt::ClickFocus);
+	scroll=new MScroll(this);
+	scroll->setSingleStep(20);
 	manager=new QNetworkAccessManager(this);
 	manager->setCookieJar(Cookie::instance());
 	Cookie::instance()->setParent(NULL);
-	load();
-	setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(this,&Editor::customContextMenuRequested,[this](QPoint p){
-		int i=p.y()/length;
+	parseRecords();
+	setFocus();
+	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
+	connect(scroll,&QScrollBar::valueChanged,[this](int value){
+		value=-value;
+		for(QObject *c:widget->children()){
+			qobject_cast<QWidget *>(c)->move(0,value);
+			value+=100;
+		}
+	});
+	widget->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(widget,&QWidget::customContextMenuRequested,[this](QPoint p){
+		int i;
+		QObjectList c=widget->children();
+		for(i=0;i<c.size();++i){
+			if(qobject_cast<QWidget *>(c[i])->geometry().contains(p)){
+				break;
+			}
+		}
+		if(i<0||i>=c.size()){
+			return;
+		}
 		Record &r=Danmaku::instance()->getPool()[i];
 		QMenu menu(this);
 		if(!r.full){
@@ -187,7 +472,7 @@ Editor::Editor(QWidget *parent):
 				r.limit=selected.isValid()?QDateTime(selected).toTime_t():0;
 				if(r.full){
 					Danmaku::instance()->parse(0x2);
-					update(0,i*length,width(),length);
+					widget->update();
 				}
 				else{
 					QString url,cid=QFileInfo(r.source).baseName();;
@@ -216,156 +501,49 @@ Editor::Editor(QWidget *parent):
 		});
 		menu.exec(mapToGlobal(p));
 	});
-	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::load);
 }
 
-void Editor::load()
+void Editor::resizeEvent(QResizeEvent *e)
 {
-	qDeleteAll(time);
-	time.clear();
-	duration=VPlayer::instance()->getDuration();
-	bool undefined=duration==-1;
-	const QList<Record> &pool=Danmaku::instance()->getPool();
-	for(int i=0;i<pool.size();++i){
-		const Record &line=pool[i];
-		if(undefined){
-			for(const Comment &c:line.danmaku){
-				duration=qMax(c.time-line.delay,duration);
-			}
-		}
-		QLineEdit *edit=new QLineEdit(tr("Delay: %1s").arg(line.delay/1000),this);
-		edit->setGeometry(0,73+i*length,98,25);
-		edit->setFrame(false);
-		edit->setAlignment(Qt::AlignCenter);
-		edit->show();
-		connect(edit,&QLineEdit::editingFinished,[this,edit](){
-			int index=time.indexOf(edit);
-			QString expression=QRegularExpression("[\\s\\d\\.\\+\\-\\*\\/\\(\\)]+").match(edit->text()).captured();
-			const Record &r=Danmaku::instance()->getPool()[index];
-			if(!expression.isEmpty()){
-				delayRecord(index,Utils::evaluate(expression)*1000-r.delay);
-			}
-			else{
-				edit->setText(tr("Delay: %1s").arg(r.delay/1000));
-			}
-		});
-		time.append(edit);
-	}
-	magnet<<0<<current<<duration;
-	resize(width(),pool.count()*length);
-	parentWidget()->update();
-}
-
-void Editor::paintEvent(QPaintEvent *e)
-{
-	QPainter painter;
-	painter.begin(this);
-	painter.fillRect(rect(),Qt::gray);
-	int l=e->rect().bottom()/length+1;
-	int s=point.isNull()?-1:point.y()/length;
-	for(int i=e->rect().top()/length;i<l;++i){
-		const Record &r=Danmaku::instance()->getPool()[i];
-		int w=width()-100,h=i*length;
-		painter.save();
-		painter.fillRect(0,h,100-2,length-2 ,Qt::white);
-		painter.drawText(0,h,100-2,length-25,Qt::AlignCenter|Qt::TextWordWrap,r.string);
-		int m=0,d=duration/(w/5)+1,t=0;
-		QHash<int,int> c;
-		for(const Comment &com:r.danmaku){
-			if(com.blocked){
-				continue;
-			}
-			if(com.time>=0&&com.time<=duration){
-				++t;
-			}
-			int k=(com.time-r.delay)/d,v=c.value(k,0)+1;
-			c.insert(k,v);
-			m=v>m?v:m;
-		}
-		if(m==0){
-			continue;
-		}
-		int o=w*r.delay/duration;
-		if(i==s){
-			o+=mapFromGlobal(QCursor::pos()).x()-point.x();
-			for(qint64 p:magnet){
-				p=p*w/duration;
-				if(qAbs(o-p)<5){
-					o=p;
-					break;
-				}
-			}
-		}
-		painter.setClipRect(100,h,w,length);
-		for(int j=0;j<w;j+=5){
-			int he=c[j/5]*(length-2)/m;
-			painter.fillRect(o+j+100,h+length-2-he,5,he,Qt::white);
-		}
-		painter.setPen(Qt::white);
-		QString count=QString("%1/%2").arg(t).arg(r.danmaku.size());
-		QRect rect=painter.fontMetrics().boundingRect(100,h,w,length-2,Qt::AlignRight,count);
-		rect.adjust(-5,0,0,0);
-		painter.fillRect(rect,QColor(160,160,164,100));
-		painter.drawText(rect,Qt::AlignCenter,count);
-		painter.restore();
-	}
-	if(current>=0){
-		painter.fillRect(current*(width()-100)/duration+100,0,1,height(),Qt::red);
-	}
-	painter.end();
-	QWidget::paintEvent(e);
-}
-
-void Editor::wheelEvent(QWheelEvent *e)
-{
-	int i=e->pos().y()/length;
-	scale+=e->angleDelta().y();
-	if(qAbs(scale)>=120){
-		auto &r=Danmaku::instance()->getPool()[i];
-		qint64 d=(r.delay/1000)*1000;
-		d+=scale>0?-1000:1000;
-		d-=r.delay;
-		delayRecord(i,d);
-		scale=0;
-	}
-	QWidget::wheelEvent(e);
-	e->accept();
-}
-
-void Editor::mouseMoveEvent(QMouseEvent *e)
-{
-	if(point.isNull()){
-		point=e->pos();
+	QRect r(QPoint(0,0),e->size());
+	r.adjust(10,10,-10,-10);
+	if(widget->children().size()*100-2>r.height()){
+		scroll->show();
+		scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));
+		widget->setGeometry(r.adjusted(0,0,-scroll->width(),0));
 	}
 	else{
-		update(100,point.y()/length*length,width()-100,length);
+		scroll->hide();
+		widget->setGeometry(r);
 	}
+	QObjectList c=widget->children();
+	scroll->setRange(0,c.size()*100-r.height()-2);
+	scroll->setValue(c.size()?-qobject_cast<QWidget *>(c.first())->y():0);
+	scroll->setPageStep(r.height());
 }
 
-void Editor::mouseReleaseEvent(QMouseEvent *e)
+void Editor::parseRecords()
 {
-	if(!point.isNull()){
-		int w=width()-100;
-		auto &r=Danmaku::instance()->getPool()[point.y()/length];
-		qint64 d=(e->x()-point.x())*duration/w;
-		for(qint64 p:magnet){
-			if(qAbs(d+r.delay-p)<duration/(w/5)+1){
-				d=p-r.delay;
-				break;
+	qDeleteAll(widget->children());
+	QList<Record> &pool=Danmaku::instance()->getPool();
+	qint64 duration=VPlayer::instance()->getDuration();
+	bool undefined=(duration==-1);
+	for(Record &r:pool){
+		if(undefined){
+			for(const Comment &c:r.danmaku){
+				duration=qMax(c.time-r.delay,duration);
 			}
 		}
-		delayRecord(point.y()/length,d);
 	}
-	point=QPoint();
-}
-
-void Editor::delayRecord(int index,qint64 delay)
-{
-	auto &r=Danmaku::instance()->getPool()[index];
-	r.delay+=delay;
-	for(Comment &c:r.danmaku){
-		c.time+=delay;
+	int height=0;
+	for(Record &r:pool){
+		Track *t=new Track(widget);
+		t->setPrefix(tr("Delay: %1s"));
+		t->move(0,height);
+		height+=100;
+		t->setCurrent(VPlayer::instance()->getTime());
+		t->setDuration(duration);
+		t->setRecord(&r);
+		t->show();
 	}
-	update(0,index*length,width(),length);
-	time[index]->setText(tr("Delay: %1s").arg(r.delay/1000));
 }
