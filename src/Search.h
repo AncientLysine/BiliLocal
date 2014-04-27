@@ -55,7 +55,6 @@ private:
 	QPushButton *pageDnB;
 	QPushButton *pageGoB;
 	QTreeWidget *resultW;
-	QNetworkDiskCache *cache;
 	QNetworkAccessManager *manager;
 
 	QString key;

@@ -77,11 +77,16 @@ public:
 	QGroupBox *label[2];
 
 	//Network
-
-	QLineEdit *input[3];
+	QComboBox *arg;
+	QLineEdit *input[4];
+	QGroupBox *proxy;
+	QLineEdit *sheet[3];
 	QPushButton *click;
 	QLabel *info;
 	QGroupBox *login;
+	QLabel *text;
+	QPushButton *clear;
+	QGroupBox *cache;
 
 	//Plugin
 	QTreeWidget *list;
@@ -132,6 +137,88 @@ public:
 
 };
 
+class Cookie:public QNetworkCookieJar
+{
+public:
+	static void load()
+	{
+		QByteArray buff;
+		buff=Config::getValue("/Network/Cookie",QString()).toUtf8();
+		buff=buff.isEmpty()?buff:qUncompress(QByteArray::fromBase64(buff));
+		QDataStream read(buff);
+		QList<QNetworkCookie> all;
+		int n,l;
+		read>>n;
+		for(int i=0;i<n;++i){
+			read>>l;
+			char *d=new char[l];
+			read.readRawData(d,l);
+			all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
+			delete []d;
+		}
+		data.setAllCookies(all);
+	}
+
+	static void save()
+	{
+
+		QByteArray buff;
+		QDataStream save(&buff,QIODevice::WriteOnly);
+		const QList<QNetworkCookie> &all=data.allCookies();
+		save<<all.count();
+		for(const QNetworkCookie &iter:all){
+			QByteArray d=iter.toRawForm();
+			save<<d.size();
+			save.writeRawData(d.data(),d.size());
+		}
+		Config::setValue("/Network/Cookie",QString(qCompress(buff).toBase64()));
+	}
+
+	static Cookie data;
+};
+
+Cookie Cookie::data;
+
+class DCache
+{
+public:
+	static void load()
+	{
+		data.setCacheDirectory("./cache");
+		data.setMaximumCacheSize(Config::getValue("/Network/Cache/Maximum",100*1024*1024));
+	}
+
+	static QNetworkDiskCache data;
+};
+
+QNetworkDiskCache DCache::data;
+
+
+class APorxy
+{
+public:
+	static void load()
+	{
+		QNetworkProxy proxy;
+		proxy.setType((QNetworkProxy::ProxyType)Config::getValue<int>("/Network/Proxy/Type",QNetworkProxy::NoProxy));
+		proxy.setHostName(Config::getValue<QString>("/Network/Proxy/HostName"));
+		proxy.setPort(Config::getValue<quint16>("/Network/Proxy/Port"));
+		proxy.setUser(Config::getValue<QString>("/Network/Proxy/User"));
+		proxy.setPassword(Config::getValue<QString>("/Network/Proxy/HostName"));
+		QNetworkProxy::setApplicationProxy(proxy);
+	}
+
+	static void save()
+	{
+		QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+		Config::setValue("/Network/Proxy/Type",proxy.type());
+		Config::setValue("/Network/Proxy/HostName",proxy.hostName());
+		Config::setValue("/Network/Proxy/Port",proxy.port());
+		Config::setValue("/Network/Proxy/User",proxy.user());
+		Config::setValue("/Network/Proxy/Password",proxy.password());
+	}
+};
+
 QJsonObject Config::config;
 
 Config::Config(QWidget *parent,int index):
@@ -141,6 +228,9 @@ Config::Config(QWidget *parent,int index):
 	setWindowTitle(tr("Config"));
 	auto outer=new QGridLayout(this);
 	d->tab=new QTabWidget(this);
+	connect(d->tab,&QTabWidget::currentChanged,[d](int index){
+		d->tab->widget(index)->setFocus();
+	});
 	outer->addWidget(d->tab);
 	d->manager=new QNetworkAccessManager(this);
 	setManager(d->manager);
@@ -276,7 +366,7 @@ Config::Config(QWidget *parent,int index):
 	//Interface
 	{
 		d->widget[1]=new QWidget(this);
-		auto lines=new QVBoxLayout(d->widget[1]);
+		auto list=new QVBoxLayout(d->widget[1]);
 
 		auto s=new QHBoxLayout;
 		d->size=new QLineEdit(d->widget[1]);
@@ -306,7 +396,7 @@ Config::Config(QWidget *parent,int index):
 		auto q=new QHBoxLayout;
 		q->addWidget(d->ui[0]);
 		q->addWidget(d->ui[1]);
-		lines->addLayout(q);
+		list->addLayout(q);
 
 		auto t=new QGridLayout;
 		d->acce=new QCheckBox(tr("hardware accelerated"),d->widget[1]);
@@ -335,7 +425,7 @@ Config::Config(QWidget *parent,int index):
 		t->addWidget(d->less,1,1);
 		d->ui[2]=new QGroupBox(tr("window flag"),d->widget[1]);
 		d->ui[2]->setLayout(t);
-		lines->addWidget(d->ui[2]);
+		list->addWidget(d->ui[2]);
 
 		auto f=new QHBoxLayout;
 		d->font=new QComboBox(d->widget[1]);
@@ -362,7 +452,7 @@ Config::Config(QWidget *parent,int index):
 		auto v=new QHBoxLayout;
 		v->addWidget(d->ui[3],1);
 		v->addWidget(d->ui[4],1);
-		lines->addLayout(v);
+		list->addLayout(v);
 
 		auto a=new QHBoxLayout;
 		d->skip=new QCheckBox(tr("skip blocked ones"),d->widget[1]);
@@ -379,7 +469,7 @@ Config::Config(QWidget *parent,int index):
 		a->addWidget(d->sing);
 		d->ui[5]=new QGroupBox(tr("saving option"));
 		d->ui[5]->setLayout(a);
-		lines->addWidget(d->ui[5]);
+		list->addWidget(d->ui[5]);
 
 		auto b=new QHBoxLayout;
 		d->back=new QLineEdit(d->widget[1]);
@@ -401,10 +491,10 @@ Config::Config(QWidget *parent,int index):
 		b->addWidget(d->open);
 		d->ui[6]=new QGroupBox(tr("background"),d->widget[1]);
 		d->ui[6]->setLayout(b);
-		lines->addWidget(d->ui[6]);
+		list->addWidget(d->ui[6]);
 
 
-		lines->addStretch(10);
+		list->addStretch(10);
 		d->tab->addTab(d->widget[1],tr("Interface"));
 
 		d->restart=d->getRestart();
@@ -607,17 +697,101 @@ Config::Config(QWidget *parent,int index):
 		d->widget[3]=new QWidget(this);
 		auto list=new QVBoxLayout(d->widget[3]);
 
-		auto l=new QHBoxLayout;
+		auto p=new QGridLayout;
+		d->arg=new QComboBox(d->widget[3]);
+		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
+		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[d](int index){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			switch(index){
+			case 0:
+				proxy.setType(QNetworkProxy::NoProxy);
+				break;
+			case 1:
+				proxy.setType(QNetworkProxy::HttpProxy);
+				break;
+			case 2:
+				proxy.setType(QNetworkProxy::Socks5Proxy);
+				break;
+			}
+			QNetworkProxy::setApplicationProxy(proxy);
+			for(QLineEdit *iter:d->input){
+				iter->setEnabled(index!=0);
+			}
+		});
+		p->addWidget(d->arg,0,0);
 		d->input[0]=new QLineEdit(d->widget[3]);
-		d->input[0]->setPlaceholderText(tr("Username"));
+		d->input[0]->setText(QNetworkProxy::applicationProxy().hostName());
+		d->input[0]->setPlaceholderText(tr("HostName"));
+		connect(d->input[0],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setHostName(d->input[0]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[0],1,0);
 		d->input[1]=new QLineEdit(d->widget[3]);
-		d->input[1]->setPlaceholderText(tr("Password"));
-		d->input[1]->setEchoMode(QLineEdit::Password);
+		d->input[1]->setPlaceholderText(tr("Port"));
+		int port=QNetworkProxy::applicationProxy().port();
+		d->input[1]->setText(port?QString::number(port):QString());
+		connect(d->input[1],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setPort(d->input[1]->text().toInt());
+			if(proxy.port()==0){
+				d->input[1]->clear();
+			}
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[1],1,1);
 		d->input[2]=new QLineEdit(d->widget[3]);
-		d->input[2]->setPlaceholderText(tr("Identifier"));
+		d->input[2]->setPlaceholderText(tr("User"));
+		d->input[2]->setText(QNetworkProxy::applicationProxy().user());
+		connect(d->input[2],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setUser(d->input[2]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[2],1,2);
+		d->input[3]=new QLineEdit(d->widget[3]);
+		d->input[3]->setPlaceholderText(tr("Password"));
+		d->input[3]->setText(QNetworkProxy::applicationProxy().password());
+		connect(d->input[3],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setPassword(d->input[3]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[3],1,3);
+		for(QLineEdit *iter:d->input){
+			iter->setEnabled(false);
+		}
+		switch(QNetworkProxy::applicationProxy().type()){
+		case QNetworkProxy::HttpProxy:
+			d->arg->setCurrentIndex(1);
+			break;
+		case QNetworkProxy::Socks5Proxy:
+			d->arg->setCurrentIndex(2);
+			break;
+		default:
+			d->arg->setCurrentIndex(0);
+			break;
+		}
+		d->proxy=new QGroupBox(tr("proxy"),d->widget[3]);
+		d->proxy->setLayout(p);
+		list->addWidget(d->proxy);
+
+		auto l=new QGridLayout;
+		l->setColumnStretch(0,1);
+		l->setColumnStretch(1,1);
+		l->setColumnStretch(2,1);
+		l->setColumnStretch(3,1);
+		d->sheet[0]=new QLineEdit(d->widget[3]);
+		d->sheet[0]->setPlaceholderText(tr("Username"));
+		d->sheet[1]=new QLineEdit(d->widget[3]);
+		d->sheet[1]->setPlaceholderText(tr("Password"));
+		d->sheet[1]->setEchoMode(QLineEdit::Password);
+		d->sheet[2]=new QLineEdit(d->widget[3]);
+		d->sheet[2]->setPlaceholderText(tr("Identifier"));
 		auto checkout=[d](){
 			bool flag=true;
-			for(QLineEdit *iter:d->input){
+			for(QLineEdit *iter:d->sheet){
 				if(iter->text().isEmpty()){
 					flag=false;
 					break;
@@ -627,20 +801,20 @@ Config::Config(QWidget *parent,int index):
 				d->click->click();
 			}
 		};
-		for(QLineEdit *iter:d->input){
+		for(QLineEdit *iter:d->sheet){
 			connect(iter,&QLineEdit::editingFinished,checkout);
 		}
-		connect(d->input[2],&QLineEdit::textEdited,[d](QString text){
-			d->input[2]->setText(text.toUpper());
+		connect(d->sheet[2],&QLineEdit::textEdited,[d](QString text){
+			d->sheet[2]->setText(text.toUpper());
 		});
-		l->addWidget(d->input[0]);
-		l->addWidget(d->input[1]);
-		l->addWidget(d->input[2]);
+		l->addWidget(d->sheet[0],0,0);
+		l->addWidget(d->sheet[1],0,1);
+		l->addWidget(d->sheet[2],0,2);
 		d->info=new QLabel(d->widget[3]);
 		d->info->setFixedWidth(100);
 		d->info->setAlignment(Qt::AlignCenter);
 		d->info->setText(tr("waiting"));
-		l->addWidget(d->info);
+		l->addWidget(d->info,0,3,Qt::AlignCenter);
 		auto loadValid=[d](){
 			QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
 			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
@@ -660,16 +834,15 @@ Config::Config(QWidget *parent,int index):
 		auto setLogged=[d,this,loadValid](bool logged){
 			if(logged){
 				d->info->setText(tr("logged"));
-				d->input[1]->clear();
-				d->input[2]->clear();
+				d->sheet[1]->clear();
+				d->sheet[2]->clear();
 				d->click->setText(tr("logout"));
-				setFocus();
 			}
 			else{
 				loadValid();
 				d->click->setText(tr("login"));
 			}
-			for(QLineEdit *iter:d->input){
+			for(QLineEdit *iter:d->sheet){
 				iter->setEnabled(!logged);
 			}
 		};
@@ -677,9 +850,9 @@ Config::Config(QWidget *parent,int index):
 			d->click->setEnabled(false);
 			QUrlQuery query;
 			query.addQueryItem("act","login");
-			query.addQueryItem("userid",d->input[0]->text());
-			query.addQueryItem("pwd",d->input[1]->text());
-			query.addQueryItem("vdcode",d->input[2]->text());
+			query.addQueryItem("userid",d->sheet[0]->text());
+			query.addQueryItem("pwd",d->sheet[1]->text());
+			query.addQueryItem("vdcode",d->sheet[2]->text());
 			query.addQueryItem("keeptime","2592000");
 			QByteArray data=query.query().toUtf8();
 			QNetworkRequest request(QUrl("https://secure.bilibili.tv/login"));
@@ -713,11 +886,10 @@ Config::Config(QWidget *parent,int index):
 			});
 		};
 		d->click=new QPushButton(tr("login"),d->widget[1]);
-		d->click->setFixedWidth(50);
 		d->click->setFocusPolicy(Qt::NoFocus);
 		connect(d->click,&QPushButton::clicked,[=](){
 			if(d->click->text()==tr("login")){
-				for(QLineEdit *iter:d->input){
+				for(QLineEdit *iter:d->sheet){
 					if(iter->text().isEmpty()){
 						return;
 					}
@@ -728,15 +900,13 @@ Config::Config(QWidget *parent,int index):
 				setLogout();
 			}
 		});
-		QNetworkReply *reply=d->manager->get(QNetworkRequest(QString("http://member.bilibili.tv/")));
+		QNetworkReply *reply=d->manager->get(QNetworkRequest(QString("http://member.bilibili.tv/main.html")));
 		connect(reply,&QNetworkReply::finished,[=](){
 			bool flag=false;
 			if(reply->error()==QNetworkReply::NoError){
-				QString page(reply->readAll());
-				int sta=page.indexOf("<em>");
-				if(sta!=-1){
-					sta+=4;
-					d->input[0]->setText(page.mid(sta,page.indexOf("<",sta)-sta));
+				QString user=QRegularExpression("(?<=\\>).*(?=\\<\\/h3\\>)").match(reply->readAll()).captured();
+				if(!user.isEmpty()){
+					d->sheet[0]->setText(user);
 					flag=true;
 				}
 			}
@@ -746,6 +916,26 @@ Config::Config(QWidget *parent,int index):
 		d->login=new QGroupBox(tr("login"),d->widget[3]);
 		d->login->setLayout(l);
 		list->addWidget(d->login);
+
+		auto c=new QHBoxLayout;
+		d->text=new QLabel(d->widget[3]);
+		auto m=[d](){
+			QString s=tr("current size is %.2fMB");
+			s.sprintf(s.toUtf8(),DCache::data.cacheSize()/(1024.0*1024));
+			d->text->setText(s);
+		};
+		m();
+		c->addWidget(d->text,2);
+		c->addStretch(1);
+		d->clear=new QPushButton(tr("clear"),d->widget[3]);
+		connect(d->clear,&QPushButton::clicked,[d,m](){
+			DCache::data.clear();
+			m();
+		});
+		c->addWidget(d->clear,1);
+		d->cache=new QGroupBox(tr("cache"),d->widget[3]);
+		d->cache->setLayout(c);
+		list->addWidget(d->cache);
 
 		list->addStretch(10);
 		d->tab->addTab(d->widget[3],tr("Network"));
@@ -853,73 +1043,6 @@ Config::~Config()
 	delete d_ptr;
 }
 
-class Cookie:public QNetworkCookieJar
-{
-public:
-	static void load()
-	{
-		QByteArray buff;
-		buff=Config::getValue("/Network/Cookie",QString()).toUtf8();
-		buff=buff.isEmpty()?buff:qUncompress(QByteArray::fromBase64(buff));
-		QDataStream read(buff);
-		QList<QNetworkCookie> all;
-		int n,l;
-		read>>n;
-		for(int i=0;i<n;++i){
-			read>>l;
-			char *d=new char[l];
-			read.readRawData(d,l);
-			all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
-			delete []d;
-		}
-		data.setAllCookies(all);
-	}
-
-	static void save()
-	{
-
-		QByteArray buff;
-		QDataStream save(&buff,QIODevice::WriteOnly);
-		const QList<QNetworkCookie> &all=data.allCookies();
-		save<<all.count();
-		for(const QNetworkCookie &iter:all){
-			QByteArray d=iter.toRawForm();
-			save<<d.size();
-			save.writeRawData(d.data(),d.size());
-		}
-		Config::setValue("/Network/Cookie",QString(qCompress(buff).toBase64()));
-	}
-
-	static Cookie data;
-};
-
-Cookie Cookie::data;
-
-class APorxy
-{
-public:
-	static void load()
-	{
-		QNetworkProxy proxy;
-		proxy.setType((QNetworkProxy::ProxyType)Config::getValue<int>("/Network/Proxy/Type",QNetworkProxy::NoProxy));
-		proxy.setHostName(Config::getValue<QString>("/Network/Proxy/HostName"));
-		proxy.setPort(Config::getValue<quint16>("/Network/Proxy/Port"));
-		proxy.setUser(Config::getValue<QString>("/Network/Proxy/User"));
-		proxy.setPassword(Config::getValue<QString>("/Network/Proxy/HostName"));
-		QNetworkProxy::setApplicationProxy(proxy);
-	}
-
-	static void save()
-	{
-		QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-		Config::setValue("/Network/Proxy/Type",proxy.type());
-		Config::setValue("/Network/Proxy/HostName",proxy.hostName());
-		Config::setValue("/Network/Proxy/Port",proxy.port());
-		Config::setValue("/Network/Proxy/User",proxy.user());
-		Config::setValue("/Network/Proxy/Password",proxy.password());
-	}
-};
-
 void Config::load()
 {
 	QFile conf("./Config.txt");
@@ -927,6 +1050,7 @@ void Config::load()
 	config=QJsonDocument::fromJson(conf.readAll()).object();
 	conf.close();
 	Cookie::load();
+	DCache::load();
 	APorxy::load();
 }
 
@@ -942,6 +1066,8 @@ void Config::save()
 
 void Config::setManager(QNetworkAccessManager *manager)
 {
+	manager->setCache(&DCache::data);
+	DCache::data.setParent(NULL);
 	manager->setCookieJar(&Cookie::data);
 	Cookie::data.setParent(NULL);
 }

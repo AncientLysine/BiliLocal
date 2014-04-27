@@ -208,11 +208,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	connect(resultW,&QTreeWidget::itemActivated,okB,&QPushButton::clicked);
 
-	cache=new QNetworkDiskCache(this);
-	cache->setCacheDirectory("./cache");
-
 	manager=new QNetworkAccessManager(this);
-	manager->setCache(cache);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();

@@ -391,6 +391,7 @@ Editor::Editor(QWidget *parent):
 				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
 				connect(reply,&QNetworkReply::finished,[=,&r](){
 					QMap<QDate,int> count=parseCount(reply->readAll());
+					reply->deleteLater();
 					if(count.isEmpty()){
 						return;
 					}
@@ -400,39 +401,54 @@ Editor::Editor(QWidget *parent):
 					QProgressDialog progress(this);
 					progress.setFixedSize(progress.sizeHint());
 					progress.setWindowTitle(tr("Loading"));
-					QNetworkAccessManager *manager=new QNetworkAccessManager(this);
-					Config::setManager(manager);
-					connect(manager,&QNetworkAccessManager::finished,[&](QNetworkReply *reply){
-						QStringList s=reply->url().url().split(',');
-						if(s.size()==3){
-							QDate c=QDateTime::fromTime_t(s[1].toUInt()).date();
-							QByteArray data=reply->readAll();
-							if(c==count.lastKey()&&count.size()>=2){
-								int sta=data.indexOf("<max_count>")+11,end=data.indexOf("</max_count>");
-								int max=data.mid(sta,end-sta).toInt(),now=0,all=0;
-								for(auto iter=--count.end();;--iter){
-									now+=iter.value();
-									if(now>max||iter==count.begin()){
-										now=iter.value();
-										++all;
-										manager->get(QNetworkRequest(url.arg(QDateTime(iter.key()).toTime_t())));
-										if(iter==count.begin()){
-											break;
-										}
-									}
-								}
-								progress.setMaximum(all);
-							}
-							for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
-								set.insert(c);
-							}
-							progress.setValue(progress.value()+1);
+					auto getHistory=[&](QDate date){
+						return manager->get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
+					};
+					QSet<QNetworkReply *> remain;
+					QNetworkReply *header=getHistory(count.firstKey());
+					connect(header,&QNetworkReply::finished,[&](){
+						QByteArray data=header->readAll();
+						header->deleteLater();
+						for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
+							set.insert(c);
 						}
-						reply->deleteLater();
+						int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
+						int now=0;
+						if(count.size()>=2){
+							for(auto iter=count.begin()+1;;++iter){
+								now+=iter.value();
+								if(iter+1==count.end()){
+									remain+=getHistory(iter.key());
+									break;
+								}
+								else if(now+(iter+1).value()>max){
+									remain+=getHistory(iter.key());
+									now=0;
+								}
+							}
+							progress.setMaximum(remain.size()+1);
+							for(QNetworkReply *re:remain){
+								connect(re,&QNetworkReply::finished,[&,re](){
+									for(const Comment &c:Utils::parseComment(re->readAll(),Utils::Bilibili)){
+										set.insert(c);
+									}
+									re->deleteLater();
+									remain.remove(re);
+									int m=progress.maximum(),f=m-remain.size();
+									if (f*100/m!=progress.value()*100/m) {
+										progress.setValue(f);
+									}
+								});
+							}
+						}
+						else{
+							progress.reject();
+						}
 					});
-					manager->get(QNetworkRequest(url.arg(QDateTime(count.lastKey()).toTime_t())));
 					progress.exec();
-					delete manager;
+					for(QNetworkReply *r:remain){
+						delete r;
+					}
 					Record load;
 					load.full=true;
 					load.danmaku=set.toList();
