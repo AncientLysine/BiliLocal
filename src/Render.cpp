@@ -89,6 +89,13 @@ public:
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
 
+	~Window()
+	{
+		if(device){
+			delete device;
+		}
+	}
+
 	void draw()
 	{
 		if(!isExposed()){

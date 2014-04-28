@@ -538,7 +538,9 @@ qint64 VPlayer::getDuration()
 QString VPlayer::getFile()
 {
 	if(m){
-		QUrl u(libvlc_media_get_mrl(m));
+		char *s=libvlc_media_get_mrl(m);
+		QUrl u(s);
+		std::free(s);
 		if(u.isLocalFile()){
 			return u.toLocalFile();
 		}
