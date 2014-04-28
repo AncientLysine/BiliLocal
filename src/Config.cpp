@@ -77,9 +77,6 @@ public:
 	QGroupBox *label[2];
 
 	//Network
-	QComboBox *arg;
-	QLineEdit *input[4];
-	QGroupBox *proxy;
 	QLineEdit *sheet[3];
 	QPushButton *click;
 	QLabel *info;
@@ -87,6 +84,9 @@ public:
 	QLabel *text;
 	QPushButton *clear;
 	QGroupBox *cache;
+	QComboBox *arg;
+	QLineEdit *input[4];
+	QGroupBox *proxy;
 
 	//Plugin
 	QTreeWidget *list;
@@ -697,86 +697,6 @@ Config::Config(QWidget *parent,int index):
 		d->widget[3]=new QWidget(this);
 		auto list=new QVBoxLayout(d->widget[3]);
 
-		auto p=new QGridLayout;
-		d->arg=new QComboBox(d->widget[3]);
-		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
-		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[d](int index){
-			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			switch(index){
-			case 0:
-				proxy.setType(QNetworkProxy::NoProxy);
-				break;
-			case 1:
-				proxy.setType(QNetworkProxy::HttpProxy);
-				break;
-			case 2:
-				proxy.setType(QNetworkProxy::Socks5Proxy);
-				break;
-			}
-			QNetworkProxy::setApplicationProxy(proxy);
-			for(QLineEdit *iter:d->input){
-				iter->setEnabled(index!=0);
-			}
-		});
-		p->addWidget(d->arg,0,0);
-		d->input[0]=new QLineEdit(d->widget[3]);
-		d->input[0]->setText(QNetworkProxy::applicationProxy().hostName());
-		d->input[0]->setPlaceholderText(tr("HostName"));
-		connect(d->input[0],&QLineEdit::editingFinished,[d](){
-			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setHostName(d->input[0]->text());
-			QNetworkProxy::setApplicationProxy(proxy);
-		});
-		p->addWidget(d->input[0],1,0);
-		d->input[1]=new QLineEdit(d->widget[3]);
-		d->input[1]->setPlaceholderText(tr("Port"));
-		int port=QNetworkProxy::applicationProxy().port();
-		d->input[1]->setText(port?QString::number(port):QString());
-		connect(d->input[1],&QLineEdit::editingFinished,[d](){
-			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setPort(d->input[1]->text().toInt());
-			if(proxy.port()==0){
-				d->input[1]->clear();
-			}
-			QNetworkProxy::setApplicationProxy(proxy);
-		});
-		p->addWidget(d->input[1],1,1);
-		d->input[2]=new QLineEdit(d->widget[3]);
-		d->input[2]->setPlaceholderText(tr("User"));
-		d->input[2]->setText(QNetworkProxy::applicationProxy().user());
-		connect(d->input[2],&QLineEdit::editingFinished,[d](){
-			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setUser(d->input[2]->text());
-			QNetworkProxy::setApplicationProxy(proxy);
-		});
-		p->addWidget(d->input[2],1,2);
-		d->input[3]=new QLineEdit(d->widget[3]);
-		d->input[3]->setPlaceholderText(tr("Password"));
-		d->input[3]->setText(QNetworkProxy::applicationProxy().password());
-		connect(d->input[3],&QLineEdit::editingFinished,[d](){
-			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setPassword(d->input[3]->text());
-			QNetworkProxy::setApplicationProxy(proxy);
-		});
-		p->addWidget(d->input[3],1,3);
-		for(QLineEdit *iter:d->input){
-			iter->setEnabled(false);
-		}
-		switch(QNetworkProxy::applicationProxy().type()){
-		case QNetworkProxy::HttpProxy:
-			d->arg->setCurrentIndex(1);
-			break;
-		case QNetworkProxy::Socks5Proxy:
-			d->arg->setCurrentIndex(2);
-			break;
-		default:
-			d->arg->setCurrentIndex(0);
-			break;
-		}
-		d->proxy=new QGroupBox(tr("proxy"),d->widget[3]);
-		d->proxy->setLayout(p);
-		list->addWidget(d->proxy);
-
 		auto l=new QGridLayout;
 		l->setColumnStretch(0,1);
 		l->setColumnStretch(1,1);
@@ -928,6 +848,7 @@ Config::Config(QWidget *parent,int index):
 		c->addWidget(d->text,2);
 		c->addStretch(1);
 		d->clear=new QPushButton(tr("clear"),d->widget[3]);
+		d->clear->setFocusPolicy(Qt::NoFocus);
 		connect(d->clear,&QPushButton::clicked,[d,m](){
 			DCache::data.clear();
 			m();
@@ -936,6 +857,86 @@ Config::Config(QWidget *parent,int index):
 		d->cache=new QGroupBox(tr("cache"),d->widget[3]);
 		d->cache->setLayout(c);
 		list->addWidget(d->cache);
+
+		auto p=new QGridLayout;
+		d->arg=new QComboBox(d->widget[3]);
+		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
+		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[d](int index){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			switch(index){
+			case 0:
+				proxy.setType(QNetworkProxy::NoProxy);
+				break;
+			case 1:
+				proxy.setType(QNetworkProxy::HttpProxy);
+				break;
+			case 2:
+				proxy.setType(QNetworkProxy::Socks5Proxy);
+				break;
+			}
+			QNetworkProxy::setApplicationProxy(proxy);
+			for(QLineEdit *iter:d->input){
+				iter->setEnabled(index!=0);
+			}
+		});
+		p->addWidget(d->arg,0,0);
+		d->input[0]=new QLineEdit(d->widget[3]);
+		d->input[0]->setText(QNetworkProxy::applicationProxy().hostName());
+		d->input[0]->setPlaceholderText(tr("HostName"));
+		connect(d->input[0],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setHostName(d->input[0]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[0],1,0);
+		d->input[1]=new QLineEdit(d->widget[3]);
+		d->input[1]->setPlaceholderText(tr("Port"));
+		int port=QNetworkProxy::applicationProxy().port();
+		d->input[1]->setText(port?QString::number(port):QString());
+		connect(d->input[1],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setPort(d->input[1]->text().toInt());
+			if(proxy.port()==0){
+				d->input[1]->clear();
+			}
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[1],1,1);
+		d->input[2]=new QLineEdit(d->widget[3]);
+		d->input[2]->setPlaceholderText(tr("User"));
+		d->input[2]->setText(QNetworkProxy::applicationProxy().user());
+		connect(d->input[2],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setUser(d->input[2]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[2],1,2);
+		d->input[3]=new QLineEdit(d->widget[3]);
+		d->input[3]->setPlaceholderText(tr("Password"));
+		d->input[3]->setText(QNetworkProxy::applicationProxy().password());
+		connect(d->input[3],&QLineEdit::editingFinished,[d](){
+			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
+			proxy.setPassword(d->input[3]->text());
+			QNetworkProxy::setApplicationProxy(proxy);
+		});
+		p->addWidget(d->input[3],1,3);
+		for(QLineEdit *iter:d->input){
+			iter->setEnabled(false);
+		}
+		switch(QNetworkProxy::applicationProxy().type()){
+		case QNetworkProxy::HttpProxy:
+			d->arg->setCurrentIndex(1);
+			break;
+		case QNetworkProxy::Socks5Proxy:
+			d->arg->setCurrentIndex(2);
+			break;
+		default:
+			d->arg->setCurrentIndex(0);
+			break;
+		}
+		d->proxy=new QGroupBox(tr("proxy"),d->widget[3]);
+		d->proxy->setLayout(p);
+		list->addWidget(d->proxy);
 
 		list->addStretch(10);
 		d->tab->addTab(d->widget[3],tr("Network"));
@@ -950,7 +951,7 @@ Config::Config(QWidget *parent,int index):
 		d->list->setColumnWidth(0,60);
 		d->list->setColumnWidth(1,75);
 		d->list->setColumnWidth(2,50);
-		d->list->setColumnWidth(3,200);
+		d->list->setColumnWidth(3,190);
 		d->list->setColumnWidth(4,75);
 		d->list->setColumnWidth(5,30);
 		w->addWidget(d->list);

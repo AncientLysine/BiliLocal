@@ -83,9 +83,9 @@ Next::Next(QWidget *parent):
 			switch(result()){
 			case InheritDanmaku:
 				for(Record &r:Danmaku::instance()->getPool()){
-					r.delay+=time;
+					r.delay-=time;
 					for(Comment &c:r.danmaku){
-						c.time+=time;
+						c.time-=time;
 					}
 				}
 				Danmaku::instance()->parse(0x2);
