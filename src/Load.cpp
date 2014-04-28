@@ -28,7 +28,6 @@
 #include "Utils.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include <QtWidgets>
 
 Load *Load::ins=NULL;
 
@@ -115,7 +114,6 @@ Load::Load(QObject *parent):
 					if(!id.isEmpty()){
 						api="http://comment.bilibili.tv/%1.xml";
 						getReply(QNetworkRequest(QUrl(api.arg(id))),"");
-						emit stateChanged(File);
 					}
 					else{
 						error();
@@ -157,7 +155,6 @@ Load::Load(QObject *parent):
 						i=(i==-1)?0:(url.mid(i+1).toInt()-1);
 						if(i>=0&&i<model->rowCount()){
 							getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
-							emit stateChanged(File);
 						}
 						else{
 							error();
@@ -187,7 +184,6 @@ Load::Load(QObject *parent):
 					i=(i==-1)?0:(str.mid(i+1).toInt()-1);
 					if(i>=0&&i<model->rowCount()){
 						getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
-						emit stateChanged(File);
 					}
 					else{
 						error();
@@ -221,6 +217,10 @@ void Load::getReply(QNetworkRequest request,QString string)
 		request.setAttribute(QNetworkRequest::User,string);
 	}
 	current=manager->get(request);
+	QString suffix=QFileInfo(request.url().url()).suffix().toLower();
+	if(suffix=="json"||suffix=="xml"){
+		emit stateChanged(File);
+	}
 }
 
 QString Load::getString()
@@ -270,7 +270,9 @@ void Load::loadDanmaku(QString _code)
 		return;
 	}
 	getReply(request,_code);
-	emit stateChanged(request.url().isLocalFile()?File:Page);
+	if(!request.url().isLocalFile()){
+		emit stateChanged(Page);
+	}
 	if(Config::getValue("/Playing/Clear",true)){
 		Danmaku::instance()->clearPool();
 	}

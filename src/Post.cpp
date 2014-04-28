@@ -81,13 +81,16 @@ Post::Post(QWidget *parent):
 	});
 	connect(Danmaku::instance(),&Danmaku::modelReset,[this](){
 		commentS->clear();
+		int w=0;
 		for(const Record *r:getRecords()){
-			commentS->addItem(QFileInfo(r->source).baseName(),(quintptr)r);
+			commentS->addItem(r->string,(quintptr)r);
+			w=qMax(w,commentS->fontMetrics().width(r->string));
 		}
 		if(commentS->count()==0){
 			hide();
 		}
 		commentS->setVisible(commentS->count()>=2);
+		commentS->setFixedWidth(w+30);
 	});
 }
 

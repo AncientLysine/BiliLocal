@@ -193,7 +193,6 @@ public:
 
 QNetworkDiskCache DCache::data;
 
-
 class APorxy
 {
 public:
@@ -204,7 +203,7 @@ public:
 		proxy.setHostName(Config::getValue<QString>("/Network/Proxy/HostName"));
 		proxy.setPort(Config::getValue<quint16>("/Network/Proxy/Port"));
 		proxy.setUser(Config::getValue<QString>("/Network/Proxy/User"));
-		proxy.setPassword(Config::getValue<QString>("/Network/Proxy/HostName"));
+		proxy.setPassword(Config::getValue<QString>("/Network/Proxy/Password"));
 		QNetworkProxy::setApplicationProxy(proxy);
 	}
 
@@ -400,7 +399,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto t=new QGridLayout;
 		d->acce=new QCheckBox(tr("hardware accelerated"),d->widget[1]);
-		d->acce->setChecked(Config::getValue("/Interface/Accelerated",false));
+		d->acce->setChecked(Config::getValue("/Interface/Accelerated",true));
 		connect(d->acce,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Accelerated",state==Qt::Checked);
 		});

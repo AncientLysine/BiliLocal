@@ -440,7 +440,7 @@ VPlayer *VPlayer::instance()
 	if(ins){
 		return ins;
 	}
-	if(Config::getValue("/Interface/Accelerated",false)){
+	if(Config::getValue("/Interface/Accelerated",true)){
 		return new OpenGLPlayer(qApp);
 	}
 	else{

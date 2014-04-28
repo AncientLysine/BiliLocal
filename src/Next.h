@@ -42,7 +42,7 @@ public:
 		PlayImmediately
 	};
 	explicit Next(QWidget *parent);
-	QString getNext(){return fileN;}
+	QString getNext();
 
 private:
 	QString fileP;

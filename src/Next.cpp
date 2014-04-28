@@ -75,7 +75,7 @@ Next::Next(QWidget *parent):
 	});
 	connect(VPlayer::instance(),&VPlayer::begin,[this](){
 		hide();
-		setResult(Config::getValue("/Playing/Continue",true));
+		setResult(Config::getValue("/Playing/Continue",false));
 		fileP=fileN=QString();
 	});
 	connect(VPlayer::instance(),&VPlayer::reach,[this](){
@@ -109,7 +109,13 @@ Next::Next(QWidget *parent):
 				break;
 			}
 		}
+		hide();
 	});
+}
+
+QString Next::getNext()
+{
+	return result()==DoNotContinnue?QString():fileN;
 }
 
 bool Next::eventFilter(QObject *,QEvent *e)
@@ -130,7 +136,7 @@ void Next::moveWithParent()
 	move(p.center().x()-c.width()/2,p.top()+2);
 }
 
-bool diffAtNum(QString f,QString s)
+static bool diffAtNum(QString f,QString s)
 {
 	for(int i=0;i<f.size()&&i<s.size();++i){
 		if(f[i]!=s[i]){
