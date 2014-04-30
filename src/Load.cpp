@@ -217,8 +217,7 @@ void Load::getReply(QNetworkRequest request,QString string)
 		request.setAttribute(QNetworkRequest::User,string);
 	}
 	current=manager->get(request);
-	QString suffix=QFileInfo(request.url().url()).suffix().toLower();
-	if(suffix=="json"||suffix=="xml"){
+	if(Utils::getSuffix(Utils::Danmaku).contains(QFileInfo(request.url().url()).suffix().toLower())){
 		emit stateChanged(File);
 	}
 }

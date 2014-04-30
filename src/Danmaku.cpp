@@ -527,8 +527,7 @@ void Danmaku::saveToFile(QString _file)
 	else{
 		QFileInfo info(_file);
 		for(const Record &r:pool){
-			QString s=QFileInfo(r.string).suffix().toLower();
-			if(s=="xml"||s=="json"){
+			if(Utils::getSuffix(Utils::Danmaku).contains(QFileInfo(r.string).suffix().toLower())){
 				continue;
 			}
 			d.clear();

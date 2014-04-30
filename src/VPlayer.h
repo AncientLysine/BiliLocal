@@ -69,7 +69,6 @@ public:
 
 private:
 	State state;
-	QTimer *wait;
 	QTimer *fake;
 	double ratio;
 	QList<QAction *> subtitle;
@@ -104,7 +103,6 @@ signals:
 protected slots:
 	void init();
 	void free();
-	void fail();
 	void release();
 	void setState(State _state);
 

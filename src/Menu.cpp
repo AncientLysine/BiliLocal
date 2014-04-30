@@ -45,12 +45,14 @@ Menu::Menu(QWidget *parent):
 	danmL->installEventFilter(this);
 	sechL->installEventFilter(this);
 	fileL->setReadOnly(true);
-	danmL->setPlaceholderText(tr("av/ac/dd"));
+	fileL->setPlaceholderText(tr("choose a local media"));
+	danmL->setPlaceholderText(tr("input av/ac number"));
+	sechL->setPlaceholderText(tr("search danmaku online"));
 	fileL->setGeometry(QRect(10,25, 120,25));
 	danmL->setGeometry(QRect(10,65, 120,25));
 	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegularExpression regexp("[ad]([cvd]((\\d+)([#_])?(\\d+)?)?)?");
+		QRegularExpression regexp("(av|ac|dd)((\\d+)([#_])?(\\d+)?)?|[ad]");
 		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		auto iter=regexp.globalMatch(text);
 		QString match;
@@ -84,7 +86,8 @@ Menu::Menu(QWidget *parent):
 	connect(fileA,&QAction::triggered,[this](){
 		QString _file=QFileDialog::getOpenFileName(parentWidget(),
 												   tr("Open File"),
-												   Utils::defaultPath());
+												   Utils::defaultPath(),
+												   tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video|Utils::Audio,"*.%1").join(' ')));
 		if(!_file.isEmpty()){
 			setMedia(_file);
 		}
@@ -94,7 +97,7 @@ Menu::Menu(QWidget *parent):
 			QString _file=QFileDialog::getOpenFileName(parentWidget(),
 													   tr("Open File"),
 													   Utils::defaultPath(),
-													   tr("Danmaku files (*.xml *.json)"));
+													   tr("Danmaku files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Danmaku,"*.%1").join(' ')));
 			if(!_file.isEmpty()){
 				Load::instance()->loadDanmaku(_file);
 			}
@@ -172,7 +175,7 @@ Menu::Menu(QWidget *parent):
 		sechB->setEnabled(!local);
 		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
-		danmL->setPlaceholderText(local?QString():tr("av/ac/dd"));
+		danmL->setPlaceholderText(local?tr("choose a local danmaku"):tr("input av/ac number"));
 		Config::setValue("/Danmaku/Local",local);
 	});
 	localC->setChecked(Config::getValue("/Danmaku/Local",false));
@@ -302,8 +305,7 @@ void Menu::setMedia(QString _file)
 	bool only=Config::getValue("/Playing/Clear",true);
 	if(Config::getValue("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
 		for(const QFileInfo &info:file.dir().entryInfoList()){
-			QString suffix=info.suffix().toLower();
-			if((suffix=="xml"||suffix=="json")&&file.baseName()==info.baseName()){
+			if(Utils::getSuffix(Utils::Danmaku).contains(info.suffix().toLower())&&file.baseName()==info.baseName()){
 				Load::instance()->loadDanmaku(info.absoluteFilePath());
 				if(only) break;
 			}
@@ -315,8 +317,10 @@ void Menu::tryLocal(QString _file)
 {
 	QFileInfo info(_file);
 	if(info.exists()){
-		QString suffix=info.suffix().toLower();
-		if(suffix=="xml"||suffix=="json"){
+		if(Utils::getSuffix(Utils::Danmaku).contains(info.suffix().toLower())){
+			if(!Config::getValue("/Danmaku/Local",false)){
+				localC->toggle();
+			}
 			Load::instance()->loadDanmaku(_file);
 		}
 		else{

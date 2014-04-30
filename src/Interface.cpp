@@ -516,7 +516,8 @@ void Interface::showContextMenu(QPoint p)
 			QFileInfo info(vplayer->getFile());
 			QString file=QFileDialog::getOpenFileName(this,
 													  tr("Open File"),
-													  info.absolutePath());
+													  info.absolutePath(),
+													  tr("Subtitle files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Subtitle,"*.%1").join(' ')));
 			if(!file.isEmpty()){
 				vplayer->addSubtitle(file);
 			}

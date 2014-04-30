@@ -52,7 +52,7 @@ public:
 	}
 	inline bool operator==(const Comment &o) const
 	{
-		return mode==o.mode&&font==o.font&&color==o.color&&time==o.time&&date==o.date&&sender==o.sender&&string==o.string;
+		return mode==o.mode&&font==o.font&&color==o.color&&qFuzzyCompare((float)time,(float)o.time)&&date==o.date&&sender==o.sender&&string==o.string;
 	}
 	inline bool isLocal() const
 	{
@@ -60,12 +60,11 @@ public:
 	}
 };
 
-inline uint qHash(const Comment &c,uint seed)
+inline uint qHash(const Comment &c,uint seed=0)
 {
 	uint h=qHash(c.mode,seed);
 	h=(h<<1)^qHash(c.font,seed);
 	h=(h<<1)^qHash(c.color,seed);
-	h=(h<<1)^qHash(c.time,seed);
 	h=(h<<1)^qHash(c.date,seed);
 	h=(h<<1)^qHash(c.sender,seed);
 	h=(h<<1)^qHash(c.string,seed);
@@ -99,6 +98,13 @@ namespace Utils
 		AcPlay,
 		AcfunLocalizer
 	};
+	enum Type
+	{
+		Video=1,
+		Audio=2,
+		Subtitle=4,
+		Danmaku=8
+	};
 	Site getSite(QString url);
 	void setCenter(QWidget *widget);
 	void setGround(QWidget *widget,QColor color);
@@ -107,6 +113,7 @@ namespace Utils
 	QString defaultPath();
 	QString defaultFont(bool monospace=false);
 	QString decodeXml(QString string,bool fast=false);
+	QStringList getSuffix(int type,QString format="");
 	QList<Comment> parseComment(QByteArray data,Site site);
 }
 
