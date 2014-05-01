@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "VPlayer.h"
+#include "Utils.h"
 #include "Config.h"
 
 QMutex VPlayer::data;
@@ -540,6 +541,21 @@ QString VPlayer::getFile()
 		}
 	}
 	return QString();
+}
+
+QList<QAction *> VPlayer::getTracks(int type)
+{
+	QList<QAction *> track;
+	if(type&Utils::Video){
+		track+=video;
+	}
+	if(type&Utils::Audio){
+		track+=audio;
+	}
+	if(type&Utils::Subtitle){
+		track+=subtitle;
+	}
+	return track;
 }
 
 QRect VPlayer::getRect(QRect rect)

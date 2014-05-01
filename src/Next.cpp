@@ -69,7 +69,7 @@ Next::Next(QWidget *parent):
 
 	connect(VPlayer::instance(),&VPlayer::timeChanged,[this](qint64 _time){
 		time=_time;
-		if(time>=VPlayer::instance()->getDuration()*0.9&&fileP!=VPlayer::instance()->getFile()){
+		if(time>=VPlayer::instance()->getDuration()*0.9&&fileP!=VPlayer::instance()->getFile()&&!Config::getValue("/Playing/Loop",false)){
 			showNextDialog();
 		}
 	});

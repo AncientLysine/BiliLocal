@@ -55,9 +55,7 @@ public:
 	QString getFile();
 	QSize getSize(){return size;}
 	State getState(){return state;}
-	QList<QAction *> getSubtitles(){return subtitle;}
-	QList<QAction *> getVideoTracks(){return video;}
-	QList<QAction *> getAudioTracks(){return audio;}
+	QList<QAction *> getTracks(int type);
 
 	virtual void getBuffer(void **planes)=0;
 	virtual void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)=0;

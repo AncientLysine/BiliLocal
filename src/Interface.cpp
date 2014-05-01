@@ -523,11 +523,11 @@ void Interface::showContextMenu(QPoint p)
 			}
 		});
 		sub.addSeparator();
-		sub.addActions(vplayer->getSubtitles());
+		sub.addActions(vplayer->getTracks(Utils::Subtitle));
 		sub.setEnabled(!sub.isEmpty());
-		vid.addActions(vplayer->getVideoTracks());
+		vid.addActions(vplayer->getTracks(Utils::Video));
 		vid.setEnabled(!vid.isEmpty());
-		aud.addActions(vplayer->getAudioTracks());
+		aud.addActions(vplayer->getTracks(Utils::Audio));
 		aud.setEnabled(!aud.isEmpty());
 		QMenu tra(tr("Track"),this);
 		tra.addMenu(&sub);

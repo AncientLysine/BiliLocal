@@ -440,6 +440,7 @@ Editor::Editor(QWidget *parent):
 									}
 								});
 							}
+							progress.setValue(1);
 						}
 						else{
 							progress.reject();

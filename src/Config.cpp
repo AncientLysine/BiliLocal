@@ -659,7 +659,7 @@ Config::Config(QWidget *parent,int index):
 		grid->addWidget(d->sender,2,2,1,2);
 
 		d->same=new QSlider(Qt::Horizontal,d->widget[2]);
-		d->same->setRange(0,30);
+		d->same->setRange(0,40);
 		d->same->setValue(Config::getValue("/Shield/Limit",5));
 		connect(d->same,&QSlider::valueChanged,[d](int value){
 			Config::setValue("/Shield/Limit",value);
