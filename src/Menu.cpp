@@ -89,7 +89,7 @@ Menu::Menu(QWidget *parent):
 												   Utils::defaultPath(),
 												   tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video|Utils::Audio,"*.%1").join(' ')));
 		if(!_file.isEmpty()){
-			setMedia(_file);
+			VPlayer::instance()->setMedia(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
@@ -176,6 +176,12 @@ Menu::Menu(QWidget *parent):
 		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
 		danmL->setPlaceholderText(local?tr("choose a local danmaku"):tr("input av/ac number"));
+		for(const Record &r:Danmaku::instance()->getPool()){
+			if(QUrl(r.source).isLocalFile()==local){
+				danmL->setText(r.string);
+			}
+		}
+		danmL->setCursorPosition(0);
 		Config::setValue("/Danmaku/Local",local);
 	});
 	localC->setChecked(Config::getValue("/Danmaku/Local",false));
@@ -217,7 +223,8 @@ Menu::Menu(QWidget *parent):
 				danmC->popup()->setCurrentIndex(Load::instance()->getModel()->index(0,0));
 			}
 		case Load::File:
-			danmL->setText(Load::instance()->getString());
+			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());
+			danmL->setText(Load::instance()->getStr());
 			danmL->setCursorPosition(0);
 		case Load::Code:
 		case Load::None:
@@ -234,6 +241,19 @@ Menu::Menu(QWidget *parent):
 		fileL->setCursorPosition(0);
 	});
 	hide();
+}
+
+void Menu::setPower(qint16 fps)
+{
+	if(fps==0){
+		powerC->stop();
+		powerL->setText("");
+	}
+	else{
+		fps=qBound<qint16>(30,fps,200);
+		powerC->start(1000/fps);
+		powerL->setText(QString::number(fps));
+	}
 }
 
 bool Menu::eventFilter(QObject *o,QEvent *e)
@@ -279,52 +299,5 @@ void Menu::terminate()
 {
 	if(animation->state()!=QAbstractAnimation::Stopped){
 		animation->setCurrentTime(animation->totalDuration());
-	}
-}
-
-void Menu::setPower(qint16 fps)
-{
-	if(fps==0){
-		powerC->stop();
-		powerL->setText("");
-	}
-	else{
-		fps=qBound<qint16>(30,fps,200);
-		powerC->start(1000/fps);
-		powerL->setText(QString::number(fps));
-	}
-}
-
-void Menu::setMedia(QString _file)
-{
-	QFileInfo file(_file);
-	fileL->setText(file.fileName());
-	fileL->setCursorPosition(0);
-	Config::setValue("/Playing/Path",file.absolutePath());
-	VPlayer::instance()->setMedia(file.absoluteFilePath());
-	bool only=Config::getValue("/Playing/Clear",true);
-	if(Config::getValue("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
-		for(const QFileInfo &info:file.dir().entryInfoList()){
-			if(Utils::getSuffix(Utils::Danmaku).contains(info.suffix().toLower())&&file.baseName()==info.baseName()){
-				Load::instance()->loadDanmaku(info.absoluteFilePath());
-				if(only) break;
-			}
-		}
-	}
-}
-
-void Menu::tryLocal(QString _file)
-{
-	QFileInfo info(_file);
-	if(info.exists()){
-		if(Utils::getSuffix(Utils::Danmaku).contains(info.suffix().toLower())){
-			if(!Config::getValue("/Danmaku/Local",false)){
-				localC->toggle();
-			}
-			Load::instance()->loadDanmaku(_file);
-		}
-		else{
-			setMedia(_file);
-		}
 	}
 }

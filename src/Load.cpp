@@ -28,6 +28,7 @@
 #include "Utils.h"
 #include "Config.h"
 #include "Danmaku.h"
+#include "VPlayer.h"
 
 Load *Load::ins=NULL;
 
@@ -40,6 +41,8 @@ Load::Load(QObject *parent):
 	QObject(parent)
 {
 	model=new QStandardItemModel(this);
+	ins=this;
+
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
@@ -199,7 +202,19 @@ Load::Load(QObject *parent):
 		}
 		reply->deleteLater();
 	});
-	ins=this;
+
+	connect(VPlayer::instance(),&VPlayer::mediaChanged,[this](QString _file){
+		QFileInfo info(_file);
+		bool only=Config::getValue("/Playing/Clear",true);
+		if(Config::getValue("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){
+			for(const QFileInfo &iter:info.dir().entryInfoList()){
+				if(Utils::getSuffix(Utils::Danmaku).contains(iter.suffix().toLower())&&info.baseName()==iter.baseName()){
+					loadDanmaku(iter.absoluteFilePath());
+					if(only) break;
+				}
+			}
+		}
+	});
 }
 
 void Load::getReply(QNetworkRequest request,QString string)
@@ -222,9 +237,14 @@ void Load::getReply(QNetworkRequest request,QString string)
 	}
 }
 
-QString Load::getString()
+QString Load::getStr()
 {
 	return current?current->request().attribute(QNetworkRequest::User).toString():QString();
+}
+
+QString Load::getUrl()
+{
+	return current?current->request().url().url():QString();
 }
 
 QStandardItemModel *Load::getModel()

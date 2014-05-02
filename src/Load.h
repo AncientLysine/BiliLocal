@@ -46,7 +46,8 @@ public:
 
 	static Load *instance();
 	void getReply(QNetworkRequest request,QString string=QString());
-	QString getString();
+	QString getStr();
+	QString getUrl();
 	QStandardItemModel *getModel();
 
 private:

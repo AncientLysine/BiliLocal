@@ -32,21 +32,6 @@ QMutex VPlayer::data;
 QMutex VPlayer::time;
 VPlayer *VPlayer::ins=NULL;
 
-int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
-{
-	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
-	if(ret<0){
-		memset(picture,0,sizeof(AVPicture));
-		return ret;
-	}
-	return 0;
-}
-
-void avpicture_free(AVPicture *picture)
-{
-	av_free(picture->data[0]);
-}
-
 static AVPixelFormat getFormat(char *chroma)
 {
 	static QHash<QString,AVPixelFormat> f;
@@ -768,6 +753,7 @@ void VPlayer::setMedia(QString _file)
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
+			Config::setValue("/Playing/Path",QFileInfo(_file).absolutePath());
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerPlaying,

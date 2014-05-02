@@ -95,6 +95,9 @@ Next::Next(QWidget *parent):
 			case WaitUntilEnded:
 			case PlayImmediately:
 				for(const Record &r:Danmaku::instance()->getPool()){
+					if(QUrl(r.source).isLocalFile()){
+						continue;
+					}
 					QString code=r.string;
 					int sharp=code.indexOf("#");
 					if (sharp!=-1) {

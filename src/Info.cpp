@@ -57,7 +57,6 @@ Info::Info(QWidget *parent):
 	timeS->setValue(0);
 	volmS->setValue(Config::getValue("/Playing/Volume",50));
 	timeS->setTracking(false);
-	volmS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(duration!=-1&&!updating){
 			VPlayer::instance()->setTime(duration*_time/400);

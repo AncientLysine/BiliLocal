@@ -33,18 +33,23 @@
 
 static void loadTranslator()
 {
-	QString path="./locale/"+QLocale::system().name();
-	QFileInfoList list=QDir(path).entryInfoList();
-	list.append(QFileInfo(path+".qm"));
+	QString locale=QLocale::system().name();
+	QFileInfoList list;
+	list+=QDir("./locale/"+locale).entryInfoList();
+	list+=QFileInfo("./locale/"+locale+".qm");
+	locale.resize(2);
+	list+=QDir("./locale/"+locale).entryInfoList();
+	list+=QFileInfo("./locale/"+locale+".qm");
 	for(QFileInfo info:list){
-		if(info.isFile()){
-			QTranslator *trans=new QTranslator(qApp);
-			if(trans->load(info.absoluteFilePath())){
-				qApp->installTranslator(trans);
-			}
-			else{
-				delete trans;
-			}
+		if(!info.isFile()){
+			continue;
+		}
+		QTranslator *trans=new QTranslator(qApp);
+		if(trans->load(info.absoluteFilePath())){
+			qApp->installTranslator(trans);
+		}
+		else{
+			delete trans;
 		}
 	}
 }
@@ -71,9 +76,10 @@ static void setToolTipBase()
 
 int main(int argc,char *argv[])
 {
+	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
+	QApplication::addLibraryPath("./plugins");
 	QApplication::setStyle("Fusion");
 	QApplication a(argc,argv);
-	QDir::setCurrent(a.applicationDirPath());
 	Config::load();
 	int single;
 	if((single=Config::getValue("/Interface/Single",1))){
@@ -81,7 +87,7 @@ int main(int argc,char *argv[])
 		socket.connectToServer("BiliLocalInstance");
 		if(socket.waitForConnected()){
 			QDataStream s(&socket);
-			s<<a.arguments();
+			s<<a.arguments().mid(1);
 			socket.waitForBytesWritten();
 			return 0;
 		}
@@ -98,7 +104,7 @@ int main(int argc,char *argv[])
 	Interface w;
 	Plugin::loadPlugins();
 	w.show();
-	w.parseArgs(a.arguments());
+	w.tryLocal(a.arguments().mid(1));
 	QLocalServer *server=NULL;
 	if(single){
 		server=new QLocalServer(qApp);
@@ -110,7 +116,7 @@ int main(int argc,char *argv[])
 			QStringList args;
 			s>>args;
 			r->deleteLater();
-			w.parseArgs(args);
+			w.tryLocal(args);
 		});
 	}
 	int r;

@@ -67,14 +67,12 @@ private:
 	QPropertyAnimation *animation;
 
 	bool eventFilter(QObject *o,QEvent *e);
+	void setPower(qint16 fps);
 
 public slots:
 	void pop();
 	void push(bool force=false);
 	void terminate();
-	void setPower(qint16 fps);
-	void setMedia(QString _file);
-	void tryLocal(QString _file);
 	
 };
 

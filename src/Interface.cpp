@@ -30,6 +30,7 @@
 #include "Info.h"
 #include "Post.h"
 #include "Next.h"
+#include "Load.h"
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
@@ -266,10 +267,28 @@ Interface::Interface(QWidget *parent):
 	Plugin::objects["Render"]=render;
 }
 
-void Interface::parseArgs(QStringList args)
+void Interface::tryLocal(QString p)
 {
-	for(const QString &file:args.mid(1)){
-		menu->tryLocal(file);
+	QFileInfo info(p);
+	if(!info.exists()){
+		return;
+	}
+	QString suffix=info.suffix().toLower();
+	if(Utils::getSuffix(Utils::Video|Utils::Audio).contains(suffix)){
+		vplayer->setMedia(p);
+	}
+	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
+		Load::instance()->loadDanmaku(p);
+	}
+	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&vplayer->getState()!=VPlayer::Stop){
+		vplayer->addSubtitle(p);
+	}
+}
+
+void Interface::tryLocal(QStringList p)
+{
+	for(const QString &i:p){
+		tryLocal(i);
 	}
 }
 
@@ -277,7 +296,7 @@ void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
-			menu->tryLocal(QUrl(item).toLocalFile().trimmed());
+			tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}
 }
