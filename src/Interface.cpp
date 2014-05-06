@@ -117,14 +117,16 @@ Interface::Interface(QWidget *parent):
 	addActions(info->actions());
 
 	quitA=new QAction(tr("Quit"),this);
-	quitA->setShortcut(QKeySequence("Ctrl+Q"));
+	quitA->setData("Quit");
+	quitA->setShortcut(Config::getValue("/Shortcut/Quit",QString("Ctrl+Q")));
 	addAction(quitA);
 	connect(quitA,&QAction::triggered,this,&Interface::close);
 
 	fullA=new QAction(tr("Full Screen"),this);
+	fullA->setData("Full");
 	fullA->setCheckable(true);
 	fullA->setChecked(false);
-	fullA->setShortcut(QKeySequence("F"));
+	fullA->setShortcut(Config::getValue("/Shortcut/Full",QString("F")));
 	addAction(fullA);
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
@@ -140,7 +142,8 @@ Interface::Interface(QWidget *parent):
 	});
 
 	confA=new QAction(tr("Config"),this);
-	confA->setShortcut(QKeySequence("Ctrl+I"));
+	confA->setData("Conf");
+	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
 	addAction(confA);
 	connect(confA,&QAction::triggered,[this](){
 		Config config(this);
@@ -148,9 +151,10 @@ Interface::Interface(QWidget *parent):
 	});
 
 	toggA=new QAction(tr("Block All"),this);
+	toggA->setData("Togg");
 	toggA->setCheckable(true);
 	toggA->setChecked(Shield::shieldG[7]);
-	toggA->setShortcut(QKeySequence("Ctrl+T"));
+	toggA->setShortcut(Config::getValue("/Shortcut/Togg",QString("Ctrl+T")));
 	addAction(toggA);
 	connect(toggA,&QAction::triggered,[this](bool b){
 		Shield::shieldG[7]=b;
@@ -161,8 +165,9 @@ Interface::Interface(QWidget *parent):
 	});
 
 	postA=new QAction(tr("Post Danmaku"),this);
+	postA->setData("Post");
 	postA->setEnabled(false);
-	postA->setShortcut(QKeySequence("Ctrl+P"));
+	postA->setShortcut(Config::getValue("/Shortcut/Post",QString("Ctrl+P")));
 	addAction(postA);
 	connect(postA,&QAction::triggered,[this](){
 		menu->push();
@@ -173,27 +178,31 @@ Interface::Interface(QWidget *parent):
 		postA->setEnabled(post->isValid());
 	});
 
-	QAction *delA=new QAction(this);
-	delA->setShortcut(QKeySequence("Ctrl+Right"));
-	connect(delA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),+1000));
-	QAction *ahdA=new QAction(this);
-	ahdA->setShortcut(QKeySequence("Ctrl+Left"));
-	connect(ahdA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),-1000));
-	addAction(delA);
-	addAction(ahdA);
-
-	QAction *fwdA=new QAction(this);
-	fwdA->setShortcut(QKeySequence("Right"));
+	QAction *fwdA=new QAction(tr("Forward"),this);
+	fwdA->setData("Fowd");
+	fwdA->setShortcut(Config::getValue("/Shortcut/Fowd",QString("Right")));
 	connect(fwdA,&QAction::triggered,[this](){
 		vplayer->setTime(vplayer->getTime()+Config::getValue("/Interface/Interval",10)*1000);
 	});
-	QAction *bwdA=new QAction(this);
-	bwdA->setShortcut(QKeySequence("Left"));
+	QAction *bwdA=new QAction(tr("Backward"),this);
+	bwdA->setData("Bkwd");
+	bwdA->setShortcut(Config::getValue("/Shortcut/Bkwd",QString("Left")));
 	connect(bwdA,&QAction::triggered,[this](){
 		vplayer->setTime(vplayer->getTime()-Config::getValue("/Interface/Interval",10)*1000);
 	});
 	addAction(fwdA);
 	addAction(bwdA);
+
+	QAction *delA=new QAction(tr("Delay"),this);
+	delA->setData("Dely");
+	delA->setShortcut(Config::getValue("/Shortcut/Dely",QString("Ctrl+Right")));
+	connect(delA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),+1000));
+	QAction *ahdA=new QAction(tr("Ahead"),this);
+	ahdA->setData("Ahed");
+	ahdA->setShortcut(Config::getValue("/Shortcut/Ahed",QString("Ctrl+Left")));
+	connect(ahdA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),-1000));
+	addAction(delA);
+	addAction(ahdA);
 
 	QAction *escA=new QAction(this);
 	escA->setShortcut(Qt::Key_Escape);

@@ -85,7 +85,15 @@ Info::Info(QWidget *parent):
 	stopB->setIcon(stopI);
 	playA=new QAction(playI,tr("Play"),this);
 	stopA=new QAction(stopI,tr("Stop"),this);
-	playA->setShortcuts(QList<QKeySequence>()<<Qt::Key_Space<<Qt::Key_MediaPlay<<Qt::Key_MediaPause<<Qt::Key_MediaTogglePlayPause);
+	playA->setData("Play");
+	stopA->setData("Stop");
+	QList<QKeySequence> playS;
+	playS<<Config::getValue("/Shortcut/Play",QString("Space"))<<
+		   Qt::Key_MediaPlay<<
+		   Qt::Key_MediaPause<<
+		   Qt::Key_MediaTogglePlayPause;
+	playA->setShortcuts(playS);
+	stopA->setShortcut(Config::getValue("/Shortcut/Stop",QString()));
 	addAction(playA);
 	addAction(stopA);
 	connect(playA,&QAction::triggered,VPlayer::instance(),&VPlayer::play);

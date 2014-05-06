@@ -81,8 +81,14 @@ Menu::Menu(QWidget *parent):
 	danmB->setText(tr("Load"));
 	sechB->setText(tr("Search"));
 	fileA=new QAction(tr("Open File"),this);
+	fileA->setData("File");
+	fileA->setShortcut(Config::getValue("/Shortcut/File",QString()));
 	danmA=new QAction(tr("Load Danmaku"),this);
+	danmA->setData("Danm");
+	danmA->setShortcut(Config::getValue("/Shortcut/Danm",QString()));
 	sechA=new QAction(tr("Search Danmaku"),this);
+	sechA->setData("Sech");
+	sechA->setShortcut(Config::getValue("/Shortcut/Sech",QString()));
 	connect(fileA,&QAction::triggered,[this](){
 		QString _file=QFileDialog::getOpenFileName(parentWidget(),
 												   tr("Open File"),

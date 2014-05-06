@@ -35,7 +35,7 @@ class ConfigPrivate
 {
 public:
 	QTabWidget *tab;
-	QWidget *widget[7];
+	QWidget *widget[8];
 
 	//Playing
 	QGroupBox *box[7];
@@ -88,8 +88,11 @@ public:
 	QLineEdit *input[4];
 	QGroupBox *proxy;
 
+	//Shortcut
+	QTreeWidget *hotkey;
+
 	//Plugin
-	QTreeWidget *list;
+	QTreeWidget *plugin;
 
 	//Thanks
 	QTextEdit *thanks;
@@ -944,16 +947,18 @@ Config::Config(QWidget *parent,int index):
 	{
 		d->widget[4]=new QWidget(this);
 		auto w=new QGridLayout(d->widget[4]);
-		d->list=new QTreeWidget(d->widget[4]);
-		d->list->setSelectionMode(QAbstractItemView::NoSelection);
-		d->list->setHeaderLabels(QStringList()<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"");
-		d->list->setColumnWidth(0,60);
-		d->list->setColumnWidth(1,75);
-		d->list->setColumnWidth(2,50);
-		d->list->setColumnWidth(3,190);
-		d->list->setColumnWidth(4,75);
-		d->list->setColumnWidth(5,30);
-		w->addWidget(d->list);
+		d->plugin=new QTreeWidget(d->widget[4]);
+		d->plugin->setSelectionMode(QAbstractItemView::NoSelection);
+		QStringList header;
+		header<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"";
+		d->plugin->setHeaderLabels(header);
+		d->plugin->setColumnWidth(0,60);
+		d->plugin->setColumnWidth(1,75);
+		d->plugin->setColumnWidth(2,45);
+		d->plugin->setColumnWidth(3,180);
+		d->plugin->setColumnWidth(4,75);
+		d->plugin->setColumnWidth(5,30);
+		w->addWidget(d->plugin);
 		for(Plugin &iter:Plugin::plugins){
 			QStringList content;
 			content+="";
@@ -962,7 +967,7 @@ Config::Config(QWidget *parent,int index):
 			content+=iter.string("Description");
 			content+=iter.string("Author");
 			content+=tr("options");
-			QTreeWidgetItem *row=new QTreeWidgetItem(d->list,content);
+			QTreeWidgetItem *row=new QTreeWidgetItem(d->plugin,content);
 			row->setCheckState(0,Config::getValue("/Plugin/"+iter.string("Name"),true)?Qt::Checked:Qt::Unchecked);
 			row->setData(0,Qt::UserRole,(quintptr)&iter);
 			QFont f;
@@ -972,44 +977,87 @@ Config::Config(QWidget *parent,int index):
 			row->setTextAlignment(5,Qt::AlignCenter);
 			row->setSizeHint(0,QSize(60,40));
 		}
-		connect(d->list,&QTreeWidget::itemChanged,[d](QTreeWidgetItem *item){
+		connect(d->plugin,&QTreeWidget::itemChanged,[d](QTreeWidgetItem *item){
 			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
 			Config::setValue("/Plugin/"+p->string("Name"),item->checkState(0)==Qt::Checked);
 		});
-		connect(d->list,&QTreeWidget::itemClicked,[d](QTreeWidgetItem *item,int column){
+		connect(d->plugin,&QTreeWidget::itemClicked,[d](QTreeWidgetItem *item,int column){
 			if(column==5){
 				((Plugin *)item->data(0,Qt::UserRole).value<quintptr>())->config();
 			}
 		});
-		connect(d->list,&QTreeWidget::currentItemChanged,[d](){
-			d->list->setCurrentItem(NULL);
+		connect(d->plugin,&QTreeWidget::currentItemChanged,[d](){
+			d->plugin->setCurrentItem(NULL);
 		});
-
 		d->tab->addTab(d->widget[4],tr("Plugin"));
 	}
-	//Thanks
+	//Shortcut
 	{
 		d->widget[5]=new QWidget(this);
 		auto w=new QGridLayout(d->widget[5]);
-		QFile t(":/Text/THANKS");
-		t.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->thanks=new QTextEdit(d->widget[5]);
-		d->thanks->setReadOnly(true);
-		d->thanks->setText(t.readAll());
-		w->addWidget(d->thanks);
-		d->tab->addTab(d->widget[5],tr("Thanks"));
+		d->hotkey=new QTreeWidget(d->widget[5]);
+		d->hotkey->setSelectionMode(QAbstractItemView::NoSelection);
+		d->hotkey->header()->hide();
+		d->hotkey->setColumnCount(2);
+		d->hotkey->setColumnWidth(0,350);
+		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
+		for(QAction *iter:parentWidget()->actions()){
+			if(iter->data().isNull()){
+				continue;
+			}
+			QTreeWidgetItem *item=new QTreeWidgetItem;
+			item->setData(0,Qt::DisplayRole,iter->text());
+			item->setData(1,Qt::DisplayRole,iter->shortcut().toString());
+			item->setData(1,Qt::UserRole,(quintptr)iter);
+			item->setFlags(Qt::ItemIsEditable|Qt::ItemIsEnabled);
+			item->setSizeHint(0,QSize(60,35));
+			d->hotkey->addTopLevelItem(item);
+		}
+		w->addWidget(d->hotkey);
+		connect(d->hotkey,&QTreeWidget::currentItemChanged,[d](){
+			d->hotkey->setCurrentItem(NULL);
+		});
+		connect(d->hotkey,&QTreeWidget::itemClicked,[d](QTreeWidgetItem *item,int column){
+			if(column==1){
+				d->hotkey->editItem(item,1);
+			}
+		});
+		connect(d->hotkey,&QTreeWidget::itemChanged,[d](QTreeWidgetItem *item,int column){
+			if(column==1){
+				QVariant v=item->data(1,Qt::UserRole);
+				if(v.isValid()){
+					QAction *a=(QAction *)v.value<quintptr>();
+					QString ns=item->text(1);
+					a->setShortcut(ns);
+					Config::setValue("/Shortcut/"+a->data().toString(),ns);
+				}
+			}
+		});
+		d->tab->addTab(d->widget[5],tr("Shortcut"));
 	}
-	//License
+	//Thanks
 	{
 		d->widget[6]=new QWidget(this);
 		auto w=new QGridLayout(d->widget[6]);
+		QFile t(":/Text/THANKS");
+		t.open(QIODevice::ReadOnly|QIODevice::Text);
+		d->thanks=new QTextEdit(d->widget[6]);
+		d->thanks->setReadOnly(true);
+		d->thanks->setText(t.readAll());
+		w->addWidget(d->thanks);
+		d->tab->addTab(d->widget[6],tr("Thanks"));
+	}
+	//License
+	{
+		d->widget[7]=new QWidget(this);
+		auto w=new QGridLayout(d->widget[7]);
 		QFile l(":/Text/COPYING");
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->license=new QTextEdit(d->widget[6]);
+		d->license=new QTextEdit(d->widget[7]);
 		d->license->setReadOnly(true);
 		d->license->setText(l.readAll());
 		w->addWidget(d->license);
-		d->tab->addTab(d->widget[6],tr("License"));
+		d->tab->addTab(d->widget[7],tr("License"));
 	}
 	d->tab->setCurrentIndex(index);
 	connect(this,&QDialog::finished,[d,this](){
