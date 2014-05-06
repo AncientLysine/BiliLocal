@@ -37,6 +37,7 @@
 #include "Plugin.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
+#include <functional>
 
 Interface::Interface(QWidget *parent):
 	QMdiSubWindow(parent)

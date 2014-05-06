@@ -29,6 +29,7 @@
 #include "Config.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
+#include <functional>
 
 qint64 Next::time;
 

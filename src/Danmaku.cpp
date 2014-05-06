@@ -29,6 +29,7 @@
 #include "Config.h"
 #include "VPlayer.h"
 #include "Graphic.h"
+#include <functional>
 
 #define qThreadPool QThreadPool::globalInstance()
 
