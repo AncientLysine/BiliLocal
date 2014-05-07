@@ -327,7 +327,14 @@ void Interface::closeEvent(QCloseEvent *e)
 void Interface::dragEnterEvent(QDragEnterEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
-		e->acceptProposedAction();
+		QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio|Utils::Subtitle|Utils::Danmaku);
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+			QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
+			if(std::binary_search(accept.begin(),accept.end(),suffix)){
+				e->acceptProposedAction();
+				break;
+			}
+		}
 	}
 	QWidget::dragEnterEvent(e);
 }
