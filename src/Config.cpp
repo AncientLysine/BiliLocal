@@ -402,7 +402,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto t=new QGridLayout;
 		d->acce=new QCheckBox(tr("hardware accelerated"),d->widget[1]);
-		d->acce->setChecked(Config::getValue("/Interface/Accelerated",true));
+		d->acce->setChecked(Config::getValue("/Interface/Accelerated",false));
 		connect(d->acce,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Accelerated",state==Qt::Checked);
 		});

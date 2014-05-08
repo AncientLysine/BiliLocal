@@ -194,7 +194,7 @@ public slots:
 
 Render *Render::create(QWidget *parent)
 {
-	if(Config::getValue("/Interface/Accelerated",true)){
+	if(Config::getValue("/Interface/Accelerated",false)){
 		return new OpenGLRender(parent);
 	}
 	else{
