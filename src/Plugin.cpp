@@ -25,11 +25,11 @@
 =========================================================================*/
 
 #include "Plugin.h"
+#include "Local.h"
 #include "Config.h"
 
 
 QList<Plugin> Plugin::plugins;
-QHash<QString,QObject *> Plugin::objects;
 
 Plugin::Plugin(QString path)
 {
@@ -65,7 +65,7 @@ void Plugin::loadPlugins()
 			Plugin lib(info.absoluteFilePath());
 			if(lib.loaded()){
 				if(Config::getValue("/Plugin/"+lib.string("Name"),true)){
-					lib.regist(objects);
+					lib.regist(Local::objects);
 				}
 				plugins.append(lib);
 			}

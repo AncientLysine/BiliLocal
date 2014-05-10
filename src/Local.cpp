@@ -24,12 +24,14 @@
 *
 =========================================================================*/
 
+#include "Local.h"
 #include "Utils.h"
+#include "Plugin.h"
 #include "Config.h"
 #include "Shield.h"
-#include "Plugin.h"
 #include "Interface.h"
-#include <QtCore>
+
+QHash<QString,QObject *> Local::objects;
 
 static void loadTranslator()
 {
@@ -77,9 +79,9 @@ static void setToolTipBase()
 int main(int argc,char *argv[])
 {
 	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
-	QApplication::addLibraryPath("./plugins");
-	QApplication::setStyle("Fusion");
-	QApplication a(argc,argv);
+	Local::addLibraryPath("./plugins");
+	Local::setStyle("Fusion");
+	Local a(argc,argv);
 	Config::load();
 	int single;
 	if((single=Config::getValue("/Interface/Single",1))){
@@ -96,7 +98,7 @@ int main(int argc,char *argv[])
 	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
-	a.connect(&a,&QApplication::aboutToQuit,[](){
+	a.connect(&a,&Local::aboutToQuit,[](){
 		Shield::save();
 		Config::save();
 	});

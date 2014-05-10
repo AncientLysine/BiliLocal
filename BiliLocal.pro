@@ -31,6 +31,7 @@ SOURCES += \
 
 HEADERS  += \
     src/Interface.h \
+    src/Local.h \
     src/Danmaku.h \
     src/VPlayer.h \
     src/Menu.h \

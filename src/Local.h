@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Plugin.h
-*   Time:        2013/04/23
+*   Filename:    Local.h
+*   Time:        2014/05/10
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,31 +24,28 @@
 *
 =========================================================================*/
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef LOCAL_H
+#define LOCAL_H
 
 #include <QtCore>
+#include <QtWidgets>
 
-class Plugin
+class Local:public QApplication
 {
+	Q_OBJECT
 public:
-	typedef void (*RegistPtr)(const QHash<QString,QObject *> &);
-	typedef void (*ConfigPtr)();
-	typedef QString (*StringPtr)(QString);
+	Local(int &argc,char **argv):
+		QApplication(argc,argv)
+	{
+	}
 
-	static QList<Plugin> plugins;
-	static void loadPlugins();
+	static QHash<QString,QObject *> objects;
 
-	Plugin(QString path);
-	bool loaded();
-	void regist(const QHash<QString,QObject *> &);
-	void config();
-	QString string(QString query);
-
-private:
-	RegistPtr m_regist;
-	ConfigPtr m_config;
-	StringPtr m_string;
+public slots:
+	void synchronize(quintptr func)
+	{
+		((void (*)())func)();
+	}
 };
 
-#endif // PLUGIN_H
+#endif // LOCAL_H

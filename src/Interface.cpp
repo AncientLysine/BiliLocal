@@ -31,10 +31,10 @@
 #include "Post.h"
 #include "Next.h"
 #include "Load.h"
+#include "Local.h"
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
-#include "Plugin.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 #include <functional>
@@ -267,14 +267,14 @@ Interface::Interface(QWidget *parent):
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
 	checkForUpdate();
-	Plugin::objects["Interface"]=this;
-	Plugin::objects["Danmaku"]=danmaku;
-	Plugin::objects["VPlayer"]=vplayer;
-	Plugin::objects["Info"]=info;
-	Plugin::objects["Menu"]=menu;
-	Plugin::objects["Next"]=next;
-	Plugin::objects["Post"]=post;
-	Plugin::objects["Render"]=render;
+	Local::objects["Interface"]=this;
+	Local::objects["Danmaku"]=danmaku;
+	Local::objects["VPlayer"]=vplayer;
+	Local::objects["Info"]=info;
+	Local::objects["Menu"]=menu;
+	Local::objects["Next"]=next;
+	Local::objects["Post"]=post;
+	Local::objects["Render"]=render;
 }
 
 void Interface::tryLocal(QString p)

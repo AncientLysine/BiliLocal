@@ -487,6 +487,7 @@ VPlayer::VPlayer(QObject *parent):
 		argv[i]=args[i];
 	}
 	vlc=libvlc_new(args.size(),argv);
+	libvlc_add_intf(vlc,"bililocal");
 	m=NULL;
 	mp=NULL;
 	state=Stop;
@@ -641,7 +642,7 @@ void VPlayer::init()
 
 void VPlayer::free()
 {
-	if(Config::getValue("/Playing/Loop",false)){
+	if(state==Play&&Config::getValue("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
 		setState(Loop);
 		libvlc_media_player_play(mp);
