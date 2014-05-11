@@ -26,6 +26,8 @@
 =========================================================================*/
 
 #include "Info.h"
+#include "Next.h"
+#include "Local.h"
 #include "Utils.h"
 #include "Shield.h"
 #include "Config.h"
@@ -36,6 +38,7 @@
 Info::Info(QWidget *parent):
 	QWidget(parent)
 {
+	setObjectName("Info");
 	isStay=isPoped=updating=false;
 	Utils::setGround(this,Qt::white);
 	duration=-1;
@@ -85,8 +88,8 @@ Info::Info(QWidget *parent):
 	stopB->setIcon(stopI);
 	playA=new QAction(playI,tr("Play"),this);
 	stopA=new QAction(stopI,tr("Stop"),this);
-	playA->setData("Play");
-	stopA->setData("Stop");
+	playA->setObjectName("Play");
+	stopA->setObjectName("Stop");
 	QList<QKeySequence> playS;
 	playS<<Config::getValue("/Shortcut/Play",QString("Space"))<<
 		   Qt::Key_MediaPlay<<
@@ -97,7 +100,9 @@ Info::Info(QWidget *parent):
 	addAction(playA);
 	addAction(stopA);
 	connect(playA,&QAction::triggered,VPlayer::instance(),&VPlayer::play);
-	connect(stopA,&QAction::triggered,VPlayer::instance(),&VPlayer::stop);
+	connect(stopA,&QAction::triggered,[](){
+		Next::instance()->clear();VPlayer::instance()->stop();
+	});
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
 	durT=new QLabel(this);
@@ -163,13 +168,13 @@ Info::Info(QWidget *parent):
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(parentWidget(),2);
+			Config config(Local::mainWidget(),2);
 			config.exec();
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
 			int state=VPlayer::instance()->getState();
 			if(state==VPlayer::Play) VPlayer::instance()->play();
-			Editor editor(parentWidget());
+			Editor editor(Local::mainWidget());
 			editor.exec();
 			Danmaku::instance()->parse(0x1|0x2);
 			if(state==VPlayer::Play) VPlayer::instance()->play();
@@ -185,7 +190,7 @@ Info::Info(QWidget *parent):
 				path=Utils::defaultPath();
 			}
 			QString type;
-			QString file=QFileDialog::getSaveFileName(parentWidget(),
+			QString file=QFileDialog::getSaveFileName(Local::mainWidget(),
 													  tr("Save File"),
 													  path,
 													  tr("Json files (*.json);;Xml files (*.xml)"),

@@ -39,6 +39,11 @@ public:
 	{
 	}
 
+	static QWidget *mainWidget()
+	{
+		return qobject_cast<QWidget *>(objects["Interface"]);
+	}
+
 	static QHash<QString,QObject *> objects;
 
 public slots:

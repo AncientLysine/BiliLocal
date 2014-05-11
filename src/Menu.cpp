@@ -27,6 +27,7 @@
 
 #include "Menu.h"
 #include "Load.h"
+#include "Local.h"
 #include "Utils.h"
 #include "Config.h"
 #include "Search.h"
@@ -36,6 +37,7 @@
 Menu::Menu(QWidget *parent):
 	QWidget(parent)
 {
+	setObjectName("Menu");
 	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
 	fileL=new QLineEdit(this);
@@ -81,16 +83,16 @@ Menu::Menu(QWidget *parent):
 	danmB->setText(tr("Load"));
 	sechB->setText(tr("Search"));
 	fileA=new QAction(tr("Open File"),this);
-	fileA->setData("File");
+	fileA->setObjectName("File");
 	fileA->setShortcut(Config::getValue("/Shortcut/File",QString()));
 	danmA=new QAction(tr("Load Danmaku"),this);
-	danmA->setData("Danm");
+	danmA->setObjectName("Danm");
 	danmA->setShortcut(Config::getValue("/Shortcut/Danm",QString()));
 	sechA=new QAction(tr("Search Danmaku"),this);
-	sechA->setData("Sech");
+	sechA->setObjectName("Sech");
 	sechA->setShortcut(Config::getValue("/Shortcut/Sech",QString()));
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(parentWidget(),
+		QString _file=QFileDialog::getOpenFileName(Local::mainWidget(),
 												   tr("Open File"),
 												   Utils::defaultPath(),
 												   tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video|Utils::Audio,"*.%1").join(' ')));
@@ -100,7 +102,7 @@ Menu::Menu(QWidget *parent):
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Config::getValue("/Danmaku/Local",false)){
-			QString _file=QFileDialog::getOpenFileName(parentWidget(),
+			QString _file=QFileDialog::getOpenFileName(Local::mainWidget(),
 													   tr("Open File"),
 													   Utils::defaultPath(),
 													   tr("Danmaku files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Danmaku,"*.%1").join(' ')));
@@ -120,7 +122,7 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	connect(sechA,&QAction::triggered,[this](){
-		Search searchBox(parentWidget());
+		Search searchBox(Local::mainWidget());
 		sechL->setText(sechL->text().simplified());
 		if(!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
@@ -237,7 +239,7 @@ Menu::Menu(QWidget *parent):
 			isStay=0;
 			break;
 		default:
-			QMessageBox::warning(parentWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(state));
+			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(state));
 			isStay=0;
 			break;
 		}

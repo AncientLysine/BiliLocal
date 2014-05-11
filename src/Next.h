@@ -41,21 +41,31 @@ public:
 		InheritDanmaku,
 		PlayImmediately
 	};
-	explicit Next(QWidget *parent);
 	QString getNext();
+	static Next *instance();
 
 private:
-	QString fileP;
+	QString fileC;
 	QString fileN;
 	QLineEdit *fileL;
 	QMenu *nextM;
 	QPushButton *nextB;
-	static qint64 time;
+	qint64 duration;
+	static Next *ins;
+
+	Next(QWidget *parent);
 	bool eventFilter(QObject *o,QEvent *e);
+
+signals:
+	void nextChanged(QString);
+
+public slots:
+	void parse();
+	void clear();
+	void shift();
 
 private slots:
 	void moveWithParent();
-	void showNextDialog();
 };
 
 #endif // NEXT_H

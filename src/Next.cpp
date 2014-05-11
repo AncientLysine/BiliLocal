@@ -26,18 +26,28 @@
 
 #include "Next.h"
 #include "Load.h"
+#include "Local.h"
 #include "Config.h"
 #include "VPlayer.h"
 #include "Danmaku.h"
 #include <functional>
 
-qint64 Next::time;
+Next *Next::ins=NULL;
+
+Next *Next::instance()
+{
+	return ins?ins:new Next(Local::mainWidget());
+}
 
 Next::Next(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
+	duration=0;
+	ins=this;
 	setFixedSize(480,25);
 	setAttribute(Qt::WA_TranslucentBackground);
+	setObjectName("Next");
+	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
 	moveWithParent();
 	parent->installEventFilter(this);
 	auto layout=new QHBoxLayout(this);
@@ -50,16 +60,22 @@ Next::Next(QWidget *parent):
 	layout->addWidget(fileL);
 
 	nextM=new QMenu(this);
-	connect(nextM->addAction(tr("play immediately")),&QAction::triggered,[this](){
+	nextM->addAction(tr("play immediately"));
+	nextM->addAction(tr("inherit danmaku"));
+	nextM->addAction(tr("wait until ended"));
+	nextM->addAction(tr("do not continnue"));
+	QList<QAction *> optA=nextM->actions();
+	optA[0]->setObjectName("Imme");
+	optA[1]->setObjectName("Inhe");
+	optA[2]->setObjectName("Wait");
+	optA[3]->setObjectName("Dont");
+	connect(optA[0],&QAction::triggered,[this](){
 		done(PlayImmediately);
 		VPlayer::instance()->stop();
 	});
-	connect(nextM->addAction(tr("inherit danmaku")) ,&QAction::triggered,std::bind(&QDialog::done,this,InheritDanmaku));
-	connect(nextM->addAction(tr("wait until ended")),&QAction::triggered,std::bind(&QDialog::done,this,WaitUntilEnded));
-	connect(nextM->addAction(tr("do not continnue")),&QAction::triggered,[this](){
-		done(DoNotContinnue);
-		fileN.clear();
-	});
+	connect(optA[1],&QAction::triggered,std::bind(&QDialog::done,this,InheritDanmaku));
+	connect(optA[2],&QAction::triggered,std::bind(&QDialog::done,this,WaitUntilEnded));
+	connect(optA[3],&QAction::triggered,std::bind(&QDialog::done,this,DoNotContinnue));
 	connect(nextM,&QMenu::aboutToShow,[this](){
 		nextM->setDefaultAction(nextM->actions()[Config::getValue("/Playing/Continue",true)?2:3]);
 	});
@@ -69,52 +85,18 @@ Next::Next(QWidget *parent):
 	layout->addWidget(nextB);
 
 	connect(VPlayer::instance(),&VPlayer::timeChanged,[this](qint64 _time){
-		time=_time;
-		if(time>=VPlayer::instance()->getDuration()*0.9&&fileP!=VPlayer::instance()->getFile()&&!Config::getValue("/Playing/Loop",false)){
-			showNextDialog();
+		duration=_time;
+		if(_time>=0&&
+				_time>=VPlayer::instance()->getDuration()*0.9&&
+				!fileN.isEmpty()&&
+				fileC!=VPlayer::instance()->getFile()&&
+				!Config::getValue("/Playing/Loop",false)){
+			show();
+			fileC=VPlayer::instance()->getFile();
 		}
 	});
-	connect(VPlayer::instance(),&VPlayer::begin,[this](){
-		hide();
-		setResult(Config::getValue("/Playing/Continue",false));
-		fileP=fileN=QString();
-	});
-	connect(VPlayer::instance(),&VPlayer::reach,[this](){
-		if(!fileN.isEmpty()){
-			switch(result()){
-			case InheritDanmaku:
-				for(Record &r:Danmaku::instance()->getPool()){
-					r.delay-=time;
-					for(Comment &c:r.danmaku){
-						c.time-=time;
-					}
-				}
-				Danmaku::instance()->parse(0x2);
-				VPlayer::instance()->setMedia(fileN);
-				VPlayer::instance()->play();
-				break;
-			case WaitUntilEnded:
-			case PlayImmediately:
-				for(const Record &r:Danmaku::instance()->getPool()){
-					if(QUrl(r.source).isLocalFile()){
-						continue;
-					}
-					QString code=r.string;
-					int sharp=code.indexOf("#");
-					if (sharp!=-1) {
-						QString i=code.mid(0,sharp);
-						QString p=code.mid(sharp+1);
-						Load::instance()->loadDanmaku((i+"#%1").arg(p.toInt()+1));
-					}
-				}
-				Danmaku::instance()->clearPool();
-				VPlayer::instance()->setMedia(fileN);
-				VPlayer::instance()->play();
-				break;
-			}
-		}
-		hide();
-	});
+	connect(VPlayer::instance(),&VPlayer::begin,this,&Next::parse);
+	connect(VPlayer::instance(),&VPlayer::reach,this,&Next::shift);
 }
 
 QString Next::getNext()
@@ -134,12 +116,6 @@ bool Next::eventFilter(QObject *,QEvent *e)
 	}
 }
 
-void Next::moveWithParent()
-{
-	QRect p=parentWidget()->geometry(),c=geometry();
-	move(p.center().x()-c.width()/2,p.top()+2);
-}
-
 static bool diffAtNum(QString f,QString s)
 {
 	for(int i=0;i<f.size()&&i<s.size();++i){
@@ -150,10 +126,10 @@ static bool diffAtNum(QString f,QString s)
 	return false;
 }
 
-void Next::showNextDialog()
+void Next::parse()
 {
-	fileP=VPlayer::instance()->getFile();
-	QFileInfo info(fileP),next;
+	clear();
+	QFileInfo info(VPlayer::instance()->getFile()),next;
 	for(QFileInfo iter:info.absoluteDir().entryInfoList()){
 		if(iter.isFile()&&iter.suffix()==info.suffix()){
 			QString n=iter.absoluteFilePath(),c=info.absoluteFilePath();
@@ -166,7 +142,60 @@ void Next::showNextDialog()
 		return;
 	}
 	fileN=next.absoluteFilePath();
+	emit nextChanged(fileN);
 	fileL->setText(next.fileName());
 	fileL->setCursorPosition(0);
-	show();
+}
+
+void Next::clear()
+{
+	hide();
+	setResult(Config::getValue("/Playing/Continue",true));
+	fileC=fileN=QString();
+	emit nextChanged(fileN);
+	fileL->clear();
+}
+
+void Next::shift()
+{
+	if(!fileN.isEmpty()){
+		switch(result()){
+		case InheritDanmaku:
+			for(Record &r:Danmaku::instance()->getPool()){
+				r.delay-=duration;
+				for(Comment &c:r.danmaku){
+					c.time-=duration;
+				}
+			}
+			Danmaku::instance()->parse(0x2);
+			VPlayer::instance()->setMedia(fileN);
+			VPlayer::instance()->play();
+			break;
+		case WaitUntilEnded:
+		case PlayImmediately:
+			for(const Record &r:Danmaku::instance()->getPool()){
+				if(QUrl(r.source).isLocalFile()){
+					continue;
+				}
+				QString code=r.string;
+				int sharp=code.indexOf("#");
+				if (sharp!=-1) {
+					QString i=code.mid(0,sharp);
+					QString p=code.mid(sharp+1);
+					Load::instance()->loadDanmaku((i+"#%1").arg(p.toInt()+1));
+				}
+			}
+			Danmaku::instance()->clearPool();
+			VPlayer::instance()->setMedia(fileN);
+			VPlayer::instance()->play();
+			break;
+		}
+	}
+	hide();
+}
+
+void Next::moveWithParent()
+{
+	QRect p=parentWidget()->geometry(),c=geometry();
+	move(p.center().x()-c.width()/2,p.top()+2);
 }

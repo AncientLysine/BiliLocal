@@ -26,16 +26,27 @@
 =========================================================================*/
 
 #include "Post.h"
+#include "Local.h"
 #include "Config.h"
 #include "Danmaku.h"
 #include "VPlayer.h"
 #include "Graphic.h"
 
+Post *Post::ins=NULL;
+
+Post *Post::instance()
+{
+	return ins?ins:new Post(Local::mainWidget());
+}
+
 Post::Post(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
+	ins=this;
 	setFixedSize(480,25);
 	setAttribute(Qt::WA_TranslucentBackground);
+	setObjectName("Post");
+	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
 	moveWithParent();
 	parent->installEventFilter(this);
 	manager=new QNetworkAccessManager(this);
@@ -52,7 +63,7 @@ Post::Post(QWidget *parent):
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
 	connect(commentC,&QPushButton::clicked,[this](){
-		QColor color=QColorDialog::getColor(getColor(),parentWidget());
+		QColor color=QColorDialog::getColor(getColor(),Local::mainWidget());
 		if(color.isValid()){
 			setColor(color);
 		}
@@ -205,7 +216,7 @@ void Post::postComment()
 			}
 			if(error!=QNetworkReply::NoError){
 				QString info=tr("Network error occurred, error code: %1");
-				QMessageBox::warning(parentWidget(),tr("Network Error"),info.arg(error));
+				QMessageBox::warning(Local::mainWidget(),tr("Network Error"),info.arg(error));
 			}
 			else{
 				emit posted((quintptr)&c);

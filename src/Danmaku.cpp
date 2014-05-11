@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Danmaku.h"
+#include "Local.h"
 #include "Shield.h"
 #include "Config.h"
 #include "VPlayer.h"
@@ -37,7 +38,7 @@ Danmaku *Danmaku::ins=NULL;
 
 Danmaku *Danmaku::instance()
 {
-	return ins?ins:new Danmaku(qApp);
+	return ins?ins:new Danmaku(Local::mainWidget());
 }
 
 Danmaku::Danmaku(QObject *parent):
@@ -45,6 +46,7 @@ Danmaku::Danmaku(QObject *parent):
 {
 	cur=time=0;
 	ins=this;
+	setObjectName("Danmaku");
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
 	connect(VPlayer::instance(),&VPlayer::jumped,this,&Danmaku::jumpToTime);
 	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);

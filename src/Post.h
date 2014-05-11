@@ -37,8 +37,8 @@ class Post:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Post(QWidget *parent);
 	bool isValid(){return !getRecords().isEmpty();}
+	static Post *instance();
 
 private:
 	QAction *commentA;
@@ -48,7 +48,9 @@ private:
 	QPushButton *commentC;
 	QPushButton *commentB;
 	QNetworkAccessManager *manager;
+	static Post *ins;
 
+	Post(QWidget *parent);
 	QColor getColor();
 	Comment getComment();
 	QList<const Record *> getRecords();

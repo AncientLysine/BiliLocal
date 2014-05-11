@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "Config.h"
+#include "Local.h"
 #include "Utils.h"
 #include "Shield.h"
 #include "Plugin.h"
@@ -1001,14 +1002,11 @@ Config::Config(QWidget *parent,int index):
 		d->hotkey->setColumnCount(2);
 		d->hotkey->setColumnWidth(0,350);
 		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
-		for(QAction *iter:parentWidget()->actions()){
-			if(iter->data().isNull()){
-				continue;
-			}
+		for(QAction *iter:Local::mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 			QTreeWidgetItem *item=new QTreeWidgetItem;
 			item->setData(0,Qt::DisplayRole,iter->text());
 			item->setData(1,Qt::DisplayRole,iter->shortcut().toString());
-			item->setData(1,Qt::UserRole,(quintptr)iter);
+			item->setData(1,Qt::UserRole,iter->objectName());
 			item->setFlags(Qt::ItemIsEditable|Qt::ItemIsEnabled);
 			item->setSizeHint(0,QSize(60,35));
 			d->hotkey->addTopLevelItem(item);
@@ -1017,19 +1015,19 @@ Config::Config(QWidget *parent,int index):
 		connect(d->hotkey,&QTreeWidget::currentItemChanged,[d](){
 			d->hotkey->setCurrentItem(NULL);
 		});
-		connect(d->hotkey,&QTreeWidget::itemClicked,[d](QTreeWidgetItem *item,int column){
+		connect(d->hotkey,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
 			if(column==1){
 				d->hotkey->editItem(item,1);
 			}
 		});
-		connect(d->hotkey,&QTreeWidget::itemChanged,[d](QTreeWidgetItem *item,int column){
+		connect(d->hotkey,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item,int column){
 			if(column==1){
 				QVariant v=item->data(1,Qt::UserRole);
 				if(v.isValid()){
-					QAction *a=(QAction *)v.value<quintptr>();
+					QAction *a=Local::mainWidget()->findChild<QAction *>(v.toString());
 					QString ns=item->text(1);
 					a->setShortcut(ns);
-					Config::setValue("/Shortcut/"+a->data().toString(),ns);
+					Config::setValue("/Shortcut/"+a->objectName(),ns);
 				}
 			}
 		});

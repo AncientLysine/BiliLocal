@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "VPlayer.h"
+#include "Local.h"
 #include "Utils.h"
 #include "Config.h"
 
@@ -427,10 +428,10 @@ VPlayer *VPlayer::instance()
 		return ins;
 	}
 	if(Config::getValue("/Interface/Accelerated",false)){
-		return new OpenGLPlayer(qApp);
+		return new OpenGLPlayer(Local::mainWidget());
 	}
 	else{
-		return new RasterPlayer(qApp);
+		return new RasterPlayer(Local::mainWidget());
 	}
 }
 
@@ -495,6 +496,7 @@ VPlayer::VPlayer(QObject *parent):
 	start=false;
 	music=false;
 	dirty=false;
+	setObjectName("VPlayer");
 	fake=new QTimer(this);
 	fake->setInterval(33);
 	fake->setTimerType(Qt::PreciseTimer);

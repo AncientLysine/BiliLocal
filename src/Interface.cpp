@@ -44,17 +44,26 @@ Interface::Interface(QWidget *parent):
 {
 	setAcceptDrops(true);
 	setMinimumSize(480,360);
+	setObjectName("Interface");
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
+	Local::objects["Interface"]=this;
+
 	vplayer=VPlayer::instance();
 	danmaku=Danmaku::instance();
-	vplayer->setParent(this);
-	danmaku->setParent(this);
 	render=Render::create(this);
+	Local::objects["Danmaku"]=danmaku;
+	Local::objects["VPlayer"]=vplayer;
+
 	menu=new Menu(this);
 	info=new Info(this);
-	post=new Post(this);
-	next=new Next(this);
+	post=Post::instance();
+	next=Next::instance();
+	Local::objects["Info"]=info;
+	Local::objects["Menu"]=menu;
+	Local::objects["Next"]=next;
+	Local::objects["Post"]=post;
+
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(1000);
@@ -80,7 +89,7 @@ Interface::Interface(QWidget *parent):
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
 	connect(vplayer,&VPlayer::begin,[this](){
-		if(!isFullScreen()){
+		if(!isFullScreen()&&geo.isEmpty()){
 			geo=saveGeometry();
 			sca->setEnabled(true);
 			setCenter(vplayer->getSize(),false);
@@ -118,13 +127,13 @@ Interface::Interface(QWidget *parent):
 	addActions(info->actions());
 
 	quitA=new QAction(tr("Quit"),this);
-	quitA->setData("Quit");
+	quitA->setObjectName("Quit");
 	quitA->setShortcut(Config::getValue("/Shortcut/Quit",QString("Ctrl+Q")));
 	addAction(quitA);
 	connect(quitA,&QAction::triggered,this,&Interface::close);
 
 	fullA=new QAction(tr("Full Screen"),this);
-	fullA->setData("Full");
+	fullA->setObjectName("Full");
 	fullA->setCheckable(true);
 	fullA->setChecked(false);
 	fullA->setShortcut(Config::getValue("/Shortcut/Full",QString("F")));
@@ -143,7 +152,7 @@ Interface::Interface(QWidget *parent):
 	});
 
 	confA=new QAction(tr("Config"),this);
-	confA->setData("Conf");
+	confA->setObjectName("Conf");
 	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
 	addAction(confA);
 	connect(confA,&QAction::triggered,[this](){
@@ -152,7 +161,7 @@ Interface::Interface(QWidget *parent):
 	});
 
 	toggA=new QAction(tr("Block All"),this);
-	toggA->setData("Togg");
+	toggA->setObjectName("Togg");
 	toggA->setCheckable(true);
 	toggA->setChecked(Shield::shieldG[7]);
 	toggA->setShortcut(Config::getValue("/Shortcut/Togg",QString("Ctrl+T")));
@@ -166,7 +175,7 @@ Interface::Interface(QWidget *parent):
 	});
 
 	postA=new QAction(tr("Post Danmaku"),this);
-	postA->setData("Post");
+	postA->setObjectName("Post");
 	postA->setEnabled(false);
 	postA->setShortcut(Config::getValue("/Shortcut/Post",QString("Ctrl+P")));
 	addAction(postA);
@@ -180,13 +189,13 @@ Interface::Interface(QWidget *parent):
 	});
 
 	QAction *fwdA=new QAction(tr("Forward"),this);
-	fwdA->setData("Fowd");
+	fwdA->setObjectName("Fowd");
 	fwdA->setShortcut(Config::getValue("/Shortcut/Fowd",QString("Right")));
 	connect(fwdA,&QAction::triggered,[this](){
 		vplayer->setTime(vplayer->getTime()+Config::getValue("/Interface/Interval",10)*1000);
 	});
 	QAction *bwdA=new QAction(tr("Backward"),this);
-	bwdA->setData("Bkwd");
+	bwdA->setObjectName("Bkwd");
 	bwdA->setShortcut(Config::getValue("/Shortcut/Bkwd",QString("Left")));
 	connect(bwdA,&QAction::triggered,[this](){
 		vplayer->setTime(vplayer->getTime()-Config::getValue("/Interface/Interval",10)*1000);
@@ -195,11 +204,11 @@ Interface::Interface(QWidget *parent):
 	addAction(bwdA);
 
 	QAction *delA=new QAction(tr("Delay"),this);
-	delA->setData("Dely");
+	delA->setObjectName("Dely");
 	delA->setShortcut(Config::getValue("/Shortcut/Dely",QString("Ctrl+Right")));
 	connect(delA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),+1000));
 	QAction *ahdA=new QAction(tr("Ahead"),this);
-	ahdA->setData("Ahed");
+	ahdA->setObjectName("Ahed");
 	ahdA->setShortcut(Config::getValue("/Shortcut/Ahed",QString("Ctrl+Left")));
 	connect(ahdA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),-1000));
 	addAction(delA);
@@ -266,15 +275,8 @@ Interface::Interface(QWidget *parent):
 	if(Config::getValue("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
+
 	checkForUpdate();
-	Local::objects["Interface"]=this;
-	Local::objects["Danmaku"]=danmaku;
-	Local::objects["VPlayer"]=vplayer;
-	Local::objects["Info"]=info;
-	Local::objects["Menu"]=menu;
-	Local::objects["Next"]=next;
-	Local::objects["Post"]=post;
-	Local::objects["Render"]=render;
 }
 
 void Interface::tryLocal(QString p)
