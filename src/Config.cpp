@@ -1092,9 +1092,10 @@ Config::~Config()
 void Config::load()
 {
 	QFile conf("./Config.txt");
-	conf.open(QIODevice::ReadOnly|QIODevice::Text);
-	config=QJsonDocument::fromJson(conf.readAll()).object();
-	conf.close();
+	if(conf.open(QIODevice::ReadOnly|QIODevice::Text)){
+		config=QJsonDocument::fromJson(conf.readAll()).object();
+		conf.close();
+	}
 	Cookie::load();
 	DCache::load();
 	APorxy::load();

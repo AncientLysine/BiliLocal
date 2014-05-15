@@ -452,22 +452,23 @@ void Interface::checkForUpdate()
 	QNetworkRequest request(QUrl("https://raw.github.com/AncientLysine/BiliLocal/master/res/INFO"));
 	update=manager->get(request);
 	connect(update.data(),&QNetworkReply::finished,[this](){
-		QFile local(":/Text/DATA");
-		local.open(QIODevice::ReadOnly);
-		QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
-		QJsonObject r=QJsonDocument::fromJson(update->readAll()).object();
-		if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
-			QMessageBox::StandardButton button;
-			QString information=r["String"].toString();
-			button=QMessageBox::information(this,
-											tr("Update"),
-											information,
-											QMessageBox::Ok|QMessageBox::Cancel);
-			if(button==QMessageBox::Ok){
-				QDesktopServices::openUrl(r["Url"].toString());
+		if(update->error()==QNetworkReply::NoError){
+			QFile local(":/Text/DATA");
+			local.open(QIODevice::ReadOnly);
+			QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
+			QJsonObject r=QJsonDocument::fromJson(update->readAll()).object();
+			if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
+				QMessageBox::StandardButton button;
+				QString information=r["String"].toString();
+				button=QMessageBox::information(this,
+												tr("Update"),
+												information,
+												QMessageBox::Ok|QMessageBox::Cancel);
+				if(button==QMessageBox::Ok){
+					QDesktopServices::openUrl(r["Url"].toString());
+				}
 			}
 		}
-		update->deleteLater();
 		update->manager()->deleteLater();
 	});
 }
