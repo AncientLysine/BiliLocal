@@ -181,27 +181,28 @@ Info::Info(QWidget *parent):
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-			QString path=VPlayer::instance()->getFile();
-			if(!path.isEmpty()){
-				QFileInfo info(path);
-				path=info.absolutePath()+'/'+info.baseName()+".json";
+			QFileDialog save(Local::mainWidget(),tr("Save File"));
+			save.setAcceptMode(QFileDialog::AcceptSave);
+			QFileInfo info(VPlayer::instance()->getFile());
+			if(info.isFile()){
+				save.setDirectory(info.absolutePath());
+				save.selectFile(info.baseName());
 			}
 			else{
-				path=Utils::defaultPath();
+				save.setDirectory(Utils::defaultPath());
 			}
-			QString type;
-			QString file=QFileDialog::getSaveFileName(Local::mainWidget(),
-													  tr("Save File"),
-													  path,
-													  tr("Json files (*.json);;Xml files (*.xml)"),
-													  &type,
-													  QFileDialog::DontConfirmOverwrite);
-			if(!file.isEmpty()){
-				type=type.indexOf("xml")!=-1?".xml":".json";
-				if(!file.endsWith(type,Qt::CaseInsensitive)){
-					file.append(type);
+			save.setDefaultSuffix("json");
+			QStringList type;
+			type<<tr("AcFun Danmaku Format (*.json)")<<tr("Bilibili Danmaku Format (*.xml)");
+			save.setNameFilters(type);
+			connect(&save,&QFileDialog::filterSelected,[&](QString filter){
+				save.setDefaultSuffix(filter.indexOf("xml")==-1?"json":"xml");
+			});
+			if(save.exec()==QDialog::Accepted){
+				QStringList file=save.selectedFiles();
+				if(file.size()==1){
+					Danmaku::instance()->saveToFile(file.first());
 				}
-				Danmaku::instance()->saveToFile(file);
 			}
 		});
 		isStay=1;

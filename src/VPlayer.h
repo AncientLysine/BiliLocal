@@ -38,6 +38,8 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+class QActionGroup;
+
 class VPlayer:public QObject
 {
 	Q_OBJECT
@@ -69,9 +71,7 @@ private:
 	State state;
 	QTimer *fake;
 	double ratio;
-	QList<QAction *> subtitle;
-	QList<QAction *> video;
-	QList<QAction *> audio;
+	QActionGroup *tracks[3];
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
