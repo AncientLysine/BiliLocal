@@ -77,11 +77,11 @@ static AVPixelFormat getFormat(char *chroma)
 	QString c=QString(chroma).toUpper();
 	if(!f.contains(c)){
 		if(c=="NV61"){
-			strcpy(chroma,"NV16");
+			memcpy(chroma,"NV16",4);
 		}
 		else if(c=="YV12"||
 				c=="IYUV"){
-			strcpy(chroma,"I420");
+			memcpy(chroma,"I420",4);
 		}
 		else if(c=="UYNV"||
 				c=="UYNY"||
@@ -91,7 +91,7 @@ static AVPixelFormat getFormat(char *chroma)
 				c=="UYV1"||
 				c=="2VUY"||
 				c=="2VU1"){
-			strcpy(chroma,"UYVY");
+			memcpy(chroma,"UYVY",4);
 		}
 		else if(c=="VYUY"||
 				c=="YUYV"||
@@ -100,14 +100,29 @@ static AVPixelFormat getFormat(char *chroma)
 				c=="YVYU"||
 				c=="Y211"||
 				c=="CYUV"){
-			strcpy(chroma,"YUY2");
+			memcpy(chroma,"YUY2",4);
 		}
 		else{
-			strcpy(chroma,"RV32");
+			memcpy(chroma,"RV32",4);
 		}
 		c=chroma;
 	}
 	return f[c];
+}
+
+int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
+{
+	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
+	if(ret<0){
+		memset(picture,0,sizeof(AVPicture));
+		return ret;
+	}
+	return 0;
+}
+
+void avpicture_free(AVPicture *picture)
+{
+	av_free(picture->data[0]);
 }
 
 class RasterPlayer:public VPlayer
@@ -319,7 +334,7 @@ public:
 
 	void setBuffer(char *chroma,unsigned *width,unsigned *height,unsigned *pitches,unsigned *lines)
 	{
-		strcpy(chroma,"I420");
+		memcpy(chroma,"I420",4);
 		int w=*width,h=*height;
 		inner=QSize(w,h);
 		for(auto *iter:buffer){
@@ -487,11 +502,16 @@ VPlayer::VPlayer(QObject *parent):
 	for(QJsonValue arg:Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
 	}
-	const char *argv[args.size()];
-	for(int i=0;i<args.size();++i){
-		argv[i]=args[i];
+	if(!args.isEmpty()){
+		const char **argv=new const char *[args.size()];
+		for(int i=0;i<args.size();++i){
+			argv[i]=args[i];
+		}
+		vlc=libvlc_new(args.size(),argv);
 	}
-	vlc=libvlc_new(args.size(),argv);
+	else{
+		vlc=libvlc_new(0,NULL);
+	}
 #ifdef Q_OS_WIN
 	libvlc_add_intf(vlc,"bililocal");
 #endif

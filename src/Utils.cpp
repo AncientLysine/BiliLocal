@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -346,7 +346,7 @@ QStringList Utils::getSuffix(int type,QString format)
 	if(type&Video){
 		set<<"3g2"<<"3gp"<<"3gp2"<<"3gpp"<<"amv"<<"asf"<<"avi"<<"divx"<<"drc"<<"dv"<<
 			 "f4v"<<"flv"<<"gvi"<<"gxf"<<"iso"<<
-			 "m1v"<<"m2v"<<"m2t"<<"m2ts"<<"m4v"<<"mkv"<<"mov"<<
+			 "m1v"<<"m2t"<<"m2ts"<<"m2v"<<"m4v"<<"mkv"<<"mov"<<
 			 "mp2"<<"mp2v"<<"mp4"<<"mp4v"<<"mpe"<<"mpeg"<<"mpeg1"<<
 			 "mpeg2"<<"mpeg4"<<"mpg"<<"mpv2"<<"mts"<<"mtv"<<"mxf"<<"mxg"<<"nsv"<<"nuv"<<
 			 "ogg"<<"ogm"<<"ogv"<<"ogx"<<"ps"<<
@@ -357,7 +357,7 @@ QStringList Utils::getSuffix(int type,QString format)
 		int size=set.size();
 		set<<"3ga"<<"669"<<"a52"<<"aac"<<"ac3"<<"adt"<<"adts"<<"aif"<<"aifc"<<"aiff"<<
 			 "amr"<<"aob"<<"ape"<<"awb"<<"caf"<<"dts"<<"flac"<<"it"<<"kar"<<
-			 "m4a"<<"m4p"<<"m5p"<<"mka"<<"mlp"<<"mod"<<"mpa"<<"mp1"<<"mp2"<<"mp3"<<"mpc"<<"mpga"<<
+			 "m4a"<<"m4p"<<"m5p"<<"mka"<<"mlp"<<"mod"<<"mp1"<<"mp2"<<"mp3"<<"mpa"<<"mpc"<<"mpga"<<
 			 "oga"<<"ogg"<<"oma"<<"opus"<<"qcp"<<"ra"<<"rmi"<<"s3m"<<"spx"<<"thd"<<"tta"<<
 			 "voc"<<"vqf"<<"w64"<<"wav"<<"wma"<<"wv"<<"xa"<<"xm";
 		std::inplace_merge(set.begin(),set.begin()+size,set.end());

@@ -52,7 +52,6 @@ LIBS += \
     -lvlc \
     -lvlccore \
     -lswscale \
-    -lavcodec \
     -lavutil
 
 RESOURCES += \

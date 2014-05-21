@@ -46,7 +46,7 @@ Load::Load(QObject *parent):
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
-		auto error=[this](int code=203){
+		auto error=[this](int code){
 			if(code!=QNetworkReply::OperationCanceledError){
 				emit stateChanged(code);
 			}
@@ -119,7 +119,7 @@ Load::Load(QObject *parent):
 						getReply(QNetworkRequest(QUrl(api.arg(id))),"");
 					}
 					else{
-						error();
+						error(203);
 					}
 				}
 			}
@@ -133,7 +133,7 @@ Load::Load(QObject *parent):
 						emit stateChanged(Code);
 					}
 					else{
-						error();
+						error(203);
 					}
 				}
 				else{
@@ -160,7 +160,7 @@ Load::Load(QObject *parent):
 							getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
 						}
 						else{
-							error();
+							error(203);
 						}
 					}
 				}
@@ -189,12 +189,12 @@ Load::Load(QObject *parent):
 						getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
 					}
 					else{
-						error();
+						error(203);
 					}
 				}
 			}
 			else{
-				error();
+				error(203);
 			}
 		}
 		else{

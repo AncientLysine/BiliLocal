@@ -738,7 +738,7 @@ Config::Config(QWidget *parent,int index):
 		d->info->setAlignment(Qt::AlignCenter);
 		d->info->setText(tr("waiting"));
 		l->addWidget(d->info,0,3,Qt::AlignCenter);
-		auto loadValid=[d](){
+		auto loadValid=[=](){
 			QString url=QString("https://secure.bilibili.tv/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
 			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
 			connect(reply,&QNetworkReply::finished,[=](){
@@ -799,7 +799,7 @@ Config::Config(QWidget *parent,int index):
 				reply->deleteLater();
 			});
 		};
-		auto setLogout=[d,setLogged](){
+		auto setLogout=[=](){
 			d->click->setEnabled(false);
 			QString url="https://secure.bilibili.tv/login?act=exit";
 			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));

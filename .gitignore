@@ -3,3 +3,14 @@
 *.user
 *.sh
 *.qm
+build
+debug
+release
+Win32
+GeneratedFiles
+*.sln
+*.sdf
+*.suo
+*.vcxproj
+*.rc
+*.filters
