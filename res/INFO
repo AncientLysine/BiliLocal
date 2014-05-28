@@ -1,5 +1,5 @@
 {
-    "Version": "0.3.2",
-    "String": "[2014/4/2]\nVer_0.3.2\n弹幕渲染多线程优化\n硬件加速兼容性改进",
-    "Url": "http://tieba.baidu.com/p/2958261648"
+    "Version": "0.3.3",
+    "String": "[2014/5/28]\nVer_0.3.3\n添加Aero效果\n支持代理访问",
+    "Url": "http://tieba.baidu.com/p/3071576886"
 }
