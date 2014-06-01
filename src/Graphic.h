@@ -46,7 +46,7 @@ public:
 	inline void setEnabled(bool _enabled){enabled=_enabled;}
 
 	inline quint64 getIndex(){return index;}
-	inline void setIndex(quint64 _index){index=_index;}
+	void setIndex();
 
 	inline const Comment *getSource(){return source;}
 	inline void setSource(const Comment *_source){source=_source;}

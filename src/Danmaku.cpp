@@ -311,8 +311,6 @@ void Danmaku::parse(int flag)
 	}
 }
 
-static quint64 globalIndex=0;
-
 class Process:public QRunnable
 {
 public:
@@ -398,9 +396,12 @@ public:
 					ready.append(g);
 					lock->lockForWrite();
 				}
-				g->setIndex(globalIndex++);
+				g->setIndex();
 				current.append(g);
 				lock->unlock();
+			}
+			else{
+				Danmaku::instance()->unrecognizedComment((quintptr)c);
 			}
 		}
 		lock->lockForWrite();
@@ -586,4 +587,11 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 		}
 	}
 	return false;
+}
+
+void Danmaku::appendToCurrent(Graphic *graphic)
+{
+	lock.lockForWrite();
+	current.append(graphic);
+	lock.unlock();
 }

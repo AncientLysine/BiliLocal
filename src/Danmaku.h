@@ -61,6 +61,9 @@ private:
 	Danmaku(QObject *parent=0);
 	void setTime(qint64 _time);
 
+signals:
+	void unrecognizedComment(quintptr);
+
 public slots:
 	void release();
 	void resetTime();
@@ -72,6 +75,7 @@ public slots:
 	void saveToFile(QString _file);
 	void appendToPool(const Record &record);
 	bool appendToPool(QString source,const Comment &comment);
+	void appendToCurrent(Graphic *graphic);
 };
 
 #endif // DANMAKU_H
