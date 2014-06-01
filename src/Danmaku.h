@@ -46,6 +46,8 @@ public:
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
 	const Comment *commentAt(QPoint point) const;
+	void appendToPool(const Record &record);
+	bool appendToPool(QString source, const Comment &comment);
 	static Danmaku *instance();
 
 private:
@@ -73,9 +75,7 @@ public slots:
 	void delayAll(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
-	void appendToPool(const Record &record);
-	bool appendToPool(QString source,const Comment &comment);
-	void appendToCurrent(Graphic *graphic);
+	void appendToCurrent(quintptr graphic);
 };
 
 #endif // DANMAKU_H

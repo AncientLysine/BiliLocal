@@ -701,7 +701,7 @@ void VPlayer::release()
 	exit.unlock();
 }
 
-void VPlayer::setState(State _state)
+void VPlayer::setState(int _state)
 {
 #ifdef Q_OS_WIN32
 	switch(_state){

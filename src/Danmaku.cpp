@@ -589,9 +589,9 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 	return false;
 }
 
-void Danmaku::appendToCurrent(Graphic *graphic)
+void Danmaku::appendToCurrent(quintptr graphic)
 {
 	lock.lockForWrite();
-	current.append(graphic);
+	current.append((Graphic *)graphic);
 	lock.unlock();
 }

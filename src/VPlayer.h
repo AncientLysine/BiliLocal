@@ -52,11 +52,6 @@ public:
 		Loop
 	};
 	~VPlayer();
-	qint64 getTime();
-	qint64 getDuration();
-	QString getFile();
-	QSize getSize(){return size;}
-	State getState(){return state;}
 	QList<QAction *> getTracks(int type);
 
 	virtual void getBuffer(void **planes)=0;
@@ -68,7 +63,7 @@ public:
 	static VPlayer *instance();
 
 private:
-	State state;
+	int state;
 	QTimer *fake;
 	double ratio;
 	QActionGroup *tracks[3];
@@ -102,9 +97,15 @@ protected slots:
 	void init();
 	void free();
 	void release();
-	void setState(State _state);
+	void setState(int _state);
 
 public slots:
+	qint64 getTime();
+	qint64 getDuration();
+	QString getFile();
+	QSize getSize(){return size;}
+	int getState(){return state;}
+
 	void play();
 	void stop(bool manually=true);
 	void setDirty();
