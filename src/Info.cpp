@@ -26,7 +26,6 @@
 =========================================================================*/
 
 #include "Info.h"
-#include "Next.h"
 #include "Local.h"
 #include "Utils.h"
 #include "Shield.h"
@@ -99,10 +98,8 @@ Info::Info(QWidget *parent):
 	stopA->setShortcut(Config::getValue("/Shortcut/Stop",QString()));
 	addAction(playA);
 	addAction(stopA);
-	connect(playA,&QAction::triggered,VPlayer::instance(),&VPlayer::play);
-	connect(stopA,&QAction::triggered,[](){
-		Next::instance()->clear();VPlayer::instance()->stop();
-	});
+	connect(playA,SIGNAL(triggered()),VPlayer::instance(),SLOT(play()));
+	connect(stopA,SIGNAL(triggered()),VPlayer::instance(),SLOT(stop()));
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
 	durT=new QLabel(this);

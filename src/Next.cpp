@@ -71,7 +71,7 @@ Next::Next(QWidget *parent):
 	optA[3]->setObjectName("Dont");
 	connect(optA[0],&QAction::triggered,[this](){
 		done(PlayImmediately);
-		VPlayer::instance()->stop();
+		VPlayer::instance()->stop(false);
 	});
 	connect(optA[1],&QAction::triggered,std::bind(&QDialog::done,this,InheritDanmaku));
 	connect(optA[2],&QAction::triggered,std::bind(&QDialog::done,this,WaitUntilEnded));
@@ -168,7 +168,7 @@ void Next::shift()
 				}
 			}
 			Danmaku::instance()->parse(0x2);
-			VPlayer::instance()->setMedia(fileN);
+			VPlayer::instance()->setMedia(fileN,false);
 			VPlayer::instance()->play();
 			break;
 		case WaitUntilEnded:
@@ -186,7 +186,7 @@ void Next::shift()
 				}
 			}
 			Danmaku::instance()->clearPool();
-			VPlayer::instance()->setMedia(fileN);
+			VPlayer::instance()->setMedia(fileN,false);
 			VPlayer::instance()->play();
 			break;
 		}

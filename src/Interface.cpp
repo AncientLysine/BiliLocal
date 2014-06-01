@@ -449,14 +449,19 @@ void Interface::drawPowered()
 void Interface::checkForUpdate()
 {
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
-	QNetworkRequest request(QUrl("https://raw.github.com/AncientLysine/BiliLocal/master/res/INFO"));
+	QNetworkRequest request(QUrl("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO"));
 	update=manager->get(request);
-	connect(update.data(),&QNetworkReply::finished,[this](){
-		if(update->error()==QNetworkReply::NoError){
+	connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *info){
+		QUrl redirect=info->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+		if(redirect.isValid()){
+			update=manager->get(QNetworkRequest(redirect));
+			return;
+		}
+		if(info->error()==QNetworkReply::NoError){
 			QFile local(":/Text/DATA");
 			local.open(QIODevice::ReadOnly);
 			QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
-			QJsonObject r=QJsonDocument::fromJson(update->readAll()).object();
+			QJsonObject r=QJsonDocument::fromJson(info->readAll()).object();
 			if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
 				QMessageBox::StandardButton button;
 				QString information=r["String"].toString();
@@ -469,7 +474,7 @@ void Interface::checkForUpdate()
 				}
 			}
 		}
-		update->manager()->deleteLater();
+		manager->deleteLater();
 	});
 }
 

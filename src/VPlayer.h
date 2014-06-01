@@ -89,7 +89,7 @@ protected:
 
 signals:
 	void begin();
-	void reach();
+	void reach(bool);
 	void decode();
 	void jumped(qint64);
 	void timeChanged(qint64);
@@ -106,10 +106,10 @@ protected slots:
 
 public slots:
 	void play();
-	void stop();
+	void stop(bool manually=true);
 	void setDirty();
 	void setTime(qint64 _time);
-	void setMedia(QString _file);
+	void setMedia(QString _file,bool manually=true);
 	void setRatio(double _ratio);
 	void setVolume(int _volume);
 	void addSubtitle(QString _file);

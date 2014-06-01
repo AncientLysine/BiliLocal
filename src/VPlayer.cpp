@@ -25,6 +25,7 @@
 =========================================================================*/
 
 #include "VPlayer.h"
+#include "Next.h"
 #include "Local.h"
 #include "Utils.h"
 #include "Config.h"
@@ -678,7 +679,7 @@ void VPlayer::free()
 		emit jumped(0);
 	}
 	else{
-		stop();
+		stop(false);
 	}
 }
 
@@ -732,7 +733,7 @@ void VPlayer::play()
 	}
 }
 
-void VPlayer::stop()
+void VPlayer::stop(bool manually)
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
@@ -746,7 +747,10 @@ void VPlayer::stop()
 		for(auto g:tracks){
 			qDeleteAll(g->actions());
 		}
-		emit reach();
+		if(manually){
+			Next::instance()->clear();
+		}
+		emit reach(manually);
 	}
 }
 
@@ -779,9 +783,9 @@ void VPlayer::setTime(qint64 _time)
 	}
 }
 
-void VPlayer::setMedia(QString _file)
+void VPlayer::setMedia(QString _file,bool manually)
 {
-	stop();
+	stop(manually);
 	if(m){
 		libvlc_media_release(m);
 	}
