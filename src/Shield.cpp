@@ -69,12 +69,12 @@ void Shield::save()
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if(shieldG[Whole]||comment.mode==8
+	if(shieldG[Whole]
 			||(comment.mode==1&&shieldG[Slide])
 			||(comment.mode==4&&shieldG[Bottom])
 			||(comment.mode==5&&shieldG[Top])
 			||(comment.mode==6&&shieldG[Reverse])
-			||(comment.mode==7&&shieldG[Advanced])
+			||(shieldG[Advanced]&&(comment.mode==7||comment.mode==8))
 			||(comment.color!=0xFFFFFF&&shieldG[Color])){
 		return true;
 	}
