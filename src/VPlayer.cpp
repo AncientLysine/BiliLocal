@@ -539,29 +539,6 @@ VPlayer::~VPlayer()
 {
 }
 
-qint64 VPlayer::getTime()
-{
-	return state==Stop?-1:libvlc_media_player_get_time(mp);
-}
-
-qint64 VPlayer::getDuration()
-{
-	return mp?libvlc_media_player_get_length(mp):-1;
-}
-
-QString VPlayer::getFile()
-{
-	if(m){
-		char *s=libvlc_media_get_mrl(m);
-		QUrl u(s);
-		libvlc_free(s);
-		if(u.isLocalFile()){
-			return u.toLocalFile();
-		}
-	}
-	return QString();
-}
-
 QList<QAction *> VPlayer::getTracks(int type)
 {
 	QList<QAction *> track;
@@ -783,6 +760,11 @@ void VPlayer::setTime(qint64 _time)
 	}
 }
 
+qint64 VPlayer::getTime()
+{
+	return state==Stop?-1:libvlc_media_player_get_time(mp);
+}
+
 void VPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
@@ -793,7 +775,7 @@ void VPlayer::setMedia(QString _file,bool manually)
 		libvlc_media_player_release(mp);
 	}
 	m=libvlc_media_new_path(vlc,QDir::toNativeSeparators(_file).toUtf8());
-	emit mediaChanged(m?getFile():QString());
+	emit mediaChanged(m?getMedia():QString());
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
@@ -815,18 +797,22 @@ void VPlayer::setMedia(QString _file,bool manually)
 	}
 }
 
-void VPlayer::setRatio(double _ratio)
+QString VPlayer::getMedia()
 {
-	ratio=_ratio;
+	if(m){
+		char *s=libvlc_media_get_mrl(m);
+		QUrl u(s);
+		libvlc_free(s);
+		if(u.isLocalFile()){
+			return u.toLocalFile();
+		}
+	}
+	return QString();
 }
 
-void VPlayer::setVolume(int _volume)
+qint64 VPlayer::getDuration()
 {
-	if(mp){
-		_volume=qBound(0,_volume,100);
-		libvlc_audio_set_volume(mp,_volume);
-		emit volumeChanged(_volume);
-	}
+	return mp?libvlc_media_player_get_length(mp):-1;
 }
 
 void VPlayer::addSubtitle(QString _file)
@@ -849,4 +835,23 @@ void VPlayer::addSubtitle(QString _file)
 		});
 		outside->trigger();
 	}
+}
+
+void VPlayer::setRatio(double _ratio)
+{
+	ratio=_ratio;
+}
+
+void VPlayer::setVolume(int _volume)
+{
+	if(mp){
+		_volume=qBound(0,_volume,100);
+		libvlc_audio_set_volume(mp,_volume);
+		emit volumeChanged(_volume);
+	}
+}
+
+int VPlayer::getVolume()
+{
+	return mp?libvlc_audio_get_volume(mp):0;
 }

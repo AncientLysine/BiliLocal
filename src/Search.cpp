@@ -444,7 +444,7 @@ void Search::getData(int pageNum)
 		if(orderC->currentIndex()==2){
 			QFile file(key);
 			if(!file.exists()){
-				file.setFileName(VPlayer::instance()->getFile());
+				file.setFileName(VPlayer::instance()->getMedia());
 			}
 			if(file.exists()){
 				file.open(QIODevice::ReadOnly);

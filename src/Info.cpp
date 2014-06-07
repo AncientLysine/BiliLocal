@@ -180,7 +180,7 @@ Info::Info(QWidget *parent):
 		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 			QFileDialog save(Local::mainWidget(),tr("Save File"));
 			save.setAcceptMode(QFileDialog::AcceptSave);
-			QFileInfo info(VPlayer::instance()->getFile());
+			QFileInfo info(VPlayer::instance()->getMedia());
 			if(info.isFile()){
 				save.setDirectory(info.absolutePath());
 				save.selectFile(info.baseName());

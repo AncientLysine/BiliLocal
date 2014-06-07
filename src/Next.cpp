@@ -89,10 +89,10 @@ Next::Next(QWidget *parent):
 		if(_time>=0&&
 				_time>=VPlayer::instance()->getDuration()*0.9&&
 				!fileN.isEmpty()&&
-				fileC!=VPlayer::instance()->getFile()&&
+				fileC!=VPlayer::instance()->getMedia()&&
 				!Config::getValue("/Playing/Loop",false)){
 			show();
-			fileC=VPlayer::instance()->getFile();
+			fileC=VPlayer::instance()->getMedia();
 		}
 	});
 	connect(VPlayer::instance(),&VPlayer::begin,this,&Next::parse);
@@ -129,7 +129,7 @@ static bool diffAtNum(QString f,QString s)
 void Next::parse()
 {
 	clear();
-	QFileInfo info(VPlayer::instance()->getFile()),next;
+	QFileInfo info(VPlayer::instance()->getMedia()),next;
 	for(QFileInfo iter:info.absoluteDir().entryInfoList()){
 		if(iter.isFile()&&iter.suffix()==info.suffix()){
 			QString n=iter.absoluteFilePath(),c=info.absoluteFilePath();
