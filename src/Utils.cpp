@@ -319,7 +319,7 @@ QString Utils::decodeXml(QString string,bool fast)
 						break;
 					case 'q':
 						if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
-							fixed+='\\';
+							fixed+='\"';
 							f=false;
 							i+=5;
 						}

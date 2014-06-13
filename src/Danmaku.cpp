@@ -217,8 +217,16 @@ void Danmaku::clearCurrent()
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
 	lock.lockForWrite();
-	qDeleteAll(current);
-	current.clear();
+	for(auto iter=current.begin();iter!=current.end();){
+		Graphic *g=*iter;
+		if(g->getMode()==8){
+			++iter;
+		}
+		else{
+			delete g;
+			iter=current.erase(iter);
+		}
+	}
 	lock.unlock();
 	emit layoutChanged();
 }
@@ -592,6 +600,8 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 void Danmaku::appendToCurrent(quintptr graphic)
 {
 	lock.lockForWrite();
-	current.append((Graphic *)graphic);
+	Graphic *g=(Graphic *)graphic;
+	g->setIndex();
+	current.append(g);
 	lock.unlock();
 }
