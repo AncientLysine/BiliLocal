@@ -75,7 +75,7 @@ public slots:
 	void delayAll(qint64 _time);
 	void jumpToTime(qint64 _time);
 	void saveToFile(QString _file);
-	void appendToCurrent(quintptr graphic);
+	void insertToCurrent(quintptr graphic, int index = -1);
 };
 
 #endif // DANMAKU_H

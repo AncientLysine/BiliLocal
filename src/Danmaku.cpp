@@ -597,11 +597,22 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 	return false;
 }
 
-void Danmaku::appendToCurrent(quintptr graphic)
+void Danmaku::insertToCurrent(quintptr graphic, int index)
 {
 	lock.lockForWrite();
 	Graphic *g=(Graphic *)graphic;
 	g->setIndex();
-	current.append(g);
+	int size=current.size(),next;
+	if (size==0||index==0){
+		next=0;
+	}
+	else{
+		int ring=size+1;
+		next=index>0?(index%ring):(ring+index%ring);
+		if (next==0){
+			next=size;
+		}
+	}
+	current.insert(next,g);
 	lock.unlock();
 }
