@@ -67,11 +67,14 @@ Load::Load(QObject *parent):
 				load.string=str;
 				if(url.endsWith("xml",Qt::CaseInsensitive)){
 					QByteArray data=reply->readAll();
-					if(data.indexOf("<i>")!=-1){
+					if(data.indexOf("<packet>")!=-1){
+						load.danmaku=Utils::parseComment(data,Utils::Niconico);
+					}
+					else if(data.indexOf("<i>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::Bilibili);
 						load.full=reply->url().isLocalFile();
 					}
-					if(data.indexOf("<c>")!=-1){
+					else if(data.indexOf("<c>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);
 					}
 				}

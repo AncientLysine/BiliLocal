@@ -389,7 +389,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 	{
 		QStringList l=QString(data).split("<d p=\"");
 		l.removeFirst();
-		for(QString &item:l){
+		for(const QString &item:l){
 			Comment comment;
 			int sta=0;
 			int len=item.indexOf("\"");
@@ -446,7 +446,7 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 	{
 		QStringList l=QString(data).split("<l i=\"");
 		l.removeFirst();
-		for(QString &item:l){
+		for(const QString &item:l){
 			Comment comment;
 			int sta=0;
 			int len=item.indexOf("\"");
@@ -455,11 +455,84 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 			len=item.indexOf("]]>",sta)-sta;
 			comment.time=args[0].toDouble()*1000+0.5;
 			comment.date=args[5].toInt();
-			comment.mode=args[3].toInt();
-			comment.font=args[1].toInt();
+			comment.mode=1;
+			comment.font=25;
 			comment.color=args[2].toInt();
 			comment.sender=args[4];
 			comment.string=decodeXml(item.mid(sta,len),true);
+			list.append(comment);
+		}
+		break;
+	}
+	case Niconico:
+	{
+		QStringList l=QString(data).split("<chat ");
+		l.removeFirst();
+		for(const QString &item:l){
+			Comment comment;
+			QString key,val;
+			/* 0 wait for key
+			 * 1 wait for left quot
+			 * 2 wait for value
+			 * 3 wait for comment
+			 * 4 finsihed */
+			int state=0;
+			QMap<QString,QString> args;
+			for(const QChar &c:item){
+				switch(state){
+				case 0:
+					if(c=='='){
+						state=1;
+					}
+					else if(c=='>'){
+						state=3;
+					}
+					else if(c!=' '){
+						key.append(c);
+					}
+					break;
+				case 1:
+					if(c=='\"'){
+						state=2;
+					}
+					break;
+				case 2:
+					if(c=='\"'){
+						state=0;
+						args.insert(key,val);
+						key=val=QString();
+					}
+					else{
+						val.append(c);
+					}
+					break;
+				case 3:
+					if(c=='<'){
+						state=4;
+					}
+					else{
+						comment.string.append(c);
+					}
+					break;
+				}
+			}
+			if(state!=4){
+				continue;
+			}
+			comment.time=args["vpos"].toLongLong()*10;
+			comment.date=args["date"].toLongLong();
+			QStringList ctrl=args["mail"].split(' ',QString::SkipEmptyParts);
+			comment.mode=ctrl.contains("shita")?4 :(ctrl.contains("ue") ?5 :1 );
+			comment.font=ctrl.contains("small")?15:(ctrl.contains("big")?36:25);
+			comment.color=0xFFFFFF;
+			for(const QString &name:ctrl){
+				QColor color(name);
+				if(color.isValid()){
+					comment.color=color.rgb();
+					break;
+				}
+			}
+			comment.sender=args["user_id"];
 			list.append(comment);
 		}
 		break;

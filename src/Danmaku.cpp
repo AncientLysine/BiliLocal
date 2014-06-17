@@ -212,20 +212,26 @@ void Danmaku::clearPool()
 	parse(0x1|0x2);
 }
 
-void Danmaku::clearCurrent()
+void Danmaku::clearCurrent(bool soft)
 {
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
 	lock.lockForWrite();
-	for(auto iter=current.begin();iter!=current.end();){
-		Graphic *g=*iter;
-		if(g->getMode()==8){
-			++iter;
+	if(soft){
+		for(auto iter=current.begin();iter!=current.end();){
+			Graphic *g=*iter;
+			if(g->getMode()==8){
+				++iter;
+			}
+			else{
+				delete g;
+				iter=current.erase(iter);
+			}
 		}
-		else{
-			delete g;
-			iter=current.erase(iter);
-		}
+	}
+	else{
+		qDeleteAll(current);
+		current.clear();
 	}
 	lock.unlock();
 	emit layoutChanged();
@@ -459,7 +465,7 @@ void Danmaku::delayAll(qint64 _time)
 
 void Danmaku::jumpToTime(qint64 _time)
 {
-	clearCurrent();
+	clearCurrent(true);
 	time=_time;
 	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }

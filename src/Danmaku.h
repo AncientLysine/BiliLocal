@@ -70,7 +70,7 @@ public slots:
 	void release();
 	void resetTime();
 	void clearPool();
-	void clearCurrent();
+	void clearCurrent(bool soft=false);
 	void parse(int flag=0);
 	void delayAll(qint64 _time);
 	void jumpToTime(qint64 _time);

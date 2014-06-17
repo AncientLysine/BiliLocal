@@ -96,7 +96,8 @@ namespace Utils
 		AcFun,
 		Letv,
 		AcPlay,
-		AcfunLocalizer
+		AcfunLocalizer,
+		Niconico
 	};
 	enum Type
 	{
