@@ -387,7 +387,7 @@ Editor::Editor(QWidget *parent):
 		if(!r.full){
 			connect(menu.addAction(tr("Full")),&QAction::triggered,[this,&r](){
 				QString cid=QFileInfo(r.source).baseName();
-				QString api("http://comment.bilibili.tv/rolldate,%1");
+				QString api("http://comment.bilibili.com/rolldate,%1");
 				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
 				connect(reply,&QNetworkReply::finished,[=,&r](){
 					QMap<QDate,int> count=parseCount(reply->readAll());
@@ -395,7 +395,7 @@ Editor::Editor(QWidget *parent):
 					if(count.isEmpty()){
 						return;
 					}
-					QString url("http://comment.bilibili.tv/dmroll,%2,%1");
+					QString url("http://comment.bilibili.com/dmroll,%2,%1");
 					url=url.arg(cid);
 					QSet<Comment> set;
 					QProgressDialog progress(this);
@@ -475,7 +475,7 @@ Editor::Editor(QWidget *parent):
 			}
 			else{
 				QString cid=QFileInfo(r.source).baseName();
-				QString api("http://comment.bilibili.tv/rolldate,%1");
+				QString api("http://comment.bilibili.com/rolldate,%1");
 				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
 				connect(reply,&QNetworkReply::finished,[&](){
 					count=parseCount(reply->readAll());
@@ -495,10 +495,10 @@ Editor::Editor(QWidget *parent):
 					QString url,cid=QFileInfo(r.source).baseName();;
 					QDate selected=history.selectedDate();
 					if(selected.isValid()){
-						url=QString("http://comment.bilibili.tv/dmroll,%1,%2").arg(QDateTime(selected).toTime_t()).arg(cid);
+						url=QString("http://comment.bilibili.com/dmroll,%1,%2").arg(QDateTime(selected).toTime_t()).arg(cid);
 					}
 					else{
-						url=QString("http://comment.bilibili.tv/%1.xml").arg(cid);
+						url=QString("http://comment.bilibili.com/%1.xml").arg(cid);
 					}
 					QNetworkReply *reply=manager->get(QNetworkRequest(url));
 					connect(reply,&QNetworkReply::finished,[=,&r](){

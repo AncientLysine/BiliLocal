@@ -252,7 +252,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					ary.removeFirst();
 					for(QString item:ary){
 						item=item.simplified();
-						sta=item.indexOf("http://www.bilibili.tv/video/");
+						sta=item.indexOf("http://www.bilibili.com/video/");
 						if(sta!=-1){
 							sta+=29;
 							end=item.indexOf("/\"",sta);
@@ -417,7 +417,7 @@ void Search::getData(int pageNum)
 	switch(sitesC->currentIndex()){
 	case 0:
 	{
-		url=QUrl("http://www.bilibili.tv/search");
+		url=QUrl("http://www.bilibili.com/search");
 		QUrlQuery query;
 		query.addQueryItem("keyword",key);
 		query.addQueryItem("page",QString::number(pageNum));

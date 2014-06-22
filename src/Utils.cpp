@@ -345,7 +345,7 @@ QStringList Utils::getSuffix(int type,QString format)
 	QStringList set;
 	if(type&Video){
 		set<<"3g2"<<"3gp"<<"3gp2"<<"3gpp"<<"amv"<<"asf"<<"avi"<<"divx"<<"drc"<<"dv"<<
-			 "f4v"<<"flv"<<"gvi"<<"gxf"<<"iso"<<
+			 "f4v"<<"flv"<<"gvi"<<"gxf"<<"hlv"<<"iso"<<"letv"<<
 			 "m1v"<<"m2t"<<"m2ts"<<"m2v"<<"m4v"<<"mkv"<<"mov"<<
 			 "mp2"<<"mp2v"<<"mp4"<<"mp4v"<<"mpe"<<"mpeg"<<"mpeg1"<<
 			 "mpeg2"<<"mpeg4"<<"mpg"<<"mpv2"<<"mts"<<"mtv"<<"mxf"<<"mxg"<<"nsv"<<"nuv"<<

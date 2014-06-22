@@ -37,6 +37,7 @@ public:
 	Local(int &argc,char **argv):
 		QApplication(argc,argv)
 	{
+		setApplicationDisplayName("BiliLocal");
 	}
 
 	static QWidget *mainWidget()

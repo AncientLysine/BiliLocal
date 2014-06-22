@@ -152,7 +152,7 @@ QList<const Record *> Post::getRecords()
 {
 	QList<const Record *> list;
 	for(const Record &r:Danmaku::instance()->getPool()){
-		if(r.source.startsWith("http://comment.bilibili.tv/")||r.source.startsWith("http://api.acplay.net/")){
+		if(r.source.startsWith("http://comment.bilibili.com/")||r.source.startsWith("http://api.acplay.net/")){
 			list.append(&r);
 		}
 	}
@@ -170,8 +170,8 @@ void Post::postComment()
 	QNetworkRequest request;
 	QByteArray data;
 	const Comment &c=getComment();
-	if(r->source.startsWith("http://comment.bilibili.tv/")){
-		request.setUrl(QUrl("http://interface.bilibili.tv/dmpost"));
+	if(r->source.startsWith("http://comment.bilibili.com/")){
+		request.setUrl(QUrl("http://interface.bilibili.com/dmpost"));
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
 		params.addQueryItem("cid",QFileInfo(r->source).baseName());
@@ -206,7 +206,7 @@ void Post::postComment()
 			int error=reply->error();
 			QString url=reply->url().toString();
 			if(error==QNetworkReply::NoError){
-				if(url.startsWith("http://interface.bilibili.tv/")){
+				if(url.startsWith("http://interface.bilibili.com/")){
 					error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
 				}
 				if(url.startsWith("http://acplay.net/")){

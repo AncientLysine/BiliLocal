@@ -102,7 +102,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 					return data.size()>=5?data.at(4).toString():QString();
 				}
 				else{
-					return QString(comment.string).remove('\n');
+					return comment.string.left(50).remove('\n');
 				}
 			}
 		case Qt::ForegroundRole:
@@ -481,7 +481,7 @@ static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 		w.writeStartDocument();
 		w.writeStartElement("i");
 		w.writeStartElement("chatserver");
-		w.writeCharacters("chat.bilibili.tv");
+		w.writeCharacters("chat.bilibili.com");
 		w.writeEndElement();
 		w.writeStartElement("mission");
 		w.writeCharacters("0");

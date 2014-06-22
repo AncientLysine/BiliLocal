@@ -98,6 +98,7 @@ Interface::Interface(QWidget *parent):
 		}
 		rat->setEnabled(true);
 		render->setTime(0);
+		setWindowFilePath(vplayer->getMedia());
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
 		danmaku->resetTime();
@@ -115,6 +116,7 @@ Interface::Interface(QWidget *parent):
 			geo.clear();
 		}
 		render->setTime(0);
+		setWindowFilePath(QString());
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 

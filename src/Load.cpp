@@ -98,7 +98,7 @@ Load::Load(QObject *parent):
 						QString select=video.mid(sta,len);
 						QRegExp regex("value\\='[^']+");
 						int cur=0;
-						api="http://www.bilibili.tv";
+						api="http://www.bilibili.com";
 						model->clear();
 						while((cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
@@ -118,7 +118,7 @@ Load::Load(QObject *parent):
 				if(flag){
 					id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption).match(video).captured();
 					if(!id.isEmpty()){
-						api="http://comment.bilibili.tv/%1.xml";
+						api="http://comment.bilibili.com/%1.xml";
 						getReply(QNetworkRequest(QUrl(api.arg(id))),"");
 					}
 					else{
@@ -178,7 +178,7 @@ Load::Load(QObject *parent):
 					r.setPattern("(?<=>)[^>]+?(?=</a>)");
 					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 					r.setPattern("(?<=cid=\").+?(?=\")");
-					item->setData("http://comment.bilibili.tv/"+r.match(part).captured()+".xml",Qt::UserRole);
+					item->setData("http://comment.bilibili.com/"+r.match(part).captured()+".xml",Qt::UserRole);
 					item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
 					model->appendRow(item);
 				}
@@ -265,7 +265,7 @@ void Load::loadDanmaku(QString _code)
 	if((s=="av"||s=="ac"||s=="dd")&&_code.length()>2){
 		QString url;
 		if(s=="av"){
-			url=QString("http://www.bilibili.tv/video/av%1/").arg(i);
+			url=QString("http://www.bilibili.com/video/av%1/").arg(i);
 			if(!p.isEmpty()){
 				url+=QString("index_%1.html").arg(p);
 			}
