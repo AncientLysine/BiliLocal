@@ -229,20 +229,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 			case Utils::Bilibili:
 			{
 				QString data(reply->readAll());
-				int sta,end;
+				QRegularExpression r;
+				QRegularExpressionMatch m;
 				if(pageNum==-1){
-					sta=data.indexOf("<div class=\"pagelistbox\"><span>");
-					if(sta!=-1){
-						end=data.indexOf("</div>",sta);
-						QString page=data.mid(sta,end-sta+6);
-						sta=page.indexOf("<a class=\"endPage\"");
-						sta=page.indexOf("page=",sta)+5;
-						end=page.indexOf("\">",sta);
-						pageNum=page.mid(sta,end-sta).toInt();
-					}
-					else{
-						pageNum=1;
-					}
+					r.setPattern("(?<=page=)\\d+");
+					m=r.match(data,data.indexOf("endPage"));
+					pageNum=m.hasMatch()?m.captured().toInt():1;
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
 				QStringList ary=data.split("<li class=\"l\">",QString::SkipEmptyParts);
@@ -252,8 +244,6 @@ Search::Search(QWidget *parent):QDialog(parent)
 					ary.removeFirst();
 					for(const QString &item:ary){
 						QTreeWidgetItem *row=new QTreeWidgetItem(resultW);
-						QRegularExpression r;
-						QRegularExpressionMatch m;
 						r.setPattern("av\\d+");
 						m=r.match(item);
 						row->setData(0,Qt::UserRole,m.captured());
@@ -276,14 +266,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 						row->setText(5,Utils::decodeXml(m.captured()));
 						r.setPattern("<i class");
 						m=r.match(item,m.capturedEnd());
-						r.setPattern("(?<=>)[\\s\\d]+");
+						r.setPattern("(?<=>)[\\s\\d]+(?=</i>)");
 						auto i=r.globalMatch(item,m.capturedEnd());
 						row->setText(1,i.next().captured().simplified());
 						i.next();
 						row->setText(2,i.next().captured().simplified());
-						r.setPattern("(?<=class=\"intro\">)[^<]+)");
+						r.setPattern("(?<=class=\"intro\">)[^<]+");
 						m=r.match(item,i.next().capturedEnd());
 						row->setToolTip(3,m.captured());
+						if(m.capturedEnd()==-1){
+							delete row;
+						}
 					}
 				}
 				statusL->setText(tr("Finished"));

@@ -574,13 +574,13 @@ void Danmaku::appendToPool(const Record &record)
 		pool.append(r);
 		append=&pool.last();
 	}
-	const auto &d=append->danmaku;
+	auto &d=append->danmaku;
 	QSet<Comment> set=d.toSet();
 	for(Comment c:record.danmaku){
+		c.time+=append->delay-record.delay;
 		if(!set.contains(c)){
-			c.time+=append->delay-record.delay;
 			set.insert(c);
-			append->danmaku.append(c);
+			d.append(c);
 		}
 	}
 	if(record.full){

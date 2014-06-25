@@ -71,7 +71,7 @@ Menu::Menu(QWidget *parent):
 	popup->setMouseTracking(true);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
-		Load::instance()->getReply(QNetworkRequest(index.data(Qt::UserRole).toUrl()),index.data(Qt::UserRole+1).toString());
+		Load::instance()->getReply(QNetworkRequest(index.data(Load::UrlRole).toUrl()),index.data(Load::StrRole).toString());
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);

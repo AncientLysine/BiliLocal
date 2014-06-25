@@ -103,8 +103,8 @@ Load::Load(QObject *parent):
 						while((cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem;
-							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
-							item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+							item->setData(QUrl(api+regex.cap().mid(7)),UrlRole);
+							item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 							item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
 							model->appendRow(item);
 							cur+=regex.matchedLength();
@@ -149,8 +149,8 @@ Load::Load(QObject *parent):
 						r.setPattern("(?<=>)[^>]+?(?=</a>)");
 						item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 						r.setPattern("(?<=data-vid=\").+?(?=\")");
-						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),Qt::UserRole);
-						item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),UrlRole);
+						item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 						model->appendRow(item);
 					}
 					if(url.indexOf('_')==-1&&model->rowCount()>=2){
@@ -160,7 +160,7 @@ Load::Load(QObject *parent):
 						int i=url.indexOf('_');
 						i=(i==-1)?0:(url.mid(i+1).toInt()-1);
 						if(i>=0&&i<model->rowCount()){
-							getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
+							getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),"");
 						}
 						else{
 							error(203);
@@ -178,8 +178,8 @@ Load::Load(QObject *parent):
 					r.setPattern("(?<=>)[^>]+?(?=</a>)");
 					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 					r.setPattern("(?<=cid=\").+?(?=\")");
-					item->setData("http://comment.bilibili.com/"+r.match(part).captured()+".xml",Qt::UserRole);
-					item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+					item->setData("http://comment.bilibili.com/"+r.match(part).captured()+".xml",UrlRole);
+					item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 					model->appendRow(item);
 				}
 				if(str.indexOf('#')==-1&&model->rowCount()>=2){
@@ -189,7 +189,7 @@ Load::Load(QObject *parent):
 					int i=str.indexOf('#');
 					i=(i==-1)?0:(str.mid(i+1).toInt()-1);
 					if(i>=0&&i<model->rowCount()){
-						getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
+						getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),"");
 					}
 					else{
 						error(203);
