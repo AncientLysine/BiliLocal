@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Render.h
-*   Time:        2013/12/27
+*   Filename:    APlayer.h
+*   Time:        2013/03/18
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,48 +24,61 @@
 *
 =========================================================================*/
 
-#ifndef RENDER_H
-#define RENDER_H
+#ifndef APLAYER_H
+#define APLAYER_H
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
-class Render:public QObject
+class APlayer:public QObject
 {
 	Q_OBJECT
 public:
-	~Render(){}
-	QWidget *getWidget(){return widget;}
+	enum State
+	{
+		Stop,
+		Play,
+		Pause,
+		Loop
+	};
 
-	static Render *instance(QWidget *parent=0);
-
-private:
-	QMovie tv;
-	double time,ratio;
-	QImage me,background,sound;
-	QTime last;
-	static Render *ins;
+	virtual QList<QAction *> getTracks(int type)=0;
+	static APlayer *instance();
 
 protected:
-	QWidget *widget;
-	bool start,music,dirty;
+	static APlayer *ins;
+	APlayer(QObject *parent=0):QObject(parent){}
 
-	explicit Render(QWidget *parent=0);
-	QRect fitRect(QRect r);
+signals:
+	void begin();
+	void reach(bool);
+	void decode();
+	void jumped(qint64);
+	void timeChanged(qint64);
+	void stateChanged(int);
+	void mediaChanged(QString);
+	void volumeChanged(int);
 
 public slots:
-	virtual QList<void *> getBuffer()=0;
-	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)=0;
-	void setDirty();
-	void setRatio(double r){ratio=r;}
+	virtual void	play()=0;
+	virtual void	stop(bool manually=true)=0;
+	virtual int 	getState()=0;
 
-	virtual void draw(QRect rect=QRect())=0;
-	void setDisplayTime(double t);
-	void drawPlay(QPainter *painter,QRect rect);
-	void drawStop(QPainter *painter,QRect rect);
-	void drawTime(QPainter *painter,QRect rect);
-	virtual void drawBuffer(QPainter *painter,QRect rect)=0;
+	virtual void	setTime(qint64 _time)=0;
+	virtual qint64	getTime()=0;
+
+	virtual void	setMedia(QString _file,bool manually=true)=0;
+	virtual QString getMedia()=0;
+
+	virtual QSize	getSize()=0;
+	virtual qint64	getDuration()=0;
+	virtual void	addSubtitle(QString _file)=0;
+
+
+	virtual void	setVolume(int _volume)=0;
+	virtual int 	getVolume()=0;
+
+	virtual void	event(int type)=0;
 };
 
-#endif // RENDER_H
+#endif // APLAYER_H

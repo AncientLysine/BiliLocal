@@ -119,30 +119,30 @@ static AVPixelFormat getFormat(QString &chroma)
 	}
 	chroma=chroma.toUpper();
 	if(!f.contains(chroma)){
-		if(c=="NV61"){
+		if(chroma=="NV61"){
 			chroma="NV16";
 		}
-		else if(c=="YV12"||
-				c=="IYUV"){
+		else if(chroma=="YV12"||
+				chroma=="IYUV"){
 			chroma="I420";
 		}
-		else if(c=="UYNV"||
-				c=="UYNY"||
-				c=="Y422"||
-				c=="HDYC"||
-				c=="AVUI"||
-				c=="UYV1"||
-				c=="2VUY"||
-				c=="2VU1"){
+		else if(chroma=="UYNV"||
+				chroma=="UYNY"||
+				chroma=="Y422"||
+				chroma=="HDYC"||
+				chroma=="AVUI"||
+				chroma=="UYV1"||
+				chroma=="2VUY"||
+				chroma=="2VU1"){
 			chroma="UYVY";
 		}
-		else if(c=="VYUY"||
-				c=="YUYV"||
-				c=="YUNV"||
-				c=="V422"||
-				c=="YVYU"||
-				c=="Y211"||
-				c=="CYUV"){
+		else if(chroma=="VYUY"||
+				chroma=="YUYV"||
+				chroma=="YUNV"||
+				chroma=="V422"||
+				chroma=="YVYU"||
+				chroma=="Y211"||
+				chroma=="CYUV"){
 			chroma="YUY2";
 		}
 		else{
@@ -189,11 +189,12 @@ private:
 	QSize srcSize;
 	QSize dstSize;
 	QImage frame;
+	QMutex dataLock;
 
 	void drawBuffer(QPainter *painter,QRect rect)
 	{
-		QRect dest=getRect(rect);
-		data.lock();
+		QRect dest=fitRect(rect);
+		dataLock.lock();
 		if(dstSize!=dest.size()){
 			if(dstFrame){
 				avpicture_free(dstFrame);
@@ -217,7 +218,7 @@ private:
 					  dstFrame->data,dstFrame->linesize);
 			dirty=false;
 		}
-		data.unlock();
+		dataLock.unlock();
 		painter->drawImage(dest,frame);
 	}
 
@@ -348,7 +349,7 @@ public slots:
 	void draw(QRect){window->draw();}
 };
 
-Render *Render::create(QWidget *parent)
+Render *Render::instance(QWidget *parent)
 {
 	if(Config::getValue("/Interface/Accelerated",false)){
 		return new OpenGLRender(parent);
@@ -382,6 +383,15 @@ Render::Render(QWidget *parent):
 	}
 	sound=QImage("/Picture/sound.png");
 	start=music=dirty=false;
+}
+
+
+QRect Render::fitRect(QRect rect)
+{
+	QRect dest;
+	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
+	dest.moveCenter(rect.center());
+	return dest;
 }
 
 void Render::drawPlay(QPainter *painter,QRect rect)

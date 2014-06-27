@@ -85,7 +85,7 @@ Interface::Interface(QWidget *parent):
 		}
 		if(!sliding){
 			showprg=false;
-			render->setTime(0);
+			render->setDisplayTime(0);
 		}
 	});
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
@@ -97,7 +97,7 @@ Interface::Interface(QWidget *parent):
 			setCenter(aplayer->getSize(),false);
 		}
 		rat->setEnabled(true);
-		render->setTime(0);
+		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
 	});
 	connect(aplayer,&APlayer::reach,[this](){
@@ -107,7 +107,7 @@ Interface::Interface(QWidget *parent):
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
-		aplayer->setRatio(0);
+		render->setRatio(0);
 		if(!geo.isEmpty()&&next->getNext().isEmpty()){
 			if(isFullScreen()){
 				fullA->toggle();
@@ -115,7 +115,7 @@ Interface::Interface(QWidget *parent):
 			restoreGeometry(geo);
 			geo.clear();
 		}
-		render->setTime(0);
+		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
 	connect(aplayer,&APlayer::decode,this,&Interface::drawDecoded);
@@ -123,7 +123,7 @@ Interface::Interface(QWidget *parent):
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
 		if(!sliding&&aplayer->getState()!=APlayer::Stop){
-			render->setTime(showprg?t/(double)aplayer->getDuration():-1);
+			render->setDisplayTime(showprg?t/(double)aplayer->getDuration():-1);
 		}
 	});
 
@@ -242,11 +242,11 @@ Interface::Interface(QWidget *parent):
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
 		if(action->text()==tr("Default")){
-			aplayer->setRatio(0);
+			render->setRatio(0);
 		}
 		else{
 			QStringList l=action->text().split(':');
-			aplayer->setRatio(l[0].toDouble()/l[1].toDouble());
+			render->setRatio(l[0].toDouble()/l[1].toDouble());
 		}
 		if(aplayer->getState()==APlayer::Pause){
 			render->draw();
@@ -377,7 +377,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 		}
 	}
 	if(!showprg&&aplayer->getState()!=APlayer::Stop){
-		render->setTime(aplayer->getTime()/(double)aplayer->getDuration());
+		render->setDisplayTime(aplayer->getTime()/(double)aplayer->getDuration());
 	}
 	showprg=true;
 	if(cursor().shape()==Qt::BlankCursor){
@@ -385,7 +385,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	delay->start(4000);
 	if(sliding){
-		render->setTime(x/(double)w);
+		render->setDisplayTime(x/(double)w);
 	}
 	else if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);
@@ -402,7 +402,7 @@ void Interface::mousePressEvent(QMouseEvent *e)
 		}
 		if(e->y()>=height()-25){
 			sliding=true;
-			render->setTime(e->x()/(double)width());
+			render->setDisplayTime(e->x()/(double)width());
 		}
 	}
 	QWidget::mousePressEvent(e);
