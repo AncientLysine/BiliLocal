@@ -51,9 +51,11 @@ Interface::Interface(QWidget *parent):
 
 	vplayer=VPlayer::instance();
 	danmaku=Danmaku::instance();
-	render=Render::create(this);
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["VPlayer"]=vplayer;
+
+	render=Render::create(this);
+	Local::objects["Render"]=render;
 
 	menu=new Menu(this);
 	info=new Info(this);
@@ -96,6 +98,7 @@ Interface::Interface(QWidget *parent):
 		}
 		rat->setEnabled(true);
 		render->setTime(0);
+		setWindowFilePath(vplayer->getMedia());
 	});
 	connect(vplayer,&VPlayer::reach,[this](){
 		danmaku->resetTime();
@@ -113,6 +116,7 @@ Interface::Interface(QWidget *parent):
 			geo.clear();
 		}
 		render->setTime(0);
+		setWindowFilePath(QString());
 	});
 	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
 
@@ -557,7 +561,7 @@ void Interface::showContextMenu(QPoint p)
 		QMenu vid(tr("Video Track"),this);
 		QMenu aud(tr("Audio Track"),this);
 		connect(sub.addAction(tr("From File")),&QAction::triggered,[this](){
-			QFileInfo info(vplayer->getFile());
+			QFileInfo info(vplayer->getMedia());
 			QString file=QFileDialog::getOpenFileName(this,
 													  tr("Open File"),
 													  info.absolutePath(),

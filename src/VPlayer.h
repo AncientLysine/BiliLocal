@@ -52,11 +52,6 @@ public:
 		Loop
 	};
 	~VPlayer();
-	qint64 getTime();
-	qint64 getDuration();
-	QString getFile();
-	QSize getSize(){return size;}
-	State getState(){return state;}
 	QList<QAction *> getTracks(int type);
 
 	virtual void getBuffer(void **planes)=0;
@@ -68,7 +63,7 @@ public:
 	static VPlayer *instance();
 
 private:
-	State state;
+	int state;
 	QTimer *fake;
 	double ratio;
 	QActionGroup *tracks[3];
@@ -88,31 +83,44 @@ protected:
 	QRect getRect(QRect rect);
 
 signals:
-	void begin();
-	void reach(bool);
-	void decode();
-	void jumped(qint64);
-	void timeChanged(qint64);
-	void stateChanged(int);
-	void mediaChanged(QString);
-	void volumeChanged(int);
+	void	begin();
+	void	reach(bool);
+	void	decode();
+	void	jumped(qint64);
+	void	timeChanged(qint64);
+	void	stateChanged(int);
+	void	mediaChanged(QString);
+	void	volumeChanged(int);
 
 
 protected slots:
-	void init();
-	void free();
-	void release();
-	void setState(State _state);
+	void	init();
+	void	free();
+	void	release();
+	void	setState(int _state);
 
 public slots:
-	void play();
-	void stop(bool manually=true);
-	void setDirty();
-	void setTime(qint64 _time);
-	void setMedia(QString _file,bool manually=true);
-	void setRatio(double _ratio);
-	void setVolume(int _volume);
-	void addSubtitle(QString _file);
+
+	void	play();
+	void	stop(bool manually=true);
+	int 	getState(){return state;}
+
+	void	setDirty();
+
+	void	setTime(qint64 _time);
+	qint64	getTime();
+
+	void	setMedia(QString _file,bool manually=true);
+	QString getMedia();
+	qint64	getDuration();
+	void	addSubtitle(QString _file);
+
+	void	setRatio(double _ratio);
+	QSize	getSize(){return size;}
+
+	void	setVolume(int _volume);
+	int 	getVolume();
+
 };
 
 #endif // VPLAYER_H

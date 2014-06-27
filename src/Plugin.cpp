@@ -28,7 +28,6 @@
 #include "Local.h"
 #include "Config.h"
 
-
 QList<Plugin> Plugin::plugins;
 
 Plugin::Plugin(QString path)
@@ -60,7 +59,8 @@ QString Plugin::string(QString query)
 
 void Plugin::loadPlugins()
 {
-	for(QFileInfo info:QDir("./plugins/bililocal/").entryInfoList()){
+	QFileInfoList list = QDir("./plugins/bililocal/").entryInfoList();
+	for(const QFileInfo &info:list){
 		if(info.isFile()&&QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());
 			if(lib.loaded()){

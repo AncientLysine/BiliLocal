@@ -102,7 +102,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 					return data.size()>=5?data.at(4).toString():QString();
 				}
 				else{
-					return QString(comment.string).remove('\n');
+					return comment.string.left(50).remove('\n');
 				}
 			}
 		case Qt::ForegroundRole:
@@ -212,13 +212,27 @@ void Danmaku::clearPool()
 	parse(0x1|0x2);
 }
 
-void Danmaku::clearCurrent()
+void Danmaku::clearCurrent(bool soft)
 {
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
 	lock.lockForWrite();
-	qDeleteAll(current);
-	current.clear();
+	if(soft){
+		for(auto iter=current.begin();iter!=current.end();){
+			Graphic *g=*iter;
+			if(g->getMode()==8){
+				++iter;
+			}
+			else{
+				delete g;
+				iter=current.erase(iter);
+			}
+		}
+	}
+	else{
+		qDeleteAll(current);
+		current.clear();
+	}
 	lock.unlock();
 	emit layoutChanged();
 }
@@ -451,7 +465,7 @@ void Danmaku::delayAll(qint64 _time)
 
 void Danmaku::jumpToTime(qint64 _time)
 {
-	clearCurrent();
+	clearCurrent(true);
 	time=_time;
 	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }
@@ -467,7 +481,7 @@ static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 		w.writeStartDocument();
 		w.writeStartElement("i");
 		w.writeStartElement("chatserver");
-		w.writeCharacters("chat.bilibili.tv");
+		w.writeCharacters("chat.bilibili.com");
 		w.writeEndElement();
 		w.writeStartElement("mission");
 		w.writeCharacters("0");
@@ -560,13 +574,13 @@ void Danmaku::appendToPool(const Record &record)
 		pool.append(r);
 		append=&pool.last();
 	}
-	const auto &d=append->danmaku;
+	auto &d=append->danmaku;
 	QSet<Comment> set=d.toSet();
 	for(Comment c:record.danmaku){
+		c.time+=append->delay-record.delay;
 		if(!set.contains(c)){
-			c.time+=append->delay-record.delay;
 			set.insert(c);
-			append->danmaku.append(c);
+			d.append(c);
 		}
 	}
 	if(record.full){
@@ -589,9 +603,22 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 	return false;
 }
 
-void Danmaku::appendToCurrent(Graphic *graphic)
+void Danmaku::insertToCurrent(quintptr graphic, int index)
 {
 	lock.lockForWrite();
-	current.append(graphic);
+	Graphic *g=(Graphic *)graphic;
+	g->setIndex();
+	int size=current.size(),next;
+	if (size==0||index==0){
+		next=0;
+	}
+	else{
+		int ring=size+1;
+		next=index>0?(index%ring):(ring+index%ring);
+		if (next==0){
+			next=size;
+		}
+	}
+	current.insert(next,g);
 	lock.unlock();
 }

@@ -117,7 +117,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		device->setSize(size());
 		QPainter painter(device);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform|QPainter::HighQualityAntialiasing);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		QRect rect(QPoint(0,0),size());
 		if(VPlayer::instance()->getState()==VPlayer::Stop){
 			render->drawStop(&painter,rect);

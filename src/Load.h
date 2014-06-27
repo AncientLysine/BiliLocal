@@ -44,6 +44,12 @@ public:
 		File=384
 	};
 
+	enum Role
+	{
+		UrlRole=Qt::UserRole,
+		StrRole
+	};
+
 	static Load *instance();
 	void getReply(QNetworkRequest request,QString string=QString());
 	QString getStr();

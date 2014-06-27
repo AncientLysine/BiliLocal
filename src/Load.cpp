@@ -67,11 +67,14 @@ Load::Load(QObject *parent):
 				load.string=str;
 				if(url.endsWith("xml",Qt::CaseInsensitive)){
 					QByteArray data=reply->readAll();
-					if(data.indexOf("<i>")!=-1){
+					if(data.indexOf("<packet>")!=-1){
+						load.danmaku=Utils::parseComment(data,Utils::Niconico);
+					}
+					else if(data.indexOf("<i>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::Bilibili);
 						load.full=reply->url().isLocalFile();
 					}
-					if(data.indexOf("<c>")!=-1){
+					else if(data.indexOf("<c>")!=-1){
 						load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);
 					}
 				}
@@ -95,13 +98,13 @@ Load::Load(QObject *parent):
 						QString select=video.mid(sta,len);
 						QRegExp regex("value\\='[^']+");
 						int cur=0;
-						api="http://www.bilibili.tv";
+						api="http://www.bilibili.com";
 						model->clear();
 						while((cur=regex.indexIn(select,cur))!=-1){
 							int sta=select.indexOf('>',cur)+1;
 							QStandardItem *item=new QStandardItem;
-							item->setData(QUrl(api+regex.cap().mid(7)),Qt::UserRole);
-							item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+							item->setData(QUrl(api+regex.cap().mid(7)),UrlRole);
+							item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 							item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
 							model->appendRow(item);
 							cur+=regex.matchedLength();
@@ -115,7 +118,7 @@ Load::Load(QObject *parent):
 				if(flag){
 					id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption).match(video).captured();
 					if(!id.isEmpty()){
-						api="http://comment.bilibili.tv/%1.xml";
+						api="http://comment.bilibili.com/%1.xml";
 						getReply(QNetworkRequest(QUrl(api.arg(id))),"");
 					}
 					else{
@@ -146,8 +149,8 @@ Load::Load(QObject *parent):
 						r.setPattern("(?<=>)[^>]+?(?=</a>)");
 						item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 						r.setPattern("(?<=data-vid=\").+?(?=\")");
-						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),Qt::UserRole);
-						item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+						item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),UrlRole);
+						item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 						model->appendRow(item);
 					}
 					if(url.indexOf('_')==-1&&model->rowCount()>=2){
@@ -157,7 +160,7 @@ Load::Load(QObject *parent):
 						int i=url.indexOf('_');
 						i=(i==-1)?0:(url.mid(i+1).toInt()-1);
 						if(i>=0&&i<model->rowCount()){
-							getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
+							getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),"");
 						}
 						else{
 							error(203);
@@ -175,8 +178,8 @@ Load::Load(QObject *parent):
 					r.setPattern("(?<=>)[^>]+?(?=</a>)");
 					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 					r.setPattern("(?<=cid=\").+?(?=\")");
-					item->setData("http://comment.bilibili.tv/"+r.match(part).captured()+".xml",Qt::UserRole);
-					item->setData((str+"#%1").arg(model->rowCount()+1),Qt::UserRole+1);
+					item->setData("http://comment.bilibili.com/"+r.match(part).captured()+".xml",UrlRole);
+					item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 					model->appendRow(item);
 				}
 				if(str.indexOf('#')==-1&&model->rowCount()>=2){
@@ -186,7 +189,7 @@ Load::Load(QObject *parent):
 					int i=str.indexOf('#');
 					i=(i==-1)?0:(str.mid(i+1).toInt()-1);
 					if(i>=0&&i<model->rowCount()){
-						getReply(QNetworkRequest(model->item(i)->data(Qt::UserRole).toUrl()),"");
+						getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),"");
 					}
 					else{
 						error(203);
@@ -262,7 +265,7 @@ void Load::loadDanmaku(QString _code)
 	if((s=="av"||s=="ac"||s=="dd")&&_code.length()>2){
 		QString url;
 		if(s=="av"){
-			url=QString("http://www.bilibili.tv/video/av%1/").arg(i);
+			url=QString("http://www.bilibili.com/video/av%1/").arg(i);
 			if(!p.isEmpty()){
 				url+=QString("index_%1.html").arg(p);
 			}

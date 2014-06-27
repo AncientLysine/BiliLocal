@@ -229,59 +229,53 @@ Search::Search(QWidget *parent):QDialog(parent)
 			case Utils::Bilibili:
 			{
 				QString data(reply->readAll());
-				int sta,end;
+				QRegularExpression r;
+				QRegularExpressionMatch m;
 				if(pageNum==-1){
-					sta=data.indexOf("<div class=\"pagelistbox\"><span>");
-					if(sta!=-1){
-						end=data.indexOf("</div>",sta);
-						QString page=data.mid(sta,end-sta+6);
-						sta=page.indexOf("<a class=\"endPage\"");
-						sta=page.indexOf("page=",sta)+5;
-						end=page.indexOf("\">",sta);
-						pageNum=page.mid(sta,end-sta).toInt();
-					}
-					else{
-						pageNum=1;
-					}
+					r.setPattern("(?<=page=)\\d+");
+					m=r.match(data,data.indexOf("endPage"));
+					pageNum=m.hasMatch()?m.captured().toInt():1;
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
 				QStringList ary=data.split("<li class=\"l\">",QString::SkipEmptyParts);
 				if(ary.size()>=2){
-					QString &item=ary.last();
-					item.truncate(item.lastIndexOf("</li>")+5);
+					QString &last=ary.last();
+					last.truncate(last.lastIndexOf("</li>")+5);
 					ary.removeFirst();
-					for(QString item:ary){
-						item=item.simplified();
-						sta=item.indexOf("http://www.bilibili.tv/video/");
-						if(sta!=-1){
-							sta+=29;
-							end=item.indexOf("/\"",sta);
-							QTreeWidgetItem *row=new QTreeWidgetItem(resultW);
-							row->setData(0,Qt::UserRole,item.mid(sta,end-sta));
-							row->setSizeHint(0,QSize(120,92));
-							sta=item.indexOf("<img src=",end)+10;
-							end=item.indexOf("\" ",sta);
-							QNetworkRequest request(QUrl(item.mid(sta,end-sta)));
-							request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
-							reply->manager()->get(request);
-							sta=item.indexOf("<span>",end)+6;
-							end=item.indexOf("</span>",sta);
-							row->setText(4,Utils::decodeXml(item.mid(sta,end-sta)));
-							sta=end+7;
-							end=item.indexOf("</div>",sta);
-							row->setText(3,Utils::decodeXml(item.mid(sta,end-sta)));
-							sta=item.indexOf("class=\"upper\"",end);
-							sta=item.indexOf("\">",sta)+2;
-							end=item.indexOf("</a>",sta);
-							row->setText(5,Utils::decodeXml(item.mid(sta,end-sta)));
-							sta=item.indexOf("class=\"gk\"",end);
-							auto iter=QRegularExpression("[\\d-]+").globalMatch(item.mid(sta));
-							row->setText(1,iter.next().captured());
-							iter.next();
-							row->setText(2,iter.next().captured());
-							sta=item.indexOf("class=\"intro\">",sta)+14;
-							end=item.indexOf("</div>",sta);
-							row->setToolTip(3,item.mid(sta,end-sta));
+					for(const QString &item:ary){
+						QTreeWidgetItem *row=new QTreeWidgetItem(resultW);
+						r.setPattern("av\\d+");
+						m=r.match(item);
+						row->setData(0,Qt::UserRole,m.captured());
+						row->setSizeHint(0,QSize(120,92));
+						r.setPattern("(?<=img src=\")[^\"']+");
+						m=r.match(item,m.capturedEnd());
+						QNetworkRequest request(QUrl(m.captured()));
+						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
+						reply->manager()->get(request);
+						r.setPattern("(?<=<span>)[^<]+");
+						m=r.match(item,m.capturedEnd());
+						row->setText(4,Utils::decodeXml(m.captured()));
+						r.setPattern(".+(?!</div>)");
+						m=r.match(item,m.capturedEnd());
+						row->setText(3,Utils::decodeXml(m.captured()));
+						r.setPattern("class=\"upper\"");
+						m=r.match(item,m.capturedEnd());
+						r.setPattern("(?<=>)[^<]+");
+						m=r.match(item,m.capturedEnd());
+						row->setText(5,Utils::decodeXml(m.captured()));
+						r.setPattern("<i class");
+						m=r.match(item,m.capturedEnd());
+						r.setPattern("(?<=>)[\\s\\d]+(?=</i>)");
+						auto i=r.globalMatch(item,m.capturedEnd());
+						row->setText(1,i.next().captured().simplified());
+						i.next();
+						row->setText(2,i.next().captured().simplified());
+						r.setPattern("(?<=class=\"intro\">)[^<]+");
+						m=r.match(item,i.next().capturedEnd());
+						row->setToolTip(3,m.captured());
+						if(m.capturedEnd()==-1){
+							delete row;
 						}
 					}
 				}
@@ -417,7 +411,7 @@ void Search::getData(int pageNum)
 	switch(sitesC->currentIndex()){
 	case 0:
 	{
-		url=QUrl("http://www.bilibili.tv/search");
+		url=QUrl("http://www.bilibili.com/search");
 		QUrlQuery query;
 		query.addQueryItem("keyword",key);
 		query.addQueryItem("page",QString::number(pageNum));
@@ -444,7 +438,7 @@ void Search::getData(int pageNum)
 		if(orderC->currentIndex()==2){
 			QFile file(key);
 			if(!file.exists()){
-				file.setFileName(VPlayer::instance()->getFile());
+				file.setFileName(VPlayer::instance()->getMedia());
 			}
 			if(file.exists()){
 				file.open(QIODevice::ReadOnly);
