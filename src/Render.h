@@ -35,8 +35,14 @@ class Render:public QObject
 {
 	Q_OBJECT
 public:
+	enum Type{
+		OpenGL,
+		Raster
+	};
+
 	~Render(){}
 	QWidget *getWidget(){return widget;}
+	virtual Type getType()=0;
 
 	static Render *instance(QWidget *parent=0);
 
@@ -58,7 +64,7 @@ protected:
 public slots:
 	virtual QList<quint8 *> getBuffer()=0;
 	virtual void releaseBuffer()=0;
-	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)=0;
+	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0)=0;
 
 	void setVideoAspectRatio(double r){videoAspectRatio=r;}
 	void setPixelAspectRatio(double r){pixelAspectRatio=r;}

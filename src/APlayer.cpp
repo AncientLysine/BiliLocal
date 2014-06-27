@@ -103,7 +103,7 @@ static unsigned fmt(void **,char *chroma,
 {
 	QString c(chroma);
 	QList<QSize> b;
-	Render::instance()->setBuffer(c,QSize(*width,*height),b);
+	Render::instance()->setBuffer(c,QSize(*width,*height),&b);
 	memcpy(chroma,c.toUtf8(),4);
 	int i=0;
 	for(const QSize &s:b){
@@ -470,6 +470,56 @@ void VPlayer::event(int type)
 #ifdef BACKEND_QMM
 #include <QtMultimedia>
 
+class RenderAdapter:public QAbstractVideoSurface
+{
+public:
+	RenderAdapter(QObject *parent=0):
+		QAbstractVideoSurface(parent)
+	{
+	}
+
+	bool start(const QVideoSurfaceFormat &format)
+	{
+		if(format.pixelFormat()==QVideoFrame::Format_YUV420P){
+			QString chroma="I420";
+			Render::instance()->setBuffer(chroma,format.frameSize());
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+
+	bool present(const QVideoFrame &frame)
+	{
+		if(frame.pixelFormat()==QVideoFrame::Format_YUV420P){
+			QVideoFrame f(frame);
+			if(f.map(QAbstractVideoBuffer::ReadOnly)){
+				int len=f.mappedBytes();
+				const quint8 *dat=f.bits();
+				QList<quint8 *> buffer=Render::instance()->getBuffer();
+				memcpy(buffer[0],dat,len*2/3);
+				memcpy(buffer[1],dat+len*2/3,len/6);
+				memcpy(buffer[2],dat+len*5/6,len/6);
+				Render::instance()->releaseBuffer();
+				QMetaObject::invokeMethod(APlayer::instance(), "decode");
+				f.unmap();
+				return true;
+			}
+		}
+		return false;
+	}
+
+	QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
+	{
+		QList<QVideoFrame::PixelFormat> f;
+		if(handleType==QAbstractVideoBuffer::NoHandle){
+			f+=QVideoFrame::Format_YUV420P;
+		}
+		return f;
+	}
+};
+
 class QPlayer:public APlayer
 {
 public:
@@ -503,7 +553,16 @@ public slots:
 QPlayer::QPlayer(QObject *parent):
 	APlayer(parent)
 {
-	connect(&mp,&QMediaPlayer::stateChanged,this,&QPlayer::stateChanged);
+	connect(&mp,&QMediaPlayer::stateChanged,	this,&QPlayer::stateChanged	);
+	connect(&mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
+	mp.setVideoOutput(new RenderAdapter(&mp));
+	connect(this,&QPlayer::stateChanged,[this](int state){
+		static int last;
+		if(last==Stop&&state==Play){
+			emit begin();
+		}
+		last=state;
+	});
 	ins=this;
 }
 
@@ -534,6 +593,7 @@ int QPlayer::getState()
 void QPlayer::setTime(qint64 _time)
 {
 	mp.setPosition(_time);
+	emit jumped(_time);
 }
 
 qint64 QPlayer::getTime()
@@ -573,7 +633,7 @@ int QPlayer::getVolume()
 	return mp.volume();
 }
 
-void QPlayer::event(int type)
+void QPlayer::event(int)
 {
 }
 #endif

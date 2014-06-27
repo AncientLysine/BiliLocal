@@ -183,6 +183,11 @@ public:
 		}
 	}
 
+	Type getType()
+	{
+		return Raster;
+	}
+
 private:
 	SwsContext *swsctx;
 	AVPixelFormat srcFormat;
@@ -209,7 +214,7 @@ public slots:
 		return p;
 	}
 
-	void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
 		srcSize=size;
 		if(srcFrame){
@@ -220,12 +225,17 @@ public slots:
 		}
 		srcFormat=getFormat(chroma);
 		avpicture_alloc(srcFrame,srcFormat,srcSize.width(),srcSize.height());
+		if (bufferSize){
+			bufferSize->clear();
+		}
 		for(int i=0;i<3;++i){
 			int l;
 			if((l=srcFrame->linesize[i])==0){
 				break;
 			}
-			bufferSize.append(QSize(l,srcSize.height()));
+			if (bufferSize){
+				bufferSize->append(QSize(l,srcSize.height()));
+			}
 		}
 	}
 
@@ -458,6 +468,11 @@ public:
 		delete window;
 	}
 
+	Type getType()
+	{
+		return OpenGL;
+	}
+
 private:
 	Window *window;
 	QSize inner;
@@ -494,7 +509,7 @@ public slots:
 		dataLock.unlock();
 	}
 
-	void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
 		chroma="I420";
 		inner=size;
@@ -506,10 +521,12 @@ public slots:
 		buffer.append(new quint8[w*h]);
 		buffer.append(new quint8[w*h/4]);
 		buffer.append(new quint8[w*h/4]);
-		bufferSize.clear();
-		bufferSize.append(size);
-		bufferSize.append(size/2);
-		bufferSize.append(size/2);
+		if (bufferSize){
+			bufferSize->clear();
+			bufferSize->append(size);
+			bufferSize->append(size/2);
+			bufferSize->append(size/2);
+		}
 	}
 
 	QSize getPreferredSize()
