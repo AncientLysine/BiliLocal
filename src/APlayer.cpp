@@ -54,10 +54,8 @@ public:
 
 	explicit VPlayer(QObject *parent=0);
 	~VPlayer();
-	QList<QAction *> getTracks(int type);
-
-	static QMutex data;
 	static QMutex time;
+	QList<QAction *> getTracks(int type);
 
 	static VPlayer *instance()
 	{
@@ -70,7 +68,6 @@ private:
 	libvlc_instance_t *vlc;
 	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
-	QSize size;
 
 private slots:
 	void	init();
@@ -87,11 +84,9 @@ public slots:
 
 	void	setMedia(QString _file,bool manually=true);
 	QString getMedia();
+
 	qint64	getDuration();
 	void	addSubtitle(QString _file);
-
-	void	setRatio(double _ratio);
-	QSize	getSize(){return size;}
 
 	void	setVolume(int _volume);
 	int 	getVolume();
@@ -100,7 +95,6 @@ public slots:
 
 };
 
-QMutex VPlayer::data;
 QMutex VPlayer::time;
 
 static unsigned fmt(void **,char *chroma,
@@ -120,7 +114,6 @@ static unsigned fmt(void **,char *chroma,
 
 static void *lck(void *,void **planes)
 {
-	VPlayer::data.lock();
 	int i=0;
 	for(void *p:Render::instance()->getBuffer()){
 		planes[i++]=p;
@@ -130,8 +123,8 @@ static void *lck(void *,void **planes)
 
 static void dsp(void *,void *)
 {
-	Render::instance()->setDirty();
-	VPlayer::data.unlock();
+	Render::instance()->releaseBuffer();
+	QMetaObject::invokeMethod(APlayer::instance(),"decode");
 }
 
 static void sta(const libvlc_event_t *,void *)
@@ -182,6 +175,7 @@ VPlayer::VPlayer(QObject *parent):
 		iter=new QActionGroup(this);
 		iter->setExclusive(true);
 	}
+	ins=this;
 }
 
 VPlayer::~VPlayer()
@@ -239,12 +233,11 @@ void VPlayer::init()
 				setState(Play);
 				libvlc_media_track_t **info;
 				int n=libvlc_media_tracks_get(m,&info);
-				size=QSize();
 				for(int i=0;i<n;++i){
 					if(info[i]->i_type==libvlc_track_video){
 						libvlc_video_track_t *v=info[i]->video;
 						double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
-						size=QSize(v->i_width*r,v->i_height);
+						Render::instance()->setPixelAspectRatio(r);
 						break;
 					}
 				}
@@ -338,7 +331,6 @@ void VPlayer::stop(bool manually)
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
-		size=QSize();
 		setState(Stop);
 		for(auto g:tracks){
 			qDeleteAll(g->actions());
@@ -448,11 +440,6 @@ void VPlayer::addSubtitle(QString _file)
 	}
 }
 
-void VPlayer::setRatio(double _ratio)
-{
-	Render::instance()->setRatio(_ratio);
-}
-
 void VPlayer::setVolume(int _volume)
 {
 	if(mp){
@@ -502,11 +489,9 @@ public slots:
 
 	void	setMedia(QString _file,bool manually=true);
 	QString getMedia();
+
 	qint64	getDuration();
 	void	addSubtitle(QString _file);
-
-	void	setRatio(double _ratio);
-	QSize	getSize();
 
 	void	setVolume(int _volume);
 	int 	getVolume();
@@ -576,15 +561,6 @@ qint64 QPlayer::getDuration()
 
 void QPlayer::addSubtitle(QString _file)
 {
-}
-
-void QPlayer::setRatio(double _ratio)
-{
-}
-
-QSize QPlayer::getSize()
-{
-	return QSize();
 }
 
 void QPlayer::setVolume(int _volume)

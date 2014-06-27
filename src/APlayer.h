@@ -70,10 +70,8 @@ public slots:
 	virtual void	setMedia(QString _file,bool manually=true)=0;
 	virtual QString getMedia()=0;
 
-	virtual QSize	getSize()=0;
 	virtual qint64	getDuration()=0;
 	virtual void	addSubtitle(QString _file)=0;
-
 
 	virtual void	setVolume(int _volume)=0;
 	virtual int 	getVolume()=0;

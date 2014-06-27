@@ -29,6 +29,8 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 
+Render *Render::ins=NULL;
+
 #ifdef RENDER_RASTER
 extern "C"
 {
@@ -163,6 +165,7 @@ public:
 		srcFrame=NULL;
 		dstFrame=NULL;
 		dstFormat=AV_PIX_FMT_RGB32;
+		ins=this;
 	}
 
 	~RasterRender()
@@ -189,40 +192,56 @@ private:
 	QSize srcSize;
 	QSize dstSize;
 	QImage frame;
-	QMutex dataLock;
-
-	void drawBuffer(QPainter *painter,QRect rect)
-	{
-		QRect dest=fitRect(rect);
-		dataLock.lock();
-		if(dstSize!=dest.size()){
-			if(dstFrame){
-				avpicture_free(dstFrame);
-			}
-			else{
-				dstFrame=new AVPicture;
-			}
-			dstSize=dest.size();
-			avpicture_alloc(dstFrame,dstFormat,dstSize.width(),dstSize.height());
-			frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
-			dirty=true;
-		}
-		if(dirty){
-			swsctx=sws_getCachedContext(swsctx,
-										srcSize.width(),srcSize.height(),srcFormat,
-										dstSize.width(),dstSize.height(),dstFormat,
-										SWS_FAST_BILINEAR,NULL,NULL,NULL);
-			sws_scale(swsctx,
-					  srcFrame->data,srcFrame->linesize,
-					  0,srcSize.height(),
-					  dstFrame->data,dstFrame->linesize);
-			dirty=false;
-		}
-		dataLock.unlock();
-		painter->drawImage(dest,frame);
-	}
+	static QMutex dataLock;
 
 public slots:
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		QList<quint8 *> p;
+		for(int i=0;i<8;++i){
+			if(srcFrame->linesize[i]==0){
+				break;
+			}
+			p.append(srcFrame->data[i]);
+		}
+		start=true;
+		return p;
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)
+	{
+		srcSize=size;
+		if(srcFrame){
+			avpicture_free(srcFrame);
+		}
+		else{
+			srcFrame=new AVPicture;
+		}
+		srcFormat=getFormat(chroma);
+		avpicture_alloc(srcFrame,srcFormat,srcSize.width(),srcSize.height());
+		for(int i=0;i<3;++i){
+			int l;
+			if((l=srcFrame->linesize[i])==0){
+				break;
+			}
+			bufferSize.append(QSize(l,srcSize.height()));
+		}
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	QSize getPreferredSize()
+	{
+		QSize s=srcSize;
+		s.rwidth()*=pixelAspectRatio;
+		return s;
+	}
+
 	void draw(QRect rect)
 	{
 		if(rect.isValid()){
@@ -232,9 +251,43 @@ public slots:
 			widget->update();
 		}
 	}
+
+	void drawBuffer(QPainter *painter,QRect rect)
+	{
+		QRect dest=fitRect(srcSize,rect);
+		dataLock.lock();
+		if(dstSize!=dest.size()){
+			if(dstFrame){
+				avpicture_free(dstFrame);
+			}
+			else{
+				dstFrame=new AVPicture;
+			}
+			dstSize=dest.size();
+			avpicture_alloc(dstFrame, dstFormat, dstSize.width(), dstSize.height());
+			frame=QImage(*dstFrame->data, dstSize.width(), dstSize.height(), QImage::Format_RGB32);
+			dirty=true;
+		}
+		if(dirty){
+			swsctx=sws_getCachedContext(swsctx,
+										srcSize.width(),srcSize.height(),srcFormat,
+										dstSize.width(),dstSize.height(),dstFormat,
+										SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			sws_scale(swsctx,
+					  srcFrame->data,srcFrame->linesize,
+					  0, srcSize.height(),
+					  dstFrame->data,dstFrame->linesize);
+			dirty=false;
+		}
+		dataLock.unlock();
+		painter->drawImage(dest,frame);
+	}
 };
+
+QMutex RasterRender::dataLock;
 #endif
 
+#ifdef RENDER_OPENGL
 class Window:public QWindow
 {
 public:
@@ -327,7 +380,67 @@ private:
 	}
 };
 
-class OpenGLRender:public Render
+#ifdef QT_OPENGL_ES_2
+static const char *vShaderCode=
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
+
+static const char *fShaderCode=
+		"varying lowp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    lowp vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+#else
+static const char *vShaderCode=
+		"#version 120\n"
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
+
+static const char *fShaderCode=
+		"#version 120\n"
+		"varying vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    vec3 yuv;\n"
+		"    vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+#endif
+
+class OpenGLRender:public Render,protected QOpenGLFunctions
 {
 public:
 	explicit OpenGLRender(QWidget *parent=0):
@@ -335,6 +448,9 @@ public:
 	{
 		window=new Window(this,parent);
 		widget=QWidget::createWindowContainer(window,parent);
+		initialize=true;
+		vShader=fShader=program=0;
+		ins=this;
 	}
 
 	~OpenGLRender()
@@ -344,19 +460,151 @@ public:
 
 private:
 	Window *window;
+	QSize inner;
+	bool initialize;
+	GLuint vShader;
+	GLuint fShader;
+	GLuint program;
+	GLuint frame[3];
+	static QMutex dataLock;
+	QList<quint8 *> buffer;
+
+	void uploadTexture(int i,int w,int h)
+	{
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D,frame[i]);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
+	}
 
 public slots:
-	void draw(QRect){window->draw();}
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		start=true;
+		return buffer;
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)
+	{
+		chroma="I420";
+		inner=size;
+		int w=size.width(),h=size.height();
+		for(void *iter:buffer){
+			delete (quint8 *)iter;
+		}
+		buffer.clear();
+		buffer.append(new quint8[w*h]);
+		buffer.append(new quint8[w*h/4]);
+		buffer.append(new quint8[w*h/4]);
+		bufferSize.clear();
+		bufferSize.append(size);
+		bufferSize.append(size/2);
+		bufferSize.append(size/2);
+	}
+
+	QSize getPreferredSize()
+	{
+		QSize s=inner;
+		s.rwidth()*=pixelAspectRatio;
+		return s;
+	}
+
+	void draw(QRect)
+	{
+		window->draw();
+	}
+
+	void drawBuffer(QPainter *painter,QRect rect)
+	{
+		QRect dest=fitRect(inner,rect);
+		dataLock.lock();
+		painter->beginNativePainting();
+		if(dirty){
+			if(initialize){
+				initializeOpenGLFunctions();
+				glGenTextures(3,frame);
+				vShader=glCreateShader(GL_VERTEX_SHADER);
+				fShader=glCreateShader(GL_FRAGMENT_SHADER);
+				glShaderSource(vShader,1,&vShaderCode,NULL);
+				glShaderSource(fShader,1,&fShaderCode,NULL);
+				glCompileShader(vShader);
+				glCompileShader(fShader);
+				program=glCreateProgram();
+				glAttachShader(program,vShader);
+				glAttachShader(program,fShader);
+				glBindAttribLocation(program,0,"VtxCoord");
+				glBindAttribLocation(program,1,"TexCoord");
+				glLinkProgram(program);
+				initialize=false;
+			}
+			int w=inner.width(),h=inner.height();
+			uploadTexture(0,w,h);
+			uploadTexture(1,w/2,h/2);
+			uploadTexture(2,w/2,h/2);
+			dirty=false;
+		}
+		dataLock.unlock();
+		glUseProgram(program);
+		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
+		GLfloat vtx[8]={
+			-h,-v,
+			+h,-v,
+			-h,+v,
+			+h,+v
+		};
+		GLfloat tex[8]={
+			0,1,
+			1,1,
+			0,0,
+			1,0
+		};
+		glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
+		glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D,frame[0]);
+		glUniform1i(glGetUniformLocation(program,"SamplerY"),0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D,frame[1]);
+		glUniform1i(glGetUniformLocation(program,"SamplerU"),1);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D,frame[2]);
+		glUniform1i(glGetUniformLocation(program,"SamplerV"),2);
+		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+		painter->endNativePainting();
+	}
 };
+
+QMutex OpenGLRender::dataLock;
+#endif
 
 Render *Render::instance(QWidget *parent)
 {
+	if(ins){
+		return ins;
+	}
 	if(Config::getValue("/Interface/Accelerated",false)){
+#ifdef RENDER_OPENGL
 		return new OpenGLRender(parent);
+#endif
 	}
 	else{
+#ifdef RENDER_RASTER
 		return new RasterRender(parent);
+#endif
 	}
+	return 0;
 }
 
 Render::Render(QWidget *parent):
@@ -385,11 +633,11 @@ Render::Render(QWidget *parent):
 	start=music=dirty=false;
 }
 
-
-QRect Render::fitRect(QRect rect)
+QRect Render::fitRect(QSize size,QRect rect)
 {
 	QRect dest;
-	dest.setSize((ratio>0?QSizeF(ratio,1):QSizeF(size)).scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
+	QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
+	dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
 }
@@ -454,7 +702,7 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	painter->drawRect(rect);
 }
 
-void Render::setTime(double t)
+void Render::setDisplayTime(double t)
 {
 	time=t;
 	draw(QRect(0,widget->height()-2,widget->width()*time,2));

@@ -42,30 +42,34 @@ public:
 
 private:
 	QMovie tv;
-	double time,ratio;
+	double time;
 	QImage me,background,sound;
 	QTime last;
-	static Render *ins;
 
 protected:
 	QWidget *widget;
 	bool start,music,dirty;
+	double videoAspectRatio,pixelAspectRatio;
+	static Render *ins;
 
 	explicit Render(QWidget *parent=0);
-	QRect fitRect(QRect r);
+	QRect fitRect(QSize size,QRect rect);
 
 public slots:
-	virtual QList<void *> getBuffer()=0;
+	virtual QList<quint8 *> getBuffer()=0;
+	virtual void releaseBuffer()=0;
 	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)=0;
-	void setDirty();
-	void setRatio(double r){ratio=r;}
+
+	void setVideoAspectRatio(double r){videoAspectRatio=r;}
+	void setPixelAspectRatio(double r){pixelAspectRatio=r;}
+	virtual QSize getPreferredSize()=0;
 
 	virtual void draw(QRect rect=QRect())=0;
-	void setDisplayTime(double t);
 	void drawPlay(QPainter *painter,QRect rect);
 	void drawStop(QPainter *painter,QRect rect);
 	void drawTime(QPainter *painter,QRect rect);
 	virtual void drawBuffer(QPainter *painter,QRect rect)=0;
+	void setDisplayTime(double t);
 };
 
 #endif // RENDER_H

@@ -94,7 +94,7 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()&&geo.isEmpty()){
 			geo=saveGeometry();
 			sca->setEnabled(true);
-			setCenter(aplayer->getSize(),false);
+			setCenter(render->getPreferredSize(),false);
 		}
 		rat->setEnabled(true);
 		render->setDisplayTime(0);
@@ -107,7 +107,7 @@ Interface::Interface(QWidget *parent):
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
-		render->setRatio(0);
+		render->setVideoAspectRatio(0);
 		if(!geo.isEmpty()&&next->getNext().isEmpty()){
 			if(isFullScreen()){
 				fullA->toggle();
@@ -242,11 +242,11 @@ Interface::Interface(QWidget *parent):
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
 		if(action->text()==tr("Default")){
-			render->setRatio(0);
+			render->setVideoAspectRatio(0);
 		}
 		else{
 			QStringList l=action->text().split(':');
-			render->setRatio(l[0].toDouble()/l[1].toDouble());
+			render->setVideoAspectRatio(l[0].toDouble()/l[1].toDouble());
 		}
 		if(aplayer->getState()==APlayer::Pause){
 			render->draw();
@@ -266,9 +266,9 @@ Interface::Interface(QWidget *parent):
 	sca->defaultAction()->setChecked(true);
 	sca->addActions(g->actions());
 	connect(sca,&QMenu::triggered,[this](QAction *action){
-		if(aplayer->getSize().isValid()){
+		if(render->getPreferredSize().isValid()){
 			QStringList l=action->text().split(':');
-			QSize s=aplayer->getSize()*l[0].toInt()/l[1].toInt();
+			QSize s=render->getPreferredSize()*l[0].toInt()/l[1].toInt();
 			setCenter(s,false);
 		}
 	});
