@@ -37,13 +37,16 @@ class Render:public QObject
 public:
 	~Render(){}
 	QWidget *getWidget(){return widget;}
-	static Render *create(QWidget *parent=NULL);
+
+	static Render *instance(QWidget *parent=0);
 
 private:
 	QMovie tv;
 	double time;
-	QImage me,background;
+	QImage me,background,sound;
 	QTime last;
+	bool start,music,dirty;
+	static Render *ins;
 
 protected:
 	QWidget *widget;
@@ -51,10 +54,17 @@ protected:
 
 public slots:
 	void setTime(double t);
+
+	virtual QList<void *> getBuffer()=0;
+	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> &bufferSize)=0;
+	void setDirty();
+	void setRatio(double r);
+
 	virtual void draw(QRect rect=QRect())=0;
 	void drawPlay(QPainter *painter,QRect rect);
 	void drawStop(QPainter *painter,QRect rect);
 	void drawTime(QPainter *painter,QRect rect);
+	virtual void drawBuffer(QPainter *painter,QRect rect)=0;
 };
 
 #endif // RENDER_H

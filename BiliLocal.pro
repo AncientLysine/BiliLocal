@@ -14,7 +14,7 @@ SOURCES += \
     src/Interface.cpp \
     src/Local.cpp \
     src/Danmaku.cpp \
-    src/VPlayer.cpp \
+    src/APlayer.cpp \
     src/Menu.cpp \
     src/Info.cpp \
     src/Search.cpp \
@@ -33,7 +33,7 @@ HEADERS  += \
     src/Interface.h \
     src/Local.h \
     src/Danmaku.h \
-    src/VPlayer.h \
+    src/APlayer.h \
     src/Menu.h \
     src/Info.h \
     src/Search.h \
@@ -63,4 +63,23 @@ TRANSLATIONS += \
 
 win32{
 RC_ICONS = BiliLocal.ico
+DEFINES += BACKEND_VLC BACKEND_QMM
+DEFINES += RENDER_RASTER RENDER_OPENGL
+QT += multimedia
+}
+
+linux{
+DEFINES += BACKEND_VLC BACKEND_QMM
+DEFINES += RENDER_RASTER RENDER_OPENGL
+QT += multimedia
+}
+
+macx{
+DEFINES += BACKEND_VLC
+DEFINES += RENDER_OPENGL
+}
+
+android{
+DEFINES += BACKEND_QMM
+DEFINES += RENDER_OPENGL
 }

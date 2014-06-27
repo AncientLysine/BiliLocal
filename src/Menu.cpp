@@ -31,7 +31,7 @@
 #include "Utils.h"
 #include "Config.h"
 #include "Search.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Danmaku.h"
 
 Menu::Menu(QWidget *parent):
@@ -97,7 +97,7 @@ Menu::Menu(QWidget *parent):
 												   Utils::defaultPath(),
 												   tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video|Utils::Audio,"*.%1").join(' ')));
 		if(!_file.isEmpty()){
-			VPlayer::instance()->setMedia(_file);
+			APlayer::instance()->setMedia(_file);
 		}
 	});
 	connect(danmA,&QAction::triggered,[this](){
@@ -244,7 +244,7 @@ Menu::Menu(QWidget *parent):
 			break;
 		}
 	});
-	connect(VPlayer::instance(),&VPlayer::mediaChanged,[this](QString _file){
+	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
 		fileL->setText(QFileInfo(_file).fileName());
 		fileL->setCursorPosition(0);
 	});

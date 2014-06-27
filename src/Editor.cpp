@@ -28,7 +28,7 @@
 #include "Utils.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 
 namespace{
 class History:public QDialog
@@ -544,7 +544,7 @@ void Editor::parseRecords()
 {
 	qDeleteAll(widget->children());
 	QList<Record> &pool=Danmaku::instance()->getPool();
-	qint64 duration=VPlayer::instance()->getDuration();
+	qint64 duration=APlayer::instance()->getDuration();
 	bool undefined=(duration==-1);
 	for(Record &r:pool){
 		if(undefined){
@@ -559,7 +559,7 @@ void Editor::parseRecords()
 		t->setPrefix(tr("Delay: %1s"));
 		t->move(0,height);
 		height+=100;
-		t->setCurrent(VPlayer::instance()->getTime());
+		t->setCurrent(APlayer::instance()->getTime());
 		t->setDuration(duration);
 		t->setRecord(&r);
 		t->show();

@@ -28,7 +28,7 @@
 #include "Utils.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 
 Load *Load::ins=NULL;
 
@@ -206,7 +206,7 @@ Load::Load(QObject *parent):
 		reply->deleteLater();
 	});
 
-	connect(VPlayer::instance(),&VPlayer::mediaChanged,[this](QString _file){
+	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
 		QFileInfo info(_file);
 		bool only=Config::getValue("/Playing/Clear",true);
 		if(Config::getValue("/Danmaku/Local",false)&&(Danmaku::instance()->rowCount()==0||only)){

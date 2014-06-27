@@ -26,8 +26,16 @@
 
 #include "Render.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Danmaku.h"
+
+#ifdef RENDER_RASTER
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
 
 class Widget:public QWidget
 {
@@ -46,7 +54,7 @@ private:
 		QPainter painter(this);
 		QRect rect(QPoint(0,0),size());
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		if(VPlayer::instance()->getState()==VPlayer::Stop){
+		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
 		else{
@@ -57,6 +65,93 @@ private:
 	}
 };
 
+int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
+{
+	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
+	if(ret<0){
+		memset(picture,0,sizeof(AVPicture));
+		return ret;
+	}
+	return 0;
+}
+
+void avpicture_free(AVPicture *picture)
+{
+	av_free(picture->data[0]);
+}
+
+static AVPixelFormat getFormat(QString &chroma)
+{
+	static QHash<QString,AVPixelFormat> f;
+	if(f.isEmpty()){
+		f.insert("RV32",AV_PIX_FMT_RGB32);
+		f.insert("I410",AV_PIX_FMT_YUV410P);
+		f.insert("I411",AV_PIX_FMT_YUV411P);
+		f.insert("I420",AV_PIX_FMT_YUV420P);
+		f.insert("I422",AV_PIX_FMT_YUV422P);
+		f.insert("I440",AV_PIX_FMT_YUV440P);
+		f.insert("I444",AV_PIX_FMT_YUV444P);
+		f.insert("J420",AV_PIX_FMT_YUVJ420P);
+		f.insert("J422",AV_PIX_FMT_YUVJ422P);
+		f.insert("J440",AV_PIX_FMT_YUVJ440P);
+		f.insert("J444",AV_PIX_FMT_YUVJ444P);
+		f.insert("I40A",AV_PIX_FMT_YUVA420P);
+		f.insert("I42A",AV_PIX_FMT_YUVA422P);
+		f.insert("YUVA",AV_PIX_FMT_YUVA444P);
+		f.insert("NV12",AV_PIX_FMT_NV12);
+		f.insert("NV21",AV_PIX_FMT_NV21);
+		f.insert("NV16",AV_PIX_FMT_NV16);
+		f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
+		f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
+		f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
+		f.insert("I29B",AV_PIX_FMT_YUV422P9BE);
+		f.insert("I49L",AV_PIX_FMT_YUV444P9LE);
+		f.insert("I49B",AV_PIX_FMT_YUV444P9BE);
+		f.insert("I0AL",AV_PIX_FMT_YUV420P10LE);
+		f.insert("I0AB",AV_PIX_FMT_YUV420P10BE);
+		f.insert("I2AL",AV_PIX_FMT_YUV422P10LE);
+		f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
+		f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
+		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
+		f.insert("UYVY",AV_PIX_FMT_UYVY422);
+		f.insert("YUY2",AV_PIX_FMT_YUYV422);
+		f.insert("XY12",AV_PIX_FMT_XYZ12);
+	}
+	chroma=chroma.toUpper();
+	if(!f.contains(chroma)){
+		if(c=="NV61"){
+			chroma="NV16";
+		}
+		else if(c=="YV12"||
+				c=="IYUV"){
+			chroma="I420";
+		}
+		else if(c=="UYNV"||
+				c=="UYNY"||
+				c=="Y422"||
+				c=="HDYC"||
+				c=="AVUI"||
+				c=="UYV1"||
+				c=="2VUY"||
+				c=="2VU1"){
+			chroma="UYVY";
+		}
+		else if(c=="VYUY"||
+				c=="YUYV"||
+				c=="YUNV"||
+				c=="V422"||
+				c=="YVYU"||
+				c=="Y211"||
+				c=="CYUV"){
+			chroma="YUY2";
+		}
+		else{
+			chroma="RV32";
+		}
+	}
+	return f[chroma];
+}
+
 class RasterRender:public Render
 {
 public:
@@ -64,6 +159,66 @@ public:
 		Render(parent)
 	{
 		widget=new Widget(this,parent);
+		swsctx=NULL;
+		srcFrame=NULL;
+		dstFrame=NULL;
+		dstFormat=AV_PIX_FMT_RGB32;
+	}
+
+	~RasterRender()
+	{
+		if(swsctx){
+			sws_freeContext(swsctx);
+		}
+		if(srcFrame){
+			avpicture_free(srcFrame);
+			delete srcFrame;
+		}
+		if(dstFrame){
+			avpicture_free(dstFrame);
+			delete dstFrame;
+		}
+	}
+
+private:
+	SwsContext *swsctx;
+	AVPixelFormat srcFormat;
+	AVPixelFormat dstFormat;
+	AVPicture *srcFrame;
+	AVPicture *dstFrame;
+	QSize srcSize;
+	QSize dstSize;
+	QImage frame;
+
+	void drawBuffer(QPainter *painter,QRect rect)
+	{
+		QRect dest=getRect(rect);
+		data.lock();
+		if(dstSize!=dest.size()){
+			if(dstFrame){
+				avpicture_free(dstFrame);
+			}
+			else{
+				dstFrame=new AVPicture;
+			}
+			dstSize=dest.size();
+			avpicture_alloc(dstFrame,dstFormat,dstSize.width(),dstSize.height());
+			frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
+			dirty=true;
+		}
+		if(dirty){
+			swsctx=sws_getCachedContext(swsctx,
+										srcSize.width(),srcSize.height(),srcFormat,
+										dstSize.width(),dstSize.height(),dstFormat,
+										SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			sws_scale(swsctx,
+					  srcFrame->data,srcFrame->linesize,
+					  0,srcSize.height(),
+					  dstFrame->data,dstFrame->linesize);
+			dirty=false;
+		}
+		data.unlock();
+		painter->drawImage(dest,frame);
 	}
 
 public slots:
@@ -77,6 +232,7 @@ public slots:
 		}
 	}
 };
+#endif
 
 class Window:public QWindow
 {
@@ -119,7 +275,7 @@ public:
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		QRect rect(QPoint(0,0),size());
-		if(VPlayer::instance()->getState()==VPlayer::Stop){
+		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
 		else{
@@ -206,13 +362,13 @@ Render::Render(QWidget *parent):
 	QObject(parent)
 {
 	time=0;
-	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
+	connect(APlayer::instance(),&APlayer::stateChanged,[this](){last=QTime();});
 	if(Config::getValue("/Interface/Version",true)){
 		tv.setFileName(":/Picture/tv.gif");
 		tv.start();
 		me=QImage(":/Picture/version.png");
-		connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
-		connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
+		connect(APlayer::instance(),&APlayer::begin,&tv,&QMovie::stop);
+		connect(APlayer::instance(),&APlayer::reach,&tv,&QMovie::start);
 		connect(&tv,&QMovie::updated,[this](){
 			QImage cf=tv.currentImage();
 			QPoint ps=widget->rect().center()-cf.rect().center();
@@ -224,18 +380,26 @@ Render::Render(QWidget *parent):
 	if(!path.isEmpty()){
 		background=QImage(path);
 	}
+	sound=QImage("/Picture/sound.png");
+	start=music=dirty=false;
 }
 
-void Render::drawPlay(QPainter *painter, QRect rect)
+void Render::drawPlay(QPainter *painter,QRect rect)
 {
-	VPlayer *vplayer=VPlayer::instance();
+	painter->fillRect(rect,Qt::black);
+	if(music){
+		painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+	}
+	else if(start){
+		drawBuffer(painter,rect);
+	}
+	APlayer *aplayer=APlayer::instance();
 	Danmaku *danmaku=Danmaku::instance();
-	vplayer->draw(painter,rect);
 	qint64 time=0;
 	if(!last.isNull()){
 		time=last.elapsed();
 	}
-	if(vplayer->getState()==VPlayer::Play){
+	if(aplayer->getState()==APlayer::Play){
 		last.start();
 	}
 	danmaku->draw(painter,rect,time);

@@ -28,7 +28,7 @@
 #include "Search.h"
 #include "Utils.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 
 static QHash<int,QString> getChannel(QString name)
 {
@@ -438,7 +438,7 @@ void Search::getData(int pageNum)
 		if(orderC->currentIndex()==2){
 			QFile file(key);
 			if(!file.exists()){
-				file.setFileName(VPlayer::instance()->getMedia());
+				file.setFileName(APlayer::instance()->getMedia());
 			}
 			if(file.exists()){
 				file.open(QIODevice::ReadOnly);

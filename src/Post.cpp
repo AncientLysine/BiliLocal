@@ -29,7 +29,7 @@
 #include "Local.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Graphic.h"
 
 Post *Post::ins=NULL;
@@ -142,7 +142,7 @@ Comment Post::getComment()
 	Comment c;
 	c.mode=mode(commentM->currentIndex());
 	c.font=25;
-	c.time=qMax<qint64>(0,VPlayer::instance()->getTime());
+	c.time=qMax<qint64>(0,APlayer::instance()->getTime());
 	c.color=getColor().rgb()&0xFFFFFF;
 	c.string=commentL->text();
 	return c;
