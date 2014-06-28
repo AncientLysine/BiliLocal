@@ -650,6 +650,8 @@ Render::Render(QWidget *parent):
 	}
 	sound=QImage("/Picture/sound.png");
 	start=music=dirty=false;
+	videoAspectRatio=0;
+	pixelAspectRatio=1;
 }
 
 QRect Render::fitRect(QSize size,QRect rect)

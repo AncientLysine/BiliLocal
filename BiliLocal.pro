@@ -55,15 +55,6 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-android{
-DEFINES += BACKEND_QMM
-DEFINES += RENDER_OPENGL
-QT += multimedia
-ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res
-OTHER_FILES += res/AndroidManifest.xml
-}
-else{
-
 linux{
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
@@ -80,7 +71,6 @@ QT += multimedia
 macx{
 DEFINES += BACKEND_VLC
 DEFINES += RENDER_RASTER RENDER_OPENGL
-}
 }
 
 contains(DEFINES, BACKEND_VLC){
