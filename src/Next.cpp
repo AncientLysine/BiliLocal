@@ -28,7 +28,7 @@
 #include "Load.h"
 #include "Local.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Danmaku.h"
 #include <functional>
 
@@ -71,7 +71,7 @@ Next::Next(QWidget *parent):
 	optA[3]->setObjectName("Dont");
 	connect(optA[0],&QAction::triggered,[this](){
 		done(PlayImmediately);
-		VPlayer::instance()->stop(false);
+		APlayer::instance()->stop(false);
 	});
 	connect(optA[1],&QAction::triggered,std::bind(&QDialog::done,this,InheritDanmaku));
 	connect(optA[2],&QAction::triggered,std::bind(&QDialog::done,this,WaitUntilEnded));
@@ -84,19 +84,19 @@ Next::Next(QWidget *parent):
 	nextB->setMenu(nextM);
 	layout->addWidget(nextB);
 
-	connect(VPlayer::instance(),&VPlayer::timeChanged,[this](qint64 _time){
+	connect(APlayer::instance(),&APlayer::timeChanged,[this](qint64 _time){
 		duration=_time;
 		if(_time>=0&&
-				_time>=VPlayer::instance()->getDuration()*0.9&&
+				_time>=APlayer::instance()->getDuration()*0.9&&
 				!fileN.isEmpty()&&
-				fileC!=VPlayer::instance()->getMedia()&&
+				fileC!=APlayer::instance()->getMedia()&&
 				!Config::getValue("/Playing/Loop",false)){
 			show();
-			fileC=VPlayer::instance()->getMedia();
+			fileC=APlayer::instance()->getMedia();
 		}
 	});
-	connect(VPlayer::instance(),&VPlayer::begin,this,&Next::parse);
-	connect(VPlayer::instance(),&VPlayer::reach,this,&Next::shift);
+	connect(APlayer::instance(),&APlayer::begin,this,&Next::parse);
+	connect(APlayer::instance(),&APlayer::reach,this,&Next::shift);
 }
 
 QString Next::getNext()
@@ -129,7 +129,7 @@ static bool diffAtNum(QString f,QString s)
 void Next::parse()
 {
 	clear();
-	QFileInfo info(VPlayer::instance()->getMedia()),next;
+	QFileInfo info(APlayer::instance()->getMedia()),next;
 	for(QFileInfo iter:info.absoluteDir().entryInfoList()){
 		if(iter.isFile()&&iter.suffix()==info.suffix()){
 			QString n=iter.absoluteFilePath(),c=info.absoluteFilePath();
@@ -168,8 +168,8 @@ void Next::shift()
 				}
 			}
 			Danmaku::instance()->parse(0x2);
-			VPlayer::instance()->setMedia(fileN,false);
-			VPlayer::instance()->play();
+			APlayer::instance()->setMedia(fileN,false);
+			APlayer::instance()->play();
 			break;
 		case WaitUntilEnded:
 		case PlayImmediately:
@@ -186,8 +186,8 @@ void Next::shift()
 				}
 			}
 			Danmaku::instance()->clearPool();
-			VPlayer::instance()->setMedia(fileN,false);
-			VPlayer::instance()->play();
+			APlayer::instance()->setMedia(fileN,false);
+			APlayer::instance()->play();
 			break;
 		}
 	}

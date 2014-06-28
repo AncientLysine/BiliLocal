@@ -30,7 +30,7 @@
 #include "Shield.h"
 #include "Plugin.h"
 #include "Danmaku.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 
 class ConfigPrivate
 {
@@ -1068,7 +1068,7 @@ Config::Config(QWidget *parent,int index):
 			Danmaku::instance()->parse(0x2);
 		}
 		if(d->restart!=d->getRestart()){
-			if((VPlayer::instance()->getState()==VPlayer::Stop&&
+			if((APlayer::instance()->getState()==APlayer::Stop&&
 				Danmaku::instance()->rowCount()==0)||
 					QMessageBox::warning(this,
 										 tr("Warning"),

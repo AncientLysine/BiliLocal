@@ -38,7 +38,7 @@ class Info;
 class Post;
 class Next;
 class Render;
-class VPlayer;
+class APlayer;
 class Danmaku;
 
 class Interface:public QMdiSubWindow
@@ -66,7 +66,7 @@ private:
 	Post *post;
 	Next *next;
 	Render *render;
-	VPlayer *vplayer;
+	APlayer *aplayer;
 	Danmaku *danmaku;
 
 	QPoint sta;

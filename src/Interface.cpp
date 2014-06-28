@@ -35,7 +35,7 @@
 #include "Render.h"
 #include "Shield.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Danmaku.h"
 #include <functional>
 
@@ -49,12 +49,12 @@ Interface::Interface(QWidget *parent):
 	setCenter(QSize(),true);
 	Local::objects["Interface"]=this;
 
-	vplayer=VPlayer::instance();
+	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
 	Local::objects["Danmaku"]=danmaku;
-	Local::objects["VPlayer"]=vplayer;
+	Local::objects["APlayer"]=aplayer;
 
-	render=Render::create(this);
+	render=Render::instance(this);
 	Local::objects["Render"]=render;
 
 	menu=new Menu(this);
@@ -80,34 +80,34 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(delay,&QTimer::timeout,[this](){
-		if(vplayer->getState()==VPlayer::Play&&!menu->isVisible()&&!info->isVisible()){
+		if(aplayer->getState()==APlayer::Play&&!menu->isVisible()&&!info->isVisible()){
 			setCursor(QCursor(Qt::BlankCursor));
 		}
 		if(!sliding){
 			showprg=false;
-			render->setTime(0);
+			render->setDisplayTime(0);
 		}
 	});
 	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
-	connect(vplayer,&VPlayer::begin,[this](){
+	connect(aplayer,&APlayer::begin,[this](){
 		if(!isFullScreen()&&geo.isEmpty()){
 			geo=saveGeometry();
 			sca->setEnabled(true);
-			setCenter(vplayer->getSize(),false);
+			setCenter(render->getPreferredSize(),false);
 		}
 		rat->setEnabled(true);
-		render->setTime(0);
-		setWindowFilePath(vplayer->getMedia());
+		render->setDisplayTime(0);
+		setWindowFilePath(aplayer->getMedia());
 	});
-	connect(vplayer,&VPlayer::reach,[this](){
+	connect(aplayer,&APlayer::reach,[this](){
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
 		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
-		vplayer->setRatio(0);
+		render->setVideoAspectRatio(0);
 		if(!geo.isEmpty()&&next->getNext().isEmpty()){
 			if(isFullScreen()){
 				fullA->toggle();
@@ -115,15 +115,15 @@ Interface::Interface(QWidget *parent):
 			restoreGeometry(geo);
 			geo.clear();
 		}
-		render->setTime(0);
+		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
-	connect(vplayer,&VPlayer::decode,this,&Interface::drawDecoded);
+	connect(aplayer,&APlayer::decode,this,&Interface::drawDecoded);
 
 	showprg=sliding=false;
-	connect(vplayer,&VPlayer::timeChanged,[this](qint64 t){
-		if(!sliding&&vplayer->getState()!=VPlayer::Stop){
-			render->setTime(showprg?t/(double)vplayer->getDuration():-1);
+	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
+		if(!sliding&&aplayer->getState()!=APlayer::Stop){
+			render->setDisplayTime(showprg?t/(double)aplayer->getDuration():-1);
 		}
 	});
 
@@ -145,7 +145,7 @@ Interface::Interface(QWidget *parent):
 	connect(fullA,&QAction::toggled,[this](bool b){
 		if(!b){
 			showNormal();
-			if(vplayer->getState()!=VPlayer::Stop){
+			if(aplayer->getState()!=APlayer::Stop){
 				sca->setEnabled(true);
 			}
 		}
@@ -196,13 +196,13 @@ Interface::Interface(QWidget *parent):
 	fwdA->setObjectName("Fowd");
 	fwdA->setShortcut(Config::getValue("/Shortcut/Fowd",QString("Right")));
 	connect(fwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()+Config::getValue("/Interface/Interval",10)*1000);
+		aplayer->setTime(aplayer->getTime()+Config::getValue("/Interface/Interval",10)*1000);
 	});
 	QAction *bwdA=new QAction(tr("Backward"),this);
 	bwdA->setObjectName("Bkwd");
 	bwdA->setShortcut(Config::getValue("/Shortcut/Bkwd",QString("Left")));
 	connect(bwdA,&QAction::triggered,[this](){
-		vplayer->setTime(vplayer->getTime()-Config::getValue("/Interface/Interval",10)*1000);
+		aplayer->setTime(aplayer->getTime()-Config::getValue("/Interface/Interval",10)*1000);
 	});
 	addAction(fwdA);
 	addAction(bwdA);
@@ -242,13 +242,13 @@ Interface::Interface(QWidget *parent):
 	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
 		if(action->text()==tr("Default")){
-			vplayer->setRatio(0);
+			render->setVideoAspectRatio(0);
 		}
 		else{
 			QStringList l=action->text().split(':');
-			vplayer->setRatio(l[0].toDouble()/l[1].toDouble());
+			render->setVideoAspectRatio(l[0].toDouble()/l[1].toDouble());
 		}
-		if(vplayer->getState()==VPlayer::Pause){
+		if(aplayer->getState()==APlayer::Pause){
 			render->draw();
 		}
 	});
@@ -266,9 +266,9 @@ Interface::Interface(QWidget *parent):
 	sca->defaultAction()->setChecked(true);
 	sca->addActions(g->actions());
 	connect(sca,&QMenu::triggered,[this](QAction *action){
-		if(vplayer->getSize().isValid()){
+		if(render->getPreferredSize().isValid()){
 			QStringList l=action->text().split(':');
-			QSize s=vplayer->getSize()*l[0].toInt()/l[1].toInt();
+			QSize s=render->getPreferredSize()*l[0].toInt()/l[1].toInt();
 			setCenter(s,false);
 		}
 	});
@@ -291,13 +291,13 @@ void Interface::tryLocal(QString p)
 	}
 	QString suffix=info.suffix().toLower();
 	if(Utils::getSuffix(Utils::Video|Utils::Audio).contains(suffix)){
-		vplayer->setMedia(p);
+		aplayer->setMedia(p);
 	}
 	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
 		Load::instance()->loadDanmaku(p);
 	}
-	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&vplayer->getState()!=VPlayer::Stop){
-		vplayer->addSubtitle(p);
+	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
+		aplayer->addSubtitle(p);
 	}
 }
 
@@ -319,7 +319,7 @@ void Interface::dropEvent(QDropEvent *e)
 
 void Interface::closeEvent(QCloseEvent *e)
 {
-	if(vplayer->getState()==VPlayer::Stop&&!isFullScreen()&&!isMaximized()){
+	if(aplayer->getState()==APlayer::Stop&&!isFullScreen()&&!isMaximized()){
 		QString size=Config::getValue("/Interface/Size",QString("960,540"));
 		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
@@ -376,8 +376,8 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 			}
 		}
 	}
-	if(!showprg&&vplayer->getState()!=VPlayer::Stop){
-		render->setTime(vplayer->getTime()/(double)vplayer->getDuration());
+	if(!showprg&&aplayer->getState()!=APlayer::Stop){
+		render->setDisplayTime(aplayer->getTime()/(double)aplayer->getDuration());
 	}
 	showprg=true;
 	if(cursor().shape()==Qt::BlankCursor){
@@ -385,7 +385,7 @@ void Interface::mouseMoveEvent(QMouseEvent *e)
 	}
 	delay->start(4000);
 	if(sliding){
-		render->setTime(x/(double)w);
+		render->setDisplayTime(x/(double)w);
 	}
 	else if(!sta.isNull()&&(windowFlags()&Qt::CustomizeWindowHint)!=0&&!isFullScreen()){
 		move(wgd+e->globalPos()-sta);
@@ -402,7 +402,7 @@ void Interface::mousePressEvent(QMouseEvent *e)
 		}
 		if(e->y()>=height()-25){
 			sliding=true;
-			render->setTime(e->x()/(double)width());
+			render->setDisplayTime(e->x()/(double)width());
 		}
 	}
 	QWidget::mousePressEvent(e);
@@ -418,8 +418,8 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 	sta=wgd=QPoint();
 	if(sliding&&e->button()==Qt::LeftButton){
 		sliding=false;
-		if(vplayer->getState()!=VPlayer::Stop){
-			vplayer->setTime(e->x()*vplayer->getDuration()/(width()-1));
+		if(aplayer->getState()!=APlayer::Stop){
+			aplayer->setTime(e->x()*aplayer->getDuration()/(width()-1));
 		}
 	}
 	if(e->button()==Qt::RightButton){
@@ -445,7 +445,7 @@ void Interface::drawDecoded()
 
 void Interface::drawPowered()
 {
-	if(vplayer->getState()==VPlayer::Play){
+	if(aplayer->getState()==APlayer::Play){
 		render->draw();
 	}
 }
@@ -561,27 +561,27 @@ void Interface::showContextMenu(QPoint p)
 		QMenu vid(tr("Video Track"),this);
 		QMenu aud(tr("Audio Track"),this);
 		connect(sub.addAction(tr("From File")),&QAction::triggered,[this](){
-			QFileInfo info(vplayer->getMedia());
+			QFileInfo info(aplayer->getMedia());
 			QString file=QFileDialog::getOpenFileName(this,
 													  tr("Open File"),
 													  info.absolutePath(),
 													  tr("Subtitle files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Subtitle,"*.%1").join(' ')));
 			if(!file.isEmpty()){
-				vplayer->addSubtitle(file);
+				aplayer->addSubtitle(file);
 			}
 		});
 		sub.addSeparator();
-		sub.addActions(vplayer->getTracks(Utils::Subtitle));
+		sub.addActions(aplayer->getTracks(Utils::Subtitle));
 		sub.setEnabled(!sub.isEmpty());
-		vid.addActions(vplayer->getTracks(Utils::Video));
+		vid.addActions(aplayer->getTracks(Utils::Video));
 		vid.setEnabled(!vid.isEmpty());
-		aud.addActions(vplayer->getTracks(Utils::Audio));
+		aud.addActions(aplayer->getTracks(Utils::Audio));
 		aud.setEnabled(!aud.isEmpty());
 		QMenu tra(tr("Track"),this);
 		tra.addMenu(&sub);
 		tra.addMenu(&vid);
 		tra.addMenu(&aud);
-		tra.setEnabled(vplayer->getState()!=VPlayer::Stop);
+		tra.setEnabled(aplayer->getState()!=APlayer::Stop);
 		top.addMenu(&tra);
 		top.addMenu(sca);
 		top.addMenu(rat);

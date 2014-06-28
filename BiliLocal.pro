@@ -14,7 +14,7 @@ SOURCES += \
     src/Interface.cpp \
     src/Local.cpp \
     src/Danmaku.cpp \
-    src/VPlayer.cpp \
+    src/APlayer.cpp \
     src/Menu.cpp \
     src/Info.cpp \
     src/Search.cpp \
@@ -33,7 +33,7 @@ HEADERS  += \
     src/Interface.h \
     src/Local.h \
     src/Danmaku.h \
-    src/VPlayer.h \
+    src/APlayer.h \
     src/Menu.h \
     src/Info.h \
     src/Search.h \
@@ -48,12 +48,6 @@ HEADERS  += \
     src/Load.h \
     src/Plugin.h
 
-LIBS += \
-    -lvlc \
-    -lvlccore \
-    -lswscale \
-    -lavutil
-
 RESOURCES += \
     res/Res.qrc
 
@@ -61,6 +55,32 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
+linux{
+DEFINES += BACKEND_VLC BACKEND_QMM
+DEFINES += RENDER_RASTER RENDER_OPENGL
+QT += multimedia
+}
+
 win32{
 RC_ICONS = BiliLocal.ico
+DEFINES += BACKEND_VLC BACKEND_QMM
+DEFINES += RENDER_RASTER RENDER_OPENGL
+QT += multimedia
+}
+
+macx{
+DEFINES += BACKEND_VLC
+DEFINES += RENDER_RASTER RENDER_OPENGL
+}
+
+contains(DEFINES, BACKEND_VLC){
+LIBS += \
+    -lvlc \
+    -lvlccore
+}
+
+contains(DEFINES, RENDER_RASTER){
+LIBS += \
+    -lswscale \
+    -lavutil
 }

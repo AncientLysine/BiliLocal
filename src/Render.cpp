@@ -26,8 +26,18 @@
 
 #include "Render.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Danmaku.h"
+
+Render *Render::ins=NULL;
+
+#ifdef RENDER_RASTER
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
 
 class Widget:public QWidget
 {
@@ -46,7 +56,7 @@ private:
 		QPainter painter(this);
 		QRect rect(QPoint(0,0),size());
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		if(VPlayer::instance()->getState()==VPlayer::Stop){
+		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
 		else{
@@ -57,6 +67,93 @@ private:
 	}
 };
 
+int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
+{
+	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
+	if(ret<0){
+		memset(picture,0,sizeof(AVPicture));
+		return ret;
+	}
+	return 0;
+}
+
+void avpicture_free(AVPicture *picture)
+{
+	av_free(picture->data[0]);
+}
+
+static AVPixelFormat getFormat(QString &chroma)
+{
+	static QHash<QString,AVPixelFormat> f;
+	if(f.isEmpty()){
+		f.insert("RV32",AV_PIX_FMT_RGB32);
+		f.insert("I410",AV_PIX_FMT_YUV410P);
+		f.insert("I411",AV_PIX_FMT_YUV411P);
+		f.insert("I420",AV_PIX_FMT_YUV420P);
+		f.insert("I422",AV_PIX_FMT_YUV422P);
+		f.insert("I440",AV_PIX_FMT_YUV440P);
+		f.insert("I444",AV_PIX_FMT_YUV444P);
+		f.insert("J420",AV_PIX_FMT_YUVJ420P);
+		f.insert("J422",AV_PIX_FMT_YUVJ422P);
+		f.insert("J440",AV_PIX_FMT_YUVJ440P);
+		f.insert("J444",AV_PIX_FMT_YUVJ444P);
+		f.insert("I40A",AV_PIX_FMT_YUVA420P);
+		f.insert("I42A",AV_PIX_FMT_YUVA422P);
+		f.insert("YUVA",AV_PIX_FMT_YUVA444P);
+		f.insert("NV12",AV_PIX_FMT_NV12);
+		f.insert("NV21",AV_PIX_FMT_NV21);
+		f.insert("NV16",AV_PIX_FMT_NV16);
+		f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
+		f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
+		f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
+		f.insert("I29B",AV_PIX_FMT_YUV422P9BE);
+		f.insert("I49L",AV_PIX_FMT_YUV444P9LE);
+		f.insert("I49B",AV_PIX_FMT_YUV444P9BE);
+		f.insert("I0AL",AV_PIX_FMT_YUV420P10LE);
+		f.insert("I0AB",AV_PIX_FMT_YUV420P10BE);
+		f.insert("I2AL",AV_PIX_FMT_YUV422P10LE);
+		f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
+		f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
+		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
+		f.insert("UYVY",AV_PIX_FMT_UYVY422);
+		f.insert("YUY2",AV_PIX_FMT_YUYV422);
+		f.insert("XY12",AV_PIX_FMT_XYZ12);
+	}
+	chroma=chroma.toUpper();
+	if(!f.contains(chroma)){
+		if(chroma=="NV61"){
+			chroma="NV16";
+		}
+		else if(chroma=="YV12"||
+				chroma=="IYUV"){
+			chroma="I420";
+		}
+		else if(chroma=="UYNV"||
+				chroma=="UYNY"||
+				chroma=="Y422"||
+				chroma=="HDYC"||
+				chroma=="AVUI"||
+				chroma=="UYV1"||
+				chroma=="2VUY"||
+				chroma=="2VU1"){
+			chroma="UYVY";
+		}
+		else if(chroma=="VYUY"||
+				chroma=="YUYV"||
+				chroma=="YUNV"||
+				chroma=="V422"||
+				chroma=="YVYU"||
+				chroma=="Y211"||
+				chroma=="CYUV"){
+			chroma="YUY2";
+		}
+		else{
+			chroma="RV32";
+		}
+	}
+	return f[chroma];
+}
+
 class RasterRender:public Render
 {
 public:
@@ -64,9 +161,92 @@ public:
 		Render(parent)
 	{
 		widget=new Widget(this,parent);
+		swsctx=NULL;
+		srcFrame=NULL;
+		dstFrame=NULL;
+		dstFormat=AV_PIX_FMT_RGB32;
+		ins=this;
 	}
 
+	~RasterRender()
+	{
+		if(swsctx){
+			sws_freeContext(swsctx);
+		}
+		if(srcFrame){
+			avpicture_free(srcFrame);
+			delete srcFrame;
+		}
+		if(dstFrame){
+			avpicture_free(dstFrame);
+			delete dstFrame;
+		}
+	}
+
+private:
+	SwsContext *swsctx;
+	AVPixelFormat srcFormat;
+	AVPixelFormat dstFormat;
+	AVPicture *srcFrame;
+	AVPicture *dstFrame;
+	QSize srcSize;
+	QSize dstSize;
+	QImage frame;
+	static QMutex dataLock;
+
 public slots:
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		QList<quint8 *> p;
+		for(int i=0;i<8;++i){
+			if(srcFrame->linesize[i]==0){
+				break;
+			}
+			p.append(srcFrame->data[i]);
+		}
+		start=true;
+		return p;
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
+	{
+		srcSize=size;
+		if(srcFrame){
+			avpicture_free(srcFrame);
+		}
+		else{
+			srcFrame=new AVPicture;
+		}
+		srcFormat=getFormat(chroma);
+		avpicture_alloc(srcFrame,srcFormat,srcSize.width(),srcSize.height());
+		if (bufferSize){
+			bufferSize->clear();
+		}
+		for(int i=0;i<3;++i){
+			int l;
+			if((l=srcFrame->linesize[i])==0){
+				break;
+			}
+			if (bufferSize){
+				bufferSize->append(QSize(l,srcSize.height()));
+			}
+		}
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	QSize getPreferredSize()
+	{
+		QSize s=srcSize;
+		s.rwidth()*=pixelAspectRatio;
+		return s;
+	}
+
 	void draw(QRect rect)
 	{
 		if(rect.isValid()){
@@ -76,8 +256,43 @@ public slots:
 			widget->update();
 		}
 	}
+
+	void drawBuffer(QPainter *painter,QRect rect)
+	{
+		QRect dest=fitRect(srcSize,rect);
+		dataLock.lock();
+		if(dstSize!=dest.size()){
+			if(dstFrame){
+				avpicture_free(dstFrame);
+			}
+			else{
+				dstFrame=new AVPicture;
+			}
+			dstSize=dest.size();
+			avpicture_alloc(dstFrame, dstFormat, dstSize.width(), dstSize.height());
+			frame=QImage(*dstFrame->data, dstSize.width(), dstSize.height(), QImage::Format_RGB32);
+			dirty=true;
+		}
+		if(dirty){
+			swsctx=sws_getCachedContext(swsctx,
+										srcSize.width(),srcSize.height(),srcFormat,
+										dstSize.width(),dstSize.height(),dstFormat,
+										SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			sws_scale(swsctx,
+					  srcFrame->data,srcFrame->linesize,
+					  0, srcSize.height(),
+					  dstFrame->data,dstFrame->linesize);
+			dirty=false;
+		}
+		dataLock.unlock();
+		painter->drawImage(dest,frame);
+	}
 };
 
+QMutex RasterRender::dataLock;
+#endif
+
+#ifdef RENDER_OPENGL
 class Window:public QWindow
 {
 public:
@@ -119,7 +334,7 @@ public:
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		QRect rect(QPoint(0,0),size());
-		if(VPlayer::instance()->getState()==VPlayer::Stop){
+		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
 		else{
@@ -170,7 +385,67 @@ private:
 	}
 };
 
-class OpenGLRender:public Render
+#ifdef QT_OPENGL_ES_2
+static const char *vShaderCode=
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
+
+static const char *fShaderCode=
+		"varying lowp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    lowp vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+#else
+static const char *vShaderCode=
+		"#version 120\n"
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"  gl_Position = VtxCoord;\n"
+		"  TexCoordOut = TexCoord;\n"
+		"}\n";
+
+static const char *fShaderCode=
+		"#version 120\n"
+		"varying vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    vec3 yuv;\n"
+		"    vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+#endif
+
+class OpenGLRender:public Render,protected QOpenGLFunctions
 {
 public:
 	explicit OpenGLRender(QWidget *parent=0):
@@ -178,41 +453,190 @@ public:
 	{
 		window=new Window(this,parent);
 		widget=QWidget::createWindowContainer(window,parent);
+		initialize=true;
+		vShader=fShader=program=0;
+		ins=this;
 	}
 
 	~OpenGLRender()
 	{
+		if(!initialize){
+			glDeleteShader(vShader);
+			glDeleteShader(fShader);
+			glDeleteProgram(program);
+			glDeleteTextures(3,frame);
+		}
+		for(quint8 *iter:buffer){
+			delete[]iter;
+		}
 		delete window;
 	}
 
 private:
 	Window *window;
+	QSize inner;
+	bool initialize;
+	GLuint vShader;
+	GLuint fShader;
+	GLuint program;
+	GLuint frame[3];
+	static QMutex dataLock;
+	QList<quint8 *> buffer;
+
+	void uploadTexture(int i,int w,int h)
+	{
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D,frame[i]);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
+	}
 
 public slots:
-	void draw(QRect){window->draw();}
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		start=true;
+		return buffer;
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
+	{
+		chroma="I420";
+		inner=size;
+		int w=size.width(),h=size.height();
+		for(quint8 *iter:buffer){
+			delete[]iter;
+		}
+		buffer.clear();
+		buffer.append(new quint8[w*h]);
+		buffer.append(new quint8[w*h/4]);
+		buffer.append(new quint8[w*h/4]);
+		if (bufferSize){
+			bufferSize->clear();
+			bufferSize->append(size);
+			bufferSize->append(size/2);
+			bufferSize->append(size/2);
+		}
+	}
+
+	QSize getPreferredSize()
+	{
+		QSize s=inner;
+		s.rwidth()*=pixelAspectRatio;
+		return s;
+	}
+
+	void draw(QRect)
+	{
+		window->draw();
+	}
+
+	void drawBuffer(QPainter *painter,QRect rect)
+	{
+		QRect dest=fitRect(inner,rect);
+		dataLock.lock();
+		painter->beginNativePainting();
+		if(dirty){
+			if(initialize){
+				initializeOpenGLFunctions();
+				glGenTextures(3,frame);
+				vShader=glCreateShader(GL_VERTEX_SHADER);
+				fShader=glCreateShader(GL_FRAGMENT_SHADER);
+				glShaderSource(vShader,1,&vShaderCode,NULL);
+				glShaderSource(fShader,1,&fShaderCode,NULL);
+				glCompileShader(vShader);
+				glCompileShader(fShader);
+				program=glCreateProgram();
+				glAttachShader(program,vShader);
+				glAttachShader(program,fShader);
+				glBindAttribLocation(program,0,"VtxCoord");
+				glBindAttribLocation(program,1,"TexCoord");
+				glLinkProgram(program);
+				initialize=false;
+			}
+			int w=inner.width(),h=inner.height();
+			uploadTexture(0,w,h);
+			uploadTexture(1,w/2,h/2);
+			uploadTexture(2,w/2,h/2);
+			dirty=false;
+		}
+		dataLock.unlock();
+		glUseProgram(program);
+		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
+		GLfloat vtx[8]={
+			-h,-v,
+			+h,-v,
+			-h,+v,
+			+h,+v
+		};
+		GLfloat tex[8]={
+			0,1,
+			1,1,
+			0,0,
+			1,0
+		};
+		glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
+		glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D,frame[0]);
+		glUniform1i(glGetUniformLocation(program,"SamplerY"),0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D,frame[1]);
+		glUniform1i(glGetUniformLocation(program,"SamplerU"),1);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D,frame[2]);
+		glUniform1i(glGetUniformLocation(program,"SamplerV"),2);
+		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+		painter->endNativePainting();
+	}
 };
 
-Render *Render::create(QWidget *parent)
+QMutex OpenGLRender::dataLock;
+#endif
+
+Render *Render::instance(QWidget *parent)
 {
+	if(ins){
+		return ins;
+	}
+#if (defined RENDER_RASTER)&&(defined RENDER_OPENGL)
 	if(Config::getValue("/Interface/Accelerated",false)){
 		return new OpenGLRender(parent);
 	}
 	else{
 		return new RasterRender(parent);
 	}
+#endif
+#if (defined RENDER_OPENGL)&&(!(defined RENDER_RASTER))
+	return new OpenGLRender(parent);
+#endif
+#if (defined RENDER_RASTER)&&(!(defined RENDER_OPENGL))
+	return new RasterRender(parent);
+#endif
 }
 
 Render::Render(QWidget *parent):
 	QObject(parent)
 {
 	time=0;
-	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](){last=QTime();});
+	connect(APlayer::instance(),&APlayer::stateChanged,[this](){last=QTime();});
 	if(Config::getValue("/Interface/Version",true)){
 		tv.setFileName(":/Picture/tv.gif");
 		tv.start();
 		me=QImage(":/Picture/version.png");
-		connect(VPlayer::instance(),&VPlayer::begin,&tv,&QMovie::stop);
-		connect(VPlayer::instance(),&VPlayer::reach,&tv,&QMovie::start);
+		connect(APlayer::instance(),&APlayer::begin,&tv,&QMovie::stop);
+		connect(APlayer::instance(),&APlayer::reach,&tv,&QMovie::start);
 		connect(&tv,&QMovie::updated,[this](){
 			QImage cf=tv.currentImage();
 			QPoint ps=widget->rect().center()-cf.rect().center();
@@ -224,18 +648,37 @@ Render::Render(QWidget *parent):
 	if(!path.isEmpty()){
 		background=QImage(path);
 	}
+	sound=QImage("/Picture/sound.png");
+	start=music=dirty=false;
+	videoAspectRatio=0;
+	pixelAspectRatio=1;
 }
 
-void Render::drawPlay(QPainter *painter, QRect rect)
+QRect Render::fitRect(QSize size,QRect rect)
 {
-	VPlayer *vplayer=VPlayer::instance();
+	QRect dest;
+	QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
+	dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
+	dest.moveCenter(rect.center());
+	return dest;
+}
+
+void Render::drawPlay(QPainter *painter,QRect rect)
+{
+	painter->fillRect(rect,Qt::black);
+	if(music){
+		painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+	}
+	else if(start){
+		drawBuffer(painter,rect);
+	}
+	APlayer *aplayer=APlayer::instance();
 	Danmaku *danmaku=Danmaku::instance();
-	vplayer->draw(painter,rect);
 	qint64 time=0;
 	if(!last.isNull()){
 		time=last.elapsed();
 	}
-	if(vplayer->getState()==VPlayer::Play){
+	if(aplayer->getState()==APlayer::Play){
 		last.start();
 	}
 	danmaku->draw(painter,rect,time);
@@ -280,7 +723,7 @@ void Render::drawTime(QPainter *painter,QRect rect)
 	painter->drawRect(rect);
 }
 
-void Render::setTime(double t)
+void Render::setDisplayTime(double t)
 {
 	time=t;
 	draw(QRect(0,widget->height()-2,widget->width()*time,2));

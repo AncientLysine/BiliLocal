@@ -28,7 +28,7 @@
 #include "Local.h"
 #include "Shield.h"
 #include "Config.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 #include "Graphic.h"
 #include <functional>
 
@@ -48,8 +48,8 @@ Danmaku::Danmaku(QObject *parent):
 	ins=this;
 	setObjectName("Danmaku");
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
-	connect(VPlayer::instance(),&VPlayer::jumped,this,&Danmaku::jumpToTime);
-	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
+	connect(APlayer::instance(),&APlayer::jumped,this,&Danmaku::jumpToTime);
+	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime);
 }
 
 void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
@@ -194,7 +194,7 @@ const Comment *Danmaku::commentAt(QPoint point) const
 
 void Danmaku::release()
 {
-	disconnect(VPlayer::instance(),&VPlayer::timeChanged,this,&Danmaku::setTime);
+	disconnect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime);
 	clearCurrent();
 }
 
@@ -335,7 +335,7 @@ public:
 
 	void run()
 	{
-		if(wait.isEmpty()||wait.first()->time<VPlayer::instance()->getTime()-500){
+		if(wait.isEmpty()||wait.first()->time<APlayer::instance()->getTime()-500){
 			return;
 		}
 		QList<Graphic *> ready;

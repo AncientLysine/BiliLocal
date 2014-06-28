@@ -32,7 +32,7 @@
 #include "Config.h"
 #include "Editor.h"
 #include "Danmaku.h"
-#include "VPlayer.h"
+#include "APlayer.h"
 
 Info::Info(QWidget *parent):
 	QWidget(parent)
@@ -61,7 +61,7 @@ Info::Info(QWidget *parent):
 	timeS->setTracking(false);
 	connect(timeS,&QSlider::valueChanged,[this](int _time){
 		if(duration!=-1&&!updating){
-			VPlayer::instance()->setTime(duration*_time/400);
+			APlayer::instance()->setTime(duration*_time/400);
 		}
 	});
 	connect(volmS,&QSlider::sliderMoved,[this](int _volm){
@@ -73,7 +73,7 @@ Info::Info(QWidget *parent):
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
 		if(!updating){
 			Config::setValue("Playing/Volume",_volm);
-			VPlayer::instance()->setVolume(_volm);
+			APlayer::instance()->setVolume(_volm);
 		}
 	});
 	playB=new QPushButton(this);
@@ -98,8 +98,8 @@ Info::Info(QWidget *parent):
 	stopA->setShortcut(Config::getValue("/Shortcut/Stop",QString()));
 	addAction(playA);
 	addAction(stopA);
-	connect(playA,SIGNAL(triggered()),VPlayer::instance(),SLOT(play()));
-	connect(stopA,SIGNAL(triggered()),VPlayer::instance(),SLOT(stop()));
+	connect(playA,SIGNAL(triggered()),APlayer::instance(),SLOT(play()));
+	connect(stopA,SIGNAL(triggered()),APlayer::instance(),SLOT(stop()));
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
 	durT=new QLabel(this);
@@ -122,7 +122,7 @@ Info::Info(QWidget *parent):
 	resizeHeader();
 	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Info::resizeHeader);
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
-		VPlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
+		APlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
 	connect(danmV,&QTableView::customContextMenuRequested,[this](QPoint p){
 		QMenu menu(this);
@@ -169,18 +169,18 @@ Info::Info(QWidget *parent):
 			config.exec();
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-			int state=VPlayer::instance()->getState();
-			if(state==VPlayer::Play) VPlayer::instance()->play();
+			int state=APlayer::instance()->getState();
+			if(state==APlayer::Play) APlayer::instance()->play();
 			Editor editor(Local::mainWidget());
 			editor.exec();
 			Danmaku::instance()->parse(0x1|0x2);
-			if(state==VPlayer::Play) VPlayer::instance()->play();
+			if(state==APlayer::Play) APlayer::instance()->play();
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
 			QFileDialog save(Local::mainWidget(),tr("Save File"));
 			save.setAcceptMode(QFileDialog::AcceptSave);
-			QFileInfo info(VPlayer::instance()->getMedia());
+			QFileInfo info(APlayer::instance()->getMedia());
 			if(info.isFile()){
 				save.setDirectory(info.absolutePath());
 				save.selectFile(info.baseName());
@@ -216,20 +216,20 @@ Info::Info(QWidget *parent):
 		}
 	});
 
-	connect(VPlayer::instance(),&VPlayer::timeChanged,this,&Info::setTime);
-	connect(VPlayer::instance(),&VPlayer::volumeChanged,[this](int volume){
+	connect(APlayer::instance(),&APlayer::timeChanged,this,&Info::setTime);
+	connect(APlayer::instance(),&APlayer::volumeChanged,[this](int volume){
 		updating=1;
 		volmS->setValue(volume);
 		updating=0;
 	});
-	connect(VPlayer::instance(),&VPlayer::begin,[this](){
-		setDuration(VPlayer::instance()->getDuration());
+	connect(APlayer::instance(),&APlayer::begin,[this](){
+		setDuration(APlayer::instance()->getDuration());
 	});
-	connect(VPlayer::instance(),&VPlayer::reach,[this](){
+	connect(APlayer::instance(),&APlayer::reach,[this](){
 		setDuration(-1);
 	});
-	connect(VPlayer::instance(),&VPlayer::stateChanged,[this](int state){
-		bool playing=state==VPlayer::Play;
+	connect(APlayer::instance(),&APlayer::stateChanged,[this](int state){
+		bool playing=state==APlayer::Play;
 		playB->setIcon(playing?pausI:playI);
 		playA->setIcon(playing?pausI:playI);
 		playA->setText(playing?tr("Pause"):tr("Play"));
