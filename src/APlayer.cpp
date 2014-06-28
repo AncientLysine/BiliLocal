@@ -566,7 +566,7 @@ QPlayer::QPlayer(QObject *parent):
 	ins=this;
 }
 
-QList<QAction *> QPlayer::getTracks(int type)
+QList<QAction *> QPlayer::getTracks(int)
 {
 	return QList<QAction *>();
 }
@@ -619,7 +619,7 @@ qint64 QPlayer::getDuration()
 	return mp.duration();
 }
 
-void QPlayer::addSubtitle(QString _file)
+void QPlayer::addSubtitle(QString)
 {
 }
 
@@ -643,15 +643,19 @@ APlayer *APlayer::instance()
 	if(ins){
 		return ins;
 	}
+#if (defined BACKEND_VLC)&&(defined BACKEND_QMM)
 	if(Config::getValue("/Playing/Native",false)){
-#ifdef BACKEND_QMM
 		return new QPlayer(Local::mainWidget());
-#endif
 	}
 	else{
-#ifdef BACKEND_VLC
 		return new VPlayer(Local::mainWidget());
-#endif
 	}
 	return 0;
+#endif
+#if (defined BACKEND_QMM)&&(!(defined BACKEND_VLC))
+	return new QPlayer(Local::mainWidget());
+#endif
+#if (defined BACKEND_VLC)&&(!(defined BACKEND_QMM))
+	return new QPlayer(Local::mainWidget());
+#endif
 }

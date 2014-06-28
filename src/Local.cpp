@@ -78,7 +78,11 @@ static void setToolTipBase()
 
 int main(int argc,char *argv[])
 {
+#ifdef Q_OS_ANDROID
+	QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+#else
 	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
+#endif
 	Local::addLibraryPath("./plugins");
 	Local::setStyle("Fusion");
 	Local a(argc,argv);

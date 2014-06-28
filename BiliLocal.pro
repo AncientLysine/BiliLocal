@@ -48,12 +48,6 @@ HEADERS  += \
     src/Load.h \
     src/Plugin.h
 
-LIBS += \
-    -lvlc \
-    -lvlccore \
-    -lswscale \
-    -lavutil
-
 RESOURCES += \
     res/Res.qrc
 
@@ -61,14 +55,24 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-win32{
-RC_ICONS = BiliLocal.ico
+android{
+DEFINES += BACKEND_QMM
+DEFINES += RENDER_OPENGL
+QT += multimedia
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res
+OTHER_FILES += res/AndroidManifest.xml
+
+}
+else{
+linux{
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
 QT += multimedia
 }
 
-linux{
+
+win32{
+RC_ICONS = BiliLocal.ico
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
 QT += multimedia
@@ -78,8 +82,16 @@ macx{
 DEFINES += BACKEND_VLC
 DEFINES += RENDER_RASTER RENDER_OPENGL
 }
+}
 
-android{
-DEFINES += BACKEND_QMM
-DEFINES += RENDER_OPENGL
+contains(DEFINES, BACKEND_VLC){
+LIBS += \
+    -lvlc \
+    -lvlccore
+}
+
+contains(DEFINES, RENDER_RASTER){
+LIBS += \
+    -lswscale \
+    -lavutil
 }

@@ -611,17 +611,21 @@ Render *Render::instance(QWidget *parent)
 	if(ins){
 		return ins;
 	}
+#if (defined RENDER_RASTER)&&(defined RENDER_OPENGL)
 	if(Config::getValue("/Interface/Accelerated",false)){
-#ifdef RENDER_OPENGL
 		return new OpenGLRender(parent);
-#endif
 	}
 	else{
-#ifdef RENDER_RASTER
 		return new RasterRender(parent);
-#endif
 	}
 	return 0;
+#endif
+#if (defined RENDER_OPENGL)&&(!(defined RENDER_RASTER))
+	return new OpenGLRender(parent);
+#endif
+#if (defined RENDER_RASTER)&&(!(defined RENDER_OPENGL))
+	return new RasterRender(parent);
+#endif
 }
 
 Render::Render(QWidget *parent):
