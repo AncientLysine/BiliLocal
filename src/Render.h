@@ -46,9 +46,11 @@ private:
 	QTime last;
 
 protected:
+	bool music;
+	bool dirty;
 	QWidget *widget;
-	bool start,music,dirty;
-	double videoAspectRatio,pixelAspectRatio;
+	double videoAspectRatio;
+	double pixelAspectRatio;
 	static Render *ins;
 
 	explicit Render(QWidget *parent=0);

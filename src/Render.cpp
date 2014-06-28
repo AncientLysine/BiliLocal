@@ -205,7 +205,6 @@ public slots:
 			}
 			p.append(srcFrame->data[i]);
 		}
-		start=true;
 		return p;
 	}
 
@@ -243,7 +242,7 @@ public slots:
 	QSize getPreferredSize()
 	{
 		QSize s=srcSize;
-		s.rwidth()*=pixelAspectRatio;
+		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		return s;
 	}
 
@@ -259,6 +258,9 @@ public slots:
 
 	void drawBuffer(QPainter *painter,QRect rect)
 	{
+		if (srcSize.isEmpty()){
+			return;
+		}
 		QRect dest=fitRect(srcSize,rect);
 		dataLock.lock();
 		if(dstSize!=dest.size()){
@@ -269,8 +271,8 @@ public slots:
 				dstFrame=new AVPicture;
 			}
 			dstSize=dest.size();
-			avpicture_alloc(dstFrame, dstFormat, dstSize.width(), dstSize.height());
-			frame=QImage(*dstFrame->data, dstSize.width(), dstSize.height(), QImage::Format_RGB32);
+			avpicture_alloc(dstFrame,dstFormat,dstSize.width(),dstSize.height());
+			frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
 			dirty=true;
 		}
 		if(dirty){
@@ -498,7 +500,6 @@ public slots:
 	QList<quint8 *> getBuffer()
 	{
 		dataLock.lock();
-		start=true;
 		return buffer;
 	}
 
@@ -531,7 +532,7 @@ public slots:
 	QSize getPreferredSize()
 	{
 		QSize s=inner;
-		s.rwidth()*=pixelAspectRatio;
+		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		return s;
 	}
 
@@ -542,6 +543,9 @@ public slots:
 
 	void drawBuffer(QPainter *painter,QRect rect)
 	{
+		if (inner.isEmpty()){
+			return;
+		}
 		QRect dest=fitRect(inner,rect);
 		dataLock.lock();
 		painter->beginNativePainting();
@@ -635,7 +639,7 @@ Render::Render(QWidget *parent):
 		tv.setFileName(":/Picture/tv.gif");
 		tv.start();
 		me=QImage(":/Picture/version.png");
-		connect(APlayer::instance(),&APlayer::begin,&tv,&QMovie::stop);
+		connect(APlayer::instance(),&APlayer::begin,&tv,&QMovie::stop );
 		connect(APlayer::instance(),&APlayer::reach,&tv,&QMovie::start);
 		connect(&tv,&QMovie::updated,[this](){
 			QImage cf=tv.currentImage();
@@ -649,7 +653,7 @@ Render::Render(QWidget *parent):
 		background=QImage(path);
 	}
 	sound=QImage("/Picture/sound.png");
-	start=music=dirty=false;
+	music=dirty=false;
 	videoAspectRatio=0;
 	pixelAspectRatio=1;
 }
@@ -658,6 +662,7 @@ QRect Render::fitRect(QSize size,QRect rect)
 {
 	QRect dest;
 	QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
+	pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 	dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
@@ -669,7 +674,7 @@ void Render::drawPlay(QPainter *painter,QRect rect)
 	if(music){
 		painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
 	}
-	else if(start){
+	else{
 		drawBuffer(painter,rect);
 	}
 	APlayer *aplayer=APlayer::instance();
