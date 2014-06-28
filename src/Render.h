@@ -35,15 +35,8 @@ class Render:public QObject
 {
 	Q_OBJECT
 public:
-	enum Type{
-		OpenGL,
-		Raster
-	};
-
 	~Render(){}
 	QWidget *getWidget(){return widget;}
-	virtual Type getType()=0;
-
 	static Render *instance(QWidget *parent=0);
 
 private:

@@ -61,15 +61,14 @@ DEFINES += RENDER_OPENGL
 QT += multimedia
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res
 OTHER_FILES += res/AndroidManifest.xml
-
 }
 else{
+
 linux{
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
 QT += multimedia
 }
-
 
 win32{
 RC_ICONS = BiliLocal.ico

@@ -183,11 +183,6 @@ public:
 		}
 	}
 
-	Type getType()
-	{
-		return Raster;
-	}
-
 private:
 	SwsContext *swsctx;
 	AVPixelFormat srcFormat;
@@ -465,12 +460,16 @@ public:
 
 	~OpenGLRender()
 	{
+		if(!initialize){
+			glDeleteShader(vShader);
+			glDeleteShader(fShader);
+			glDeleteProgram(program);
+			glDeleteTextures(3,frame);
+		}
+		for(quint8 *iter:buffer){
+			delete[]iter;
+		}
 		delete window;
-	}
-
-	Type getType()
-	{
-		return OpenGL;
 	}
 
 private:
@@ -514,8 +513,8 @@ public slots:
 		chroma="I420";
 		inner=size;
 		int w=size.width(),h=size.height();
-		for(void *iter:buffer){
-			delete (quint8 *)iter;
+		for(quint8 *iter:buffer){
+			delete[]iter;
 		}
 		buffer.clear();
 		buffer.append(new quint8[w*h]);
@@ -618,7 +617,6 @@ Render *Render::instance(QWidget *parent)
 	else{
 		return new RasterRender(parent);
 	}
-	return 0;
 #endif
 #if (defined RENDER_OPENGL)&&(!(defined RENDER_RASTER))
 	return new OpenGLRender(parent);

@@ -650,7 +650,6 @@ APlayer *APlayer::instance()
 	else{
 		return new VPlayer(Local::mainWidget());
 	}
-	return 0;
 #endif
 #if (defined BACKEND_QMM)&&(!(defined BACKEND_VLC))
 	return new QPlayer(Local::mainWidget());
