@@ -88,7 +88,6 @@ Interface::Interface(QWidget *parent):
 			render->setDisplayTime(0);
 		}
 	});
-	connect(menu->getPower(),&QTimer::timeout,this,&Interface::drawPowered);
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
 	connect(aplayer,&APlayer::begin,[this](){
 		if(!isFullScreen()&&geo.isEmpty()){
@@ -118,7 +117,6 @@ Interface::Interface(QWidget *parent):
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
-	connect(aplayer,&APlayer::decode,this,&Interface::drawDecoded);
 
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
@@ -434,20 +432,6 @@ void Interface::mouseDoubleClickEvent(QMouseEvent *e)
 		fullA->toggle();
 	}
 	QWidget::mouseDoubleClickEvent(e);
-}
-
-void Interface::drawDecoded()
-{
-	if(!menu->getPower()->isActive()){
-		render->draw();
-	}
-}
-
-void Interface::drawPowered()
-{
-	if(aplayer->getState()==APlayer::Play){
-		render->draw();
-	}
 }
 
 void Interface::checkForUpdate()

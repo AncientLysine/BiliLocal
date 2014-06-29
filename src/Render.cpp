@@ -241,6 +241,9 @@ public slots:
 
 	QSize getPreferredSize()
 	{
+		if(music){
+			return QSize();
+		}
 		QSize s=srcSize;
 		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		return s;
@@ -531,6 +534,9 @@ public slots:
 
 	QSize getPreferredSize()
 	{
+		if(music){
+			return QSize();
+		}
 		QSize s=inner;
 		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		return s;
@@ -634,7 +640,6 @@ Render::Render(QWidget *parent):
 	QObject(parent)
 {
 	time=0;
-	connect(APlayer::instance(),&APlayer::stateChanged,[this](){last=QTime();});
 	if(Config::getValue("/Interface/Version",true)){
 		tv.setFileName(":/Picture/tv.gif");
 		tv.start();
@@ -652,10 +657,30 @@ Render::Render(QWidget *parent):
 	if(!path.isEmpty()){
 		background=QImage(path);
 	}
-	sound=QImage("/Picture/sound.png");
+	sound=QImage(":/Picture/sound.png");
 	music=dirty=false;
 	videoAspectRatio=0;
 	pixelAspectRatio=1;
+
+	connect(APlayer::instance(),&APlayer::stateChanged,[this](){last=QTime();});
+	connect(APlayer::instance(),&APlayer::reach,[this](){
+		setRefreshRate(Config::getValue("/Danmaku/Power",60));
+	});
+
+	power=new QTimer(this);
+	power->setTimerType(Qt::PreciseTimer);
+	connect(APlayer::instance(),&APlayer::decode,[this](){
+		if(!power->isActive()){
+			draw();
+		}
+	});
+	connect(power,&QTimer::timeout,[this](){
+		if(APlayer::instance()->getState()==APlayer::Play){
+			draw();
+		}
+	});
+	QMetaObject::invokeMethod(this,"setRefreshRate",Qt::QueuedConnection,
+							  Q_ARG(int,Config::getValue("/Danmaku/Power",60)));
 }
 
 QRect Render::fitRect(QSize size,QRect rect)
@@ -666,6 +691,30 @@ QRect Render::fitRect(QSize size,QRect rect)
 	dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 	dest.moveCenter(rect.center());
 	return dest;
+}
+
+void Render::setMusic(bool isMusic)
+{
+	if((music=isMusic)&&!power->isActive()){
+		setRefreshRate(60,true);
+	}
+}
+
+void Render::setRefreshRate(int rate,bool soft)
+{
+	if(rate){
+		rate=qBound(30,rate,200);
+		power->start(qRound(1000.0/rate));
+		emit refreshRateChanged(rate);
+	}
+	else{
+		rate=0;
+		power->stop();
+		emit refreshRateChanged(rate);
+	}
+	if(!soft){
+		Config::setValue("/Danmaku/Power",rate);
+	}
 }
 
 void Render::drawPlay(QPainter *painter,QRect rect)

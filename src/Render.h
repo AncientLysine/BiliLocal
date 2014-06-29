@@ -44,6 +44,7 @@ private:
 	double time;
 	QImage me,background,sound;
 	QTime last;
+	QTimer *power;
 
 protected:
 	bool music;
@@ -56,14 +57,19 @@ protected:
 	explicit Render(QWidget *parent=0);
 	QRect fitRect(QSize size,QRect rect);
 
+signals:
+	void refreshRateChanged(int);
+
 public slots:
 	virtual QList<quint8 *> getBuffer()=0;
 	virtual void releaseBuffer()=0;
 	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0)=0;
 
-	void setVideoAspectRatio(double r){videoAspectRatio=r;}
-	void setPixelAspectRatio(double r){pixelAspectRatio=r;}
-	virtual QSize getPreferredSize()=0;
+	void setMusic(bool);
+	void setRefreshRate(int rate,bool soft=false);
+	void setVideoAspectRatio(double ratio){videoAspectRatio=ratio;}
+	void setPixelAspectRatio(double ratio){pixelAspectRatio=ratio;}
+	virtual	QSize getPreferredSize()=0;
 
 	virtual void draw(QRect rect=QRect())=0;
 	void drawPlay(QPainter *painter,QRect rect);

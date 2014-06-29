@@ -37,7 +37,6 @@ class Menu:public QWidget
 public:
 	explicit Menu(QWidget *parent=0);
 	bool isShown(){return isPoped;}
-	QTimer *getPower(){return powerC;}
 	bool preferStay(){return isStay||!danmC->popup()->isHidden();}
 
 private:
@@ -56,7 +55,6 @@ private:
 	QLabel *alphaT;
 	QSlider *alphaS;
 	QLabel *powerT;
-	QTimer *powerC;
 	QLineEdit *powerL;
 	QLabel *localT;
 	QCheckBox *localC;
@@ -65,9 +63,7 @@ private:
 	QLabel *loopT;
 	QCheckBox *loopC;
 	QPropertyAnimation *animation;
-
 	bool eventFilter(QObject *o,QEvent *e);
-	void setPower(qint16 fps);
 
 public slots:
 	void pop();

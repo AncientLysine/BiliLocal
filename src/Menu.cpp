@@ -29,6 +29,7 @@
 #include "Load.h"
 #include "Local.h"
 #include "Utils.h"
+#include "Render.h"
 #include "Config.h"
 #include "Search.h"
 #include "APlayer.h"
@@ -161,13 +162,16 @@ Menu::Menu(QWidget *parent):
 	powerL=new QLineEdit(this);
 	powerL->setGeometry(QRect(160,205,30,20));
 	powerL->setValidator(new QRegularExpressionValidator(QRegularExpression("^\\w*$"),powerL));
-	powerC=new QTimer(this);
-	powerC->setTimerType(Qt::PreciseTimer);
-	setPower(Config::getValue("/Danmaku/Power",60));
 	connect(powerL,&QLineEdit::editingFinished,[this](){
-		int p=powerL->text().toInt();
-		setPower(p);
-		Config::setValue("/Danmaku/Power",p);
+		Render::instance()->setRefreshRate(powerL->text().toInt());
+	});
+	connect(Render::instance(),&Render::refreshRateChanged,[this](int fps){
+		if(fps==0){
+			powerL->clear();
+		}
+		else{
+			powerL->setText(QString::number(fps));
+		}
 	});
 	localT=new QLabel(this);
 	localT->setGeometry(QRect(10,240,100,25));
@@ -249,19 +253,6 @@ Menu::Menu(QWidget *parent):
 		fileL->setCursorPosition(0);
 	});
 	hide();
-}
-
-void Menu::setPower(qint16 fps)
-{
-	if(fps==0){
-		powerC->stop();
-		powerL->setText("");
-	}
-	else{
-		fps=qBound<qint16>(30,fps,200);
-		powerC->start(1000/fps);
-		powerL->setText(QString::number(fps));
-	}
 }
 
 bool Menu::eventFilter(QObject *o,QEvent *e)

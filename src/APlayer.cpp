@@ -222,6 +222,7 @@ void VPlayer::init()
 		*connection=QObject::connect(this,&VPlayer::timeChanged,[=](){
 			if(state==Stop){
 				setState(Play);
+				bool music=true;
 				libvlc_media_track_t **info;
 				int n=libvlc_media_tracks_get(m,&info);
 				for(int i=0;i<n;++i){
@@ -229,10 +230,12 @@ void VPlayer::init()
 						libvlc_video_track_t *v=info[i]->video;
 						double r=v->i_sar_den==0?1:(double)v->i_sar_num/v->i_sar_den;
 						Render::instance()->setPixelAspectRatio(r);
+						music=false;
 						break;
 					}
 				}
 				libvlc_media_tracks_release(info,n);
+				Render::instance()->setMusic(music);
 				if(!Config::getValue("/Playing/Subtitle",true)){
 					libvlc_video_set_spu(mp,-1);
 				}
@@ -243,6 +246,7 @@ void VPlayer::init()
 					int t=i->data().toInt();
 					connect(i,&QAction::triggered,[=](){
 						libvlc_video_set_track(mp,t);
+						Render::instance()->setMusic(t==-1);
 					});
 					i->setChecked(t==libvlc_video_get_track(mp));
 				}
@@ -453,12 +457,9 @@ void VPlayer::event(int type)
 class RenderAdapter:public QAbstractVideoSurface
 {
 public:
-	bool waitForBegin;
-
 	RenderAdapter(QObject *parent=0):
 		QAbstractVideoSurface(parent)
 	{
-		waitForBegin=false;
 	}
 
 	bool start(const QVideoSurfaceFormat &format)
@@ -477,11 +478,8 @@ public:
 
 	bool present(const QVideoFrame &frame)
 	{
+		bool flag=false;
 		if(frame.pixelFormat()==QVideoFrame::Format_YUV420P){
-			if(waitForBegin){
-				APlayer::instance()->begin();
-				waitForBegin=false;
-			}
 			QVideoFrame f(frame);
 			if(f.map(QAbstractVideoBuffer::ReadOnly)){
 				int len=f.mappedBytes();
@@ -492,11 +490,11 @@ public:
 				memcpy(buffer[2],dat+len*5/6,len/6);
 				Render::instance()->releaseBuffer();
 				f.unmap();
-				APlayer::instance()->decode();
-				return true;
+				flag=true;
 			}
+			APlayer::instance()->decode();
 		}
-		return false;
+		return flag;
 	}
 
 	QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
@@ -519,6 +517,7 @@ public:
 private:
 	QMediaPlayer mp;
 	bool manuallyStopped;
+	bool waitingForBegin;
 
 public slots:
 	void	play();
@@ -546,8 +545,7 @@ QPlayer::QPlayer(QObject *parent):
 {
 	connect(&mp,&QMediaPlayer::stateChanged,	this,&QPlayer::stateChanged	);
 	connect(&mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
-	auto adapter=new RenderAdapter(&mp);
-	mp.setVideoOutput(adapter);
+	mp.setVideoOutput(new RenderAdapter(&mp));
 	manuallyStopped=false;
 	connect(this,&QPlayer::stateChanged,[=](int state){
 		if(state==Stop){
@@ -556,9 +554,16 @@ QPlayer::QPlayer(QObject *parent):
 		}
 		static int lastState;
 		if(state=Play&&lastState==Stop){
-			adapter->waitForBegin=true;
+			Render::instance()->setMusic(!mp.isVideoAvailable());
+			waitingForBegin=true;
 		}
 		lastState=state;
+	});
+	connect(&mp,&QMediaPlayer::positionChanged,[this](qint64 t){
+		if (waitingForBegin&&t>0){
+			waitingForBegin=false;
+			emit begin();
+		}
 	});
 	ins=this;
 }
