@@ -51,8 +51,7 @@ public:
 	inline const Comment *getSource(){return source;}
 	inline void setSource(const Comment *_source){source=_source;}
 
-	static Graphic *create(const Comment &comment,
-						   const QSize &size);
+	static Graphic *create(const Comment &comment);
 
 protected:
 	bool enabled;

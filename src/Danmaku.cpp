@@ -28,6 +28,7 @@
 #include "Local.h"
 #include "Shield.h"
 #include "Config.h"
+#include "Render.h"
 #include "APlayer.h"
 #include "Graphic.h"
 #include <functional>
@@ -48,13 +49,12 @@ Danmaku::Danmaku(QObject *parent):
 	ins=this;
 	setObjectName("Danmaku");
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
-	connect(APlayer::instance(),&APlayer::jumped,this,&Danmaku::jumpToTime);
-	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime);
+	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
+	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
 }
 
-void Danmaku::draw(QPainter *painter,QRect rect,qint64 move)
+void Danmaku::draw(QPainter *painter,qint64 move)
 {
-	size=rect.size();
 	QVector<Graphic *> dirty;
 	lock.lockForWrite();
 	for(auto iter=current.begin();iter!=current.end();){
@@ -328,20 +328,22 @@ void Danmaku::parse(int flag)
 class Process:public QRunnable
 {
 public:
-	Process(QSize &s,QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
-		size(s),lock(l),current(c),wait(w)
+	Process(QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
+		lock(l),current(c),wait(w)
 	{
+		createTime=QDateTime::currentMSecsSinceEpoch();
 	}
 
 	void run()
 	{
-		if(wait.isEmpty()||wait.first()->time<APlayer::instance()->getTime()-500){
+		if(wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
 			return;
 		}
+		QSize size=Render::instance()->getWidget()->size();
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){
 			const Comment *c=wait.takeFirst();
-			Graphic *g=Graphic::create(*c,size);
+			Graphic *g=Graphic::create(*c);
 			if(g){
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
 					int b=0,e=0,s=0;
@@ -426,7 +428,7 @@ public:
 	}
 
 private:
-	QSize &size;
+	qint64 createTime;
 	QReadWriteLock *lock;
 	QList<Graphic *> &current;
 	QList<const Comment *> wait;
@@ -436,17 +438,17 @@ void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
 	int l=Config::getValue("/Shield/Density",100),n=0;
-	QMap<qint64,QHash<QString,QList<const Comment *>>> buffer;
+	QMap<qint64,QMap<QString,QList<const Comment *>>> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];
-		if(!c->blocked&&(c->mode==7||l==0||current.size()+n<l)){
+		if(!c->blocked&&(c->mode>6||l==0||current.size()+n<l)){
 			++n;
 			buffer[c->time][c->string].append(c);
 		}
 	}
 	for(const auto &sameTime:buffer){
 		for(const auto &sameText:sameTime){
-			qThreadPool->start(new Process(size,&lock,current,sameText));
+			qThreadPool->start(new Process(&lock,current,sameText));
 		}
 	}
 }

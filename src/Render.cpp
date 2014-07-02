@@ -481,6 +481,7 @@ private:
 	Window *window;
 	QSize inner;
 	bool initialize;
+	bool UVReverted;
 	GLuint vShader;
 	GLuint fShader;
 	GLuint program;
@@ -514,7 +515,12 @@ public slots:
 
 	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
-		chroma="I420";
+		if(chroma=="YV12"){
+			UVReverted=true;
+		}
+		else{
+			chroma="I420";
+		}
 		inner=size;
 		int w=size.width(),h=size.height();
 		for(quint8 *iter:buffer){
@@ -602,10 +608,10 @@ public slots:
 		glBindTexture(GL_TEXTURE_2D,frame[0]);
 		glUniform1i(glGetUniformLocation(program,"SamplerY"),0);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D,frame[1]);
+		glBindTexture(GL_TEXTURE_2D,frame[UVReverted?2:1]);
 		glUniform1i(glGetUniformLocation(program,"SamplerU"),1);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D,frame[2]);
+		glBindTexture(GL_TEXTURE_2D,frame[UVReverted?1:2]);
 		glUniform1i(glGetUniformLocation(program,"SamplerV"),2);
 		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 		painter->endNativePainting();
@@ -658,7 +664,8 @@ Render::Render(QWidget *parent):
 		background=QImage(path);
 	}
 	sound=QImage(":/Picture/sound.png");
-	music=dirty=false;
+	music=1;
+	dirty=0;
 	videoAspectRatio=0;
 	pixelAspectRatio=1;
 
@@ -735,7 +742,7 @@ void Render::drawPlay(QPainter *painter,QRect rect)
 	if(aplayer->getState()==APlayer::Play){
 		last.start();
 	}
-	danmaku->draw(painter,rect,time);
+	danmaku->draw(painter,time);
 }
 
 void Render::drawStop(QPainter *painter,QRect rect)

@@ -38,7 +38,7 @@ class Danmaku:public QAbstractItemModel
 	Q_OBJECT
 public:
 	QList<Record> &getPool(){return pool;}
-	void draw(QPainter *painter,QRect rect,qint64 move);
+	void draw(QPainter *painter,qint64 move);
 	QVariant data(const QModelIndex &index,int role) const;
 	int rowCount(const QModelIndex &parent=QModelIndex()) const;
 	int columnCount(const QModelIndex &parent=QModelIndex()) const;
@@ -52,7 +52,6 @@ public:
 
 private:
 	int cur;
-	QSize size;
 	qint64 time;
 	QList<Record> pool;
 	QList<Comment *> danmaku;

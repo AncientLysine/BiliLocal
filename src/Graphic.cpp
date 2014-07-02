@@ -26,6 +26,7 @@
 
 #include "Graphic.h"
 #include "Config.h"
+#include "Render.h"
 
 class Plain:public Graphic
 {
@@ -33,14 +34,14 @@ public:
 	virtual void draw(QPainter *painter);
 
 protected:
-	Plain(const Comment &comment,const QSize &size);
+	Plain(const Comment &comment);
 	QImage cache;
 };
 
 class Mode1:public Plain
 {
 public:
-	Mode1(const Comment &comment,const QSize &size);
+	Mode1(const Comment &comment);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -51,7 +52,7 @@ private:
 class Mode4:public Plain
 {
 public:
-	Mode4(const Comment &comment,const QSize &size);
+	Mode4(const Comment &comment);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -62,7 +63,7 @@ private:
 class Mode5:public Plain
 {
 public:
-	Mode5(const Comment &comment,const QSize &size);
+	Mode5(const Comment &comment);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -73,19 +74,18 @@ private:
 class Mode6:public Plain
 {
 public:
-	Mode6(const Comment &comment,const QSize &size);
+	Mode6(const Comment &comment);
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
 private:
 	double speed;
-	const QSize &size;
 };
 
 class Mode7:public Graphic
 {
 public:
-	Mode7(const Comment &comment,const QSize &size);
+	Mode7(const Comment &comment);
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	uint intersects(Graphic *){return 0;}
@@ -244,25 +244,24 @@ static double getOverlap(double ff,double fs,double sf,double ss)
 	return 0;
 }
 
-Graphic *Graphic::create(const Comment &comment,
-						 const QSize &size)
+Graphic *Graphic::create(const Comment &comment)
 {
 	Graphic *graphic=NULL;
 	switch(comment.mode){
 	case 1:
-		graphic=new Mode1(comment,size);
+		graphic=new Mode1(comment);
 		break;
 	case 4:
-		graphic=new Mode4(comment,size);
+		graphic=new Mode4(comment);
 		break;
 	case 5:
-		graphic=new Mode5(comment,size);
+		graphic=new Mode5(comment);
 		break;
 	case 6:
-		graphic=new Mode6(comment,size);
+		graphic=new Mode6(comment);
 		break;
 	case 7:
-		graphic=new Mode7(comment,size);
+		graphic=new Mode7(comment);
 		break;
 	}
 	if(graphic!=NULL&&!graphic->isEnabled()){
@@ -279,8 +278,9 @@ void Graphic::setIndex()
 	index=globalIndex++;
 }
 
-Plain::Plain(const Comment &comment,const QSize &size)
+Plain::Plain(const Comment &comment)
 {
+	QSize size=Render::instance()->getWidget()->size();
 	source=&comment;
 	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize need=getSize(comment.string,font);
@@ -295,12 +295,13 @@ void Plain::draw(QPainter *painter)
 	}
 }
 
-Mode1::Mode1(const Comment &comment,const QSize &size):
-	Plain(comment,size)
+Mode1::Mode1(const Comment &comment):
+	Plain(comment)
 {
 	if(comment.mode!=1){
 		return;
 	}
+	QSize size=Render::instance()->getWidget()->size();
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
@@ -345,12 +346,13 @@ uint Mode1::intersects(Graphic *other)
 	return h*w;
 }
 
-Mode4::Mode4(const Comment &comment,const QSize &size):
-	Plain(comment,size)
+Mode4::Mode4(const Comment &comment):
+	Plain(comment)
 {
 	if(comment.mode!=4){
 		return;
 	}
+	QSize size=Render::instance()->getWidget()->size();
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
@@ -379,12 +381,13 @@ uint Mode4::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode5::Mode5(const Comment &comment,const QSize &size):
-	Plain(comment,size)
+Mode5::Mode5(const Comment &comment):
+	Plain(comment)
 {
 	if(comment.mode!=5){
 		return;
 	}
+	QSize size=Render::instance()->getWidget()->size();
 	QSizeF bound=rect.size();
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -414,12 +417,13 @@ uint Mode5::intersects(Graphic *other)
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
-Mode6::Mode6(const Comment &comment,const QSize &size):
-	Plain(comment,size),size(size)
+Mode6::Mode6(const Comment &comment):
+	Plain(comment)
 {
 	if(comment.mode!=6){
 		return;
 	}
+	QSize size=Render::instance()->getWidget()->size();
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
@@ -431,6 +435,7 @@ Mode6::Mode6(const Comment &comment,const QSize &size):
 
 bool Mode6::move(qint64 time)
 {
+	QSize size=Render::instance()->getWidget()->size();
 	if(enabled){
 		rect.moveLeft(rect.left()+speed*time/1000.0);
 	}
@@ -464,7 +469,7 @@ uint Mode6::intersects(Graphic *other)
 	return h*w;
 }
 
-Mode7::Mode7(const Comment &comment,const QSize &size)
+Mode7::Mode7(const Comment &comment)
 {
 	if(comment.mode!=7){
 		return;
@@ -474,6 +479,7 @@ Mode7::Mode7(const Comment &comment,const QSize &size)
 	if((l=data.size())<5){
 		return;
 	}
+	QSize size=Render::instance()->getWidget()->size();
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
 	double scale=getScale(comment.mode,comment.date,size);
 	bPos=QPointF(getDouble(0),getDouble(1));
