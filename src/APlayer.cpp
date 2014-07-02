@@ -637,7 +637,7 @@ QPlayer::QPlayer(QObject *parent):
 			}
 		}
 		manuallyStopped=false;
-		if(state=Play&&lastState==Stop){
+		if(state==Play&&lastState==Stop){
 			waitingForBegin=true;
 		}
 		lastState=state;
@@ -675,7 +675,7 @@ void QPlayer::stop(bool manually)
 
 int QPlayer::getState()
 {
-	return waitingForBegin?Stop:mp->state();
+	return waitingForBegin?(int)Stop:(int)mp->state();
 }
 
 void QPlayer::setTime(qint64 _time)

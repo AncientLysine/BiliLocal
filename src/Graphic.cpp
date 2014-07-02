@@ -423,7 +423,6 @@ Mode6::Mode6(const Comment &comment):
 	if(comment.mode!=6){
 		return;
 	}
-	QSize size=Render::instance()->getWidget()->size();
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
