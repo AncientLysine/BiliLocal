@@ -620,10 +620,6 @@ QPlayer::QPlayer(QObject *parent):
 	connect(mp,&QMediaPlayer::stateChanged,		this,&QPlayer::stateChanged	);
 	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
 
-	connect(mp,&QMediaPlayer::videoAvailableChanged,[this](bool a){
-		Render::instance()->setMusic(!a);
-	});
-
 	manuallyStopped=false;
 	connect(this,&QPlayer::stateChanged,[=](int state){
 		static int lastState;
@@ -646,6 +642,7 @@ QPlayer::QPlayer(QObject *parent):
 	connect(this,&QPlayer::timeChanged,[this](qint64 t){
 		if (waitingForBegin&&t>0){
 			waitingForBegin=false;
+			Render::instance()->setMusic(!mp->isVideoAvailable());
 			emit begin();
 		}
 	});
