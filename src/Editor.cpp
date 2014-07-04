@@ -152,8 +152,9 @@ public:
 	explicit Track(QWidget *parent=0):
 		QWidget(parent)
 	{
+		setFont(qApp->font());
 		resize(parent->width(),100);
-		parent->installEventFilter(this);
+		setPalette(qApp->palette());
 		m_record=NULL;
 		m_wheel=0;
 		m_magnet<<0<<0<<0;
@@ -297,14 +298,6 @@ private:
 		m_point=QPoint();
 	}
 
-	bool eventFilter(QObject *,QEvent *e)
-	{
-		if(e->type()==QEvent::Resize){
-			resize(dynamic_cast<QResizeEvent *>(e)->size().width(),100);
-		}
-		return false;
-	}
-
 	void delayRecord(qint64 delay)
 	{
 		m_record->delay+=delay;
@@ -353,16 +346,14 @@ Editor::Editor(QWidget *parent):
 	resize(640,450);
 	setMinimumSize(300,200);
 	setWindowTitle(tr("Editor"));
+	setFocus();
 	Utils::setCenter(this);
-	widget=new QWidget(this);
-	widget->setFocusPolicy(Qt::ClickFocus);
-	scroll=new MScroll(this);
-	scroll->setSingleStep(20);
+
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
-	parseRecords();
-	setFocus();
-	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
+
+	scroll=new MScroll(this);
+	scroll->setSingleStep(20);
 	connect(scroll,&QScrollBar::valueChanged,[this](int value){
 		value=-value;
 		for(QObject *c:widget->children()){
@@ -370,6 +361,17 @@ Editor::Editor(QWidget *parent):
 			value+=100;
 		}
 	});
+
+	widget=new QLabel(this);
+	widget->setFocusPolicy(Qt::ClickFocus);
+	QFont f;
+	f.setPixelSize(75);
+	f.setBold(true);
+	widget->setFont(f);
+	widget->setAlignment(Qt::AlignCenter);
+	QPalette p=widget->palette();
+	p.setColor(QPalette::Foreground,Qt::gray);
+	widget->setPalette(p);
 	widget->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(widget,&QWidget::customContextMenuRequested,[this](QPoint p){
 		int i;
@@ -519,6 +521,9 @@ Editor::Editor(QWidget *parent):
 		});
 		menu.exec(mapToGlobal(p));
 	});
+
+	parseRecords();
+	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
 }
 
 void Editor::resizeEvent(QResizeEvent *e)
@@ -538,30 +543,41 @@ void Editor::resizeEvent(QResizeEvent *e)
 	scroll->setRange(0,c.size()*100-r.height()-2);
 	scroll->setValue(c.size()?-qobject_cast<QWidget *>(c.first())->y():0);
 	scroll->setPageStep(r.height());
+	for(QObject *o:c){
+		QWidget *w=qobject_cast<QWidget *>(o);
+		if (w){
+			w->resize(widget->width(),100);
+		}
+	}
 }
 
 void Editor::parseRecords()
 {
 	qDeleteAll(widget->children());
+	widget->clear();
 	QList<Record> &pool=Danmaku::instance()->getPool();
-	qint64 duration=APlayer::instance()->getDuration();
-	bool undefined=(duration==-1);
-	for(Record &r:pool){
-		if(undefined){
-			for(const Comment &c:r.danmaku){
-				duration=qMax(c.time-r.delay,duration);
+	if(!pool.isEmpty()){
+		qint64 duration=APlayer::instance()->getDuration();
+		for(Record &r:pool){
+			if(APlayer::instance()->getDuration()<=0){
+				for(const Comment &c:r.danmaku){
+					duration=qMax(c.time-r.delay,duration);
+				}
 			}
 		}
+		int height=0;
+		for(Record &r:pool){
+			Track *t=new Track(widget);
+			t->setPrefix(tr("Delay: %1s"));
+			t->move(0,height);
+			height+=100;
+			t->setCurrent(APlayer::instance()->getTime());
+			t->setDuration(duration);
+			t->setRecord(&r);
+			t->show();
+		}
 	}
-	int height=0;
-	for(Record &r:pool){
-		Track *t=new Track(widget);
-		t->setPrefix(tr("Delay: %1s"));
-		t->move(0,height);
-		height+=100;
-		t->setCurrent(APlayer::instance()->getTime());
-		t->setDuration(duration);
-		t->setRecord(&r);
-		t->show();
+	else{
+		widget->setText(tr("_(:з」∠)_ Empty"));
 	}
 }

@@ -39,7 +39,7 @@ public:
 	Editor(QWidget *parent=0);
 
 private:
-	QWidget *widget;
+	QLabel *widget;
 	QScrollBar *scroll;
 	QNetworkAccessManager *manager;
 	void resizeEvent(QResizeEvent *e);
