@@ -50,11 +50,9 @@ public:
 		StrRole
 	};
 
-	static Load *instance();
-	void getReply(QNetworkRequest request,QString string=QString());
-	QString getStr();
-	QString getUrl();
+	bool event(QEvent *e);
 	QStandardItemModel *getModel();
+	static Load *instance();
 
 private:
 	QStandardItemModel *model;
@@ -68,6 +66,9 @@ signals:
 	void stateChanged(int state);
 
 public slots:
+	void getReply(QNetworkRequest request,QString string=QString());
+	QString getStr();
+	QString getUrl();
 	void loadDanmaku(QString _code);
 
 };

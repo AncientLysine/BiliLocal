@@ -47,9 +47,9 @@ void Plugin::regist(const QHash<QString,QObject *> &objects)
 	m_regist(objects);
 }
 
-void Plugin::config()
+void Plugin::config(QWidget *parent)
 {
-	m_config();
+	m_config(parent);
 }
 
 QString Plugin::string(QString query)

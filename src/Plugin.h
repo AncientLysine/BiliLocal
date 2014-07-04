@@ -28,12 +28,13 @@
 #define PLUGIN_H
 
 #include <QtCore>
+#include <QtWidgets>
 
 class Plugin
 {
 public:
 	typedef void (*RegistPtr)(const QHash<QString,QObject *> &);
-	typedef void (*ConfigPtr)();
+	typedef void (*ConfigPtr)(QWidget *);
 	typedef QString (*StringPtr)(QString);
 
 	static QList<Plugin> plugins;
@@ -42,7 +43,7 @@ public:
 	Plugin(QString path);
 	bool loaded();
 	void regist(const QHash<QString,QObject *> &);
-	void config();
+	void config(QWidget *);
 	QString string(QString query);
 
 private:

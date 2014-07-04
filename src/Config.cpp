@@ -982,9 +982,9 @@ Config::Config(QWidget *parent,int index):
 			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
 			Config::setValue("/Plugin/"+p->string("Name"),item->checkState(0)==Qt::Checked);
 		});
-		connect(d->plugin,&QTreeWidget::itemClicked,[d](QTreeWidgetItem *item,int column){
+		connect(d->plugin,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
 			if(column==5){
-				((Plugin *)item->data(0,Qt::UserRole).value<quintptr>())->config();
+				((Plugin *)item->data(0,Qt::UserRole).value<quintptr>())->config(this);
 			}
 		});
 		connect(d->plugin,&QTreeWidget::currentItemChanged,[d](){

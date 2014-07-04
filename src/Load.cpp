@@ -42,12 +42,17 @@ Load::Load(QObject *parent):
 {
 	model=new QStandardItemModel(this);
 	ins=this;
+	setObjectName("Load");
 
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
 		auto error=[this](int code){
-			if(code!=QNetworkReply::OperationCanceledError){
+			if(code==QNetworkReply::OperationCanceledError){
+				return;
+			}
+			QEvent e(QEvent::User);
+			if(!qApp->sendEvent(this,&e)){
 				emit stateChanged(code);
 			}
 		};
@@ -220,6 +225,16 @@ Load::Load(QObject *parent):
 	});
 }
 
+bool Load::event(QEvent *e)
+{
+	return e->type()==QEvent::User?false:QObject::event(e);
+}
+
+QStandardItemModel *Load::getModel()
+{
+	return model;
+}
+
 void Load::getReply(QNetworkRequest request,QString string)
 {
 	if(!current.isNull()){
@@ -248,11 +263,6 @@ QString Load::getStr()
 QString Load::getUrl()
 {
 	return current?current->request().url().url():QString();
-}
-
-QStandardItemModel *Load::getModel()
-{
-	return model;
 }
 
 void Load::loadDanmaku(QString _code)

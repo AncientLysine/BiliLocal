@@ -61,10 +61,12 @@ Interface::Interface(QWidget *parent):
 	info=new Info(this);
 	post=Post::instance();
 	next=Next::instance();
+	load=Load::instance();
 	Local::objects["Info"]=info;
 	Local::objects["Menu"]=menu;
 	Local::objects["Next"]=next;
 	Local::objects["Post"]=post;
+	Local::objects["Load"]=load;
 
 	timer=new QTimer(this);
 	delay=new QTimer(this);
@@ -292,7 +294,7 @@ void Interface::tryLocal(QString p)
 		aplayer->setMedia(p);
 	}
 	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
-		Load::instance()->loadDanmaku(p);
+		load->loadDanmaku(p);
 	}
 	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
 		aplayer->addSubtitle(p);
