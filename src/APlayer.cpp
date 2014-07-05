@@ -617,8 +617,11 @@ QPlayer::QPlayer(QObject *parent):
 	APlayer(parent)
 {
 	mp=(new PlayerThread(this))->getMediaPlayer();
+	mp->setVolume(Config::getValue("/Playing/Volume",50));
+
 	connect(mp,&QMediaPlayer::stateChanged,		this,&QPlayer::stateChanged	);
 	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
+	connect(mp,&QMediaPlayer::volumeChanged,	this,&QPlayer::volumeChanged);
 
 	manuallyStopped=false;
 	connect(this,&QPlayer::stateChanged,[=](int state){
@@ -715,7 +718,9 @@ void QPlayer::addSubtitle(QString)
 
 void QPlayer::setVolume(int _volume)
 {
+	_volume=qBound(0,_volume,100);
 	mp->setVolume(_volume);
+	Config::setValue("/Playing/Volume",_volume);
 }
 
 int QPlayer::getVolume()
