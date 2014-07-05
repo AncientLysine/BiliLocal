@@ -114,6 +114,8 @@ namespace Utils
 	QString defaultPath();
 	QString defaultFont(bool monospace=false);
 	QString decodeXml(QString string,bool fast=false);
+	QStringList getRenderModules();
+	QStringList getDecodeModules();
 	QStringList getSuffix(int type,QString format="");
 	QList<Comment> parseComment(QByteArray data,Site site);
 }

@@ -733,18 +733,23 @@ APlayer *APlayer::instance()
 	if(ins){
 		return ins;
 	}
-#if (defined BACKEND_VLC)&&(defined BACKEND_QMM)
-	if(Config::getValue("/Playing/Native",false)){
-		return new QPlayer(Local::mainWidget());
+	QString d;
+	QStringList l=Utils::getDecodeModules();
+	switch(l.size()){
+	case 0:
+		break;
+	case 1:
+		d=l[0];
+		break;
+	default:
+		d=Config::getValue("/Performance/Decode",QString("VLC"));
+		break;
 	}
-	else{
+	if(d=="VLC"){
 		return new VPlayer(Local::mainWidget());
 	}
-#endif
-#if (defined BACKEND_QMM)&&(!(defined BACKEND_VLC))
-	return new QPlayer(Local::mainWidget());
-#endif
-#if (defined BACKEND_VLC)&&(!(defined BACKEND_QMM))
-	return new VPlayer(Local::mainWidget());
-#endif
+	if(d=="QMM"){
+		return new QPlayer(Local::mainWidget());
+	}
+	return 0;
 }

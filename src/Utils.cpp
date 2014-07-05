@@ -294,37 +294,63 @@ QString Utils::decodeXml(QString string,bool fast)
 			QChar c=string[i];
 			if(c>=' '||c=='\n'){
 				bool f=true;
-				if(c=='&'&&l-i>=4){
-					switch(string[i+1].unicode()){
-					case 'l':
-						if(string[i+2]=='t'&&string[i+3]==';'){
-							fixed+='<';
-							f=false;
-							i+=3;
+				switch(c.unicode()){
+				case '&':
+					if(l-i>=4){
+						switch(string[i+1].unicode()){
+						case 'l':
+							if(string[i+2]=='t'&&string[i+3]==';'){
+								fixed+='<';
+								f=false;
+								i+=3;
+							}
+							break;
+						case 'g':
+							if(string[i+2]=='t'&&string[i+3]==';'){
+								fixed+='>';
+								f=false;
+								i+=3;
+							}
+							break;
+						case 'a':
+							if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
+								fixed+='&';
+								f=false;
+								i+=4;
+							}
+							break;
+						case 'q':
+							if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
+								fixed+='\"';
+								f=false;
+								i+=5;
+							}
+							break;
 						}
-						break;
-					case 'g':
-						if(string[i+2]=='t'&&string[i+3]==';'){
-							fixed+='>';
+					}
+					break;
+				case '/' :
+				case '\\':
+					if(l-i>=2){
+						switch(string[i+1].unicode()){
+						case 'n':
+							fixed+='\n';
 							f=false;
-							i+=3;
-						}
-						break;
-					case 'a':
-						if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
-							fixed+='&';
+							i+=1;
+							break;
+						case 't':
+							fixed+='\t';
 							f=false;
-							i+=4;
-						}
-						break;
-					case 'q':
-						if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
+							i+=1;
+							break;
+						case '\"':
 							fixed+='\"';
 							f=false;
-							i+=5;
+							i+=1;
+							break;
 						}
-						break;
 					}
+					break;
 				}
 				if(f){
 					fixed+=c;
@@ -338,6 +364,30 @@ QString Utils::decodeXml(QString string,bool fast)
 		text.setHtml(string);
 		return text.toPlainText();
 	}
+}
+
+QStringList Utils::getRenderModules()
+{
+	QStringList modules;
+#ifdef RENDER_RASTER
+	modules<<"Raster";
+#endif
+#ifdef RENDER_OPENGL
+	modules<<"OpenGL";
+#endif
+	return modules;
+}
+
+QStringList Utils::getDecodeModules()
+{
+	QStringList modules;
+#ifdef BACKEND_VLC
+	modules<<"VLC";
+#endif
+#ifdef BACKEND_QMM
+	modules<<"QMM";
+#endif
+	return modules;
 }
 
 QStringList Utils::getSuffix(int type,QString format)

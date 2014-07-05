@@ -516,9 +516,10 @@ public slots:
 	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
 		if(chroma=="YV12"){
-			UVReverted=true;
+			UVReverted=1;
 		}
 		else{
+			UVReverted=0;
 			chroma="I420";
 		}
 		inner=size;
@@ -626,20 +627,25 @@ Render *Render::instance(QWidget *parent)
 	if(ins){
 		return ins;
 	}
-#if (defined RENDER_RASTER)&&(defined RENDER_OPENGL)
-	if(Config::getValue("/Interface/Accelerated",false)){
+	QString r;
+	QStringList l=Utils::getRenderModules();
+	switch(l.size()){
+	case 0:
+		break;
+	case 1:
+		r=l[0];
+		break;
+	default:
+		r=Config::getValue("/Performance/Render",QString("OpenGL"));
+		break;
+	}
+	if(r=="OpenGL"){
 		return new OpenGLRender(parent);
 	}
-	else{
+	if(r=="Raster"){
 		return new RasterRender(parent);
 	}
-#endif
-#if (defined RENDER_OPENGL)&&(!(defined RENDER_RASTER))
-	return new OpenGLRender(parent);
-#endif
-#if (defined RENDER_RASTER)&&(!(defined RENDER_OPENGL))
-	return new RasterRender(parent);
-#endif
+	return 0;
 }
 
 Render::Render(QWidget *parent):

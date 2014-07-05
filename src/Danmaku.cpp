@@ -264,7 +264,6 @@ void Danmaku::parse(int flag)
 		danmaku.clear();
 		for(Record &record:pool){
 			for(Comment &comment:record.danmaku){
-				comment.string.replace("/n","\n");
 				danmaku.append(&comment);
 			}
 		}

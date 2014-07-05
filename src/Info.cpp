@@ -165,7 +165,7 @@ Info::Info(QWidget *parent):
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(Local::mainWidget(),2);
+			Config config(Local::mainWidget(),3);
 			config.exec();
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){

@@ -36,7 +36,7 @@ class ConfigPrivate
 {
 public:
 	QTabWidget *tab;
-	QWidget *widget[8];
+	QWidget *widget[9];
 
 	//Playing
 	QGroupBox *box[7];
@@ -52,7 +52,6 @@ public:
 	QGroupBox *ui[7];
 	QComboBox *font;
 	QComboBox *reop;
-	QCheckBox *acce;
 	QCheckBox *vers;
 	QCheckBox *stay;
 	QCheckBox *less;
@@ -62,6 +61,15 @@ public:
 	QLineEdit *size;
 	QLineEdit *back;
 	QPushButton *open;
+
+	//Performance
+	QGroupBox *opt[2];
+	QComboBox *render;
+	QComboBox *decode;
+	QLabel *retext;
+	QLabel *detext;
+	QList<QLabel *> relogo;
+	QList<QLabel *> delogo;
 
 	//Shiled
 	QLineEdit *edit;
@@ -108,7 +116,7 @@ public:
 	QHash<QString,QVariant> getRestart()
 	{
 		QStringList path;
-		path<<"/Interface/Accelerated"<<
+		path<<"/Performance"<<
 			  "/Interface/Background"<<
 			  "/Interface/Font"<<
 			  "/Interface/Frameless"<<
@@ -139,13 +147,50 @@ public:
 		return data;
 	}
 
+	void fillPicture(QLabel *label,QString url,QString error,QSize limit)
+	{
+		QNetworkReply *reply=manager->get(QNetworkRequest(url));
+		QObject::connect(reply,&QNetworkReply::finished,label,[=](){
+			if (reply->error()==QNetworkReply::NoError){
+				QPixmap pixmap;
+				pixmap.loadFromData(reply->readAll());
+				if(!pixmap.isNull()){
+					label->setPixmap(pixmap.scaled(limit,Qt::KeepAspectRatio,Qt::SmoothTransformation));
+				}
+			}
+			if(!label->pixmap()){
+				label->setText(error);
+			}
+			reply->deleteLater();
+		});
+	}
+
+	QString getLogo(QString name)
+	{
+		static QHash<QString,QString> l;
+		if(l.isEmpty()){
+			QFile file(":/Text/DATA");
+			file.open(QIODevice::ReadOnly|QIODevice::Text);
+			QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()["Logo"].toObject();
+			for(auto iter=data.begin();iter!=data.end();++iter){
+				l[iter.key()]=iter.value().toString();
+			}
+		}
+		return l[name];
+	}
 };
 
 class Cookie:public QNetworkCookieJar
 {
 public:
+	Cookie(QObject *parent=0):
+		QNetworkCookieJar(parent)
+	{
+	}
+
 	static void load()
 	{
+		data=new Cookie(qApp);
 		QByteArray buff;
 		buff=Config::getValue("/Network/Cookie",QString()).toUtf8();
 		buff=buff.isEmpty()?buff:qUncompress(QByteArray::fromBase64(buff));
@@ -160,7 +205,7 @@ public:
 			all.append(QNetworkCookie::parseCookies(QByteArray(d,l)));
 			delete []d;
 		}
-		data.setAllCookies(all);
+		data->setAllCookies(all);
 	}
 
 	static void save()
@@ -168,7 +213,7 @@ public:
 
 		QByteArray buff;
 		QDataStream save(&buff,QIODevice::WriteOnly);
-		const QList<QNetworkCookie> &all=data.allCookies();
+		const QList<QNetworkCookie> &all=data->allCookies();
 		save<<all.count();
 		for(const QNetworkCookie &iter:all){
 			QByteArray d=iter.toRawForm();
@@ -178,24 +223,30 @@ public:
 		Config::setValue("/Network/Cookie",QString(qCompress(buff).toBase64()));
 	}
 
-	static Cookie data;
+	static Cookie *data;
 };
 
-Cookie Cookie::data;
+Cookie *Cookie::data=NULL;
 
-class DCache
+class DCache:public QNetworkDiskCache
 {
 public:
-	static void load()
+	DCache(QObject *parent=0):
+		QNetworkDiskCache(parent)
 	{
-		data.setCacheDirectory("./cache");
-		data.setMaximumCacheSize(Config::getValue("/Network/Cache/Maximum",100*1024*1024));
 	}
 
-	static QNetworkDiskCache data;
+	static void load()
+	{
+		data=new DCache(qApp);
+		data->setCacheDirectory("./cache");
+		data->setMaximumCacheSize(Config::getValue("/Network/Cache/Maximum",100*1024*1024));
+	}
+
+	static DCache *data;
 };
 
-QNetworkDiskCache DCache::data;
+DCache *DCache::data=NULL;
 
 class APorxy
 {
@@ -402,30 +453,24 @@ Config::Config(QWidget *parent,int index):
 		list->addLayout(q);
 
 		auto t=new QGridLayout;
-		d->acce=new QCheckBox(tr("hardware accelerated"),d->widget[1]);
-		d->acce->setChecked(Config::getValue("/Interface/Accelerated",false));
-		connect(d->acce,&QCheckBox::stateChanged,[d](int state){
-			Config::setValue("/Interface/Accelerated",state==Qt::Checked);
-		});
-		t->addWidget(d->acce,0,0);
-		d->vers=new QCheckBox(tr("version information"),d->widget[1]);
-		d->vers->setChecked(Config::getValue("/Interface/Version",true));
-		connect(d->vers,&QCheckBox::stateChanged,[d](int state){
-			Config::setValue("/Interface/Version",state==Qt::Checked);
-		});
-		t->addWidget(d->vers,1,0);
 		d->stay=new QCheckBox(tr("stay on top"),d->widget[1]);
 		d->stay->setChecked(Config::getValue("/Interface/Top",false));
 		connect(d->stay,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Top",state==Qt::Checked);
 		});
-		t->addWidget(d->stay,0,1);
+		t->addWidget(d->stay,0,0);
 		d->less=new QCheckBox(tr("frameless"),d->widget[1]);
 		d->less->setChecked(Config::getValue("/Interface/Frameless",false));
 		connect(d->less,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Frameless",state==Qt::Checked);
 		});
-		t->addWidget(d->less,1,1);
+		t->addWidget(d->less,1,0);
+		d->vers=new QCheckBox(tr("version information"),d->widget[1]);
+		d->vers->setChecked(Config::getValue("/Interface/Version",true));
+		connect(d->vers,&QCheckBox::stateChanged,[d](int state){
+			Config::setValue("/Interface/Version",state==Qt::Checked);
+		});
+		t->addWidget(d->vers,0,1);
 		d->ui[2]=new QGroupBox(tr("window flag"),d->widget[1]);
 		d->ui[2]->setLayout(t);
 		list->addWidget(d->ui[2]);
@@ -499,19 +544,134 @@ Config::Config(QWidget *parent,int index):
 
 		list->addStretch(10);
 		d->tab->addTab(d->widget[1],tr("Interface"));
+	}
+	//Performance
+	{
+		d->widget[2]=new QWidget(this);
+		auto out=new QHBoxLayout(d->widget[2]);
+		d->opt[0]=new QGroupBox(tr("Render"),d->widget[2]);
+		d->opt[1]=new QGroupBox(tr("Decode"),d->widget[2]);
+		auto r=new QVBoxLayout;
+		auto e=new QVBoxLayout;
+		d->opt[0]->setLayout(r);
+		d->opt[1]->setLayout(e);
+		d->render=new QComboBox(d->widget[2]);
+		d->decode=new QComboBox(d->widget[2]);
 
-		d->restart=d->getRestart();
+		QStringList relist=Utils::getRenderModules();
+		QStringList delist=Utils::getDecodeModules();
+		d->render->addItems(relist);
+		d->decode->addItems(delist);
+
+		if(relist.size()>=2){
+			QString r=getValue("/Performance/Render",QString("OpenGL"));
+			d->render->setCurrentText(r);
+		}
+		else{
+			d->render->setEnabled(false);
+		}
+		if(delist.size()>=2){
+			QString r=getValue("/Performance/Decode",QString("VLC"));
+			d->decode->setCurrentText(r);
+		}
+		else{
+			d->decode->setEnabled(false);
+		}
+
+		auto updateLogo=[d](QVBoxLayout *layout,QList<QLabel *> &pool,QStringList urls){
+			qDeleteAll(pool);
+			pool.clear();
+			for(QString url:urls){
+				QLabel *l=new QLabel(d->widget[2]);
+				l->setFixedHeight(100);
+				l->setAlignment(Qt::AlignCenter);
+				d->fillPicture(l,url,QString(),QSize(200,80));
+				layout->insertWidget(1,l);
+				pool.append(l);
+			}
+		};
+
+		connect(d->render,&QComboBox::currentTextChanged,[=](QString text){
+			QString desc;
+			if(text=="Raster"){
+				desc=tr("software render\n"
+						"libswscale for size and chroma transform\n"
+						"libqtgui for alpha blending and output\n"
+						"high compatibility but a little bit slower");
+				updateLogo(r,d->relogo,QStringList()
+						   <<d->getLogo("Qt")
+						   <<d->getLogo("FFmpeg"));
+			}
+			if(text=="OpenGL"){
+				desc=tr("opengl es2 renedr\n"
+						"texture unit for size transform\n"
+						"glsl code for chroma transform\n"
+						"only accept YV12/I420 but significantly faster");
+				updateLogo(r,d->relogo,QStringList()
+						   <<""
+						   <<d->getLogo("OpenGL"));
+			}
+			d->retext->setText(desc);
+			if(relist.size()>=2){
+				setValue("/Performance/Render",text);
+			}
+		});
+		connect(d->decode,&QComboBox::currentTextChanged,[=](QString text){
+			QString desc;
+			if(text=="VLC"){
+				desc=tr("libvlc backend\n"
+						"all platform supported\n"
+						"no additional codecs required");
+				updateLogo(e,d->delogo,QStringList()
+						   <<""
+						   <<d->getLogo("VLC"));
+			}
+			if(text=="QMM"){
+				desc=tr("libqtmultimedia backend\n"
+						"support directshow on windows\n"
+						"k-lite/win7codecs recommended");
+				updateLogo(e,d->delogo,QStringList()
+						   <<d->getLogo("DirectX")
+						   <<d->getLogo("Qt"));
+			}
+			d->detext->setText(desc);
+			if(delist.size()>=2){
+				setValue("/Performance/Decode",text);
+			}
+		});
+
+		r->addWidget(d->render);
+		e->addWidget(d->decode);
+
+		r->addSpacing(10);
+		e->addSpacing(10);
+
+		d->retext=new QLabel(d->widget[2]);
+		d->detext=new QLabel(d->widget[2]);
+		d->retext->setWordWrap(true);
+		d->detext->setWordWrap(true);
+		d->retext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
+		d->detext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
+		r->addWidget(d->retext);
+		e->addWidget(d->detext);
+		out->addWidget(d->opt[0],5);
+		out->addWidget(d->opt[1],5);
+
+		d->render->currentTextChanged(d->render->currentText());
+		d->decode->currentTextChanged(d->decode->currentText());
+
+		d->tab->addTab(d->widget[2],tr("Performance"));
 	}
 	//Shield
 	{
-		d->widget[2]=new QWidget(this);
+		d->widget[3]=new QWidget(this);
 		QStringList list;
 		list<<tr("Top")<<tr("Bottom")<<tr("Slide")<<tr("Reverse")<<tr("Guest")<<tr("Advanced")<<tr("Color")<<tr("Whole");
-		auto grid=new QGridLayout(d->widget[2]);
+		auto grid=new QGridLayout(d->widget[3]);
 
 		auto g=new QHBoxLayout;
 		for(int i=0;i<8;++i){
-			d->check[i]=new QCheckBox(list[i],d->widget[2]);
+			d->check[i]=new QCheckBox(list[i],d->widget[3]);
 			d->check[i]->setFixedHeight(40);
 			d->check[i]->setChecked(Shield::shieldG[i]);
 			connect(d->check[i],&QCheckBox::stateChanged,[=](int state){
@@ -521,13 +681,13 @@ Config::Config(QWidget *parent,int index):
 		}
 		grid->addLayout(g,0,0,1,4);
 
-		d->type=new QComboBox(d->widget[2]);
+		d->type=new QComboBox(d->widget[3]);
 		d->type->addItem(tr("Text"));
 		d->type->addItem(tr("User"));
-		d->edit=new QLineEdit(d->widget[2]);
+		d->edit=new QLineEdit(d->widget[3]);
 		d->edit->setFixedHeight(25);
-		d->regexp=new QListView(d->widget[2]);
-		d->sender=new QListView(d->widget[2]);
+		d->regexp=new QListView(d->widget[3]);
+		d->sender=new QListView(d->widget[3]);
 		d->regexp->setSelectionMode(QListView::ExtendedSelection);
 		d->sender->setSelectionMode(QListView::ExtendedSelection);
 		d->regexp->setModel(d->rm=new QStringListModel(d->regexp));
@@ -546,10 +706,10 @@ Config::Config(QWidget *parent,int index):
 		std::sort(s.begin(),s.end());
 		d->rm->setStringList(r);
 		d->sm->setStringList(s);
-		d->action[0]=new QAction(tr("Add"),d->widget[2]);
-		d->action[1]=new QAction(tr("Del"),d->widget[2]);
-		d->action[2]=new QAction(tr("Import"),d->widget[2]);
-		d->action[3]=new QAction(tr("Export"),d->widget[2]);
+		d->action[0]=new QAction(tr("Add"),d->widget[3]);
+		d->action[1]=new QAction(tr("Del"),d->widget[3]);
+		d->action[2]=new QAction(tr("Import"),d->widget[3]);
+		d->action[3]=new QAction(tr("Export"),d->widget[3]);
 		d->action[1]->setShortcut(QKeySequence("Del"));
 		d->action[2]->setShortcut(QKeySequence("Ctrl+I"));
 		d->action[3]->setShortcut(QKeySequence("Ctrl+E"));
@@ -640,18 +800,18 @@ Config::Config(QWidget *parent,int index):
 				stream<<"</filters>";
 			}
 		});
-		d->widget[2]->addAction(d->action[2]);
-		d->widget[2]->addAction(d->action[3]);
-		d->button[0]=new QPushButton(tr("Add"),d->widget[2]);
-		d->button[1]=new QPushButton(tr("Del"),d->widget[2]);
+		d->widget[3]->addAction(d->action[2]);
+		d->widget[3]->addAction(d->action[3]);
+		d->button[0]=new QPushButton(tr("Add"),d->widget[3]);
+		d->button[1]=new QPushButton(tr("Del"),d->widget[3]);
 		d->button[0]->setFixedWidth(60);
 		d->button[1]->setFixedWidth(60);
 		d->button[0]->setFocusPolicy(Qt::NoFocus);
 		d->button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(d->button[0],&QPushButton::clicked,d->action[0],&QAction::trigger);
 		connect(d->button[1],&QPushButton::clicked,d->action[1],&QAction::trigger);
-		d->regexp->addActions(d->widget[2]->actions());
-		d->sender->addActions(d->widget[2]->actions());
+		d->regexp->addActions(d->widget[3]->actions());
+		d->sender->addActions(d->widget[3]->actions());
 		d->regexp->setContextMenuPolicy(Qt::ActionsContextMenu);
 		d->sender->setContextMenuPolicy(Qt::ActionsContextMenu);
 
@@ -662,7 +822,7 @@ Config::Config(QWidget *parent,int index):
 		grid->addWidget(d->regexp,2,0,1,2);
 		grid->addWidget(d->sender,2,2,1,2);
 
-		d->same=new QSlider(Qt::Horizontal,d->widget[2]);
+		d->same=new QSlider(Qt::Horizontal,d->widget[3]);
 		d->same->setRange(0,40);
 		d->same->setValue(Config::getValue("/Shield/Limit",5));
 		connect(d->same,&QSlider::valueChanged,[d](int value){
@@ -674,43 +834,41 @@ Config::Config(QWidget *parent,int index):
 		});
 		auto a=new QHBoxLayout;
 		a->addWidget(d->same);
-		d->label[0]=new QGroupBox(tr("limit of the same"),d->widget[2]);
+		d->label[0]=new QGroupBox(tr("limit of the same"),d->widget[3]);
 		d->label[0]->setToolTip(tr("0 means disabled"));
 		d->label[0]->setLayout(a);
 		grid->addWidget(d->label[0],3,0,1,2);
 
-		d->limit=new QLineEdit(d->widget[2]);
+		d->limit=new QLineEdit(d->widget[3]);
 		d->limit->setText(QString::number(Config::getValue("/Shield/Density",100)));
 		connect(d->limit,&QLineEdit::editingFinished,[d](){
 			Config::setValue("/Shield/Density",d->limit->text().toInt());
 		});
 		auto m=new QHBoxLayout;
 		m->addWidget(d->limit);
-		d->label[1]=new QGroupBox(tr("limit of density"),d->widget[2]);
+		d->label[1]=new QGroupBox(tr("limit of density"),d->widget[3]);
 		d->label[1]->setToolTip(tr("0 means disabled"));
 		d->label[1]->setLayout(m);
 		grid->addWidget(d->label[1],3,2,1,2);
 
-		d->tab->addTab(d->widget[2],tr("Shield"));
-
-		d->reparse=d->getReparse();
+		d->tab->addTab(d->widget[3],tr("Shield"));
 	}
 	//Network
 	{
-		d->widget[3]=new QWidget(this);
-		auto list=new QVBoxLayout(d->widget[3]);
+		d->widget[4]=new QWidget(this);
+		auto list=new QVBoxLayout(d->widget[4]);
 
 		auto l=new QGridLayout;
 		l->setColumnStretch(0,1);
 		l->setColumnStretch(1,1);
 		l->setColumnStretch(2,1);
 		l->setColumnStretch(3,1);
-		d->sheet[0]=new QLineEdit(d->widget[3]);
+		d->sheet[0]=new QLineEdit(d->widget[4]);
 		d->sheet[0]->setPlaceholderText(tr("Username"));
-		d->sheet[1]=new QLineEdit(d->widget[3]);
+		d->sheet[1]=new QLineEdit(d->widget[4]);
 		d->sheet[1]->setPlaceholderText(tr("Password"));
 		d->sheet[1]->setEchoMode(QLineEdit::Password);
-		d->sheet[2]=new QLineEdit(d->widget[3]);
+		d->sheet[2]=new QLineEdit(d->widget[4]);
 		d->sheet[2]->setPlaceholderText(tr("Identifier"));
 		auto checkout=[d](){
 			bool flag=true;
@@ -733,26 +891,14 @@ Config::Config(QWidget *parent,int index):
 		l->addWidget(d->sheet[0],0,0);
 		l->addWidget(d->sheet[1],0,1);
 		l->addWidget(d->sheet[2],0,2);
-		d->info=new QLabel(d->widget[3]);
+		d->info=new QLabel(d->widget[4]);
 		d->info->setFixedWidth(100);
 		d->info->setAlignment(Qt::AlignCenter);
 		d->info->setText(tr("waiting"));
 		l->addWidget(d->info,0,3,Qt::AlignCenter);
 		auto loadValid=[=](){
 			QString url=QString("https://secure.bilibili.com/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
-			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
-			connect(reply,&QNetworkReply::finished,[=](){
-				if(reply->error()==QNetworkReply::NoError){
-					QPixmap pixmap;
-					pixmap.loadFromData(reply->readAll());
-					if(!pixmap.isNull()){
-						d->info->setPixmap(pixmap.scaledToHeight(25,Qt::SmoothTransformation));
-					}
-				}
-				if(!d->info->pixmap()){
-					d->info->setText(tr("error"));
-				}
-			});
+			d->fillPicture(d->info,url,tr("error"),QSize(200,25));
 		};
 		auto setLogged=[d,this,loadValid](bool logged){
 			if(logged){
@@ -836,33 +982,33 @@ Config::Config(QWidget *parent,int index):
 			setLogged(flag);
 		});
 		l->addWidget(d->click);
-		d->login=new QGroupBox(tr("login"),d->widget[3]);
+		d->login=new QGroupBox(tr("login"),d->widget[4]);
 		d->login->setLayout(l);
 		list->addWidget(d->login);
 
 		auto c=new QHBoxLayout;
-		d->text=new QLabel(d->widget[3]);
+		d->text=new QLabel(d->widget[4]);
 		auto m=[d](){
 			QString s=tr("current size is %.2fMB");
-			s.sprintf(s.toUtf8(),DCache::data.cacheSize()/(1024.0*1024));
+			s.sprintf(s.toUtf8(),DCache::data->cacheSize()/(1024.0*1024));
 			d->text->setText(s);
 		};
 		m();
 		c->addWidget(d->text,2);
 		c->addStretch(1);
-		d->clear=new QPushButton(tr("clear"),d->widget[3]);
+		d->clear=new QPushButton(tr("clear"),d->widget[4]);
 		d->clear->setFocusPolicy(Qt::NoFocus);
 		connect(d->clear,&QPushButton::clicked,[d,m](){
-			DCache::data.clear();
+			DCache::data->clear();
 			m();
 		});
 		c->addWidget(d->clear,1);
-		d->cache=new QGroupBox(tr("cache"),d->widget[3]);
+		d->cache=new QGroupBox(tr("cache"),d->widget[4]);
 		d->cache->setLayout(c);
 		list->addWidget(d->cache);
 
 		auto p=new QGridLayout;
-		d->arg=new QComboBox(d->widget[3]);
+		d->arg=new QComboBox(d->widget[4]);
 		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
 		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[d](int index){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
@@ -883,7 +1029,7 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		p->addWidget(d->arg,0,0);
-		d->input[0]=new QLineEdit(d->widget[3]);
+		d->input[0]=new QLineEdit(d->widget[4]);
 		d->input[0]->setText(QNetworkProxy::applicationProxy().hostName());
 		d->input[0]->setPlaceholderText(tr("HostName"));
 		connect(d->input[0],&QLineEdit::editingFinished,[d](){
@@ -892,7 +1038,7 @@ Config::Config(QWidget *parent,int index):
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
 		p->addWidget(d->input[0],1,0);
-		d->input[1]=new QLineEdit(d->widget[3]);
+		d->input[1]=new QLineEdit(d->widget[4]);
 		d->input[1]->setPlaceholderText(tr("Port"));
 		int port=QNetworkProxy::applicationProxy().port();
 		d->input[1]->setText(port?QString::number(port):QString());
@@ -905,7 +1051,7 @@ Config::Config(QWidget *parent,int index):
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
 		p->addWidget(d->input[1],1,1);
-		d->input[2]=new QLineEdit(d->widget[3]);
+		d->input[2]=new QLineEdit(d->widget[4]);
 		d->input[2]->setPlaceholderText(tr("User"));
 		d->input[2]->setText(QNetworkProxy::applicationProxy().user());
 		connect(d->input[2],&QLineEdit::editingFinished,[d](){
@@ -914,7 +1060,7 @@ Config::Config(QWidget *parent,int index):
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
 		p->addWidget(d->input[2],1,2);
-		d->input[3]=new QLineEdit(d->widget[3]);
+		d->input[3]=new QLineEdit(d->widget[4]);
 		d->input[3]->setPlaceholderText(tr("Password"));
 		d->input[3]->setText(QNetworkProxy::applicationProxy().password());
 		connect(d->input[3],&QLineEdit::editingFinished,[d](){
@@ -937,18 +1083,18 @@ Config::Config(QWidget *parent,int index):
 			d->arg->setCurrentIndex(0);
 			break;
 		}
-		d->proxy=new QGroupBox(tr("proxy"),d->widget[3]);
+		d->proxy=new QGroupBox(tr("proxy"),d->widget[4]);
 		d->proxy->setLayout(p);
 		list->addWidget(d->proxy);
 
 		list->addStretch(10);
-		d->tab->addTab(d->widget[3],tr("Network"));
+		d->tab->addTab(d->widget[4],tr("Network"));
 	}
 	//Plugin
 	{
-		d->widget[4]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[4]);
-		d->plugin=new QTreeWidget(d->widget[4]);
+		d->widget[5]=new QWidget(this);
+		auto w=new QGridLayout(d->widget[5]);
+		d->plugin=new QTreeWidget(d->widget[5]);
 		d->plugin->setSelectionMode(QAbstractItemView::NoSelection);
 		QStringList header;
 		header<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"";
@@ -990,13 +1136,13 @@ Config::Config(QWidget *parent,int index):
 		connect(d->plugin,&QTreeWidget::currentItemChanged,[d](){
 			d->plugin->setCurrentItem(NULL);
 		});
-		d->tab->addTab(d->widget[4],tr("Plugin"));
+		d->tab->addTab(d->widget[5],tr("Plugin"));
 	}
 	//Shortcut
 	{
-		d->widget[5]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[5]);
-		d->hotkey=new QTreeWidget(d->widget[5]);
+		d->widget[6]=new QWidget(this);
+		auto w=new QGridLayout(d->widget[6]);
+		d->hotkey=new QTreeWidget(d->widget[6]);
 		d->hotkey->setSelectionMode(QAbstractItemView::NoSelection);
 		d->hotkey->header()->hide();
 		d->hotkey->setColumnCount(2);
@@ -1031,31 +1177,31 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 		});
-		d->tab->addTab(d->widget[5],tr("Shortcut"));
+		d->tab->addTab(d->widget[6],tr("Shortcut"));
 	}
 	//Thanks
 	{
-		d->widget[6]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[6]);
+		d->widget[7]=new QWidget(this);
+		auto w=new QGridLayout(d->widget[7]);
 		QFile t(":/Text/THANKS");
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->thanks=new QTextEdit(d->widget[6]);
+		d->thanks=new QTextEdit(d->widget[7]);
 		d->thanks->setReadOnly(true);
 		d->thanks->setText(t.readAll());
 		w->addWidget(d->thanks);
-		d->tab->addTab(d->widget[6],tr("Thanks"));
+		d->tab->addTab(d->widget[7],tr("Thanks"));
 	}
 	//License
 	{
-		d->widget[7]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[7]);
+		d->widget[8]=new QWidget(this);
+		auto w=new QGridLayout(d->widget[8]);
 		QFile l(":/Text/COPYING");
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->license=new QTextEdit(d->widget[7]);
+		d->license=new QTextEdit(d->widget[8]);
 		d->license->setReadOnly(true);
 		d->license->setText(l.readAll());
 		w->addWidget(d->license);
-		d->tab->addTab(d->widget[7],tr("License"));
+		d->tab->addTab(d->widget[8],tr("License"));
 	}
 	d->tab->setCurrentIndex(index);
 	connect(this,&QDialog::finished,[d,this](){
@@ -1082,6 +1228,9 @@ Config::Config(QWidget *parent,int index):
 	setMinimumWidth(540);
 	resize(540,outer->minimumSize().height());
 	Utils::setCenter(this);
+
+	d->restart=d->getRestart();
+	d->reparse=d->getReparse();
 }
 
 Config::~Config()
@@ -1113,8 +1262,8 @@ void Config::save()
 
 void Config::setManager(QNetworkAccessManager *manager)
 {
-	manager->setCache(&DCache::data);
-	DCache::data.setParent(NULL);
-	manager->setCookieJar(&Cookie::data);
-	Cookie::data.setParent(NULL);
+	manager->setCache(DCache::data);
+	DCache::data->setParent(NULL);
+	manager->setCookieJar(Cookie::data);
+	Cookie::data->setParent(NULL);
 }
