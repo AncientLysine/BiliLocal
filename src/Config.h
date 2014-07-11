@@ -85,7 +85,6 @@ class Config:public QDialog
 {
 	Q_OBJECT
 public:
-	explicit Config(QWidget *parent=0,int index=0);
 	~Config();
 
 	template<class T>
@@ -134,11 +133,14 @@ public:
 
 	static void setManager(QNetworkAccessManager *manager);
 
+	static void exec(QWidget *parent=0,int index=0);
+
 private:
+	static QJsonObject config;
 	ConfigPrivate * const d_ptr;
 	Q_DECLARE_PRIVATE(Config)
 
-	static QJsonObject config;
+	explicit Config(QWidget *parent=0,int index=0);
 };
 
 #endif // CONFIG_H

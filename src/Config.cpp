@@ -275,6 +275,12 @@ public:
 
 QJsonObject Config::config;
 
+void Config::exec(QWidget *parent,int index)
+{
+	Config config(parent,index);
+	config.QDialog::exec();
+}
+
 Config::Config(QWidget *parent,int index):
 	QDialog(parent),d_ptr(new ConfigPrivate)
 {

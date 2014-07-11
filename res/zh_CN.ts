@@ -757,102 +757,107 @@ k-lite/win7codecs recommended</source>
 <context>
     <name>Menu</name>
     <message>
-        <location filename="../src/Menu.cpp" line="83"/>
-        <location filename="../src/Menu.cpp" line="189"/>
+        <location filename="../src/Menu.cpp" line="165"/>
+        <location filename="../src/Menu.cpp" line="271"/>
         <source>Open</source>
         <translation>打开</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="85"/>
+        <location filename="../src/Menu.cpp" line="167"/>
         <source>Search</source>
         <translation>搜索</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="84"/>
-        <location filename="../src/Menu.cpp" line="189"/>
+        <location filename="../src/Menu.cpp" line="166"/>
+        <location filename="../src/Menu.cpp" line="271"/>
         <source>Load</source>
         <translation>加载</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="86"/>
-        <location filename="../src/Menu.cpp" line="97"/>
-        <location filename="../src/Menu.cpp" line="107"/>
+        <location filename="../src/Menu.cpp" line="168"/>
+        <location filename="../src/Menu.cpp" line="179"/>
+        <location filename="../src/Menu.cpp" line="189"/>
         <source>Open File</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="89"/>
+        <location filename="../src/Menu.cpp" line="171"/>
         <source>Load Danmaku</source>
         <translation>载入弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="92"/>
+        <location filename="../src/Menu.cpp" line="174"/>
         <source>Search Danmaku</source>
         <translation>搜索弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="99"/>
+        <location filename="../src/Menu.cpp" line="181"/>
         <source>Media files (%1);;All files (*.*)</source>
         <translation>媒体文件 (%1);;所有文件(*.*)</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="109"/>
+        <location filename="../src/Menu.cpp" line="191"/>
         <source>Danmaku files (%1);;All files (*.*)</source>
         <translation>弹幕文件 (%1);;所有文件(*.*)</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="178"/>
+        <location filename="../src/Menu.cpp" line="260"/>
         <source>Local Danmaku</source>
         <translation>本地弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="146"/>
+        <location filename="../src/Menu.cpp" line="228"/>
         <source>Danmaku Alpha</source>
         <translation>不透明度</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="51"/>
+        <location filename="../src/Menu.cpp" line="133"/>
         <source>choose a local media</source>
         <translation>选择本地视频</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="52"/>
-        <location filename="../src/Menu.cpp" line="190"/>
+        <location filename="../src/Menu.cpp" line="134"/>
+        <location filename="../src/Menu.cpp" line="272"/>
         <source>input av/ac number</source>
         <translation>输入av/ac号</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="53"/>
+        <location filename="../src/Menu.cpp" line="135"/>
         <source>search danmaku online</source>
         <translation>在线搜索弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="161"/>
+        <location filename="../src/Menu.cpp" line="149"/>
+        <source>Load All</source>
+        <translation>全部加载</translation>
+    </message>
+    <message>
+        <location filename="../src/Menu.cpp" line="243"/>
         <source>Danmaku Power</source>
         <translation>弹幕增压</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="190"/>
+        <location filename="../src/Menu.cpp" line="272"/>
         <source>choose a local danmaku</source>
         <translation>选择本地弹幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="202"/>
+        <location filename="../src/Menu.cpp" line="284"/>
         <source>Protect Sub</source>
         <translation>保护字幕</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="211"/>
+        <location filename="../src/Menu.cpp" line="293"/>
         <source>Loop Playback</source>
         <translation>洗脑循环</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="246"/>
+        <location filename="../src/Menu.cpp" line="328"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/Menu.cpp" line="246"/>
+        <location filename="../src/Menu.cpp" line="328"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>

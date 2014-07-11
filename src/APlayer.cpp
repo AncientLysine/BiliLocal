@@ -680,7 +680,7 @@ int QPlayer::getState()
 
 void QPlayer::setTime(qint64 _time)
 {
-	mp->setPosition(_time);
+	QMetaObject::invokeMethod(mp,"setPosition",Qt::BlockingQueuedConnection,Q_ARG(qint64,_time));
 	qApp->processEvents();
 	emit jumped(_time);
 }

@@ -165,16 +165,10 @@ Info::Info(QWidget *parent):
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config config(Local::mainWidget(),3);
-			config.exec();
+			Config::exec(Local::mainWidget(),3);
 		});
-		connect(menu.addAction(tr("Edit Danmaku Pool")),&QAction::triggered,[this](){
-			int state=APlayer::instance()->getState();
-			if(state==APlayer::Play) APlayer::instance()->play();
-			Editor editor(Local::mainWidget());
-			editor.exec();
-			Danmaku::instance()->parse(0x1|0x2);
-			if(state==APlayer::Play) APlayer::instance()->play();
+		connect(menu.addAction(tr("Edit Danmaku Pool" )),&QAction::triggered,[this](){
+			Editor::exec(Local::mainWidget());
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){

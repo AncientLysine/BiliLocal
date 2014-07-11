@@ -309,3 +309,30 @@ void Load::loadDanmaku(QString _code)
 		Danmaku::instance()->clearPool();
 	}
 }
+
+void Load::loadDanmaku(const QModelIndex &index)
+{
+	if(index.isValid()){
+		QVariant u=index.data(Load::UrlRole),s=index.data(Load::StrRole);
+		if (u.isValid()&&s.isValid()){
+			getReply(QNetworkRequest(u.toUrl()),s.toString());
+		}
+	}
+	else{
+		int *i=new int(0);
+		QMetaObject::Connection *c=new QMetaObject::Connection;
+		*c=connect(this,&Load::stateChanged,[=](int state){
+			if(state==None){
+				if(*i<model->rowCount()){
+					loadDanmaku(model->index((*i)++,0));
+				}
+				else{
+					disconnect(*c);
+					delete c;
+					delete i;
+				}
+			}
+		});
+		loadDanmaku(model->index((*i)++,0));
+	}
+}

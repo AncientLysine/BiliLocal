@@ -26,17 +26,18 @@
 =========================================================================*/
 
 #include "Interface.h"
-#include "Menu.h"
+#include "APlayer.h"
+#include "Config.h"
+#include "Danmaku.h"
+#include "Editor.h"
 #include "Info.h"
-#include "Post.h"
-#include "Next.h"
 #include "Load.h"
 #include "Local.h"
+#include "Menu.h"
+#include "Next.h"
+#include "Post.h"
 #include "Render.h"
 #include "Shield.h"
-#include "Config.h"
-#include "APlayer.h"
-#include "Danmaku.h"
 #include <functional>
 
 Interface::Interface(QWidget *parent):
@@ -159,9 +160,8 @@ Interface::Interface(QWidget *parent):
 	confA->setObjectName("Conf");
 	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
 	addAction(confA);
-	connect(confA,&QAction::triggered,[this](){
-		Config config(this);
-		config.exec();
+	connect(confA,&QAction::triggered,[](){
+		Config::exec(Local::mainWidget());
 	});
 
 	toggA=new QAction(tr("Block All"),this);
@@ -314,6 +314,7 @@ void Interface::dropEvent(QDropEvent *e)
 		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
 			tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
+		Editor::exec(this);
 	}
 }
 

@@ -26,14 +26,100 @@
 =========================================================================*/
 
 #include "Menu.h"
+#include "APlayer.h"
+#include "Config.h"
+#include "Danmaku.h"
+#include "Editor.h"
 #include "Load.h"
 #include "Local.h"
-#include "Utils.h"
 #include "Render.h"
-#include "Config.h"
 #include "Search.h"
-#include "APlayer.h"
-#include "Danmaku.h"
+#include "Utils.h"
+
+namespace{
+class LoadModelWapper:public QAbstractItemModel
+{
+public:
+	explicit LoadModelWapper(QAbstractItemModel *m,QString s=QString()):
+		QAbstractItemModel(m),m(m),s(s)
+	{
+	}
+
+	int columnCount(const QModelIndex &parent) const
+	{
+		return m->columnCount(parent);
+	}
+
+	QVariant data(const QModelIndex &index,int role) const
+	{
+		if(isFakeItem(index)){
+			switch(role){
+			case Qt::TextAlignmentRole:
+				return Qt::AlignCenter;
+			case Qt::FontRole:
+			{
+				QFont f;
+				f.setBold(true);
+				return f;
+			}
+			case Qt::DisplayRole:
+			case Qt::EditRole:
+				return s;
+			case Qt::BackgroundRole:
+				return QColor(0xA0A0A4);
+			case Qt::ForegroundRole:
+				return QColor(0xFFFFFF);
+			case Qt::SizeHintRole:
+				return QSize(0,20);
+			case Load::UrlRole:
+				return QUrl();
+			case Load::StrRole:
+				return "";
+			default:
+				return QVariant();
+			}
+		}
+		else{
+			return m->data(index,role);
+		}
+	}
+
+	Qt::ItemFlags flags(const QModelIndex &) const
+	{
+		return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
+	}
+
+	QModelIndex index(int row,int column,const QModelIndex &parent) const
+	{
+		if(!parent.isValid()&&row==0){
+			//'F'+'A'+'K'+'E'==279
+			return createIndex(row,column,279);
+		}
+		else{
+			return m->index(row-1,column,parent);
+		}
+	}
+
+	QModelIndex parent(const QModelIndex &child) const
+	{
+		return isFakeItem(child)?QModelIndex():m->parent(child);
+	}
+
+	int rowCount(const QModelIndex &parent) const
+	{
+		return m->rowCount(parent)+(parent.isValid()?0:1);
+	}
+
+	bool isFakeItem(const QModelIndex &index) const
+	{
+		return index.internalId()==279;
+	}
+
+private:
+	QString s;
+	QAbstractItemModel *m;
+};
+}
 
 Menu::Menu(QWidget *parent):
 	QWidget(parent)
@@ -64,7 +150,7 @@ Menu::Menu(QWidget *parent):
 		}
 		danmL->setText(match.toLower().replace('_','#'));
 	});
-	danmC=new QCompleter(Load::instance()->getModel(),this);
+	danmC=new QCompleter(new LoadModelWapper(Load::instance()->getModel(),tr("Load All")),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setCaseSensitivity(Qt::CaseInsensitive);
 	danmC->setWidget(danmL);
@@ -72,7 +158,15 @@ Menu::Menu(QWidget *parent):
 	popup->setMouseTracking(true);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
-		Load::instance()->getReply(QNetworkRequest(index.data(Load::UrlRole).toUrl()),index.data(Load::StrRole).toString());
+		QVariant v=index.data(Load::UrlRole);
+		if(!v.isNull()&&!v.toUrl().isValid()){
+			Load::instance()->loadDanmaku();
+			Editor::exec(Local::mainWidget());
+		}
+		else{
+			Load::instance()->loadDanmaku(index);
+		}
+
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);

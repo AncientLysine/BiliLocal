@@ -340,6 +340,16 @@ static QMap<QDate,int> parseCount(QByteArray data)
 	return count;
 }
 
+void Editor::exec(QWidget *parent)
+{
+	int state=APlayer::instance()->getState();
+	if(state==APlayer::Play) APlayer::instance()->play();
+	Editor editor(parent);
+	editor.QDialog::exec();
+	Danmaku::instance()->parse(0x1|0x2);
+	if(state==APlayer::Play) APlayer::instance()->play();
+}
+
 Editor::Editor(QWidget *parent):
 	QDialog(parent)
 {
@@ -526,29 +536,9 @@ Editor::Editor(QWidget *parent):
 	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
 }
 
-void Editor::resizeEvent(QResizeEvent *e)
+void Editor::resizeEvent(QResizeEvent *)
 {
-	QRect r(QPoint(0,0),e->size());
-	r.adjust(10,10,-10,-10);
-	if(widget->children().size()*100-2>r.height()){
-		scroll->show();
-		scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));
-		widget->setGeometry(r.adjusted(0,0,-scroll->width(),0));
-	}
-	else{
-		scroll->hide();
-		widget->setGeometry(r);
-	}
-	QObjectList c=widget->children();
-	scroll->setRange(0,c.size()*100-r.height()-2);
-	scroll->setValue(c.size()?-qobject_cast<QWidget *>(c.first())->y():0);
-	scroll->setPageStep(r.height());
-	for(QObject *o:c){
-		QWidget *w=qobject_cast<QWidget *>(o);
-		if (w){
-			w->resize(widget->width(),100);
-		}
-	}
+	parseLayouts();
 }
 
 void Editor::parseRecords()
@@ -579,5 +569,30 @@ void Editor::parseRecords()
 	}
 	else{
 		widget->setText(tr("_(:з」∠)_ Empty"));
+	}
+	parseLayouts();
+}
+void Editor::parseLayouts()
+{
+	QRect r=rect();
+	r.adjust(10,10,-10,-10);
+	if (widget->children().size()*100-2>r.height()){
+		scroll->show();
+		scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));
+		widget->setGeometry(r.adjusted(0,0,-scroll->width(),0));
+	}
+	else{
+		scroll->hide();
+		widget->setGeometry(r);
+	}
+	QObjectList c=widget->children();
+	scroll->setRange(0,c.size()*100-r.height()-2);
+	scroll->setValue(c.size()?-qobject_cast<QWidget *>(c.first())->y():0);
+	scroll->setPageStep(r.height());
+	for(QObject *o:c){
+		QWidget *w=qobject_cast<QWidget *>(o);
+		if (w){
+			w->resize(widget->width(),100);
+		}
 	}
 }

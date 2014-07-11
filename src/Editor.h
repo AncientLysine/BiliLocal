@@ -36,16 +36,17 @@ class Editor:public QDialog
 {
 	Q_OBJECT
 public:
-	Editor(QWidget *parent=0);
+	static void exec(QWidget *parent=0);
 
 private:
 	QLabel *widget;
 	QScrollBar *scroll;
 	QNetworkAccessManager *manager;
-	void resizeEvent(QResizeEvent *e);
 
-public slots:
+	explicit Editor(QWidget *parent=0);
 	void parseRecords();
+	void parseLayouts();
+	void resizeEvent(QResizeEvent *e);
 };
 
 #endif // EDITOR_H

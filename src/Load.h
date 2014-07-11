@@ -70,6 +70,7 @@ public slots:
 	QString getStr();
 	QString getUrl();
 	void loadDanmaku(QString _code);
+	void loadDanmaku(const QModelIndex &index=QModelIndex());
 
 };
 
