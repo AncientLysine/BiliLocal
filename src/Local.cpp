@@ -76,13 +76,31 @@ static void setToolTipBase()
 	QToolTip::setPalette(tip);
 }
 
+#if (defined Q_OS_ANDROID)||(defined Q_OS_IOS)||(defined Q_OS_WINPHONE)||(defined Q_OS_WINRT)
 int main(int argc,char *argv[])
 {
-#ifdef Q_OS_ANDROID
 	QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+	Local a(argc,argv);
+	Config::load();
+	Shield::load();
+	loadTranslator();
+	setDefaultFont();
+	setToolTipBase();
+	a.connect(&a,&Local::aboutToQuit,[](){
+		Shield::save();
+		Config::save();
+	});
+	qsrand(QTime::currentTime().msec());
+	Interface w;
+	Plugin::loadPlugins();
+	w.show();
+	w.tryLocal(a.arguments().mid(1));
+	a.exec();
+}
 #else
+int main(int argc,char *argv[])
+{
 	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
-#endif
 	Local::addLibraryPath("./plugins");
 	Local::setStyle("Fusion");
 	Local a(argc,argv);
@@ -137,3 +155,4 @@ int main(int argc,char *argv[])
 		return r;
 	}
 }
+#endif

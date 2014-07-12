@@ -41,7 +41,7 @@ class LoadModelWapper:public QAbstractItemModel
 {
 public:
 	explicit LoadModelWapper(QAbstractItemModel *m,QString s=QString()):
-		QAbstractItemModel(m),m(m),s(s)
+		QAbstractItemModel(m),s(s),m(m)
 	{
 	}
 

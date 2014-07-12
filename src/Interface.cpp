@@ -401,7 +401,8 @@ void Interface::mousePressEvent(QMouseEvent *e)
 			sta=e->globalPos();
 			wgd=pos();
 		}
-		if(e->y()>=height()-25){
+		int s=height()-e->y();
+		if(s<=25&&s>=0){
 			sliding=true;
 			render->setDisplayTime(e->x()/(double)width());
 		}
