@@ -39,7 +39,8 @@ public:
 	static void exec(QWidget *parent=0);
 
 private:
-	QLabel *widget;
+	QWidget *widget;
+	QLabel  *remind;
 	QScrollBar *scroll;
 	QNetworkAccessManager *manager;
 

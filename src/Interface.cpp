@@ -29,7 +29,6 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "Editor.h"
 #include "Info.h"
 #include "Load.h"
 #include "Local.h"
@@ -314,7 +313,6 @@ void Interface::dropEvent(QDropEvent *e)
 		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
 			tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
-		Editor::exec(this);
 	}
 }
 

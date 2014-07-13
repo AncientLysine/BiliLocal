@@ -277,8 +277,13 @@ QJsonObject Config::config;
 
 void Config::exec(QWidget *parent,int index)
 {
-	Config config(parent,index);
-	config.QDialog::exec();
+	static bool isExecuting;
+	if(!isExecuting){
+		isExecuting=1;
+		Config config(parent,index);
+		config.QDialog::exec();
+		isExecuting=0;
+	}
 }
 
 Config::Config(QWidget *parent,int index):

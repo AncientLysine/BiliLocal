@@ -25,10 +25,12 @@
 =========================================================================*/
 
 #include "Load.h"
-#include "Utils.h"
+#include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "APlayer.h"
+#include "Editor.h"
+#include "Local.h"
+#include "Utils.h"
 
 Load *Load::ins=NULL;
 
@@ -208,8 +210,22 @@ Load::Load(QObject *parent):
 		else{
 			error(reply->error());
 		}
-		reply->deleteLater();
+		delete reply;
 	});
+
+	connect(this,&Load::stateChanged,this,[this](int state){
+		if(state==None){
+			static bool recursion;
+			if(!recursion){
+				recursion=1;
+				qApp->processEvents();
+				if(current.isNull()&&Danmaku::instance()->getPool().size()>=2){
+					Editor::exec(Local::mainWidget());
+				}
+				recursion=0;
+			}
+		}
+	},Qt::QueuedConnection);
 
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
 		QFileInfo info(_file);
@@ -314,7 +330,7 @@ void Load::loadDanmaku(const QModelIndex &index)
 {
 	if(index.isValid()){
 		QVariant u=index.data(Load::UrlRole),s=index.data(Load::StrRole);
-		if (u.isValid()&&s.isValid()){
+		if(u.isValid()&&s.isValid()){
 			getReply(QNetworkRequest(u.toUrl()),s.toString());
 		}
 	}
@@ -322,15 +338,21 @@ void Load::loadDanmaku(const QModelIndex &index)
 		int *i=new int(0);
 		QMetaObject::Connection *c=new QMetaObject::Connection;
 		*c=connect(this,&Load::stateChanged,[=](int state){
-			if(state==None){
+			switch(state){
+			case Page:
+			case Part:
+			case Code:
+			case File:
+				break;
+			case None:
 				if(*i<model->rowCount()){
 					loadDanmaku(model->index((*i)++,0));
+					break;
 				}
-				else{
-					disconnect(*c);
-					delete c;
-					delete i;
-				}
+			default:
+				disconnect(*c);
+				delete c;
+				delete i;
 			}
 		});
 		loadDanmaku(model->index((*i)++,0));

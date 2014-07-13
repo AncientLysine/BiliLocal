@@ -29,7 +29,6 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "Editor.h"
 #include "Load.h"
 #include "Local.h"
 #include "Render.h"
@@ -161,12 +160,10 @@ Menu::Menu(QWidget *parent):
 		QVariant v=index.data(Load::UrlRole);
 		if(!v.isNull()&&!v.toUrl().isValid()){
 			Load::instance()->loadDanmaku();
-			Editor::exec(Local::mainWidget());
 		}
 		else{
 			Load::instance()->loadDanmaku(index);
 		}
-
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
@@ -324,7 +321,7 @@ Menu::Menu(QWidget *parent):
 			isStay=1;
 			break;
 		case Load::Part:
-			if(isVisible()){
+			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
 				danmC->complete();
 				danmC->popup()->setCurrentIndex(Load::instance()->getModel()->index(0,0));
 			}

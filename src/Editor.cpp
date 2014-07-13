@@ -25,10 +25,10 @@
 =========================================================================*/
 
 #include "Editor.h"
-#include "Utils.h"
+#include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "APlayer.h"
+#include "Utils.h"
 
 namespace{
 class History:public QDialog
@@ -152,9 +152,7 @@ public:
 	explicit Track(QWidget *parent=0):
 		QWidget(parent)
 	{
-		setFont(qApp->font());
 		resize(parent->width(),100);
-		setPalette(qApp->palette());
 		m_record=NULL;
 		m_wheel=0;
 		m_magnet<<0<<0<<0;
@@ -253,7 +251,7 @@ private:
 			rect.adjust(-5,0,0,0);
 			painter.fillRect(rect,QColor(160,160,164,100));
 			painter.drawText(rect,Qt::AlignCenter,count);
-			if(m_current>=0){
+			if(m_current>0){
 				painter.fillRect(m_current*w/m_duration+100,0,1,100,Qt::red);
 			}
 		}
@@ -342,12 +340,17 @@ static QMap<QDate,int> parseCount(QByteArray data)
 
 void Editor::exec(QWidget *parent)
 {
-	int state=APlayer::instance()->getState();
-	if(state==APlayer::Play) APlayer::instance()->play();
-	Editor editor(parent);
-	editor.QDialog::exec();
-	Danmaku::instance()->parse(0x1|0x2);
-	if(state==APlayer::Play) APlayer::instance()->play();
+	static bool isExecuting;
+	if(!isExecuting){
+		isExecuting=1;
+		int state=APlayer::instance()->getState();
+		if(state==APlayer::Play) APlayer::instance()->play();
+		Editor editor(parent);
+		editor.QDialog::exec();
+		Danmaku::instance()->parse(0x1|0x2);
+		if(state==APlayer::Play) APlayer::instance()->play();
+		isExecuting=0;
+	}
 }
 
 Editor::Editor(QWidget *parent):
@@ -372,19 +375,10 @@ Editor::Editor(QWidget *parent):
 		}
 	});
 
-	widget=new QLabel(this);
-	widget->setFocusPolicy(Qt::ClickFocus);
-	QFont f;
-	f.setPixelSize(75);
-	f.setBold(true);
-	widget->setFont(f);
-	widget->setAlignment(Qt::AlignCenter);
-	QPalette p=widget->palette();
-	p.setColor(QPalette::Foreground,Qt::gray);
-	widget->setPalette(p);
+	widget=new QWidget(this);
 	widget->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(widget,&QWidget::customContextMenuRequested,[this](QPoint p){
-		int i;
+		int i=-1;
 		QObjectList c=widget->children();
 		for(i=0;i<c.size();++i){
 			if(qobject_cast<QWidget *>(c[i])->geometry().contains(p)){
@@ -532,6 +526,17 @@ Editor::Editor(QWidget *parent):
 		menu.exec(mapToGlobal(p));
 	});
 
+	remind=new QLabel(this);
+	QFont f;
+	f.setPixelSize(75);
+	f.setBold(true);
+	remind->setFont(f);
+	remind->setAlignment(Qt::AlignCenter);
+	QPalette p=remind->palette();
+	p.setColor(QPalette::Foreground,Qt::gray);
+	remind->setPalette(p);
+	remind->setText(tr("_(:з」∠)_ Empty"));
+
 	parseRecords();
 	connect(Danmaku::instance(),&Danmaku::modelReset,this,&Editor::parseRecords);
 }
@@ -544,7 +549,6 @@ void Editor::resizeEvent(QResizeEvent *)
 void Editor::parseRecords()
 {
 	qDeleteAll(widget->children());
-	widget->clear();
 	QList<Record> &pool=Danmaku::instance()->getPool();
 	if(!pool.isEmpty()){
 		qint64 duration=APlayer::instance()->getDuration();
@@ -566,9 +570,10 @@ void Editor::parseRecords()
 			t->setRecord(&r);
 			t->show();
 		}
+		remind->hide();
 	}
 	else{
-		widget->setText(tr("_(:з」∠)_ Empty"));
+		remind->show();
 	}
 	parseLayouts();
 }
@@ -576,6 +581,7 @@ void Editor::parseLayouts()
 {
 	QRect r=rect();
 	r.adjust(10,10,-10,-10);
+	remind->setGeometry(r);
 	if (widget->children().size()*100-2>r.height()){
 		scroll->show();
 		scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));
