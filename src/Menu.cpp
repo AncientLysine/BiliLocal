@@ -323,7 +323,7 @@ Menu::Menu(QWidget *parent):
 		case Load::Part:
 			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
 				danmC->complete();
-				danmC->popup()->setCurrentIndex(Load::instance()->getModel()->index(0,0));
+				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));
 			}
 		case Load::File:
 			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());

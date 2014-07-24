@@ -47,30 +47,35 @@ public:
 	enum Role
 	{
 		UrlRole=Qt::UserRole,
-		StrRole
+		StrRole,
+		NxtRole
 	};
 
 	bool event(QEvent *e);
+	bool empty();
 	QStandardItemModel *getModel();
 	static Load *instance();
 
 private:
 	QStandardItemModel *model;
 	QNetworkAccessManager *manager;
-	QPointer<QNetworkReply> current;
+	QNetworkRequest last;
+	QQueue<QNetworkRequest> queue;
 	static Load *ins;
 
 	Load(QObject *parent=0);
+	void loadTop();
+	void dequeue();
 
 signals:
 	void stateChanged(int state);
 
 public slots:
-	void getReply(QNetworkRequest request,QString string=QString());
 	QString getStr();
 	QString getUrl();
-	void loadDanmaku(QString _code);
+	void loadDanmaku(QString code);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
+	void getReply(QNetworkRequest request,QString code=QString());
 
 };
 

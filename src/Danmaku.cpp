@@ -25,12 +25,14 @@
 =========================================================================*/
 
 #include "Danmaku.h"
-#include "Local.h"
-#include "Shield.h"
-#include "Config.h"
-#include "Render.h"
 #include "APlayer.h"
+#include "Config.h"
+#include "Editor.h"
 #include "Graphic.h"
+#include "Load.h"
+#include "Local.h"
+#include "Render.h"
+#include "Shield.h"
 #include <functional>
 
 #define qThreadPool QThreadPool::globalInstance()
@@ -206,10 +208,12 @@ void Danmaku::resetTime()
 
 void Danmaku::clearPool()
 {
-	clearCurrent();
-	pool.clear();
-	danmaku.clear();
-	parse(0x1|0x2);
+	if(!pool.isEmpty()){
+		clearCurrent();
+		pool.clear();
+		danmaku.clear();
+		parse(0x1|0x2);
+	}
 }
 
 void Danmaku::clearCurrent(bool soft)
@@ -560,14 +564,16 @@ void Danmaku::saveToFile(QString _file)
 
 void Danmaku::appendToPool(const Record &record)
 {
+	bool exists=false;
 	Record *append=NULL;
 	for(Record &r:pool){
 		if(r.source==record.source){
 			append=&r;
+			exists=true;
 			break;
 		}
 	}
-	if(append==NULL){
+	if(!exists){
 		Record r;
 		r.source=record.source;
 		r.string=record.string;
@@ -588,6 +594,9 @@ void Danmaku::appendToPool(const Record &record)
 		append->full=true;
 	}
 	parse(0x1|0x2);
+	if(!exists&&Load::instance()->empty()&&pool.size()>=2){
+		Editor::exec(Local::mainWidget());
+	}
 }
 
 bool Danmaku::appendToPool(QString source,const Comment &comment)
