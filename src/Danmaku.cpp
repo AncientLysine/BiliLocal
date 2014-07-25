@@ -286,10 +286,15 @@ void Danmaku::parse(int flag)
 		QVector<QString> clean;
 		clean.reserve(danmaku.size());
 		if(l!=0){
-			QRegularExpression r("\\W");
-			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
 			for(const Comment *c:danmaku){
-				clean.append(QString(c->string).remove(r));
+				QString r;
+				r.reserve(c->string.length());
+				for(const QChar &i:c->string){
+					if(i.isLetterOrNumber()||i.isMark()||i=='_'){
+						r.append(i);
+					}
+				}
+				clean.append(r);
 			}
 			QHash<QString,int> count;
 			int sta=0,end=sta;
