@@ -25,8 +25,8 @@
 *
 =========================================================================*/
 
-#ifndef _SEARCH_H_
-#define _SEARCH_H_
+#ifndef SEARCH_H
+#define SEARCH_H
 
 #include <QtCore>
 #include <QtWidgets>
@@ -76,4 +76,4 @@ public slots:
 
 };
 
-#endif /* _SEARCH_H_ */
+#endif // SEARCH_H

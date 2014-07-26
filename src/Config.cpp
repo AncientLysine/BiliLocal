@@ -908,7 +908,9 @@ Config::Config(QWidget *parent,int index):
 		d->info->setText(tr("waiting"));
 		l->addWidget(d->info,0,3,Qt::AlignCenter);
 		auto loadValid=[=](){
-			QString url=QString("https://secure.bilibili.com/captcha?r=%1").arg(qrand()/(double)RAND_MAX);
+			QString url("https://secure.%1/captcha?r=%2");
+			url=url.arg(Utils::customUrl(Utils::Bilibili));
+			url=url.arg(qrand()/(double)RAND_MAX);
 			d->fillPicture(d->info,url,tr("error"),QSize(200,25));
 		};
 		auto setLogged=[d,this,loadValid](bool logged){
@@ -935,7 +937,9 @@ Config::Config(QWidget *parent,int index):
 			query.addQueryItem("vdcode",d->sheet[2]->text());
 			query.addQueryItem("keeptime","2592000");
 			QByteArray data=query.query().toUtf8();
-			QNetworkRequest request(QUrl("https://secure.bilibili.com/login"));
+			QString url("https://secure.%1/login");
+			url=url.arg(Utils::customUrl(Utils::Bilibili));
+			QNetworkRequest request(url);
 			request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 			request.setHeader(QNetworkRequest::ContentLengthHeader,data.length());
 			QNetworkReply *reply=d->manager->post(request,data);
@@ -958,7 +962,8 @@ Config::Config(QWidget *parent,int index):
 		};
 		auto setLogout=[=](){
 			d->click->setEnabled(false);
-			QString url="https://secure.bilibili.com/login?act=exit";
+			QString url="https://secure.%1/login?act=exit";
+			url=url.arg(Utils::customUrl(Utils::Bilibili));
 			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
 			connect(reply,&QNetworkReply::finished,[=](){
 				d->click->setEnabled(true);
@@ -980,7 +985,9 @@ Config::Config(QWidget *parent,int index):
 				setLogout();
 			}
 		});
-		QNetworkReply *reply=d->manager->get(QNetworkRequest(QString("http://member.bilibili.com/main.html")));
+		QString url("http://member.%1/main.html");
+		url=url.arg(Utils::customUrl(Utils::Bilibili));
+		QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
 		connect(reply,&QNetworkReply::finished,[=](){
 			bool flag=false;
 			if(reply->error()==QNetworkReply::NoError){

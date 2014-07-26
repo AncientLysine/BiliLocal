@@ -152,7 +152,8 @@ QList<const Record *> Post::getRecords()
 {
 	QList<const Record *> list;
 	for(const Record &r:Danmaku::instance()->getPool()){
-		if(r.source.startsWith("http://comment.bilibili.com/")||r.source.startsWith("http://api.acplay.net/")){
+		int s=Utils::getSite(r.source);
+		if(s==Utils::Bilibili||s==Utils::AcPlay){
 			list.append(&r);
 		}
 	}
@@ -170,8 +171,12 @@ void Post::postComment()
 	QNetworkRequest request;
 	QByteArray data;
 	const Comment &c=getComment();
-	if(r->source.startsWith("http://comment.bilibili.com/")){
-		request.setUrl(QUrl("http://interface.bilibili.com/dmpost"));
+	switch(Utils::getSite(r->source)){
+	case Utils::Bilibili:
+	{
+		QString api("http://interface.%1/dmpost");
+		api=api.arg(Utils::customUrl(Utils::Bilibili));
+		request.setUrl(api);
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 		QUrlQuery params;
 		params.addQueryItem("cid",QFileInfo(r->source).baseName());
@@ -184,9 +189,14 @@ void Post::postComment()
 		params.addQueryItem("rnd",QString::number(qrand()));
 		params.addQueryItem("mode",QString::number(c.mode));
 		data=QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded),"%=&","-.~_");
+		break;
 	}
-	if(r->source.startsWith("http://api.acplay.net/")){
-		request.setUrl(QString("http://api.acplay.net/api/v1/comment/%1").arg(QFileInfo(r->source).baseName()));
+	case Utils::AcPlay:
+	{
+		QString api("http://api.%1/api/v1/comment/%2");
+		api=api.arg(Utils::customUrl(Utils::AcPlay));
+		api=api.arg(QFileInfo(r->source).baseName());
+		request.setUrl(api);
 		request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
 		QJsonObject params;
 		params["Token"]=0;
@@ -199,19 +209,31 @@ void Post::postComment()
 		params["CId"]=0;
 		params["Message"]=c.string;
 		data=QJsonDocument(params).toJson();
+		break;
+	}
+	default:
+		break;
 	}
 	if(Danmaku::instance()->appendToPool(r->source,c)){
 		QNetworkReply *reply=manager->post(request,data);
 		connect(reply,&QNetworkReply::finished,[=](){
 			int error=reply->error();
-			QString url=reply->url().toString();
 			if(error==QNetworkReply::NoError){
-				if(url.startsWith("http://interface.bilibili.com/")){
+				switch(Utils::getSite(reply->url().url()))
+				{
+				case Utils::Bilibili:
+				{
 					error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+					break;
 				}
-				if(url.startsWith("http://acplay.net/")){
+				case Utils::AcPlay:
+				{
 					QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
 					error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
+					break;
+				}
+				default:
+					break;
 				}
 			}
 			if(error!=QNetworkReply::NoError){

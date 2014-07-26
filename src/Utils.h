@@ -113,6 +113,7 @@ namespace Utils
 	double evaluate(QString expression);
 	QString defaultPath();
 	QString defaultFont(bool monospace=false);
+	QString customUrl(Site site);
 	QString decodeXml(QString string,bool fast=false);
 	QStringList getRenderModules();
 	QStringList getDecodeModules();

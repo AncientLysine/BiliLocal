@@ -113,7 +113,7 @@ Load::Load(QObject *parent):
 					QString select=video.mid(sta,len);
 					QRegExp regex("value\\='[^']+");
 					int cur=0;
-					api="http://www.bilibili.com";
+					api="http://www."+Utils::customUrl(Utils::Bilibili);
 					model->clear();
 					while((cur=regex.indexIn(select,cur))!=-1){
 						sta=select.indexOf('>',cur)+1;
@@ -126,8 +126,8 @@ Load::Load(QObject *parent):
 						model->appendRow(item);
 					}
 					if(model->rowCount()>0){
-						dequeue();
 						emit stateChanged(Part);
+						dequeue();
 						flag=false;
 					}
 				}
@@ -135,8 +135,9 @@ Load::Load(QObject *parent):
 			if(flag){
 				id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption).match(video).captured();
 				if(!id.isEmpty()){
-					api="http://comment.bilibili.com/%1.xml";
-					getReply(QNetworkRequest(QUrl(api.arg(id))));
+					api="http://comment.%1/%2.xml";
+					api=api.arg(Utils::customUrl(Utils::Bilibili));
+					getReply(QNetworkRequest(api.arg(id)));
 					loadTop();
 					emit stateChanged(File);
 				}
@@ -149,9 +150,10 @@ Load::Load(QObject *parent):
 			if(url.indexOf("getVideo.aspx")!=-1){
 				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
 				if(json.contains("danmakuId")){
-					QString api="http://comment.acfun.tv/%1.json";
-					QUrl jsonUrl(api.arg(json["danmakuId"].toString()));
-					getReply(QNetworkRequest(jsonUrl));
+					QString api="http://comment.%1/%2.json";
+					api=api.arg(Utils::customUrl(Utils::AcFun));
+					api=api.arg(json["danmakuId"].toString());
+					getReply(QNetworkRequest(api));
 					loadTop();
 					emit stateChanged(File);
 				}
@@ -169,14 +171,17 @@ Load::Load(QObject *parent):
 					r.setPattern("(?<=>)[^>]+?(?=</a>)");
 					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 					r.setPattern("(?<=data-vid=\").+?(?=\")");
-					item->setData("http://www.acfun.tv/video/getVideo.aspx?id="+r.match(part).captured(),UrlRole);
+					QString next("http://www.%1/video/getVideo.aspx?id=%2");
+					next=next.arg(Utils::customUrl(Utils::AcFun));
+					next=next.arg(r.match(part).captured());
+					item->setData(next,UrlRole);
 					item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 					item->setData(Code,NxtRole);
 					model->appendRow(item);
 				}
 				if(url.indexOf('_')==-1&&model->rowCount()>=2){
-					dequeue();
 					emit stateChanged(Part);
+					dequeue();
 				}
 				else{
 					int i=url.indexOf('_');
@@ -203,13 +208,16 @@ Load::Load(QObject *parent):
 				item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 				r.setPattern("(?<=cid=\").+?(?=\")");
 				item->setData(File,NxtRole);
-				item->setData("http://comment.bilibili.com/"+r.match(part).captured()+".xml",UrlRole);
+				QString next("http://comment.%1/%2.xml");
+				next=next.arg(Utils::customUrl(Utils::Bilibili));
+				next=next.arg(r.match(part).captured());
+				item->setData(next,UrlRole);
 				item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
 				model->appendRow(item);
 			}
 			if(str.indexOf('#')==-1&&model->rowCount()>=2){
-				dequeue();
 				emit stateChanged(Part);
+				dequeue();
 			}
 			else{
 				int i=str.indexOf('#');
@@ -292,46 +300,49 @@ void Load::loadDanmaku(QString code)
 {
 	QNetworkRequest request;
 	int sharp=code.indexOf("#");
+	int state=None;
 	QString s=code.mid(0,2);
 	QString i=code.mid(2,sharp-2);
 	QString p=sharp==-1?QString():code.mid(sharp+1);
 	if((s=="av"||s=="ac"||s=="dd")&&code.length()>2){
 		QString url;
 		if(s=="av"){
-			url=QString("http://www.bilibili.com/video/av%1/").arg(i);
+			url=QString("http://www.%1/video/av%2/");
+			url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(i);\
 			if(!p.isEmpty()){
 				url+=QString("index_%1.html").arg(p);
 			}
 			request.setUrl(url);
+			state=Page;
 		}
 		if(s=="ac"){
-			url=QString("http://www.acfun.tv/v/ac%1").arg(i);
+			url=QString("http://www.%1/v/ac%2");
+			url=url.arg(Utils::customUrl(Utils::AcFun)).arg(i);
 			if(!p.isEmpty()){
 				url+=QString("_%1").arg(p);
 			}
 			request.setUrl(url);
+			state=Page;
 		}
 		if(s=="dd"){
-			url=QString("http://api.acplay.net/api/v1/comment/")+i;
+			url=QString("http://api.%1/api/v1/comment/%2");
+			url=url.arg(Utils::customUrl(Utils::AcPlay)).arg(i);
 			request.setUrl(url);
 			request.setRawHeader("Accept","application/json");
+			state=File;
 		}
 	}
 	else if(QFile::exists(code)){
 		request.setUrl(QUrl::fromLocalFile(code));
 		code=QFileInfo(code).fileName();
+		state=File;
 	}
 	else{
 		return;
 	}
 	getReply(request,code);
 	loadTop();
-	if(!request.url().isLocalFile()){
-		emit stateChanged(Page);
-	}
-	else{
-		emit stateChanged(File);
-	}
+	emit stateChanged(state);
 	if(Config::getValue("/Playing/Clear",true)){
 		Danmaku::instance()->clearPool();
 	}

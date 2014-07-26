@@ -321,6 +321,7 @@ Menu::Menu(QWidget *parent):
 			isStay=1;
 			break;
 		case Load::Part:
+			danmL->setText(Load::instance()->getStr());
 			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
 				danmC->complete();
 				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));

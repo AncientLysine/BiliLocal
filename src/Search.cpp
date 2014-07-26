@@ -211,10 +211,10 @@ Search::Search(QWidget *parent):QDialog(parent)
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		reply->deleteLater();
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){
 			reply->manager()->get(QNetworkRequest(redirect));
-			reply->deleteLater();
 			return;
 		}
 		auto error=[this](int code){
@@ -223,9 +223,20 @@ Search::Search(QWidget *parent):QDialog(parent)
 			clearSearch();
 			isWaiting=false;
 		};
-		QString url=reply->url().url();
-		if(reply->error()==QNetworkReply::NoError){
-			switch(Utils::getSite(url)){
+		QVariant image=reply->request().attribute(QNetworkRequest::User);
+		if(image.isValid()){
+			QTreeWidgetItem *line=resultW->topLevelItem(image.toInt());
+			if(line!=NULL&&line->icon(0).isNull()){
+				QPixmap pixmap;
+				pixmap.loadFromData(reply->readAll());
+				if(!pixmap.isNull()){
+					pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+				}
+				line->setIcon(0,QIcon(pixmap));
+			}
+		}
+		else if(reply->error()==QNetworkReply::NoError){
+			switch(Utils::getSite(reply->url().url())){
 			case Utils::Bilibili:
 			{
 				QString data(reply->readAll());
@@ -340,24 +351,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 				break;
 			}
 			default:
-			{
-				QTreeWidgetItem *line=resultW->topLevelItem(reply->request().attribute(QNetworkRequest::User).toInt());
-				if(line!=NULL&&line->icon(0).isNull()){
-					QPixmap pixmap;
-					pixmap.loadFromData(reply->readAll());
-					if(!pixmap.isNull()){
-						pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
-					}
-					line->setIcon(0,QIcon(pixmap));
-				}
 				break;
 			}
-			}
 		}
-		else if(Utils::getSite(url)!=Utils::Unknown){
+		else{
 			error(reply->error());
 		}
-		reply->deleteLater();
 	});
 }
 
@@ -411,7 +410,9 @@ void Search::getData(int pageNum)
 	switch(sitesC->currentIndex()){
 	case 0:
 	{
-		url=QUrl("http://www.bilibili.com/search");
+		url=QUrl("http://www."+
+				 Utils::customUrl(Utils::Bilibili)+
+				 "/search");
 		QUrlQuery query;
 		query.addQueryItem("keyword",key);
 		query.addQueryItem("page",QString::number(pageNum));
@@ -422,7 +423,9 @@ void Search::getData(int pageNum)
 	}
 	case 1:
 	{
-		url=QUrl("http://api.acfun.tv/search");
+		url=QUrl("http://api."+
+				 Utils::customUrl(Utils::AcFun)+
+				 "/search");
 		QUrlQuery query;
 		query.addQueryItem("query",key);
 		query.addQueryItem("exact","1");
@@ -442,7 +445,9 @@ void Search::getData(int pageNum)
 			}
 			if(file.exists()){
 				file.open(QIODevice::ReadOnly);
-				url=QUrl("http://api.acplay.net/api/v1/match");
+				url=QUrl("http://api."+
+						 Utils::customUrl(Utils::AcPlay)+
+						 "/api/v1/match");
 				QUrlQuery query;
 				query.addQueryItem("fileName",QFileInfo(file).baseName());
 				query.addQueryItem("hash",QCryptographicHash::hash(file.read(0x1000000),QCryptographicHash::Md5).toHex());
@@ -459,7 +464,9 @@ void Search::getData(int pageNum)
 			QStringList args=key.split("#");
 			switch(orderC->currentIndex()){
 			case 0:
-				url=QUrl("http://api.acplay.net/api/v1/search/TVAnime");
+				url=QUrl("http://api."+
+						 Utils::customUrl(Utils::AcPlay)+
+						 "/api/v1/search/TVAnime");
 				if(args.size()!=2){
 					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
 					return;
@@ -468,7 +475,9 @@ void Search::getData(int pageNum)
 				query.addQueryItem("episode",args[1]);
 				break;
 			case 1:
-				url=QUrl("http://api.acplay.net/api/v1/search/Other");
+				url=QUrl("http://api."+
+						 Utils::customUrl(Utils::AcPlay)+
+						 "/api/v1/search/Other");
 				if(args.size()==0||args.size()>2){
 					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
 					return;

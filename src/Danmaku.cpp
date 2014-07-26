@@ -491,7 +491,7 @@ static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 		w.writeStartDocument();
 		w.writeStartElement("i");
 		w.writeStartElement("chatserver");
-		w.writeCharacters("chat.bilibili.com");
+		w.writeCharacters("chat."+Utils::customUrl(Utils::Bilibili));
 		w.writeEndElement();
 		w.writeStartElement("mission");
 		w.writeCharacters("0");

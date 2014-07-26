@@ -29,16 +29,16 @@
 
 Utils::Site Utils::getSite(QString url)
 {
-	if(url.startsWith("http://www.bilibili")||url.startsWith("http://bilibili.kankanews")){
-		return Bilibili;
-	}
-	else if(url.startsWith("http://www.acfun")||url.startsWith("http://api.acfun")){
-		return AcFun;
-	}
-	else if(url.indexOf("letv.com")!=-1){
+	if(url.indexOf("letv.com")!=-1){
 		return Letv;
 	}
-	else if(url.startsWith("http://api.acplay.net")){
+	else if(url.indexOf("bilibili")!=-1){
+		return Bilibili;
+	}
+	else if(url.indexOf("acfun")!=-1){
+		return AcFun;
+	}
+	else if(url.indexOf("acplay")!=-1){
 		return AcPlay;
 	}
 	else{
@@ -281,6 +281,23 @@ QString Utils::defaultFont(bool monospace)
 #ifdef Q_OS_MAC
 		return "华文黑体";
 #endif
+	}
+}
+
+QString Utils::customUrl(Site site)
+{
+	switch(site){
+	case AcFun:
+		return Config::getValue("/Network/Url/AcFun",
+								QString("acfun.tv"));
+	case Bilibili:
+		return Config::getValue("/Network/Url/Bilibili",
+								QString("bilibili.com"));
+	case AcPlay:
+		return Config::getValue("/Network/Url/AcPlay",
+								QString("acplay.net"));
+	default:
+		return QString();
 	}
 }
 
