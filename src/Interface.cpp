@@ -226,19 +226,13 @@ Interface::Interface(QWidget *parent):
 	});
 	addAction(escA);
 
-	QActionGroup *g;
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
-	g=new QActionGroup(rat);
-	rat->setDefaultAction(g->addAction(tr("Default")));
-	g->addAction("4:3");
-	g->addAction("16:9");
-	g->addAction("16:10");
-	for(QAction *a:g->actions()){
-		a->setCheckable(true);
-	}
+	rat->setDefaultAction(rat->addAction(tr("Default")));
+	rat->addAction("4:3");
+	rat->addAction("16:9");
+	rat->addAction("16:10");
 	rat->defaultAction()->setChecked(true);
-	rat->addActions(g->actions());
 	connect(rat,&QMenu::triggered,[this](QAction *action){
 		if(action->text()==tr("Default")){
 			render->setVideoAspectRatio(0);
@@ -251,26 +245,36 @@ Interface::Interface(QWidget *parent):
 			render->draw();
 		}
 	});
+	QActionGroup *g;
+	g=new QActionGroup(rat);
+	for(QAction *a:rat->actions()){
+		g->addAction(a)->setCheckable(true);
+	}
 
 	sca=new QMenu(tr("Scale"),this);
 	sca->setEnabled(false);
-	g=new QActionGroup(sca);
-	g->addAction("1:4");
-	g->addAction("1:2");
-	sca->setDefaultAction(g->addAction("1:1"));
-	g->addAction("2:1");
-	for(QAction *a:g->actions()){
-		a->setCheckable(true);
-	}
+	sca->addAction("541*384")->setData(QSize(540,383));
+	sca->addAction("672*438")->setData(QSize(671,437));
+	sca->addSeparator();
+	sca->addAction("1:4");
+	sca->addAction("1:2");
+	sca->setDefaultAction(sca->addAction("1:1"));
+	sca->addAction("2:1");
 	sca->defaultAction()->setChecked(true);
-	sca->addActions(g->actions());
 	connect(sca,&QMenu::triggered,[this](QAction *action){
 		if(render->getPreferredSize().isValid()){
-			QStringList l=action->text().split(':');
-			QSize s=render->getPreferredSize()*l[0].toInt()/l[1].toInt();
+			QSize s=action->data().toSize();
+			if(s.isEmpty()){
+				QStringList l=action->text().split(':');
+				s=render->getPreferredSize()*l[0].toInt()/l[1].toInt();
+			}
 			setCenter(s,false);
 		}
 	});
+	g=new QActionGroup(sca);
+	for(QAction *a:sca->actions()){
+		g->addAction(a)->setCheckable(true);
+	}
 
 	if(Config::getValue("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
@@ -399,10 +403,15 @@ void Interface::mousePressEvent(QMouseEvent *e)
 			sta=e->globalPos();
 			wgd=pos();
 		}
-		int s=height()-e->y();
-		if(s<=25&&s>=0){
-			sliding=true;
-			render->setDisplayTime(e->x()/(double)width());
+		QPoint p=e->pos();
+		if(!info->geometry().contains(p)&&!menu->geometry().contains(p)){
+			if(height()-p.y()<=25&&height()>=p.y()){
+				sliding=true;
+				render->setDisplayTime(e->x()/(double)width());
+			}
+			else if(Config::getValue("/Interface/Sensitive",false)){
+				aplayer->play();
+			}
 		}
 	}
 	QWidget::mousePressEvent(e);

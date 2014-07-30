@@ -53,6 +53,7 @@ public:
 	QComboBox *font;
 	QComboBox *reop;
 	QCheckBox *vers;
+	QCheckBox *sens;
 	QCheckBox *stay;
 	QCheckBox *less;
 	QCheckBox *skip;
@@ -469,19 +470,25 @@ Config::Config(QWidget *parent,int index):
 		connect(d->stay,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Top",state==Qt::Checked);
 		});
-		t->addWidget(d->stay,0,0);
+		t->addWidget(d->stay,0,1);
 		d->less=new QCheckBox(tr("frameless"),d->widget[1]);
 		d->less->setChecked(Config::getValue("/Interface/Frameless",false));
 		connect(d->less,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Frameless",state==Qt::Checked);
 		});
-		t->addWidget(d->less,1,0);
+		t->addWidget(d->less,1,1);
 		d->vers=new QCheckBox(tr("version information"),d->widget[1]);
 		d->vers->setChecked(Config::getValue("/Interface/Version",true));
 		connect(d->vers,&QCheckBox::stateChanged,[d](int state){
 			Config::setValue("/Interface/Version",state==Qt::Checked);
 		});
-		t->addWidget(d->vers,0,1);
+		t->addWidget(d->vers,0,0);
+		d->sens=new QCheckBox(tr("sensitive pausing"),d->widget[1]);
+		d->sens->setChecked(Config::getValue("/Interface/Sensitive",false));
+		connect(d->sens,&QCheckBox::stateChanged,[d](int state){
+			Config::setValue("/Interface/Sensitive",state==Qt::Checked);
+		});
+		t->addWidget(d->sens,1,0);
 		d->ui[2]=new QGroupBox(tr("window flag"),d->widget[1]);
 		d->ui[2]->setLayout(t);
 		list->addWidget(d->ui[2]);

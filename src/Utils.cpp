@@ -254,32 +254,24 @@ QString Utils::defaultFont(bool monospace)
 {
 	if(monospace){
 #ifdef Q_OS_LINUX
-		return "文泉驿等宽正黑";
+		return QStringLiteral("文泉驿等宽正黑");
 #endif
 #ifdef Q_OS_WIN32
-#ifdef Q_CC_MSVC
-		return QString::fromLocal8Bit("黑体");
-#else
-		return "黑体";
-#endif
+		return QStringLiteral("黑体");
 #endif
 #ifdef Q_OS_MAC
-		return "";
+		return QStringLiteral("华文黑体");
 #endif
 	}
 	else{
 #ifdef Q_OS_LINUX
-		return "文泉驿正黑";
+		return QStringLiteral("文泉驿正黑");
 #endif
 #ifdef Q_OS_WIN32
-#ifdef Q_CC_MSVC
-		return QString::fromLocal8Bit("微软雅黑");
-#else
-		return "微软雅黑";
-#endif
+		return QStringLiteral("微软雅黑");
 #endif
 #ifdef Q_OS_MAC
-		return "华文黑体";
+		return QStringLiteral("华文黑体");
 #endif
 	}
 }
