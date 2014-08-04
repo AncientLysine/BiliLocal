@@ -64,8 +64,6 @@ private:
 	static Load *ins;
 
 	Load(QObject *parent=0);
-	void loadTop();
-	void dequeue();
 
 signals:
 	void stateChanged(int state);
@@ -77,6 +75,9 @@ public slots:
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
 	void getReply(QNetworkRequest request,QString code=QString());
 
+private slots:
+	void loadTop();
+	void dequeue();
 };
 
 #endif // LOAD_H

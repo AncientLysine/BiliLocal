@@ -51,10 +51,10 @@ Load::Load(QObject *parent):
 			if(code==QNetworkReply::OperationCanceledError){
 				return;
 			}
-			dequeue();
-			loadTop();
 			QEvent e(QEvent::User);
 			if(!qApp->sendEvent(this,&e)){
+				dequeue();
+				loadTop();
 				emit stateChanged(code);
 			}
 		};
@@ -272,20 +272,6 @@ QStandardItemModel *Load::getModel()
 	return model;
 }
 
-void Load::loadTop()
-{
-	if(!queue.isEmpty()&&queue.head()!=last){
-		last=queue.head();
-		manager->get(last);
-	}
-}
-
-void Load::dequeue()
-{
-	queue.dequeue();
-	last=QNetworkRequest();
-}
-
 QString Load::getStr()
 {
 	return queue.isEmpty()?QString():last.attribute(QNetworkRequest::User).toString();
@@ -381,4 +367,18 @@ void Load::getReply(QNetworkRequest request,QString code)
 		request.setAttribute(QNetworkRequest::User,queue.head().attribute(QNetworkRequest::User));
 		queue.head()=request;
 	}
+}
+
+void Load::loadTop()
+{
+	if (!queue.isEmpty() && queue.head() != last){
+		last = queue.head();
+		manager->get(last);
+	}
+}
+
+void Load::dequeue()
+{
+	queue.dequeue();
+	last = QNetworkRequest();
 }
