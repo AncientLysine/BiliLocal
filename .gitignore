@@ -3,11 +3,6 @@
 *.user
 *.sh
 *.qm
-build
-debug
-release
-Win32
-GeneratedFiles
 *.sln
 *.sdf
 *.suo
@@ -16,3 +11,4 @@ GeneratedFiles
 *.filters
 *.opensdf
 *.psd
+bin

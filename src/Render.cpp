@@ -67,92 +67,106 @@ private:
 	}
 };
 
-int avpicture_alloc(AVPicture *picture,enum AVPixelFormat pix_fmt,int width,int height)
+class Buffer
 {
-	int ret=av_image_alloc(picture->data,picture->linesize,width,height,pix_fmt,1);
-	if(ret<0){
-		memset(picture,0,sizeof(AVPicture));
-		return ret;
-	}
-	return 0;
-}
+public:
+	quint8 *data[AV_NUM_DATA_POINTERS];
+	qint32  line[AV_NUM_DATA_POINTERS];
+	AVPixelFormat format;
+	QSize size;
 
-void avpicture_free(AVPicture *picture)
-{
-	av_free(picture->data[0]);
-}
+	Buffer(AVPixelFormat format,QSize size):
+		format(format),size(size)
+	{
+		if(av_image_alloc(data,line,size.width(),size.height(),format,1)<0){
+			size=QSize();
+		}
+	}
 
-static AVPixelFormat getFormat(QString &chroma)
-{
-	static QHash<QString,AVPixelFormat> f;
-	if(f.isEmpty()){
-		f.insert("RV32",AV_PIX_FMT_RGB32);
-		f.insert("I410",AV_PIX_FMT_YUV410P);
-		f.insert("I411",AV_PIX_FMT_YUV411P);
-		f.insert("I420",AV_PIX_FMT_YUV420P);
-		f.insert("I422",AV_PIX_FMT_YUV422P);
-		f.insert("I440",AV_PIX_FMT_YUV440P);
-		f.insert("I444",AV_PIX_FMT_YUV444P);
-		f.insert("J420",AV_PIX_FMT_YUVJ420P);
-		f.insert("J422",AV_PIX_FMT_YUVJ422P);
-		f.insert("J440",AV_PIX_FMT_YUVJ440P);
-		f.insert("J444",AV_PIX_FMT_YUVJ444P);
-		f.insert("I40A",AV_PIX_FMT_YUVA420P);
-		f.insert("I42A",AV_PIX_FMT_YUVA422P);
-		f.insert("YUVA",AV_PIX_FMT_YUVA444P);
-		f.insert("NV12",AV_PIX_FMT_NV12);
-		f.insert("NV21",AV_PIX_FMT_NV21);
-		f.insert("NV16",AV_PIX_FMT_NV16);
-		f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
-		f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
-		f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
-		f.insert("I29B",AV_PIX_FMT_YUV422P9BE);
-		f.insert("I49L",AV_PIX_FMT_YUV444P9LE);
-		f.insert("I49B",AV_PIX_FMT_YUV444P9BE);
-		f.insert("I0AL",AV_PIX_FMT_YUV420P10LE);
-		f.insert("I0AB",AV_PIX_FMT_YUV420P10BE);
-		f.insert("I2AL",AV_PIX_FMT_YUV422P10LE);
-		f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
-		f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
-		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
-		f.insert("UYVY",AV_PIX_FMT_UYVY422);
-		f.insert("YUY2",AV_PIX_FMT_YUYV422);
-		f.insert("XY12",AV_PIX_FMT_XYZ12);
+	bool isValid()
+	{
+		return size.isValid();
 	}
-	chroma=chroma.toUpper();
-	if(!f.contains(chroma)){
-		if(chroma=="NV61"){
-			chroma="NV16";
-		}
-		else if(chroma=="YV12"||
-				chroma=="IYUV"){
-			chroma="I420";
-		}
-		else if(chroma=="UYNV"||
-				chroma=="UYNY"||
-				chroma=="Y422"||
-				chroma=="HDYC"||
-				chroma=="AVUI"||
-				chroma=="UYV1"||
-				chroma=="2VUY"||
-				chroma=="2VU1"){
-			chroma="UYVY";
-		}
-		else if(chroma=="VYUY"||
-				chroma=="YUYV"||
-				chroma=="YUNV"||
-				chroma=="V422"||
-				chroma=="YVYU"||
-				chroma=="Y211"||
-				chroma=="CYUV"){
-			chroma="YUY2";
-		}
-		else{
-			chroma="RV32";
+
+	~Buffer()
+	{
+		if(isValid()){
+			av_free(data[0]);
 		}
 	}
-	return f[chroma];
-}
+
+	static AVPixelFormat getFormat(QString &chroma)
+	{
+		static QHash<QString,AVPixelFormat> f;
+		if(f.isEmpty()){
+			f.insert("RV32",AV_PIX_FMT_RGB32);
+			f.insert("I410",AV_PIX_FMT_YUV410P);
+			f.insert("I411",AV_PIX_FMT_YUV411P);
+			f.insert("I420",AV_PIX_FMT_YUV420P);
+			f.insert("I422",AV_PIX_FMT_YUV422P);
+			f.insert("I440",AV_PIX_FMT_YUV440P);
+			f.insert("I444",AV_PIX_FMT_YUV444P);
+			f.insert("J420",AV_PIX_FMT_YUVJ420P);
+			f.insert("J422",AV_PIX_FMT_YUVJ422P);
+			f.insert("J440",AV_PIX_FMT_YUVJ440P);
+			f.insert("J444",AV_PIX_FMT_YUVJ444P);
+			f.insert("I40A",AV_PIX_FMT_YUVA420P);
+			f.insert("I42A",AV_PIX_FMT_YUVA422P);
+			f.insert("YUVA",AV_PIX_FMT_YUVA444P);
+			f.insert("NV12",AV_PIX_FMT_NV12);
+			f.insert("NV21",AV_PIX_FMT_NV21);
+			f.insert("NV16",AV_PIX_FMT_NV16);
+			f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
+			f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
+			f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
+			f.insert("I29B",AV_PIX_FMT_YUV422P9BE);
+			f.insert("I49L",AV_PIX_FMT_YUV444P9LE);
+			f.insert("I49B",AV_PIX_FMT_YUV444P9BE);
+			f.insert("I0AL",AV_PIX_FMT_YUV420P10LE);
+			f.insert("I0AB",AV_PIX_FMT_YUV420P10BE);
+			f.insert("I2AL",AV_PIX_FMT_YUV422P10LE);
+			f.insert("I2AB",AV_PIX_FMT_YUV422P10BE);
+			f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
+			f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
+			f.insert("UYVY",AV_PIX_FMT_UYVY422);
+			f.insert("YUY2",AV_PIX_FMT_YUYV422);
+			f.insert("XY12",AV_PIX_FMT_XYZ12);
+		}
+		chroma=chroma.toUpper();
+		if(!f.contains(chroma)){
+			if(chroma=="NV61"){
+				chroma="NV16";
+			}
+			else if(chroma=="YV12"||
+					chroma=="IYUV"){
+				chroma="I420";
+			}
+			else if(chroma=="UYNV"||
+					chroma=="UYNY"||
+					chroma=="Y422"||
+					chroma=="HDYC"||
+					chroma=="AVUI"||
+					chroma=="UYV1"||
+					chroma=="2VUY"||
+					chroma=="2VU1"){
+				chroma="UYVY";
+			}
+			else if(chroma=="VYUY"||
+					chroma=="YUYV"||
+					chroma=="YUNV"||
+					chroma=="V422"||
+					chroma=="YVYU"||
+					chroma=="Y211"||
+					chroma=="CYUV"){
+				chroma="YUY2";
+			}
+			else{
+				chroma="RV32";
+			}
+		}
+		return f[chroma];
+	}
+};
 
 class RasterRender:public Render
 {
@@ -164,7 +178,6 @@ public:
 		swsctx=NULL;
 		srcFrame=NULL;
 		dstFrame=NULL;
-		dstFormat=AV_PIX_FMT_RGB32;
 		ins=this;
 	}
 
@@ -174,23 +187,17 @@ public:
 			sws_freeContext(swsctx);
 		}
 		if(srcFrame){
-			avpicture_free(srcFrame);
 			delete srcFrame;
 		}
 		if(dstFrame){
-			avpicture_free(dstFrame);
 			delete dstFrame;
 		}
 	}
 
 private:
 	SwsContext *swsctx;
-	AVPixelFormat srcFormat;
-	AVPixelFormat dstFormat;
-	AVPicture *srcFrame;
-	AVPicture *dstFrame;
-	QSize srcSize;
-	QSize dstSize;
+	Buffer *srcFrame;
+	Buffer *dstFrame;
 	QImage frame;
 	static QMutex dataLock;
 
@@ -200,7 +207,7 @@ public slots:
 		dataLock.lock();
 		QList<quint8 *> p;
 		for(int i=0;i<8;++i){
-			if(srcFrame->linesize[i]==0){
+			if(srcFrame->line[i]==0){
 				break;
 			}
 			p.append(srcFrame->data[i]);
@@ -210,25 +217,20 @@ public slots:
 
 	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
-		srcSize=size;
 		if(srcFrame){
-			avpicture_free(srcFrame);
+			delete srcFrame;
 		}
-		else{
-			srcFrame=new AVPicture;
-		}
-		srcFormat=getFormat(chroma);
-		avpicture_alloc(srcFrame,srcFormat,srcSize.width(),srcSize.height());
+		srcFrame=new Buffer(Buffer::getFormat(chroma),size);
 		if (bufferSize){
 			bufferSize->clear();
 		}
 		for(int i=0;i<3;++i){
 			int l;
-			if((l=srcFrame->linesize[i])==0){
+			if((l=srcFrame->line[i])==0){
 				break;
 			}
 			if (bufferSize){
-				bufferSize->append(QSize(l,srcSize.height()));
+				bufferSize->append(QSize(l,size.height()));
 			}
 		}
 	}
@@ -244,7 +246,7 @@ public slots:
 		if(music){
 			return QSize();
 		}
-		QSize s=srcSize;
+		QSize s=srcFrame->size;
 		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		return s;
 	}
@@ -261,32 +263,29 @@ public slots:
 
 	void drawBuffer(QPainter *painter,QRect rect)
 	{
-		if (srcSize.isEmpty()){
+		if(!srcFrame->isValid()){
 			return;
 		}
-		QRect dest=fitRect(srcSize,rect);
+		QRect dest=fitRect(srcFrame->size,rect);
 		dataLock.lock();
-		if(dstSize!=dest.size()){
+		if(!dstFrame||dstFrame->size!=dest.size()){
 			if(dstFrame){
-				avpicture_free(dstFrame);
+				delete dstFrame;
 			}
-			else{
-				dstFrame=new AVPicture;
-			}
-			dstSize=dest.size();
-			avpicture_alloc(dstFrame,dstFormat,dstSize.width(),dstSize.height());
+			QSize dstSize=dest.size();
+			dstFrame=new Buffer(AV_PIX_FMT_RGB32,dstSize);
 			frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
 			dirty=true;
 		}
 		if(dirty){
 			swsctx=sws_getCachedContext(swsctx,
-										srcSize.width(),srcSize.height(),srcFormat,
-										dstSize.width(),dstSize.height(),dstFormat,
+										srcFrame->size.width(),srcFrame->size.height(),srcFrame->format,
+										dstFrame->size.width(),dstFrame->size.height(),dstFrame->format,
 										SWS_FAST_BILINEAR,NULL,NULL,NULL);
 			sws_scale(swsctx,
-					  srcFrame->data,srcFrame->linesize,
-					  0, srcSize.height(),
-					  dstFrame->data,dstFrame->linesize);
+					  srcFrame->data,srcFrame->line,
+					  0,srcFrame->size.height(),
+					  dstFrame->data,dstFrame->line);
 			dirty=false;
 		}
 		dataLock.unlock();
