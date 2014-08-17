@@ -328,7 +328,7 @@ Config::Config(QWidget *parent,int index):
 		connect(d->load[3],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Immediate",state==Qt::Checked);
 		});
-		c->addWidget(d->load[3],1,1);
+        c->addWidget(d->load[3],1,1);
 		d->box[0]=new QGroupBox(tr("loading"),d->widget[0]);
 		d->box[0]->setLayout(c);
 		list->addWidget(d->box[0]);
@@ -336,9 +336,9 @@ Config::Config(QWidget *parent,int index):
 		auto s=new QHBoxLayout;
 		d->play[0]=new QLineEdit(d->widget[0]);
 		d->play[0]->setText(Config::getValue("/Danmaku/Speed",QString("125+%{width}/5")));
-		connect(d->play[0],&QLineEdit::editingFinished,[d](){
+		connect(d->play[0],&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Danmaku/Speed",d->play[0]->text());
-		});
+            });
 		s->addWidget(d->play[0]);
 		d->box[1]=new QGroupBox(tr("slide speed"),d->widget[0]);
 		d->box[1]->setToolTip(tr("%{width} means the width of an danmaku"));
@@ -348,7 +348,7 @@ Config::Config(QWidget *parent,int index):
 		auto l=new QHBoxLayout;
 		d->play[1]=new QLineEdit(d->widget[0]);
 		d->play[1]->setText(Config::getValue("/Danmaku/Life",QString("5")));
-		connect(d->play[1],&QLineEdit::editingFinished,[d](){
+		connect(d->play[1],&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Danmaku/Life",d->play[1]->text());
 		});
 		l->addWidget(d->play[1]);
@@ -363,7 +363,7 @@ Config::Config(QWidget *parent,int index):
 		d->fitted[0]->setChecked((state&0x2)>0);
 		d->fitted[1]=new QCheckBox(tr("advanced"),d->widget[0]);
 		d->fitted[1]->setChecked((state&0x1)>0);
-		auto slot=[d](){
+		auto slot=[=](){
 			int n=d->fitted[0]->checkState()==Qt::Checked;
 			int a=d->fitted[1]->checkState()==Qt::Checked;
 			Config::setValue("/Danmaku/Scale/Fitted",(n<<1)+a);
@@ -378,7 +378,7 @@ Config::Config(QWidget *parent,int index):
 		auto a=new QHBoxLayout;
 		d->factor=new QLineEdit(d->widget[0]);
 		d->factor->setText(QString::number(Config::getValue("/Danmaku/Scale/Factor",1.0),'f',2));
-		connect(d->factor,&QLineEdit::editingFinished,[d](){
+		connect(d->factor,&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Danmaku/Scale/Factor",d->factor->text().toDouble());
 		});
 		a->addWidget(d->factor);
@@ -394,7 +394,7 @@ Config::Config(QWidget *parent,int index):
 		int ef=Config::getValue("/Danmaku/Effect",5);
 		d->bold=new QCheckBox(tr("Bold"),d->widget[0]);
 		d->bold->setChecked(ef&1);
-		connect(d->bold,&QCheckBox::stateChanged,[d](int s){
+		connect(d->bold,&QCheckBox::stateChanged,[=](int s){
 			Config::setValue("/Danmaku/Effect",(d->effect->currentIndex()<<1)|(int)(s==Qt::Checked));
 		});
 		g->addWidget(d->bold);
@@ -403,7 +403,7 @@ Config::Config(QWidget *parent,int index):
 		d->effect->addItem(tr("Projection"));
 		d->effect->addItem(tr("Shadow"));
 		d->effect->setCurrentIndex(ef>>1);
-		connect<void (QComboBox::*)(int)>(d->effect,&QComboBox::currentIndexChanged,[d](int i){
+		connect<void (QComboBox::*)(int)>(d->effect,&QComboBox::currentIndexChanged,[=](int i){
 			Config::setValue("/Danmaku/Effect",(i<<1)|(int)(d->bold->checkState()==Qt::Checked));
 		});
 		g->addWidget(d->effect);
@@ -437,7 +437,7 @@ Config::Config(QWidget *parent,int index):
 		auto s=new QHBoxLayout;
 		d->size=new QLineEdit(d->widget[1]);
 		d->size->setText(Config::getValue("/Interface/Size",QString("960,540")).trimmed());
-		connect(d->size,&QLineEdit::editingFinished,[d](){
+		connect(d->size,&QLineEdit::editingFinished,[=](){
 			QRegularExpression r("\\D");
 			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
 			QString s=d->size->text().trimmed();
@@ -452,7 +452,7 @@ Config::Config(QWidget *parent,int index):
 		auto j=new QHBoxLayout;
 		d->jump=new QLineEdit(d->widget[0]);
 		d->jump->setText(QString::number(Config::getValue("/Interface/Interval",10),'f',2));
-		connect(d->jump,&QLineEdit::editingFinished,[d](){
+		connect(d->jump,&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Interface/Interval",d->jump->text().toDouble());
 		});
 		j->addWidget(d->jump);
@@ -467,25 +467,25 @@ Config::Config(QWidget *parent,int index):
 		auto t=new QGridLayout;
 		d->stay=new QCheckBox(tr("stay on top"),d->widget[1]);
 		d->stay->setChecked(Config::getValue("/Interface/Top",false));
-		connect(d->stay,&QCheckBox::stateChanged,[d](int state){
+		connect(d->stay,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Top",state==Qt::Checked);
 		});
 		t->addWidget(d->stay,0,1);
 		d->less=new QCheckBox(tr("frameless"),d->widget[1]);
 		d->less->setChecked(Config::getValue("/Interface/Frameless",false));
-		connect(d->less,&QCheckBox::stateChanged,[d](int state){
+		connect(d->less,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Frameless",state==Qt::Checked);
 		});
 		t->addWidget(d->less,1,1);
 		d->vers=new QCheckBox(tr("version information"),d->widget[1]);
 		d->vers->setChecked(Config::getValue("/Interface/Version",true));
-		connect(d->vers,&QCheckBox::stateChanged,[d](int state){
+		connect(d->vers,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Version",state==Qt::Checked);
 		});
 		t->addWidget(d->vers,0,0);
 		d->sens=new QCheckBox(tr("sensitive pausing"),d->widget[1]);
 		d->sens->setChecked(Config::getValue("/Interface/Sensitive",false));
-		connect(d->sens,&QCheckBox::stateChanged,[d](int state){
+		connect(d->sens,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Sensitive",state==Qt::Checked);
 		});
 		t->addWidget(d->sens,1,0);
@@ -497,7 +497,7 @@ Config::Config(QWidget *parent,int index):
 		d->font=new QComboBox(d->widget[1]);
 		d->font->addItems(QFontDatabase().families());
 		d->font->setCurrentText(Config::getValue("/Interface/Font/Family",QFont().family()));
-		connect(d->font,&QComboBox::currentTextChanged,[d](QString _font){
+		connect(d->font,&QComboBox::currentTextChanged,[=](QString _font){
 			Config::setValue("/Interface/Font/Family",_font);
 		});
 		f->addWidget(d->font);
@@ -508,7 +508,7 @@ Config::Config(QWidget *parent,int index):
 		d->reop=new QComboBox(d->widget[1]);
 		d->reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window"));
 		d->reop->setCurrentIndex(Config::getValue("/Interface/Single",1));
-		connect<void (QComboBox::*)(int)>(d->reop,&QComboBox::currentIndexChanged,[d](int i){
+		connect<void (QComboBox::*)(int)>(d->reop,&QComboBox::currentIndexChanged,[=](int i){
 			Config::setValue("/Interface/Single",i);
 		});
 		r->addWidget(d->reop);
@@ -523,13 +523,13 @@ Config::Config(QWidget *parent,int index):
 		auto a=new QHBoxLayout;
 		d->skip=new QCheckBox(tr("skip blocked ones"),d->widget[1]);
 		d->skip->setChecked(Config::getValue("/Interface/Save/Skip",false));
-		connect(d->skip,&QCheckBox::stateChanged,[d](int state){
+		connect(d->skip,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Save/Skip",state==Qt::Checked);
 		});
 		a->addWidget(d->skip);
 		d->sing=new QCheckBox(tr("as a single file"),d->widget[1]);
 		d->sing->setChecked(Config::getValue("/Interface/Save/Single",true));
-		connect(d->sing,&QCheckBox::stateChanged,[d](int state){
+		connect(d->sing,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Save/Single",state==Qt::Checked);
 		});
 		a->addWidget(d->sing);
@@ -540,7 +540,7 @@ Config::Config(QWidget *parent,int index):
 		auto b=new QHBoxLayout;
 		d->back=new QLineEdit(d->widget[1]);
 		d->back->setText(Config::getValue("/Interface/Background",QString()));
-		connect(d->back,&QLineEdit::textChanged,[d](){
+		connect(d->back,&QLineEdit::textChanged,[=](){
 			Config::setValue("/Interface/Background",d->back->text());
 		});
 		b->addWidget(d->back);
@@ -843,7 +843,7 @@ Config::Config(QWidget *parent,int index):
 		d->same=new QSlider(Qt::Horizontal,d->widget[3]);
 		d->same->setRange(0,40);
 		d->same->setValue(Config::getValue("/Shield/Limit",5));
-		connect(d->same,&QSlider::valueChanged,[d](int value){
+		connect(d->same,&QSlider::valueChanged,[=](int value){
 			Config::setValue("/Shield/Limit",value);
 			QPoint p;
 			p.setX(QCursor::pos().x());
@@ -859,7 +859,7 @@ Config::Config(QWidget *parent,int index):
 
 		d->limit=new QLineEdit(d->widget[3]);
 		d->limit->setText(QString::number(Config::getValue("/Shield/Density",100)));
-		connect(d->limit,&QLineEdit::editingFinished,[d](){
+		connect(d->limit,&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Shield/Density",d->limit->text().toInt());
 		});
 		auto m=new QHBoxLayout;
@@ -1013,7 +1013,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto c=new QHBoxLayout;
 		d->text=new QLabel(d->widget[4]);
-		auto m=[d](){
+		auto m=[=](){
 			QString s=tr("current size is %.2fMB");
 			s.sprintf(s.toUtf8(),DCache::data->cacheSize()/(1024.0*1024));
 			d->text->setText(s);
@@ -1035,7 +1035,7 @@ Config::Config(QWidget *parent,int index):
 		auto p=new QGridLayout;
 		d->arg=new QComboBox(d->widget[4]);
 		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
-		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[d](int index){
+		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[=](int index){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
 			switch(index){
 			case 0:
@@ -1149,7 +1149,7 @@ Config::Config(QWidget *parent,int index):
 			row->setTextAlignment(5,Qt::AlignCenter);
 			row->setSizeHint(0,QSize(60,40));
 		}
-		connect(d->plugin,&QTreeWidget::itemChanged,[d](QTreeWidgetItem *item){
+		connect(d->plugin,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item){
 			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
 			Config::setValue("/Plugin/"+p->string("Name"),item->checkState(0)==Qt::Checked);
 		});
