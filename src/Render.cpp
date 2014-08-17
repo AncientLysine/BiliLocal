@@ -102,7 +102,7 @@ static AVPixelFormat getFormat(QString &chroma)
 		f.insert("YUVA",AV_PIX_FMT_YUVA444P);
 		f.insert("NV12",AV_PIX_FMT_NV12);
 		f.insert("NV21",AV_PIX_FMT_NV21);
-		f.insert("NV16",AV_PIX_FMT_NV16);
+		//f.insert("NV16",AV_PIX_FMT_NV16);
 		f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
 		f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
 		f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
@@ -117,7 +117,7 @@ static AVPixelFormat getFormat(QString &chroma)
 		f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
 		f.insert("UYVY",AV_PIX_FMT_UYVY422);
 		f.insert("YUY2",AV_PIX_FMT_YUYV422);
-		f.insert("XY12",AV_PIX_FMT_XYZ12);
+		//f.insert("XY12",AV_PIX_FMT_XYZ12);
 	}
 	chroma=chroma.toUpper();
 	if(!f.contains(chroma)){
