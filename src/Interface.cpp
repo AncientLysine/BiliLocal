@@ -54,7 +54,7 @@ Interface::Interface(QWidget *parent):
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["APlayer"]=aplayer;
 
-	render=Render::instance(this);
+	render=Render::instance();
 	Local::objects["Render"]=render;
 
 	menu=new Menu(this);
@@ -350,7 +350,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	render->getWidget()->resize(e->size());
+	render->resize(e->size());
 	int w=e->size().width(),h=e->size().height();
 	menu->terminate();
 	info->terminate();

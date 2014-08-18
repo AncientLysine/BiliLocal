@@ -28,8 +28,106 @@
 #include "Config.h"
 #include "APlayer.h"
 #include "Danmaku.h"
+#ifndef EMBEDDED
+#include "Local.h"
+#include <QtWidgets>
+#endif
 
 Render *Render::ins=NULL;
+
+class RenderPrivate
+{
+public:
+	QMovie tv;
+	double time;
+	QImage me,background,sound;
+	QTime last;
+	QTimer *power;
+	bool music;
+	bool dirty;
+	double videoAspectRatio;
+	double pixelAspectRatio;
+
+	virtual ~RenderPrivate()
+	{
+	}
+
+	QRect fitRect(QSize size,QRect rect)
+	{
+		QRect dest;
+		QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
+		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
+		dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
+		dest.moveCenter(rect.center());
+		return dest;
+	}
+
+	void drawPlay(QPainter *painter,QRect rect)
+	{
+		painter->fillRect(rect,Qt::black);
+		if(music){
+			painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
+		}
+		else{
+			drawData(painter,rect);
+		}
+		APlayer *aplayer=APlayer::instance();
+		Danmaku *danmaku=Danmaku::instance();
+		qint64 time=0;
+		if(!last.isNull()){
+			time=last.elapsed();
+		}
+		if(aplayer->getState()==APlayer::Play){
+			last.start();
+		}
+		danmaku->draw(painter,time);
+	}
+
+	void drawStop(QPainter *painter,QRect rect)
+	{
+		if(background.isNull()){
+			painter->fillRect(rect,qApp->palette().color(QPalette::Window));
+		}
+		else{
+			QRect dest=rect;
+			dest.setSize(background.size().scaled(dest.size(),Qt::KeepAspectRatioByExpanding));
+			dest.moveCenter(rect.center());
+			painter->drawImage(dest,background);
+		}
+		int w=rect.width(),h=rect.height();
+		QImage cf=tv.currentImage();
+		painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);
+		painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
+	}
+
+	void drawTime(QPainter *painter,QRect rect)
+	{
+		if(time<=0){
+			return;
+		}
+		rect=QRect(0,rect.height()-2,rect.width()*time,2);
+		QLinearGradient gradient;
+		gradient.setStart(rect.center().x(),rect.top());
+		gradient.setFinalStop(rect.center().x(),rect.bottom());
+		QColor outline=qApp->palette().background().color().darker(140);
+		QColor highlight=qApp->palette().color(QPalette::Highlight);
+		QColor highlightedoutline=highlight.darker(140);
+		if(qGray(outline.rgb())>qGray(highlightedoutline.rgb())){
+			outline=highlightedoutline;
+		}
+		painter->setPen(QPen(outline));
+		gradient.setColorAt(0,highlight);
+		gradient.setColorAt(1,highlight.lighter(130));
+		painter->setBrush(gradient);
+		painter->drawRect(rect);
+	}
+
+	virtual void drawData(QPainter *painter,QRect rect)=0;
+	virtual QList<quint8 *> getBuffer()=0;
+	virtual void releaseBuffer()=0;
+	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0)=0;
+
+};
 
 #ifdef RENDER_RASTER
 extern "C"
@@ -39,63 +137,52 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
-class Widget:public QWidget
+class RasterRenderPrivate:public RenderPrivate
 {
 public:
-	explicit Widget(Render *render,QWidget *parent=0):
-		QWidget(parent),render(render)
+	class Buffer
 	{
-		setAttribute(Qt::WA_TransparentForMouseEvents);
-		setFocusPolicy(Qt::NoFocus);
-	}
+	public:
+		quint8 *data[AV_NUM_DATA_POINTERS];
+		qint32  line[AV_NUM_DATA_POINTERS];
+		AVPixelFormat format;
+		QSize size;
 
-private:
-	Render *render;
-	void paintEvent(QPaintEvent *e)
-	{
-		QPainter painter(this);
-		QRect rect(QPoint(0,0),size());
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		if(APlayer::instance()->getState()==APlayer::Stop){
-			render->drawStop(&painter,rect);
+		Buffer(AVPixelFormat format,QSize size):
+			format(format),size(size)
+		{
+			if(av_image_alloc(data,line,size.width(),size.height(),format,1)<0){
+				size=QSize();
+			}
 		}
-		else{
-			render->drawPlay(&painter,rect);
-			render->drawTime(&painter,rect);
+
+		bool isValid()
+		{
+			return size.isValid();
 		}
-		QWidget::paintEvent(e);
-	}
-};
 
-class Buffer
-{
-public:
-	quint8 *data[AV_NUM_DATA_POINTERS];
-	qint32  line[AV_NUM_DATA_POINTERS];
-	AVPixelFormat format;
-	QSize size;
-
-	Buffer(AVPixelFormat format,QSize size):
-		format(format),size(size)
-	{
-		if(av_image_alloc(data,line,size.width(),size.height(),format,1)<0){
-			size=QSize();
+		~Buffer()
+		{
+			if(isValid()){
+				av_free(data[0]);
+			}
 		}
-	}
+	};
 
-	bool isValid()
+	SwsContext *swsctx;
+	Buffer *srcFrame;
+	Buffer *dstFrame;
+	QImage frame;
+	static QMutex dataLock;
+
+	RasterRenderPrivate()
 	{
-		return size.isValid();
+		swsctx=NULL;
+		srcFrame=NULL;
+		dstFrame=NULL;
 	}
 
-	~Buffer()
-	{
-		if(isValid()){
-			av_free(data[0]);
-		}
-	}
-
-	static AVPixelFormat getFormat(QString &chroma)
+	AVPixelFormat getFormat(QString &chroma)
 	{
 		static QHash<QString,AVPixelFormat> f;
 		if(f.isEmpty()){
@@ -166,102 +253,8 @@ public:
 		}
 		return f[chroma];
 	}
-};
 
-class RasterRender:public Render
-{
-public:
-	explicit RasterRender(QWidget *parent=0):
-		Render(parent)
-	{
-		widget=new Widget(this,parent);
-		swsctx=NULL;
-		srcFrame=NULL;
-		dstFrame=NULL;
-		ins=this;
-	}
-
-	~RasterRender()
-	{
-		if(swsctx){
-			sws_freeContext(swsctx);
-		}
-		if(srcFrame){
-			delete srcFrame;
-		}
-		if(dstFrame){
-			delete dstFrame;
-		}
-	}
-
-private:
-	SwsContext *swsctx;
-	Buffer *srcFrame;
-	Buffer *dstFrame;
-	QImage frame;
-	static QMutex dataLock;
-
-public slots:
-	QList<quint8 *> getBuffer()
-	{
-		dataLock.lock();
-		QList<quint8 *> p;
-		for(int i=0;i<8;++i){
-			if(srcFrame->line[i]==0){
-				break;
-			}
-			p.append(srcFrame->data[i]);
-		}
-		return p;
-	}
-
-	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
-	{
-		if(srcFrame){
-			delete srcFrame;
-		}
-		srcFrame=new Buffer(Buffer::getFormat(chroma),size);
-		if (bufferSize){
-			bufferSize->clear();
-		}
-		for(int i=0;i<3;++i){
-			int l;
-			if((l=srcFrame->line[i])==0){
-				break;
-			}
-			if (bufferSize){
-				bufferSize->append(QSize(l,size.height()));
-			}
-		}
-	}
-
-	void releaseBuffer()
-	{
-		dirty=true;
-		dataLock.unlock();
-	}
-
-	QSize getPreferredSize()
-	{
-		if(music){
-			return QSize();
-		}
-		QSize s=srcFrame->size;
-		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
-		return s;
-	}
-
-	void draw(QRect rect)
-	{
-		if(rect.isValid()){
-			widget->update(rect);
-		}
-		else{
-			widget->update();
-		}
-	}
-
-	void drawBuffer(QPainter *painter,QRect rect)
+	void drawData(QPainter *painter,QRect rect)
 	{
 		if(!srcFrame->isValid()){
 			return;
@@ -291,53 +284,82 @@ public slots:
 		dataLock.unlock();
 		painter->drawImage(dest,frame);
 	}
+
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		QList<quint8 *> p;
+		for(int i=0;i<8;++i){
+			if(srcFrame->line[i]==0){
+				break;
+			}
+			p.append(srcFrame->data[i]);
+		}
+		return p;
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
+	{
+		if(srcFrame){
+			delete srcFrame;
+		}
+		srcFrame=new Buffer(getFormat(chroma),size);
+		if (bufferSize){
+			bufferSize->clear();
+		}
+		for(int i=0;i<3;++i){
+			int l;
+			if((l=srcFrame->line[i])==0){
+				break;
+			}
+			if (bufferSize){
+				bufferSize->append(QSize(l,size.height()));
+			}
+		}
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	virtual ~RasterRenderPrivate()
+	{
+		if(swsctx){
+			sws_freeContext(swsctx);
+		}
+		if(srcFrame){
+			delete srcFrame;
+		}
+		if(dstFrame){
+			delete dstFrame;
+		}
+	}
 };
 
-QMutex RasterRender::dataLock;
-#endif
+QMutex RasterRenderPrivate::dataLock;
 
-#ifdef RENDER_OPENGL
-class Window:public QWindow
+#ifdef EMBEDDED
+//TODO EmbeddedRasterRender
+#else
+class Widget:public QWidget
 {
 public:
-	explicit Window(Render *render,QWidget *parent=0):
-		render(render),parent(parent)
+	Widget(RenderPrivate *render):
+		QWidget(Local::mainWidget()),render(render)
 	{
-		device=NULL;
-		context=NULL;
-		setSurfaceType(QWindow::OpenGLSurface);
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		setFocusPolicy(Qt::NoFocus);
 	}
 
-	~Window()
+private:
+	RenderPrivate *render;
+	void paintEvent(QPaintEvent *e)
 	{
-		if(device){
-			delete device;
-		}
-	}
-
-	void draw()
-	{
-		if(!isExposed()){
-			return;
-		}
-		bool initialize=false;
-		if(!context){
-			context=new QOpenGLContext(this);
-			context->create();
-			initialize=true;
-		}
-		context->makeCurrent(this);
-		if(!device){
-			device=new QOpenGLPaintDevice;
-		}
-		if(initialize){
-			glEnable(GL_TEXTURE_2D);
-		}
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		device->setSize(size());
-		QPainter painter(device);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QPainter painter(this);
 		QRect rect(QPoint(0,0),size());
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
@@ -345,50 +367,60 @@ public:
 			render->drawPlay(&painter,rect);
 			render->drawTime(&painter,rect);
 		}
-		context->swapBuffers(this);
-	}
-
-private:
-	Render *render;
-	QWidget *parent;
-	QOpenGLContext *context;
-	QOpenGLPaintDevice *device;
-	bool event(QEvent *e)
-	{
-		switch(e->type()){
-		case QEvent::Drop:
-		case QEvent::KeyPress:
-		case QEvent::KeyRelease:
-		case QEvent::Enter:
-		case QEvent::Leave:
-		case QEvent::MouseMove:
-		case QEvent::MouseButtonPress:
-		case QEvent::MouseButtonRelease:
-		case QEvent::MouseButtonDblClick:
-		case QEvent::Wheel:
-		case QEvent::DragEnter:
-		case QEvent::DragMove:
-		case QEvent::DragLeave:
-		case QEvent::ContextMenu:
-			if(parent){
-				QBackingStore *backing=parent->backingStore();
-				if(backing){
-					QWindow *window=backing->window();
-					if(window){
-						return qApp->sendEvent(window,e);
-					}
-				}
-			}
-			return false;
-		case QEvent::Expose:
-			draw();
-			return false;
-		default:
-			return QWindow::event(e);
-		}
+		QWidget::paintEvent(e);
 	}
 };
 
+class RasterRender:public Render
+{
+public:
+	RasterRender(QObject *parent=0):
+		Render(new RasterRenderPrivate,parent)
+	{
+		widget=new Widget(d_ptr);
+		ins=this;
+	}
+
+private:
+	QWidget *widget;
+	Q_DECLARE_PRIVATE(RasterRender)
+
+public slots:
+	void resize(QSize size)
+	{
+		widget->resize(size);
+	}
+
+	QSize getActualSize()
+	{
+		return widget->size();
+	}
+
+	QSize getBufferSize()
+	{
+		Q_D(RasterRender);
+		return d->srcFrame->size;
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)widget;
+	}
+
+	void draw(QRect rect)
+	{
+		if(rect.isValid()){
+			widget->update(rect);
+		}
+		else{
+			widget->update();
+		}
+	}
+};
+#endif
+#endif
+
+#ifdef RENDER_OPENGL
 #ifdef QT_OPENGL_ES_2
 static const char *vShaderCode=
 		"attribute vec4 VtxCoord;\n"
@@ -449,35 +481,9 @@ static const char *fShaderCode=
 		"}";
 #endif
 
-class OpenGLRender:public Render,protected QOpenGLFunctions
+class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
 {
 public:
-	explicit OpenGLRender(QWidget *parent=0):
-		Render(parent)
-	{
-		window=new Window(this,parent);
-		widget=QWidget::createWindowContainer(window,parent);
-		initialize=true;
-		vShader=fShader=program=0;
-		ins=this;
-	}
-
-	~OpenGLRender()
-	{
-		if(!initialize){
-			glDeleteShader(vShader);
-			glDeleteShader(fShader);
-			glDeleteProgram(program);
-			glDeleteTextures(3,frame);
-		}
-		for(quint8 *iter:buffer){
-			delete[]iter;
-		}
-		delete window;
-	}
-
-private:
-	Window *window;
 	QSize inner;
 	bool initialize;
 	bool UVReverted;
@@ -487,6 +493,12 @@ private:
 	GLuint frame[3];
 	static QMutex dataLock;
 	QList<quint8 *> buffer;
+
+	OpenGLRenderPrivate()
+	{
+		initialize=true;
+		vShader=fShader=program=0;
+	}
 
 	void uploadTexture(int i,int w,int h)
 	{
@@ -499,61 +511,7 @@ private:
 		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
 	}
 
-public slots:
-	QList<quint8 *> getBuffer()
-	{
-		dataLock.lock();
-		return buffer;
-	}
-
-	void releaseBuffer()
-	{
-		dirty=true;
-		dataLock.unlock();
-	}
-
-	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
-	{
-		if(chroma=="YV12"){
-			UVReverted=1;
-		}
-		else{
-			UVReverted=0;
-			chroma="I420";
-		}
-		inner=size;
-		int w=size.width(),h=size.height();
-		for(quint8 *iter:buffer){
-			delete[]iter;
-		}
-		buffer.clear();
-		buffer.append(new quint8[w*h]);
-		buffer.append(new quint8[w*h/4]);
-		buffer.append(new quint8[w*h/4]);
-		if (bufferSize){
-			bufferSize->clear();
-			bufferSize->append(size);
-			bufferSize->append(size/2);
-			bufferSize->append(size/2);
-		}
-	}
-
-	QSize getPreferredSize()
-	{
-		if(music){
-			return QSize();
-		}
-		QSize s=inner;
-		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
-		return s;
-	}
-
-	void draw(QRect)
-	{
-		window->draw();
-	}
-
-	void drawBuffer(QPainter *painter,QRect rect)
+	void drawData(QPainter *painter,QRect rect)
 	{
 		if (inner.isEmpty()){
 			return;
@@ -616,12 +574,283 @@ public slots:
 		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 		painter->endNativePainting();
 	}
+
+	QList<quint8 *> getBuffer()
+	{
+		dataLock.lock();
+		return buffer;
+	}
+
+	void releaseBuffer()
+	{
+		dirty=true;
+		dataLock.unlock();
+	}
+
+	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
+	{
+		if(chroma=="YV12"){
+			UVReverted=1;
+		}
+		else{
+			UVReverted=0;
+			chroma="I420";
+		}
+		inner=size;
+		int w=size.width(),h=size.height();
+		for(quint8 *iter:buffer){
+			delete[]iter;
+		}
+		buffer.clear();
+		buffer.append(new quint8[w*h]);
+		buffer.append(new quint8[w*h/4]);
+		buffer.append(new quint8[w*h/4]);
+		if (bufferSize){
+			bufferSize->clear();
+			bufferSize->append(size);
+			bufferSize->append(size/2);
+			bufferSize->append(size/2);
+		}
+	}
+
+	~OpenGLRenderPrivate()
+	{
+		if(!initialize){
+			glDeleteShader(vShader);
+			glDeleteShader(fShader);
+			glDeleteProgram(program);
+			glDeleteTextures(3,frame);
+		}
+		for(quint8 *iter:buffer){
+			delete[]iter;
+		}
+	}
 };
 
-QMutex OpenGLRender::dataLock;
+QMutex OpenGLRenderPrivate::dataLock;
+
+#ifdef EMBEDDED
+class OpenGLRender:public Render
+{
+public:
+	OpenGLRender(QObject *parent=0):
+		Render(new OpenGLRenderPrivate,parent)
+	{
+		buffer=0;
+		surface=new QOffscreenSurface;
+		context=new QOpenGLContext(this);
+		context->create();
+		context->makeCurrent(surface);
+		glEnable(GL_TEXTURE_2D);
+		ins=this;
+	}
+
+	~OpenGLRender()
+	{
+		if(buffer){
+			delete buffer;
+		}
+	}
+
+private:
+	QOpenGLContext *context;
+	QSurface *surface;
+	QOpenGLPaintDevice *device;
+	QOpenGLFramebufferObject *buffer;
+	Q_DECLARE_PRIVATE(OpenGLRender)
+
+public slots:
+	void resize(QSize size)
+	{
+		if(buffer){
+			delete buffer;
+		}
+		buffer=new QOpenGLFramebufferObject(size);
+		buffer->bind();
+	}
+
+	QSize getActualSize()
+	{
+		return buffer?buffer->size():QSize();
+	}
+
+	QSize getBufferSize()
+	{
+		Q_D(OpenGLRender);
+		return d->inner;
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)(buffer?buffer->texture():0);
+	}
+
+	void draw(QRect)
+	{
+		if(!buffer){
+			return;
+		}
+		Q_D(Render);
+		if(!device){
+			device=new QOpenGLPaintDevice;
+		}
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+		device->setSize(buffer->size());
+		QPainter painter(device);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QRect rect(QPoint(0,0),buffer->size());
+		if(APlayer::instance()->getState()==APlayer::Stop){
+			d->drawStop(&painter,rect);
+		}
+		else{
+			d->drawPlay(&painter,rect);
+			d->drawTime(&painter,rect);
+		}
+		context->swapBuffers(surface);
+	}
+};
+#else
+class Window:public QWindow
+{
+public:
+	explicit Window(RenderPrivate *render):
+		render(render)
+	{
+		device=NULL;
+		context=NULL;
+		setSurfaceType(QWindow::OpenGLSurface);
+	}
+
+	~Window()
+	{
+		if(device){
+			delete device;
+		}
+	}
+
+	void draw()
+	{
+		if(!isExposed()){
+			return;
+		}
+		bool initialize=false;
+		if(!context){
+			context=new QOpenGLContext(this);
+			context->create();
+			initialize=true;
+		}
+		context->makeCurrent(this);
+		if(!device){
+			device=new QOpenGLPaintDevice;
+		}
+		if(initialize){
+			glEnable(GL_TEXTURE_2D);
+		}
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+		device->setSize(size());
+		QPainter painter(device);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QRect rect(QPoint(0,0),size());
+		if(APlayer::instance()->getState()==APlayer::Stop){
+			render->drawStop(&painter,rect);
+		}
+		else{
+			render->drawPlay(&painter,rect);
+			render->drawTime(&painter,rect);
+		}
+		context->swapBuffers(this);
+	}
+
+private:
+	RenderPrivate  *render;
+	QOpenGLContext *context;
+	QOpenGLPaintDevice *device;
+	bool event(QEvent *e)
+	{
+		switch(e->type()){
+		case QEvent::Drop:
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+		case QEvent::Enter:
+		case QEvent::Leave:
+		case QEvent::MouseMove:
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::Wheel:
+		case QEvent::DragEnter:
+		case QEvent::DragMove:
+		case QEvent::DragLeave:
+		case QEvent::ContextMenu:
+		{
+			QWidget *parent=Local::mainWidget();
+			if(parent){
+				QBackingStore *backing=parent->backingStore();
+				if(backing){
+					QWindow *window=backing->window();
+					if(window){
+						return qApp->sendEvent(window,e);
+					}
+				}
+			}
+			return false;
+		}
+		case QEvent::Expose:
+			draw();
+			return false;
+		default:
+			return QWindow::event(e);
+		}
+	}
+};
+
+class OpenGLRender:public Render
+{
+public:
+	OpenGLRender(QObject *parent=0):
+		Render(new OpenGLRenderPrivate,parent)
+	{
+		window=new Window(d_ptr);
+		widget=QWidget::createWindowContainer(window,Local::mainWidget());
+		ins=this;
+	}
+
+private:
+	Window  *window;
+	QWidget *widget;
+	Q_DECLARE_PRIVATE(OpenGLRender)
+
+public slots:
+	void resize(QSize size)
+	{
+		widget->resize(size);
+	}
+
+	QSize getActualSize()
+	{
+		return widget->size();
+	}
+
+	QSize getBufferSize()
+	{
+		Q_D(OpenGLRender);
+		return d->inner;
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)window;
+	}
+
+	void draw(QRect)
+	{
+		window->draw();
+	}
+};
+#endif
 #endif
 
-Render *Render::instance(QWidget *parent)
+Render *Render::instance()
 {
 	if(ins){
 		return ins;
@@ -638,55 +867,60 @@ Render *Render::instance(QWidget *parent)
 		r=Config::getValue("/Performance/Render",QString("OpenGL"));
 		break;
 	}
+#ifdef RENDER_OPENGL
 	if(r=="OpenGL"){
-		return new OpenGLRender(parent);
+		return new OpenGLRender(qApp);
 	}
+#endif
+#ifdef RENDER_RASTER
 	if(r=="Raster"){
-		return new RasterRender(parent);
+		return new RasterRender(qApp);
 	}
+#endif
 	return 0;
 }
 
-Render::Render(QWidget *parent):
-	QObject(parent)
+Render::Render(RenderPrivate *data,QObject *parent):
+	QObject(parent),d_ptr(data)
 {
-	time=0;
+	Q_D(Render);
+	d->time=0;
 	if(Config::getValue("/Interface/Version",true)){
-		tv.setFileName(":/Picture/tv.gif");
-		tv.start();
-		me=QImage(":/Picture/version.png");
-		connect(APlayer::instance(),&APlayer::begin,&tv,&QMovie::stop );
-		connect(APlayer::instance(),&APlayer::reach,&tv,&QMovie::start);
-		connect(&tv,&QMovie::updated,[this](){
-			QImage cf=tv.currentImage();
-			QPoint ps=widget->rect().center()-cf.rect().center();
+		d->tv.setFileName(":/Picture/tv.gif");
+		d->tv.start();
+		d->me=QImage(":/Picture/version.png");
+		connect(APlayer::instance(),&APlayer::begin,&d->tv,&QMovie::stop );
+		connect(APlayer::instance(),&APlayer::reach,&d->tv,&QMovie::start);
+		connect(&d->tv,&QMovie::updated,[=](){
+			QImage cf=d->tv.currentImage();
+			QPoint ps=QRect(QPoint(0,0),getActualSize()).center()-cf.rect().center();
 			ps.ry()-=40;
 			draw(QRect(ps,cf.size()));
 		});
 	}
 	QString path=Config::getValue("/Interface/Background",QString());
 	if(!path.isEmpty()){
-		background=QImage(path);
+		d->background=QImage(path);
 	}
-	sound=QImage(":/Picture/sound.png");
-	music=1;
-	dirty=0;
-	videoAspectRatio=0;
-	pixelAspectRatio=1;
+	d->sound=QImage(":/Picture/sound.png");
+	d->music=1;
+	d->dirty=0;
+	d->videoAspectRatio=0;
+	d->pixelAspectRatio=1;
 
-	connect(APlayer::instance(),&APlayer::stateChanged,[this](){last=QTime();});
+	connect(APlayer::instance(),&APlayer::stateChanged,[d](){d->last=QTime();});
 	connect(APlayer::instance(),&APlayer::reach,[this](){
 		setRefreshRate(Config::getValue("/Danmaku/Power",60));
 	});
 
-	power=new QTimer(this);
-	power->setTimerType(Qt::PreciseTimer);
-	connect(APlayer::instance(),&APlayer::decode,[this](){
-		if(!power->isActive()){
+	d->power=new QTimer(this);
+	d->power->setTimerType(Qt::PreciseTimer);
+	connect(APlayer::instance(),&APlayer::decode,[=](){
+		if(!d->power->isActive()){
 			draw();
 		}
 	});
-	connect(power,&QTimer::timeout,[this](){
+	connect(d->power,&QTimer::timeout,[this](){
 		if(APlayer::instance()->getState()==APlayer::Play){
 			draw();
 		}
@@ -695,33 +929,48 @@ Render::Render(QWidget *parent):
 							  Q_ARG(int,Config::getValue("/Danmaku/Power",60)));
 }
 
-QRect Render::fitRect(QSize size,QRect rect)
+Render::~Render()
 {
-	QRect dest;
-	QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
-	pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
-	dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
-	dest.moveCenter(rect.center());
-	return dest;
+	delete d_ptr;
+}
+
+QList<quint8 *> Render::getBuffer()
+{
+	Q_D(Render);
+	return d->getBuffer();
+}
+
+void Render::releaseBuffer()
+{
+	Q_D(Render);
+	d->releaseBuffer();
+}
+
+void Render::setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
+{
+	Q_D(Render);
+	d->setBuffer(chroma,size,bufferSize);
 }
 
 void Render::setMusic(bool isMusic)
 {
-	if((music=isMusic)&&!power->isActive()){
+	Q_D(Render);
+	if((d->music=isMusic)&&!d->power->isActive()){
 		setRefreshRate(60,true);
 	}
 }
 
 void Render::setRefreshRate(int rate,bool soft)
 {
+	Q_D(Render);
 	if(rate){
 		rate=qBound(30,rate,200);
-		power->start(qRound(1000.0/rate));
+		d->power->start(qRound(1000.0/rate));
 		emit refreshRateChanged(rate);
 	}
 	else{
 		rate=0;
-		power->stop();
+		d->power->stop();
 		emit refreshRateChanged(rate);
 	}
 	if(!soft){
@@ -729,68 +978,33 @@ void Render::setRefreshRate(int rate,bool soft)
 	}
 }
 
-void Render::drawPlay(QPainter *painter,QRect rect)
-{
-	painter->fillRect(rect,Qt::black);
-	if(music){
-		painter->drawImage(rect.center()-QRect(QPoint(0,0),sound.size()).center(),sound);
-	}
-	else{
-		drawBuffer(painter,rect);
-	}
-	APlayer *aplayer=APlayer::instance();
-	Danmaku *danmaku=Danmaku::instance();
-	qint64 time=0;
-	if(!last.isNull()){
-		time=last.elapsed();
-	}
-	if(aplayer->getState()==APlayer::Play){
-		last.start();
-	}
-	danmaku->draw(painter,time);
-}
-
-void Render::drawStop(QPainter *painter,QRect rect)
-{
-	if(background.isNull()){
-		painter->fillRect(rect,qApp->palette().color(QPalette::Window));
-	}
-	else{
-		QRect dest=rect;
-		dest.setSize(background.size().scaled(dest.size(),Qt::KeepAspectRatioByExpanding));
-		dest.moveCenter(rect.center());
-		painter->drawImage(dest,background);
-	}
-	int w=rect.width(),h=rect.height();
-	QImage cf=tv.currentImage();
-	painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);
-	painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
-}
-
-void Render::drawTime(QPainter *painter,QRect rect)
-{
-	if(time<=0){
-		return;
-	}
-	rect=QRect(0,rect.height()-2,rect.width()*time,2);
-	QLinearGradient gradient;
-	gradient.setStart(rect.center().x(),rect.top());
-	gradient.setFinalStop(rect.center().x(),rect.bottom());
-	QColor outline=qApp->palette().background().color().darker(140);
-	QColor highlight=qApp->palette().color(QPalette::Highlight);
-	QColor highlightedoutline=highlight.darker(140);
-	if(qGray(outline.rgb())>qGray(highlightedoutline.rgb())){
-		outline=highlightedoutline;
-	}
-	painter->setPen(QPen(outline));
-	gradient.setColorAt(0,highlight);
-	gradient.setColorAt(1,highlight.lighter(130));
-	painter->setBrush(gradient);
-	painter->drawRect(rect);
-}
-
 void Render::setDisplayTime(double t)
 {
-	time=t;
-	draw(QRect(0,widget->height()-2,widget->width()*time,2));
+	Q_D(Render);
+	d->time=t;
+	QSize s=getActualSize();
+	draw(QRect(0,s.height()-2,s.width()*d->time,2));
+}
+
+void Render::setVideoAspectRatio(double ratio)
+{
+	Q_D(Render);
+	d->videoAspectRatio=ratio;
+}
+
+void Render::setPixelAspectRatio(double ratio)
+{
+	Q_D(Render);
+	d->pixelAspectRatio=ratio;
+}
+
+QSize Render::getPreferredSize()
+{
+	Q_D(Render);
+	if(d->music){
+		return QSize();
+	}
+	QSize s=getBufferSize();
+	d->pixelAspectRatio>1?(s.rwidth()*=d->pixelAspectRatio):(s.rheight()/=d->pixelAspectRatio);
+	return s;
 }

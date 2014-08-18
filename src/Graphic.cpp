@@ -271,7 +271,6 @@ Graphic *Graphic::create(const Comment &comment)
 	return graphic;
 }
 
-
 void Graphic::setIndex()
 {
 	static quint64 globalIndex;
@@ -280,7 +279,7 @@ void Graphic::setIndex()
 
 Plain::Plain(const Comment &comment)
 {
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	source=&comment;
 	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize need=getSize(comment.string,font);
@@ -301,7 +300,7 @@ Mode1::Mode1(const Comment &comment):
 	if(comment.mode!=1){
 		return;
 	}
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
@@ -352,7 +351,7 @@ Mode4::Mode4(const Comment &comment):
 	if(comment.mode!=4){
 		return;
 	}
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
@@ -387,7 +386,7 @@ Mode5::Mode5(const Comment &comment):
 	if(comment.mode!=5){
 		return;
 	}
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	QSizeF bound=rect.size();
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
@@ -434,7 +433,7 @@ Mode6::Mode6(const Comment &comment):
 
 bool Mode6::move(qint64 time)
 {
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	if(enabled){
 		rect.moveLeft(rect.left()+speed*time/1000.0);
 	}
@@ -478,7 +477,7 @@ Mode7::Mode7(const Comment &comment)
 	if((l=data.size())<5){
 		return;
 	}
-	QSize size=Render::instance()->getWidget()->size();
+	QSize size=Render::instance()->getActualSize();
 	auto getDouble=[&data](int i){return data.at(i).toVariant().toDouble();};
 	double scale=getScale(comment.mode,comment.date,size);
 	bPos=QPointF(getDouble(0),getDouble(1));

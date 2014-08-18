@@ -29,54 +29,43 @@
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
+
+class RenderPrivate;
 
 class Render:public QObject
 {
 	Q_OBJECT
 public:
-	~Render(){}
-	QWidget *getWidget(){return widget;}
-	static Render *instance(QWidget *parent=0);
-
-private:
-	QMovie tv;
-	double time;
-	QImage me,background,sound;
-	QTime last;
-	QTimer *power;
+	virtual ~Render();
+	static Render *instance();
 
 protected:
-	bool music;
-	bool dirty;
-	QWidget *widget;
-	double videoAspectRatio;
-	double pixelAspectRatio;
 	static Render *ins;
+	RenderPrivate *const d_ptr;
+	Q_DECLARE_PRIVATE(Render)
 
-	explicit Render(QWidget *parent=0);
-	QRect fitRect(QSize size,QRect rect);
+	Render(RenderPrivate *data,QObject *parent=0);
 
 signals:
 	void refreshRateChanged(int);
 
 public slots:
-	virtual QList<quint8 *> getBuffer()=0;
-	virtual void releaseBuffer()=0;
-	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0)=0;
+	virtual QList<quint8 *> getBuffer();
+	virtual void releaseBuffer();
+	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0);
 
 	void setMusic(bool);
 	void setRefreshRate(int rate,bool soft=false);
-	void setVideoAspectRatio(double ratio){videoAspectRatio=ratio;}
-	void setPixelAspectRatio(double ratio){pixelAspectRatio=ratio;}
-	virtual	QSize getPreferredSize()=0;
+	void setDisplayTime(double t);
+	void setVideoAspectRatio(double ratio);
+	void setPixelAspectRatio(double ratio);
+	virtual void resize(QSize size)=0;
+	virtual QSize getBufferSize()=0;
+	virtual QSize getActualSize()=0;
+	virtual	QSize getPreferredSize();
+	virtual quintptr getHandle()=0;
 
 	virtual void draw(QRect rect=QRect())=0;
-	void drawPlay(QPainter *painter,QRect rect);
-	void drawStop(QPainter *painter,QRect rect);
-	void drawTime(QPainter *painter,QRect rect);
-	virtual void drawBuffer(QPainter *painter,QRect rect)=0;
-	void setDisplayTime(double t);
 };
 
 #endif // RENDER_H

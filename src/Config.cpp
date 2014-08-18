@@ -28,9 +28,11 @@
 #include "Local.h"
 #include "Utils.h"
 #include "Shield.h"
-#include "Plugin.h"
 #include "Danmaku.h"
 #include "APlayer.h"
+
+#ifndef EMBEDDED
+#include "Plugin.h"
 
 class ConfigPrivate
 {
@@ -180,6 +182,7 @@ public:
 		return l[name];
 	}
 };
+#endif
 
 class Cookie:public QNetworkCookieJar
 {
@@ -276,6 +279,7 @@ public:
 
 QJsonObject Config::config;
 
+#ifndef EMBEDDED
 void Config::exec(QWidget *parent,int index)
 {
 	static bool isExecuting;
@@ -1262,6 +1266,7 @@ Config::~Config()
 {
 	delete d_ptr;
 }
+#endif
 
 void Config::load()
 {

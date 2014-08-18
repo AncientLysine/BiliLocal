@@ -27,8 +27,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <QtGui>
 #include <QtCore>
+#ifndef EMBEDDED
 #include <QtWidgets>
+#endif
 
 class Comment
 {
@@ -107,9 +110,11 @@ namespace Utils
 		Danmaku=8
 	};
 	Site getSite(QString url);
+#ifndef EMBEDDED
 	void setCenter(QWidget *widget);
 	void setGround(QWidget *widget,QColor color);
 	void setSelection(QAbstractItemView *view);
+#endif
 	double evaluate(QString expression);
 	QString defaultPath();
 	QString defaultFont(bool monospace=false);

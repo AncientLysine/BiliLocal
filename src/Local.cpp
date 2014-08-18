@@ -26,12 +26,45 @@
 
 #include "Local.h"
 #include "Utils.h"
-#include "Plugin.h"
 #include "Config.h"
 #include "Shield.h"
-#include "Interface.h"
 
 QHash<QString,QObject *> Local::objects;
+
+static void setDefaultFont()
+{
+	QString def=Utils::defaultFont();
+	QFont f=qApp->font();
+	if(!QFontDatabase().families().contains(def)){
+		def=QFontInfo(f).family();
+	}
+	f.setFamily(Config::getValue("/Interface/Font/Family",def));
+	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
+	qApp->setFont(f);
+}
+
+#ifdef EMBEDDED
+Local::Local(int &argc,char **argv):
+	QGuiApplication(argc,argv)
+{
+	QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+	Config::load();
+	Shield::load();
+	setDefaultFont();
+	connect(this,&Local::aboutToQuit,[](){
+		Shield::save();
+		Config::save();
+	});
+	qsrand(QTime::currentTime().msec());
+}
+#else
+#include "Plugin.h"
+#include "Interface.h"
+
+Local::Local(int &argc,char **argv):
+	QApplication(argc,argv)
+{
+}
 
 static void loadTranslator()
 {
@@ -56,18 +89,6 @@ static void loadTranslator()
 	}
 }
 
-static void setDefaultFont()
-{
-	QString def=Utils::defaultFont();
-	QFont f=qApp->font();
-	if(!QFontDatabase().families().contains(def)){
-		def=QFontInfo(f).family();
-	}
-	f.setFamily(Config::getValue("/Interface/Font/Family",def));
-	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
-	qApp->setFont(f);
-}
-
 static void setToolTipBase()
 {
 	QPalette tip=qApp->palette();
@@ -76,28 +97,6 @@ static void setToolTipBase()
 	QToolTip::setPalette(tip);
 }
 
-#if (defined Q_OS_ANDROID)||(defined Q_OS_IOS)||(defined Q_OS_WINPHONE)||(defined Q_OS_WINRT)
-int main(int argc,char *argv[])
-{
-	QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
-	Local a(argc,argv);
-	Config::load();
-	Shield::load();
-	loadTranslator();
-	setDefaultFont();
-	setToolTipBase();
-	a.connect(&a,&Local::aboutToQuit,[](){
-		Shield::save();
-		Config::save();
-	});
-	qsrand(QTime::currentTime().msec());
-	Interface w;
-	Plugin::loadPlugins();
-	w.show();
-	w.tryLocal(a.arguments().mid(1));
-	a.exec();
-}
-#else
 int main(int argc,char *argv[])
 {
 	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());

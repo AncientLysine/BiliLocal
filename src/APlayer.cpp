@@ -25,11 +25,14 @@
 =========================================================================*/
 
 #include "APlayer.h"
-#include "Next.h"
 #include "Local.h"
 #include "Utils.h"
 #include "Render.h"
 #include "Config.h"
+
+#ifndef EMBEDDED
+#include "Next.h"
+#endif
 
 APlayer *APlayer::ins=NULL;
 
@@ -666,9 +669,11 @@ void QPlayer::play()
 
 void QPlayer::stop(bool manually)
 {
+#ifndef EMBEDDED
 	if(manually){
 		Next::instance()->clear();
 	}
+#endif
 	manuallyStopped=manually;
 	QMetaObject::invokeMethod(mp,"stop",Qt::BlockingQueuedConnection);
 }
@@ -750,11 +755,15 @@ APlayer *APlayer::instance()
 		d=Config::getValue("/Performance/Decode",QString("VLC"));
 		break;
 	}
+#ifdef BACKEND_VLC
 	if(d=="VLC"){
-		return new VPlayer(Local::mainWidget());
+		return new VPlayer(qApp);
 	}
+#endif
+#ifdef BACKEND_QMM
 	if(d=="QMM"){
-		return new QPlayer(Local::mainWidget());
+		return new QPlayer(qApp);
 	}
+#endif
 	return 0;
 }

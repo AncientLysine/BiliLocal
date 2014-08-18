@@ -46,6 +46,7 @@ Utils::Site Utils::getSite(QString url)
 	}
 }
 
+#ifndef EMBEDDED
 void Utils::setCenter(QWidget *widget)
 {
 	QPoint center;
@@ -82,6 +83,7 @@ void Utils::setSelection(QAbstractItemView *view)
 		}
 	});
 }
+#endif
 
 namespace{
 template<class T>
@@ -295,84 +297,86 @@ QString Utils::customUrl(Site site)
 
 QString Utils::decodeXml(QString string,bool fast)
 {
-	if(fast){
-		QString fixed;
-		fixed.reserve(string.length());
-		int i=0,l=string.length();
-		for(i=0;i<l;++i){
-			QChar c=string[i];
-			if(c>=' '||c=='\n'){
-				bool f=true;
-				switch(c.unicode()){
-				case '&':
-					if(l-i>=4){
-						switch(string[i+1].unicode()){
-						case 'l':
-							if(string[i+2]=='t'&&string[i+3]==';'){
-								fixed+='<';
-								f=false;
-								i+=3;
-							}
-							break;
-						case 'g':
-							if(string[i+2]=='t'&&string[i+3]==';'){
-								fixed+='>';
-								f=false;
-								i+=3;
-							}
-							break;
-						case 'a':
-							if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
-								fixed+='&';
-								f=false;
-								i+=4;
-							}
-							break;
-						case 'q':
-							if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
-								fixed+='\"';
-								f=false;
-								i+=5;
-							}
-							break;
-						}
-					}
-					break;
-				case '/' :
-				case '\\':
-					if(l-i>=2){
-						switch(string[i+1].unicode()){
-						case 'n':
-							fixed+='\n';
-							f=false;
-							i+=1;
-							break;
-						case 't':
-							fixed+='\t';
-							f=false;
-							i+=1;
-							break;
-						case '\"':
-							fixed+='\"';
-							f=false;
-							i+=1;
-							break;
-						}
-					}
-					break;
-				}
-				if(f){
-					fixed+=c;
-				}
-			}
-		}
-		return fixed;
-	}
-	else{
+#ifndef EMBEDDED
+	if(!fast){
 		QTextDocument text;
 		text.setHtml(string);
 		return text.toPlainText();
 	}
+#else
+	Q_UNUSED(fast)
+#endif
+	QString fixed;
+	fixed.reserve(string.length());
+	int i=0,l=string.length();
+	for(i=0;i<l;++i){
+		QChar c=string[i];
+		if(c>=' '||c=='\n'){
+			bool f=true;
+			switch(c.unicode()){
+			case '&':
+				if(l-i>=4){
+					switch(string[i+1].unicode()){
+					case 'l':
+						if(string[i+2]=='t'&&string[i+3]==';'){
+							fixed+='<';
+							f=false;
+							i+=3;
+						}
+						break;
+					case 'g':
+						if(string[i+2]=='t'&&string[i+3]==';'){
+							fixed+='>';
+							f=false;
+							i+=3;
+						}
+						break;
+					case 'a':
+						if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
+							fixed+='&';
+							f=false;
+							i+=4;
+						}
+						break;
+					case 'q':
+						if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
+							fixed+='\"';
+							f=false;
+							i+=5;
+						}
+						break;
+					}
+				}
+				break;
+			case '/' :
+			case '\\':
+				if(l-i>=2){
+					switch(string[i+1].unicode()){
+					case 'n':
+						fixed+='\n';
+						f=false;
+						i+=1;
+						break;
+					case 't':
+						fixed+='\t';
+						f=false;
+						i+=1;
+						break;
+					case '\"':
+						fixed+='\"';
+						f=false;
+						i+=1;
+						break;
+					}
+				}
+				break;
+			}
+			if(f){
+				fixed+=c;
+			}
+		}
+	}
+	return fixed;
 }
 
 QStringList Utils::getRenderModules()

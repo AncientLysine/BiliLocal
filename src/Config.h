@@ -28,8 +28,10 @@
 #define CONFIG_H
 
 #include <QtCore>
-#include <QtWidgets>
 #include <QtNetwork>
+#ifndef EMBEDDED
+#include <QtWidgets>
+#endif
 
 namespace{
 template<class T>
@@ -79,6 +81,12 @@ QJsonValue toJsonValue(QVariant v)
 }
 }
 
+#ifdef EMBEDDED
+class Config:public QObject
+{
+	Q_OBJECT
+public:
+#else
 class ConfigPrivate;
 
 class Config:public QDialog
@@ -87,6 +95,7 @@ class Config:public QDialog
 public:
 	~Config();
 
+#endif
 	template<class T>
 	static T getValue(QString key,T def=T())
 	{
@@ -133,14 +142,19 @@ public:
 
 	static void setManager(QNetworkAccessManager *manager);
 
+#ifndef EMBEDDED
 	static void exec(QWidget *parent=0,int index=0);
+#endif
 
 private:
 	static QJsonObject config;
-	ConfigPrivate * const d_ptr;
+
+#ifndef EMBEDDED
+	ConfigPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Config)
 
 	explicit Config(QWidget *parent=0,int index=0);
+#endif
 };
 
 #endif // CONFIG_H

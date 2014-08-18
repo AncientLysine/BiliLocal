@@ -28,16 +28,32 @@
 #define LOCAL_H
 
 #include <QtCore>
+
+#ifdef EMBEDDED
+#include <QtGui>
+
+class Local:public QGuiApplication
+{
+	Q_OBJECT
+public:
+	Local(int &argc,char **argv);
+
+	static QHash<QString,QObject *> objects;
+
+public slots:
+	void synchronize(quintptr func)
+	{
+		((void (*)())func)();
+	}
+};
+#else
 #include <QtWidgets>
 
 class Local:public QApplication
 {
 	Q_OBJECT
 public:
-	Local(int &argc,char **argv):
-		QApplication(argc,argv)
-	{
-	}
+	Local(int &argc,char **argv);
 
 	static QWidget *mainWidget()
 	{
@@ -52,5 +68,6 @@ public slots:
 		((void (*)())func)();
 	}
 };
+#endif
 
 #endif // LOCAL_H
