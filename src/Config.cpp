@@ -1249,7 +1249,8 @@ Config::Config(QWidget *parent,int index):
 										 tr("Warning"),
 										 tr("Restart to apply changes?"),
 										 QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
-				Danmaku::instance()->release();
+				delete APlayer::instance();
+				delete Danmaku::instance();
 				qApp->exit(12450);
 			}
 		}

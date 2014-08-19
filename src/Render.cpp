@@ -508,6 +508,7 @@ public:
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
 	}
 
@@ -682,7 +683,7 @@ public slots:
 
 	quintptr getHandle()
 	{
-		return (quintptr)(buffer?buffer->texture():0);
+		return (quintptr)buffer;
 	}
 
 	void draw(QRect)
@@ -920,7 +921,7 @@ Render::Render(RenderPrivate *data,QObject *parent):
 			draw();
 		}
 	});
-	connect(d->power,&QTimer::timeout,[this](){
+	connect(d->power,&QTimer::timeout,APlayer::instance(),[this](){
 		if(APlayer::instance()->getState()==APlayer::Play){
 			draw();
 		}

@@ -37,6 +37,7 @@ class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
 public:
+	~Danmaku();
 	QList<Record> &getPool(){return pool;}
 	void draw(QPainter *painter,qint64 move);
 	QVariant data(const QModelIndex &index,int role) const;
@@ -66,7 +67,6 @@ signals:
 	void unrecognizedComment(quintptr);
 
 public slots:
-	void release();
 	void resetTime();
 	void clearPool();
 	void clearCurrent(bool soft=false);

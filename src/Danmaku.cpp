@@ -57,10 +57,17 @@ Danmaku::Danmaku(QObject *parent):
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
 }
 
+Danmaku::~Danmaku()
+{
+	qThreadPool->clear();
+	qThreadPool->waitForDone();
+}
+
 void Danmaku::draw(QPainter *painter,qint64 move)
 {
 	QVector<Graphic *> dirty;
 	lock.lockForWrite();
+	dirty.reserve(current.size());
 	for(auto iter=current.begin();iter!=current.end();){
 		Graphic *g=*iter;
 		if(g->move(move)){
@@ -194,12 +201,6 @@ const Comment *Danmaku::commentAt(QPoint point) const
 	}
 	lock.unlock();
 	return NULL;
-}
-
-void Danmaku::release()
-{
-	disconnect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime);
-	clearCurrent();
 }
 
 void Danmaku::resetTime()

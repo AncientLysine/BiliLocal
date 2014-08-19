@@ -81,7 +81,7 @@ Interface::Interface(QWidget *parent):
 			}
 		}
 	});
-	connect(delay,&QTimer::timeout,[this](){
+	connect(delay,&QTimer::timeout,APlayer::instance(),[this](){
 		if(aplayer->getState()==APlayer::Play&&!menu->isVisible()&&!info->isVisible()){
 			setCursor(QCursor(Qt::BlankCursor));
 		}
@@ -326,7 +326,8 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=Config::getValue("/Interface/Size",QString("960,540"));
 		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
-	danmaku->release();
+	delete aplayer;
+	delete danmaku;
 	if(!update.isNull()){
 		update->abort();
 	}
