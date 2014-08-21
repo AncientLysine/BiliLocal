@@ -202,7 +202,6 @@ public:
 			f.insert("YUVA",AV_PIX_FMT_YUVA444P);
 			f.insert("NV12",AV_PIX_FMT_NV12);
 			f.insert("NV21",AV_PIX_FMT_NV21);
-			f.insert("NV16",AV_PIX_FMT_NV16);
 			f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
 			f.insert("I09B",AV_PIX_FMT_YUV420P9BE);
 			f.insert("I29L",AV_PIX_FMT_YUV422P9LE);
@@ -216,40 +215,32 @@ public:
 			f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
 			f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
 			f.insert("UYVY",AV_PIX_FMT_UYVY422);
-			f.insert("YUY2",AV_PIX_FMT_YUYV422);
-			f.insert("XY12",AV_PIX_FMT_XYZ12);
 		}
 		chroma=chroma.toUpper();
-		if(!f.contains(chroma)){
-			if(chroma=="NV61"){
-				chroma="NV16";
-			}
-			else if(chroma=="YV12"||
-					chroma=="IYUV"){
-				chroma="I420";
-			}
-			else if(chroma=="UYNV"||
-					chroma=="UYNY"||
-					chroma=="Y422"||
-					chroma=="HDYC"||
-					chroma=="AVUI"||
-					chroma=="UYV1"||
-					chroma=="2VUY"||
-					chroma=="2VU1"){
-				chroma="UYVY";
-			}
-			else if(chroma=="VYUY"||
-					chroma=="YUYV"||
-					chroma=="YUNV"||
-					chroma=="V422"||
-					chroma=="YVYU"||
-					chroma=="Y211"||
-					chroma=="CYUV"){
-				chroma="YUY2";
-			}
-			else{
-				chroma="RV32";
-			}
+		if(f.contains(chroma)){
+			//Recognized
+		}
+		else if(chroma=="YV12"||
+				chroma=="IYUV"){
+			chroma="I420";
+		}
+		else if(chroma=="VYUY"||
+				chroma=="YUYV"||
+				chroma=="YUY2"||
+				chroma=="YVYU"||
+				chroma=="V422"||
+				chroma=="YVYU"||
+				chroma=="Y211"||
+				chroma=="CYUV"){
+			chroma="UYVY";
+		}
+		else if(chroma=="V210"||
+				chroma=="NV16"||
+				chroma=="NV61"){
+			chroma="NV12";
+		}
+		else{
+			chroma="RV32";
 		}
 		return f[chroma];
 	}
