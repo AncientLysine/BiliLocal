@@ -48,15 +48,15 @@ Interface::Interface(QWidget *parent):
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
 	Local::objects["Interface"]=this;
-
+	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["APlayer"]=aplayer;
-
+	
 	render=Render::instance();
 	Local::objects["Render"]=render;
-
+	
 	menu=new Menu(this);
 	info=new Info(this);
 	post=Post::instance();
@@ -67,7 +67,7 @@ Interface::Interface(QWidget *parent):
 	Local::objects["Next"]=next;
 	Local::objects["Post"]=post;
 	Local::objects["Load"]=load;
-
+	
 	timer=new QTimer(this);
 	delay=new QTimer(this);
 	timer->start(1000);
@@ -119,23 +119,50 @@ Interface::Interface(QWidget *parent):
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
-
+	
+	connect(aplayer,&APlayer::errorOccurred,[this](int error){
+		QString string;
+		switch(error){
+		case APlayer::ResourceError:
+			string=tr("A media resource couldn't be resolved.");
+			break;
+		case APlayer::FormatError:
+			string=tr("The format of a media resource isn't (fully) supported. "
+					  "Playback may still be possible, "
+					  "but without an audio or video component.");
+			break;
+		case APlayer::NetworkError:
+			string=tr("A network error occurred.");
+			break;
+		case APlayer::AccessDeniedError:
+			string=tr("There are not the appropriate permissions to play a media resource.");
+			break;
+		case APlayer::ServiceMissingError:
+			string=tr("A valid playback service was not found, playback cannot proceed.");
+			break;
+		default:
+			string=tr("An error occurred.");
+			break;
+		}
+		QMessageBox::warning(this,tr("Warning"),string);
+	});
+	
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
 		if(!sliding&&aplayer->getState()!=APlayer::Stop){
 			render->setDisplayTime(showprg?t/(double)aplayer->getDuration():-1);
 		}
 	});
-
+	
 	addActions(menu->actions());
 	addActions(info->actions());
-
+	
 	quitA=new QAction(tr("Quit"),this);
 	quitA->setObjectName("Quit");
 	quitA->setShortcut(Config::getValue("/Shortcut/Quit",QString("Ctrl+Q")));
 	addAction(quitA);
 	connect(quitA,&QAction::triggered,this,&Interface::close);
-
+	
 	fullA=new QAction(tr("Full Screen"),this);
 	fullA->setObjectName("Full");
 	fullA->setCheckable(true);
@@ -154,7 +181,7 @@ Interface::Interface(QWidget *parent):
 			sca->setEnabled(false);
 		}
 	});
-
+	
 	confA=new QAction(tr("Config"),this);
 	confA->setObjectName("Conf");
 	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
@@ -162,7 +189,7 @@ Interface::Interface(QWidget *parent):
 	connect(confA,&QAction::triggered,[](){
 		Config::exec(Local::mainWidget());
 	});
-
+	
 	toggA=new QAction(tr("Block All"),this);
 	toggA->setObjectName("Togg");
 	toggA->setCheckable(true);
@@ -176,7 +203,7 @@ Interface::Interface(QWidget *parent):
 	connect(danmaku,&Danmaku::layoutChanged,[this](){
 		toggA->setChecked(Shield::shieldG[7]);
 	});
-
+	
 	postA=new QAction(tr("Post Danmaku"),this);
 	postA->setObjectName("Post");
 	postA->setEnabled(false);
@@ -190,7 +217,7 @@ Interface::Interface(QWidget *parent):
 	connect(danmaku,&Danmaku::modelReset,[this](){
 		postA->setEnabled(post->isValid());
 	});
-
+	
 	QAction *fwdA=new QAction(tr("Forward"),this);
 	fwdA->setObjectName("Fowd");
 	fwdA->setShortcut(Config::getValue("/Shortcut/Fowd",QString("Right")));
@@ -205,7 +232,7 @@ Interface::Interface(QWidget *parent):
 	});
 	addAction(fwdA);
 	addAction(bwdA);
-
+	
 	QAction *delA=new QAction(tr("Delay"),this);
 	delA->setObjectName("Dely");
 	delA->setShortcut(Config::getValue("/Shortcut/Dely",QString("Ctrl+Right")));
@@ -216,7 +243,7 @@ Interface::Interface(QWidget *parent):
 	connect(ahdA,&QAction::triggered,std::bind(&Danmaku::delayAll,Danmaku::instance(),-1000));
 	addAction(delA);
 	addAction(ahdA);
-
+	
 	QAction *escA=new QAction(this);
 	escA->setShortcut(Qt::Key_Escape);
 	connect(escA,&QAction::triggered,[this](){
@@ -225,7 +252,18 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	addAction(escA);
-
+	
+	QAction *vouA=new QAction(tr("VolUp"),this);
+	vouA->setObjectName("VoUp");
+	vouA->setShortcut(Qt::Key_Up);
+	connect(vouA,&QAction::triggered,[this](){aplayer->setVolume(aplayer->getVolume()+5);});
+	QAction *vodA=new QAction(tr("VolDn"),this);
+	vodA->setObjectName("VoDn");
+	vodA->setShortcut(Qt::Key_Down);
+	connect(vodA,&QAction::triggered,[this](){aplayer->setVolume(aplayer->getVolume()-5);});
+	addAction(vouA);
+	addAction(vodA);
+	
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
 	rat->setDefaultAction(rat->addAction(tr("Default")));
@@ -250,7 +288,7 @@ Interface::Interface(QWidget *parent):
 	for(QAction *a:rat->actions()){
 		g->addAction(a)->setCheckable(true);
 	}
-
+	
 	sca=new QMenu(tr("Scale"),this);
 	sca->setEnabled(false);
 	sca->addAction("541*384")->setData(QSize(540,383));
@@ -275,14 +313,14 @@ Interface::Interface(QWidget *parent):
 	for(QAction *a:sca->actions()){
 		g->addAction(a)->setCheckable(true);
 	}
-
+	
 	if(Config::getValue("/Interface/Frameless",false)){
 		setWindowFlags(Qt::CustomizeWindowHint);
 	}
 	if(Config::getValue("/Interface/Top",false)){
 		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
 	}
-
+	
 	checkForUpdate();
 }
 

@@ -48,7 +48,8 @@ public:
 	enum Event
 	{
 		Init,
-		Free
+		Free,
+		Fail
 	};
 
 	explicit VPlayer(QObject *parent=0);
@@ -140,6 +141,11 @@ static void end(const libvlc_event_t *,void *)
 	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Free));
 }
 
+static void err(const libvlc_event_t *,void *)
+{
+	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Fail));
+}
+
 VPlayer::VPlayer(QObject *parent):
 	APlayer(parent)
 {
@@ -173,11 +179,6 @@ VPlayer::VPlayer(QObject *parent):
 
 VPlayer::~VPlayer()
 {
-	QMutex exit;
-	libvlc_set_exit_handler(vlc,[](void *opaque){
-		((QMutex *)opaque)->unlock();
-	},&exit);
-	exit.lock();
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
@@ -185,8 +186,6 @@ VPlayer::~VPlayer()
 		libvlc_media_release(m);
 	}
 	libvlc_release(vlc);
-	exit.lock();
-	exit.unlock();
 }
 
 QList<QAction *> VPlayer::getTracks(int type)
@@ -379,6 +378,9 @@ void VPlayer::setMedia(QString _file,bool manually)
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEndReached,
 								end,NULL);
+			libvlc_event_attach(man,
+								libvlc_MediaPlayerEncounteredError,
+								err,NULL);
 			if(Config::getValue("/Playing/Immediate",false)){
 				play();
 			}
@@ -408,7 +410,7 @@ void VPlayer::addSubtitle(QString _file)
 {
 	if(mp){
 		if(tracks[2]->actions().isEmpty()){
-			QAction *action=tracks[2]->addAction(tr("Disable"));
+			QAction *action=tracks[2]->addAction(APlayer::tr("Disable"));
 			action->setCheckable(true);
 			connect(action,&QAction::triggered,[this](){
 				libvlc_video_set_spu(mp,-1);
@@ -448,6 +450,9 @@ void VPlayer::event(int type)
 		break;
 	case Free:
 		free();
+		break;
+	case Fail:
+		emit errorOccurred(UnknownError);
 		break;
 	}
 }
@@ -625,6 +630,7 @@ QPlayer::QPlayer(QObject *parent):
 	connect(mp,&QMediaPlayer::stateChanged,		this,&QPlayer::stateChanged	);
 	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
 	connect(mp,&QMediaPlayer::volumeChanged,	this,&QPlayer::volumeChanged);
+	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){emit errorOccurred(error);});
 
 	manuallyStopped=false;
 	connect(this,&QPlayer::stateChanged,[=](int state){
@@ -633,6 +639,7 @@ QPlayer::QPlayer(QObject *parent):
 			if(!manuallyStopped&&Config::getValue("/Playing/Loop",false)){
 				lastState=Loop;
 				play();
+				emit jumped(0);
 			}
 			else{
 				emit reach(manuallyStopped);

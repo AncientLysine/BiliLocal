@@ -42,6 +42,16 @@ public:
 		Loop
 	};
 
+	enum Error
+	{
+		UnknownError,
+		ResourceError,
+		FormatError,
+		NetworkError,
+		AccessDeniedError,
+		ServiceMissingError
+	};
+
 	virtual QList<QAction *> getTracks(int type)=0;
 	static APlayer *instance();
 
@@ -50,6 +60,7 @@ protected:
 	APlayer(QObject *parent=0):QObject(parent){}
 
 signals:
+	void errorOccurred(int);
 	void begin();
 	void reach(bool);
 	void decode();

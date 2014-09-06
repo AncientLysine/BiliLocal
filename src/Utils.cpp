@@ -49,19 +49,23 @@ Utils::Site Utils::getSite(QString url)
 #ifndef EMBEDDED
 void Utils::setCenter(QWidget *widget)
 {
-	QPoint center;
+	QRect rect=widget->geometry();
 	QWidget *parent=widget->parentWidget();
 	if(parent==NULL){
-		center=QApplication::desktop()->screenGeometry(widget).center();
-	}
-	else if(widget->isWindow()){
-		center=parent->geometry().center();
+		rect.moveCenter(QApplication::desktop()->screenGeometry(widget).center());
 	}
 	else{
-		center=parent->rect().center();
+		if(widget->isWindow()){
+			QPoint center=parent->geometry().center();
+			if((parent->windowFlags()&Qt::CustomizeWindowHint)){
+				center.ry()+=widget->style()->pixelMetric(QStyle::PM_TitleBarHeight)/2;
+			}
+			rect.moveCenter(center);
+		}
+		else{
+			rect.moveCenter(parent->rect().center());
+		}
 	}
-	QRect rect=widget->geometry();
-	rect.moveCenter(center);
 	widget->setGeometry(rect);
 }
 
