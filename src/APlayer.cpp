@@ -430,11 +430,12 @@ void VPlayer::addSubtitle(QString _file)
 
 void VPlayer::setVolume(int _volume)
 {
+	_volume=qBound(0,_volume,100);
+	Config::setValue("/Playing/Volume",_volume);
 	if(mp){
-		_volume=qBound(0,_volume,100);
 		libvlc_audio_set_volume(mp,_volume);
-		emit volumeChanged(_volume);
 	}
+	emit volumeChanged(_volume);
 }
 
 int VPlayer::getVolume()

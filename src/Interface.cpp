@@ -255,11 +255,11 @@ Interface::Interface(QWidget *parent):
 	
 	QAction *vouA=new QAction(tr("VolUp"),this);
 	vouA->setObjectName("VoUp");
-	vouA->setShortcut(Qt::Key_Up);
+	vouA->setShortcut(Config::getValue("/Shortcut/VoUp",QString("Up")));
 	connect(vouA,&QAction::triggered,[this](){aplayer->setVolume(aplayer->getVolume()+5);});
 	QAction *vodA=new QAction(tr("VolDn"),this);
 	vodA->setObjectName("VoDn");
-	vodA->setShortcut(Qt::Key_Down);
+	vodA->setShortcut(Config::getValue("/Shortcut/VoDn",QString("Down")));
 	connect(vodA,&QAction::triggered,[this](){aplayer->setVolume(aplayer->getVolume()-5);});
 	addAction(vouA);
 	addAction(vodA);
