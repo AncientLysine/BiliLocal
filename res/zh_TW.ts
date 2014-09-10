@@ -4,7 +4,7 @@
 <context>
     <name>APlayer</name>
     <message>
-        <location filename="../src/APlayer.cpp" line="420"/>
+        <location filename="../src/APlayer.cpp" line="413"/>
         <source>Disable</source>
         <translation>關閉</translation>
     </message>
@@ -587,68 +587,68 @@ k-lite/win7codecs recommended</source>
         <translation>音量</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="88"/>
-        <location filename="../src/Info.cpp" line="229"/>
+        <location filename="../src/Info.cpp" line="87"/>
+        <location filename="../src/Info.cpp" line="228"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="89"/>
+        <location filename="../src/Info.cpp" line="88"/>
         <source>Stop</source>
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="134"/>
+        <location filename="../src/Info.cpp" line="133"/>
         <source>Copy Danmaku</source>
         <translation>複製彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="141"/>
+        <location filename="../src/Info.cpp" line="140"/>
         <source>Eliminate The Sender</source>
         <translation>屏蔽發送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="158"/>
+        <location filename="../src/Info.cpp" line="157"/>
         <source>Recover The Sender</source>
         <translation>恢復發送者</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="167"/>
+        <location filename="../src/Info.cpp" line="166"/>
         <source>Edit Blocking List</source>
         <translation>編輯屏蔽列表</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="170"/>
+        <location filename="../src/Info.cpp" line="169"/>
         <source>Edit Danmaku Pool</source>
         <translation>編輯彈幕池</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="173"/>
+        <location filename="../src/Info.cpp" line="172"/>
         <source>Clear Danmaku Pool</source>
         <translation>清除彈幕池</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="174"/>
+        <location filename="../src/Info.cpp" line="173"/>
         <source>Save Danmaku to File</source>
         <translation>保存彈幕到文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="175"/>
+        <location filename="../src/Info.cpp" line="174"/>
         <source>Save File</source>
         <translation>保存文件</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="187"/>
+        <location filename="../src/Info.cpp" line="186"/>
         <source>AcFun Danmaku Format (*.json)</source>
         <translation>AcFun彈幕格式 (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="187"/>
+        <location filename="../src/Info.cpp" line="186"/>
         <source>Bilibili Danmaku Format (*.xml)</source>
         <translation>Bilibili彈幕格式 (*.xml)</translation>
     </message>
     <message>
-        <location filename="../src/Info.cpp" line="229"/>
+        <location filename="../src/Info.cpp" line="228"/>
         <source>Pause</source>
         <translation>暫停</translation>
     </message>
@@ -996,7 +996,7 @@ k-lite/win7codecs recommended</source>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="84"/>
-        <location filename="../src/Search.cpp" line="506"/>
+        <location filename="../src/Search.cpp" line="505"/>
         <source>Ready</source>
         <translation>就緒</translation>
     </message>
@@ -1011,49 +1011,49 @@ k-lite/win7codecs recommended</source>
         <translation>跳轉</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
-        <location filename="../src/Search.cpp" line="381"/>
-        <location filename="../src/Search.cpp" line="387"/>
+        <location filename="../src/Search.cpp" line="374"/>
+        <location filename="../src/Search.cpp" line="380"/>
+        <location filename="../src/Search.cpp" line="386"/>
         <source>Title</source>
         <translation>標題</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
-        <location filename="../src/Search.cpp" line="381"/>
-        <location filename="../src/Search.cpp" line="387"/>
+        <location filename="../src/Search.cpp" line="374"/>
+        <location filename="../src/Search.cpp" line="380"/>
+        <location filename="../src/Search.cpp" line="386"/>
         <source>Typename</source>
         <translation>分類</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
-        <location filename="../src/Search.cpp" line="381"/>
+        <location filename="../src/Search.cpp" line="374"/>
+        <location filename="../src/Search.cpp" line="380"/>
         <source>Author</source>
         <translation>UP主</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
-        <location filename="../src/Search.cpp" line="381"/>
+        <location filename="../src/Search.cpp" line="374"/>
+        <location filename="../src/Search.cpp" line="380"/>
         <source>Cover</source>
         <translation>封面</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
-        <location filename="../src/Search.cpp" line="381"/>
+        <location filename="../src/Search.cpp" line="374"/>
+        <location filename="../src/Search.cpp" line="380"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="375"/>
+        <location filename="../src/Search.cpp" line="374"/>
         <source>Danmaku</source>
         <translation>彈幕</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="381"/>
+        <location filename="../src/Search.cpp" line="380"/>
         <source>Comment</source>
         <translation>評論</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="458"/>
+        <location filename="../src/Search.cpp" line="457"/>
         <source>Please open a video or type in the file path.</source>
         <translation>請打開視頻或輸入路徑。</translation>
     </message>
@@ -1065,6 +1065,31 @@ k-lite/win7codecs recommended</source>
         <location filename="../src/Search.cpp" line="203"/>
         <source>Warning</source>
         <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../src/Search.cpp" line="52"/>
+        <source>rankLevel</source>
+        <translation>相關度</translation>
+    </message>
+    <message>
+        <location filename="../src/Search.cpp" line="53"/>
+        <source>releaseDate</source>
+        <translation>發布日期</translation>
+    </message>
+    <message>
+        <location filename="../src/Search.cpp" line="54"/>
+        <source>views</source>
+        <translation>點擊數</translation>
+    </message>
+    <message>
+        <location filename="../src/Search.cpp" line="55"/>
+        <source>comments</source>
+        <translation>評論數</translation>
+    </message>
+    <message>
+        <location filename="../src/Search.cpp" line="56"/>
+        <source>stows</source>
+        <translation>收藏數</translation>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="167"/>
@@ -1088,47 +1113,47 @@ k-lite/win7codecs recommended</source>
         <translation>沒有視頻被選擇。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="387"/>
+        <location filename="../src/Search.cpp" line="386"/>
         <source>Episode</source>
         <translation>節目</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="387"/>
         <source>TVAnime</source>
         <translation>TV動畫</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="387"/>
         <source>Other</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="388"/>
+        <location filename="../src/Search.cpp" line="387"/>
         <source>FileMatch</source>
         <translation>文件匹配</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="458"/>
-        <location filename="../src/Search.cpp" line="471"/>
-        <location filename="../src/Search.cpp" line="482"/>
+        <location filename="../src/Search.cpp" line="457"/>
+        <location filename="../src/Search.cpp" line="470"/>
+        <location filename="../src/Search.cpp" line="481"/>
         <source>Match Error</source>
         <translation>匹配錯誤</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="471"/>
-        <location filename="../src/Search.cpp" line="482"/>
+        <location filename="../src/Search.cpp" line="470"/>
+        <location filename="../src/Search.cpp" line="481"/>
         <source>Format {anime}#{episode} needed.</source>
         <translation>按{動畫}#{集數}格式填寫。</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="495"/>
+        <location filename="../src/Search.cpp" line="494"/>
         <source>Requesting</source>
         <translation>請求中</translation>
     </message>
     <message>
         <location filename="../src/Search.cpp" line="293"/>
-        <location filename="../src/Search.cpp" line="327"/>
-        <location filename="../src/Search.cpp" line="349"/>
+        <location filename="../src/Search.cpp" line="326"/>
+        <location filename="../src/Search.cpp" line="348"/>
         <source>Finished</source>
         <translation>已完成</translation>
     </message>
@@ -1163,31 +1188,26 @@ k-lite/win7codecs recommended</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="52"/>
         <location filename="../src/Search.cpp" line="68"/>
         <source>ranklevel</source>
         <translation>相關度</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="53"/>
         <location filename="../src/Search.cpp" line="69"/>
         <source>click</source>
         <translation>點擊</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="54"/>
         <location filename="../src/Search.cpp" line="66"/>
         <source>pubdate</source>
         <translation>發布日期</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="55"/>
         <location filename="../src/Search.cpp" line="70"/>
         <source>scores</source>
         <translation>評論數</translation>
     </message>
     <message>
-        <location filename="../src/Search.cpp" line="56"/>
         <location filename="../src/Search.cpp" line="72"/>
         <source>stow</source>
         <translation>收藏數</translation>

@@ -49,11 +49,11 @@ QList<const char *> Search::AcOrder()
 {
 	static QList<const char *> l;
 	if(l.isEmpty()){
-		l<<tr("ranklevel")
-		<<tr("click")
-		<<tr("pubdate")
-		<<tr("scores")
-		<<tr("stow");
+		l<<tr("rankLevel")
+		<<tr("releaseDate")
+		<<tr("views")
+		<<tr("comments")
+		<<tr("stows");
 	}
 	return l;
 }
@@ -267,7 +267,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						r.setPattern("(?<=<span>)[^<]+");
 						m=r.match(item,m.capturedEnd());
 						row->setText(4,Utils::decodeXml(m.captured()));
-						r.setPattern(".+(?!</div>)");
+						r.setPattern("(?<=\\s).+");
 						m=r.match(item,m.capturedEnd());
 						row->setText(3,Utils::decodeXml(m.captured()));
 						r.setPattern("class=\"upper\"");
@@ -296,13 +296,12 @@ Search::Search(QWidget *parent):QDialog(parent)
 			}
 			case Utils::AcFun:
 			{
-				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-				QJsonObject page=json["page"].toObject();
+				QJsonObject page=QJsonDocument::fromJson(reply->readAll()).object()["data"].toObject()["page"].toObject();
 				if(pageNum==-1){
-					pageNum=page["totalPage"].toDouble();
+					pageNum=page["totalCount"].toDouble()/page["pageSize"].toDouble()+0.5;
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
-				QJsonArray list=json["contents"].toArray();
+				QJsonArray list=page["list"].toArray();
 				for(int i=0;i<list.count();++i){
 					QJsonObject item=list[i].toObject();
 					int channelId=item["channelId"].toDouble();
@@ -317,7 +316,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					content+=getChannel("AcFun")[channelId];
 					content+=Utils::decodeXml(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
-					row->setData(0,Qt::UserRole,QString("ac%1").arg(item["aid"].toInt()));
+					row->setData(0,Qt::UserRole,item["contentId"].toString());
 					row->setSizeHint(0,QSize(120,92));
 					row->setToolTip(3,item["description"].toString());
 					QNetworkRequest request(QUrl(item["titleImg"].toString()));
@@ -423,14 +422,14 @@ void Search::getData(int pageNum)
 	}
 	case 1:
 	{
-		url=QUrl("http://api."+
+		url=QUrl("http://search."+
 				 Utils::customUrl(Utils::AcFun)+
 				 "/search");
 		QUrlQuery query;
-		query.addQueryItem("query",key);
-		query.addQueryItem("exact","1");
-		query.addQueryItem("orderId",QString::number(orderC->currentIndex()));
-		query.addQueryItem("orderBy","1");
+		query.addQueryItem("q",key);
+		query.addQueryItem("sortType","-1");
+		query.addQueryItem("field","title");
+		query.addQueryItem("sortField",AcOrder()[orderC->currentIndex()]);
 		query.addQueryItem("pageNo",QString::number(pageNum));
 		query.addQueryItem("pageSize","20");
 		url.setQuery(query);
