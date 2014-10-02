@@ -132,8 +132,9 @@ public:
 #ifdef RENDER_RASTER
 extern "C"
 {
-#include <libavcodec/avcodec.h>
+#include <libavutil/mem.h>
 #include <libavutil/imgutils.h>
+#include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
 

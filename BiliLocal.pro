@@ -43,7 +43,6 @@ android{
 DEFINES += BACKEND_QMM
 DEFINES += RENDER_OPENGL
 DEFINES += EMBEDDED
-QT += multimedia
 TARGET = LocalJNI
 }
 else{
@@ -51,19 +50,17 @@ else{
 linux{
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
-QT += multimedia
 }
 
 win32{
 RC_ICONS = BiliLocal.ico
 DEFINES += BACKEND_VLC BACKEND_QMM
 DEFINES += RENDER_RASTER RENDER_OPENGL
-QT += multimedia
 }
 
 macx{
 DEFINES += BACKEND_VLC
-DEFINES += RENDER_RASTER RENDER_OPENGL
+DEFINES += RENDER_OPENGL
 }
 
 }
@@ -88,6 +85,11 @@ HEADERS += \
     src/Next.h \
     src/Search.h \
     src/Plugin.h
+}
+
+contains(DEFINES, BACKEND_QMM){
+QT += \
+    multimedia
 }
 
 contains(DEFINES, BACKEND_VLC){
