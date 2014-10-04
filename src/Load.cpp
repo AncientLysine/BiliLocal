@@ -73,6 +73,7 @@ Load::Load(QObject *parent):
 		}
 		Utils::Site site=Utils::getSite(url);
 		if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
+			emit stateChanged(Pool);
 			Record load;
 			load.full=true;
 			load.source=url;
@@ -257,12 +258,12 @@ QStandardItemModel *Load::getModel()
 
 QString Load::getStr()
 {
-	return queue.isEmpty()?QString():last.attribute(QNetworkRequest::User).toString();
+	return queue.isEmpty()?QString():queue.head().attribute(QNetworkRequest::User).toString();
 }
 
 QString Load::getUrl()
 {
-	return queue.isEmpty()?QString():last.url().url();
+	return queue.isEmpty()?QString():queue.head().url().url();
 }
 
 void Load::loadDanmaku(QString code)
@@ -354,8 +355,8 @@ void Load::getReply(QNetworkRequest request,QString code)
 
 void Load::loadTop()
 {
-	if (!queue.isEmpty() && queue.head() != last){
-		last = queue.head();
+	if(!queue.isEmpty()&&queue.head()!=last){
+		last=queue.head();
 		manager->get(last);
 	}
 }
@@ -363,5 +364,5 @@ void Load::loadTop()
 void Load::dequeue()
 {
 	queue.dequeue();
-	last = QNetworkRequest();
+	last=QNetworkRequest();
 }
