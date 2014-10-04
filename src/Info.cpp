@@ -72,7 +72,6 @@ Info::Info(QWidget *parent):
 	});
 	connect(volmS,&QSlider::valueChanged,[this](int _volm){
 		if(!updating){
-			Config::setValue("Playing/Volume",_volm);
 			APlayer::instance()->setVolume(_volm);
 		}
 	});

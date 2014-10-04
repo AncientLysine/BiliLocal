@@ -41,7 +41,8 @@ public:
 		Page=381,
 		Part=407,
 		Code=379,
-		File=384
+		File=384,
+		Pool=410
 	};
 
 	enum Role

@@ -49,19 +49,23 @@ Utils::Site Utils::getSite(QString url)
 #ifndef EMBEDDED
 void Utils::setCenter(QWidget *widget)
 {
-	QPoint center;
+	QRect rect=widget->geometry();
 	QWidget *parent=widget->parentWidget();
 	if(parent==NULL){
-		center=QApplication::desktop()->screenGeometry(widget).center();
-	}
-	else if(widget->isWindow()){
-		center=parent->geometry().center();
+		rect.moveCenter(QApplication::desktop()->screenGeometry(widget).center());
 	}
 	else{
-		center=parent->rect().center();
+		if(widget->isWindow()){
+			QPoint center=parent->geometry().center();
+			if((parent->windowFlags()&Qt::CustomizeWindowHint)){
+				center.ry()+=widget->style()->pixelMetric(QStyle::PM_TitleBarHeight)/2;
+			}
+			rect.moveCenter(center);
+		}
+		else{
+			rect.moveCenter(parent->rect().center());
+		}
 	}
-	QRect rect=widget->geometry();
-	rect.moveCenter(center);
 	widget->setGeometry(rect);
 }
 
@@ -472,26 +476,35 @@ QList<Comment> Utils::parseComment(QByteArray data,Site site)
 	}
 	case AcFun:
 	{
-		QJsonArray a=QJsonDocument::fromJson(data).array();
-		for(QJsonValue i:a){
-			Comment comment;
-			QJsonObject item=i.toObject();
-			QStringList args=item["c"].toString().split(',');
-			comment.time=args[0].toDouble()*1000+0.5;
-			comment.date=args[5].toInt();
-			comment.mode=args[2].toInt();
-			comment.font=args[3].toInt();
-			comment.color=args[1].toInt();
-			comment.sender=args[4];
-			comment.string=item["m"].toString();
-			list.append(comment);
+		QQueue<QJsonArray> queue;
+		queue.append(QJsonDocument::fromJson(data).array());
+		while(!queue.isEmpty()){
+			for(const QJsonValue &i:queue.front()){
+				if(i.isArray()){
+					queue.append(i.toArray());
+				}
+				else{
+					Comment comment;
+					QJsonObject item=i.toObject();
+					QStringList args=item["c"].toString().split(',');
+					comment.time=args[0].toDouble()*1000+0.5;
+					comment.date=args[5].toInt();
+					comment.mode=args[2].toInt();
+					comment.font=args[3].toInt();
+					comment.color=args[1].toInt();
+					comment.sender=args[4];
+					comment.string=item["m"].toString();
+					list.append(comment);
+				}
+			}
+			queue.dequeue();
 		}
 		break;
 	}
 	case AcPlay:
 	{
 		QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
-		for(QJsonValue i:a){
+		for(const QJsonValue &i:a){
 			Comment comment;
 			QJsonObject item=i.toObject();
 			comment.time=item["Time"].toDouble()*1000+0.5;

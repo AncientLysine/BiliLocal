@@ -73,6 +73,7 @@ Load::Load(QObject *parent):
 		}
 		Utils::Site site=Utils::getSite(url);
 		if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
+			emit stateChanged(Pool);
 			Record load;
 			load.full=true;
 			load.source=url;
@@ -90,10 +91,10 @@ Load::Load(QObject *parent):
 					load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);
 				}
 			}
-			if(url.endsWith("json",Qt::CaseInsensitive)){
+			else if(url.indexOf("acfun")!=-1||url.endsWith("json",Qt::CaseInsensitive)){
 				load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcFun);
 			}
-			if(url.indexOf("acplay")!=-1){
+			else if(url.indexOf("acplay")!=-1){
 				load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcPlay);
 			}
 			dequeue();
@@ -147,53 +148,36 @@ Load::Load(QObject *parent):
 			}
 		}
 		else if(site==Utils::AcFun){
-			if(url.indexOf("getVideo.aspx")!=-1){
-				QJsonObject json=QJsonDocument::fromJson(reply->readAll()).object();
-				if(json.contains("danmakuId")){
-					QString api="http://comment.%1/%2.json";
-					api=api.arg(Utils::customUrl(Utils::AcFun));
-					api=api.arg(json["danmakuId"].toString());
-					getReply(QNetworkRequest(api));
+			model->clear();
+			QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
+			while(match.hasNext()){
+				QStandardItem *item=new QStandardItem;
+				QString part=match.next().captured();
+				QRegularExpression r;
+				r.setPattern("(?<=>)[^>]+?(?=</a>)");
+				item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
+				r.setPattern("(?<=data-vid=\").+?(?=\")");
+				QString next("http://static.comment.acfun.mm111.net/%1");
+				next=next.arg(r.match(part).captured());
+				item->setData(next,UrlRole);
+				item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
+				item->setData(File,NxtRole);
+				model->appendRow(item);
+			}
+			if(url.indexOf('_')==-1&&model->rowCount()>=2){
+				emit stateChanged(Part);
+				dequeue();
+			}
+			else{
+				int i=url.indexOf('_');
+				i=(i==-1)?0:(url.mid(i+1).toInt()-1);
+				if(i>=0&&i<model->rowCount()){
+					getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()));
 					loadTop();
 					emit stateChanged(File);
 				}
 				else{
 					error(203);
-				}
-			}
-			else{
-				model->clear();
-				QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
-				while(match.hasNext()){
-					QStandardItem *item=new QStandardItem;
-					QString part=match.next().captured();
-					QRegularExpression r;
-					r.setPattern("(?<=>)[^>]+?(?=</a>)");
-					item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
-					r.setPattern("(?<=data-vid=\").+?(?=\")");
-					QString next("http://www.%1/video/getVideo.aspx?id=%2");
-					next=next.arg(Utils::customUrl(Utils::AcFun));
-					next=next.arg(r.match(part).captured());
-					item->setData(next,UrlRole);
-					item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
-					item->setData(Code,NxtRole);
-					model->appendRow(item);
-				}
-				if(url.indexOf('_')==-1&&model->rowCount()>=2){
-					emit stateChanged(Part);
-					dequeue();
-				}
-				else{
-					int i=url.indexOf('_');
-					i=(i==-1)?0:(url.mid(i+1).toInt()-1);
-					if(i>=0&&i<model->rowCount()){
-						getReply(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()));
-						loadTop();
-						emit stateChanged(Code);
-					}
-					else{
-						error(203);
-					}
 				}
 			}
 		}
@@ -274,12 +258,12 @@ QStandardItemModel *Load::getModel()
 
 QString Load::getStr()
 {
-	return queue.isEmpty()?QString():last.attribute(QNetworkRequest::User).toString();
+	return queue.isEmpty()?QString():queue.head().attribute(QNetworkRequest::User).toString();
 }
 
 QString Load::getUrl()
 {
-	return queue.isEmpty()?QString():last.url().url();
+	return queue.isEmpty()?QString():queue.head().url().url();
 }
 
 void Load::loadDanmaku(QString code)
@@ -371,8 +355,8 @@ void Load::getReply(QNetworkRequest request,QString code)
 
 void Load::loadTop()
 {
-	if (!queue.isEmpty() && queue.head() != last){
-		last = queue.head();
+	if(!queue.isEmpty()&&queue.head()!=last){
+		last=queue.head();
 		manager->get(last);
 	}
 }
@@ -380,5 +364,5 @@ void Load::loadTop()
 void Load::dequeue()
 {
 	queue.dequeue();
-	last = QNetworkRequest();
+	last=QNetworkRequest();
 }

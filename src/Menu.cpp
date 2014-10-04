@@ -327,6 +327,7 @@ Menu::Menu(QWidget *parent):
 				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));
 			}
 		case Load::File:
+		case Load::Pool:
 			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());
 			danmL->setText(Load::instance()->getStr());
 			danmL->setCursorPosition(0);

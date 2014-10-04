@@ -44,6 +44,8 @@ static void setDefaultFont()
 }
 
 #ifdef EMBEDDED
+#include <jni.h>
+
 Local::Local(int &argc,char **argv):
 	QGuiApplication(argc,argv)
 {
@@ -56,6 +58,16 @@ Local::Local(int &argc,char **argv):
 		Config::save();
 	});
 	qsrand(QTime::currentTime().msec());
+}
+
+extern "C" JNIEXPORT void JNICALL Java_tv_danmaku_local_jni_LocalJNI_init
+  (JNIEnv *, jobject)
+{
+}
+
+extern "C" JNIEXPORT void JNICALL Java_tv_danmaku_local_jni_LocalJNI_free
+  (JNIEnv *, jobject)
+{
 }
 #else
 #include "Plugin.h"
