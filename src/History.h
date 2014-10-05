@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Menu.h
-*   Time:        2013/04/05
+*   Filename:    History.h
+*   Time:        2014/10/05
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -25,52 +24,26 @@
 *
 =========================================================================*/
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef HISTORY_H
+#define HISTORY_H
 
+#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
-class Menu:public QWidget
+class History:public QObject
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	explicit Menu(QWidget *parent=0);
-	bool isShown(){return isPoped;}
-	bool preferStay(){return isStay||!danmC->popup()->isHidden();}
+	~History();
+	QString lastPath();
+	QStandardItemModel *getModel(){return model;}
+	static History *instance();
 
 private:
-	bool isStay;
-	bool isPoped;
-	QLineEdit *fileL;
-	QLineEdit *danmL;
-	QLineEdit *sechL;
-	QCompleter *fileC;
-	QCompleter *danmC;
-	QPushButton *fileB;
-	QPushButton *danmB;
-	QPushButton *sechB;
-	QAction *fileA;
-	QAction *danmA;
-	QAction *sechA;
-	QLabel *alphaT;
-	QSlider *alphaS;
-	QLabel *powerT;
-	QLineEdit *powerL;
-	QLabel *localT;
-	QCheckBox *localC;
-	QLabel *subT;
-	QCheckBox *subC;
-	QLabel *loopT;
-	QCheckBox *loopC;
-	QPropertyAnimation *animation;
-	bool eventFilter(QObject *o,QEvent *e);
+	QStandardItemModel *model;
+	static History *ins;
 
-public slots:
-	void pop();
-	void push(bool force=false);
-	void terminate();
-	
+    History(QObject *parent = 0);
 };
 
-#endif // MENU_H
+#endif // HISTORY_H

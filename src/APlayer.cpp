@@ -367,7 +367,6 @@ void VPlayer::setMedia(QString _file,bool manually)
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
-			Config::setValue("/Playing/Path",QFileInfo(_file).absolutePath());
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerPlaying,
@@ -707,7 +706,6 @@ void QPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
 	QMetaObject::invokeMethod(mp,"setMedia",Qt::BlockingQueuedConnection,Q_ARG(QMediaContent,QUrl::fromLocalFile(_file)));
-	Config::setValue("/Playing/Path", QFileInfo(_file).absolutePath());
 	emit mediaChanged(getMedia());
 	if(Config::getValue("/Playing/Immediate",false)){
 		play();

@@ -41,6 +41,7 @@ class Load;
 class Render;
 class APlayer;
 class Danmaku;
+class History;
 
 class Interface:public QMdiSubWindow
 {
@@ -70,6 +71,7 @@ private:
 	Render *render;
 	APlayer *aplayer;
 	Danmaku *danmaku;
+	History *history;
 
 	QPoint sta;
 	QPoint wgd;
