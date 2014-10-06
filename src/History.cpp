@@ -30,7 +30,7 @@
 #include "Config.h"
 #include "Load.h"
 
-History *History::ins=NULL;
+History *History::ins=nullptr;
 
 History *History::instance()
 {
@@ -42,30 +42,50 @@ History::History(QObject *parent) :
 {
 	ins=this;
 	setObjectName("History");
+	last=nullptr;
 	model=new QStandardItemModel(this);
-	for(const QJsonValue &record:Config::getValue<QJsonArray>("/Playing/History/List")){
-		QString file=record.toString();
-		QStandardItem *item=new QStandardItem;
-		item->setText(QFileInfo(file).baseName());
-		item->setData(file,Qt::UserRole);
-		model->appendRow(item);
+	for(const QJsonValue &value:Config::getValue<QJsonArray>("/Playing/History/List")){
+		QStandardItem *head=new QStandardItem;
+		QJsonObject record=value.toObject();
+		QStringList suffix=Utils::getSuffix(Utils::Video);
+		for(auto iter=record.begin();iter!=record.end();++iter){
+			QString file=QUrl::fromPercentEncoding(iter.key().toUtf8());qint64 time=(*iter).toDouble();
+			QFileInfo info(file);
+			if(suffix.contains(info.suffix())){
+				head->setText(info.completeBaseName());
+				head->setData(file,FileRole);
+				head->setData(time,TimeRole);
+			}
+			else{
+				QStandardItem *item=new QStandardItem;
+				item->setData(file,FileRole);
+				item->setData(time,TimeRole);
+				head->appendRow(item);
+			}
+		}
+		model->appendRow(head);
 	}
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
 		QFileInfo info(file);
-		QString name=info.baseName(),path=info.absoluteFilePath();
-		QStandardItem *item=new QStandardItem;
-		item->setText(name);
-		item->setData(path,Qt::UserRole);
-		model->insertRow(0,item);
+		updateDanmaku();
+		QString name=info.completeBaseName();
+		QString path=info.absoluteFilePath();
 		int c=model->rowCount(),i;
-		for(i=1;i<c;++i){
-			if(model->item(i)->data(Qt::UserRole).toString()==path){
-				model->removeRow(i);
+		for(i=0;i<c;++i){
+			if (model->item(i)->data(FileRole).toString()==path){
+				model->insertRow(0,model->takeRow(i));
+				last=model->item(0);
 				break;
 			}
 		}
-		if(c>Config::getValue("/Playing/History/Max",10)&&i>=c){
-			model->removeRow(c-1);
+		if(i>=c){
+			last=new QStandardItem;
+			last->setText(name);
+			last->setData(path,FileRole);
+			model->insertRow(0,last);
+			if (c>=Config::getValue("/Playing/History/Max",10)){
+				model->removeRow(c);
+			}
 		}
 	});
 }
@@ -73,17 +93,45 @@ History::History(QObject *parent) :
 History::~History()
 {
 	QJsonArray history;
+	updateDanmaku();
 	for(int i=0;i<model->rowCount();++i){
-		QStandardItem *item=model->item(i);
-		history.append(item->data(Qt::UserRole).toString());
+		QJsonObject record;
+		QList<QStandardItem *> items;
+		QStandardItem *head=model->item(i);
+		items<<head;
+		for(int i=0;i<head->rowCount();++i){
+			items.append(head->child(i));
+		}
+		for(QStandardItem *iter:items){
+			QString key=QUrl::toPercentEncoding(iter->data(FileRole).toString()," !@#$%^&*()+={}[]|\\\"\':;/?<,>.");
+			record[key]=iter->data(TimeRole).toDouble();
+		}
+		history.append(record);
 	}
 	Config::setValue("/Playing/History/List",history);
+}
+
+void History::updateDanmaku()
+{
+	int c=model->rowCount();
+	if (c==0||last==nullptr){
+		return;
+	}
+	QStandardItem *head=model->item(0);
+	head->setRowCount(0);
+	for(const Record &r:Danmaku::instance()->getPool()){
+		QUrl u(r.source);
+		QStandardItem *item=new QStandardItem;
+		item->setData(u.isLocalFile()?u.toLocalFile():r.string,FileRole);
+		item->setData(r.delay,TimeRole);
+		head->appendRow(item);
+	}
 }
 
 QString History::lastPath()
 {
 	for(int i=0;i<model->rowCount();++i){
-		return model->item(i)->data(Qt::UserRole).toString();
+		return model->item(i)->data(FileRole).toString();
 	}
 	return QString();
 }
@@ -91,8 +139,16 @@ QString History::lastPath()
 void History::rollback(const QModelIndex &index)
 {
 	Load *load=Load::instance();
+	QStandardItem *head=model->item(index.row());
+	for(int i=0;i<head->rowCount();++i){
+		QStandardItem *item=head->child(i);
+		Load::Task task=Load::instance()->codeToTask(item->data(FileRole).toString());
+		task.delay=item->data(TimeRole).value<qint64>();
+		load->enqueue(task);
+	}
 	bool state=load->autoLoad();
 	load->setAutoLoad(false);
-	APlayer::instance()->setMedia(index.data(Qt::UserRole).toString());
+	APlayer::instance()->setMedia(index.data(FileRole).toString());
 	load->setAutoLoad(state);
+	Danmaku::instance()->clearPool();
 }

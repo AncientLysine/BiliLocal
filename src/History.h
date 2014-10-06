@@ -34,15 +34,23 @@ class History:public QObject
 {
     Q_OBJECT
 public:
+	enum
+	{
+		FileRole=Qt::UserRole,
+		TimeRole
+	};
+
 	~History();
 	QStandardItemModel *getModel(){return model;}
 	static History *instance();
 
 private:
+	QStandardItem *last;
 	QStandardItemModel *model;
 	static History *ins;
 
-    History(QObject *parent = 0);
+    History(QObject *parent=0);
+	void updateDanmaku();
 
 public slots:
 	QString lastPath();

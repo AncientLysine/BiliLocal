@@ -365,9 +365,9 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=Config::getValue("/Interface/Size",QString("960,540"));
 		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
+	delete history;
 	delete aplayer;
 	delete danmaku;
-	delete history;
 	if(!update.isNull()){
 		update->abort();
 	}

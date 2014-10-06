@@ -63,6 +63,7 @@ public:
 
 	bool event(QEvent *e);
 	int  size();
+	Task codeToTask(QString code);
 	QStandardItemModel *getModel();
 	static Load *instance();
 

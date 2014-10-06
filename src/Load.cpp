@@ -245,32 +245,7 @@ int  Load::size()
 	return queue.size();
 }
 
-QStandardItemModel *Load::getModel()
-{
-	return model;
-}
-
-QString Load::getStr()
-{
-	return queue.isEmpty()?QString():queue.head().code;
-}
-
-QString Load::getUrl()
-{
-	return queue.isEmpty()?QString():queue.head().request.url().url();
-}
-
-void Load::setAutoLoad(bool enabled)
-{
-	Config::setValue("/Danmaku/Auto",automated=enabled);
-}
-
-bool Load::autoLoad()
-{
-	return automated;
-}
-
-void Load::loadDanmaku(QString code)
+Load::Task Load::codeToTask(QString code)
 {
 	Task task;
 	int sharp=code.indexOf("#");
@@ -311,15 +286,47 @@ void Load::loadDanmaku(QString code)
 		task.state=File;
 	}
 	else{
-		return;
+		return task;
 	}
 	APlayer *aplayer=APlayer::instance();
-	Danmaku *danmaku=Danmaku::instance();
 	task.code=code;
 	task.delay=aplayer->getState()!=APlayer::Stop&&Config::getValue("/Playing/Delay",false)?aplayer->getTime():0;
-	enqueue(task);
-	if(Config::getValue("/Playing/Clear",true)){
-		danmaku->clearPool();
+	return task;
+}
+
+QStandardItemModel *Load::getModel()
+{
+	return model;
+}
+
+QString Load::getStr()
+{
+	return queue.isEmpty()?QString():queue.head().code;
+}
+
+QString Load::getUrl()
+{
+	return queue.isEmpty()?QString():queue.head().request.url().url();
+}
+
+void Load::setAutoLoad(bool enabled)
+{
+	Config::setValue("/Danmaku/Auto",automated=enabled);
+}
+
+bool Load::autoLoad()
+{
+	return automated;
+}
+
+void Load::loadDanmaku(QString code)
+{
+	const Task &task=codeToTask(code);
+	if(!task.code.isEmpty()){
+		enqueue(task);
+		if (Config::getValue("/Playing/Clear", true)){
+			Danmaku::instance()->clearPool();
+		}
 	}
 }
 
