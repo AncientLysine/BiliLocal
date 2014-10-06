@@ -199,7 +199,7 @@ Menu::Menu(QWidget *parent):
 	popup->addAction(hdelA);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(fileC,&QCompleter::activated,[this](const QModelIndex &index){
-		APlayer::instance()->setMedia(index.data(Qt::UserRole).toString());
+		History::instance()->rollback(index);
 	});
 
 	danmC=new QCompleter(new LoadModelWapper(Load::instance()->getModel(),tr("Load All")),this);
@@ -209,13 +209,13 @@ Menu::Menu(QWidget *parent):
 	popup->setMouseTracking(true);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
+		QModelIndex i;
 		QVariant v=index.data(Load::UrlRole);
-		if(!v.isNull()&&!v.toUrl().isValid()){
-			Load::instance()->loadDanmaku();
+		if(v.isNull()||v.toUrl().isValid()){
+			i=index;
 		}
-		else{
-			Load::instance()->loadDanmaku(index);
-		}
+		Load::instance()->dequeue();
+		Load::instance()->loadDanmaku(i);
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);

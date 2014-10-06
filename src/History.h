@@ -35,7 +35,6 @@ class History:public QObject
     Q_OBJECT
 public:
 	~History();
-	QString lastPath();
 	QStandardItemModel *getModel(){return model;}
 	static History *instance();
 
@@ -44,6 +43,10 @@ private:
 	static History *ins;
 
     History(QObject *parent = 0);
+
+public slots:
+	QString lastPath();
+	void rollback(const QModelIndex &index);
 };
 
 #endif // HISTORY_H

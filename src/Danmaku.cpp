@@ -572,38 +572,32 @@ void Danmaku::saveToFile(QString _file)
 
 void Danmaku::appendToPool(const Record &record)
 {
-	bool exists=false;
-	Record *append=NULL;
+	Record *append=0;
 	for(Record &r:pool){
 		if(r.source==record.source){
 			append=&r;
-			exists=true;
 			break;
 		}
 	}
-	if(!exists){
-		Record r;
-		r.source=record.source;
-		r.string=record.string;
-		r.delay=Config::getValue("/Playing/Delay",false)?time:0;
-		pool.append(r);
-		append=&pool.last();
+	if(!append){
+		pool.append(record);
 	}
-	auto &d=append->danmaku;
-	QSet<Comment> set=d.toSet();
-	for(Comment c:record.danmaku){
-		c.time+=append->delay-record.delay;
-		if(!set.contains(c)){
-			set.insert(c);
-			d.append(c);
+	else{
+		auto &d=append->danmaku;
+		QSet<Comment> set=d.toSet();
+		for(Comment c:record.danmaku){
+			c.time+=append->delay-record.delay;
+			if(!set.contains(c)){
+				d.append(c);
+			}
 		}
-	}
-	if(record.full){
-		append->full=true;
+		if(record.full){
+			append->full=true;
+		}
 	}
 	parse(0x1|0x2);
 #ifndef EMBEDDED
-	if(!exists&&Load::instance()->empty()&&pool.size()>=2){
+	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
 		Editor::exec(Local::mainWidget());
 	}
 #endif

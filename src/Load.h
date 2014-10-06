@@ -52,16 +52,25 @@ public:
 		NxtRole
 	};
 
+	struct Task
+	{
+		QString code;
+		QNetworkRequest request;
+		int state;
+		qint64 delay;
+		Task():state(None),delay(0){}
+	};
+
 	bool event(QEvent *e);
-	bool empty();
+	int  size();
 	QStandardItemModel *getModel();
 	static Load *instance();
 
 private:
+	bool automated;
 	QStandardItemModel *model;
 	QNetworkAccessManager *manager;
-	QNetworkRequest last;
-	QQueue<QNetworkRequest> queue;
+	QQueue<Task> queue;
 	static Load *ins;
 
 	Load(QObject *parent=0);
@@ -72,13 +81,18 @@ signals:
 public slots:
 	QString getStr();
 	QString getUrl();
+
+	void setAutoLoad(bool enabled);
+	bool autoLoad();
+
+	void dequeue();
+	bool enqueue(const Task &task);
+	void forward();
+	void forward(QNetworkRequest request);
+	void forward(QNetworkRequest request,int state);
+
 	void loadDanmaku(QString code);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
-	void getReply(QNetworkRequest request,QString code=QString());
-
-private slots:
-	void loadTop();
-	void dequeue();
 };
 
 #endif // LOAD_H

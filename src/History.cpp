@@ -25,9 +25,10 @@
 =========================================================================*/
 
 #include "History.h"
-#include "Config.h"
 #include "APlayer.h"
 #include "Danmaku.h"
+#include "Config.h"
+#include "Load.h"
 
 History *History::ins=NULL;
 
@@ -85,4 +86,13 @@ QString History::lastPath()
 		return model->item(i)->data(Qt::UserRole).toString();
 	}
 	return QString();
+}
+
+void History::rollback(const QModelIndex &index)
+{
+	Load *load=Load::instance();
+	bool state=load->autoLoad();
+	load->setAutoLoad(false);
+	APlayer::instance()->setMedia(index.data(Qt::UserRole).toString());
+	load->setAutoLoad(state);
 }
