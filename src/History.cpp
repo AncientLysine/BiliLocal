@@ -47,7 +47,7 @@ History::History(QObject *parent) :
 	for(const QJsonValue &value:Config::getValue<QJsonArray>("/Playing/History/List")){
 		QStandardItem *head=new QStandardItem;
 		QJsonObject record=value.toObject();
-		QStringList suffix=Utils::getSuffix(Utils::Video);
+		QStringList suffix=Utils::getSuffix(Utils::Video|Utils::Audio);
 		for(auto iter=record.begin();iter!=record.end();++iter){
 			QString file=QUrl::fromPercentEncoding(iter.key().toUtf8());qint64 time=(*iter).toDouble();
 			QFileInfo info(file);
