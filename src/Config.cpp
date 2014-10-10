@@ -30,6 +30,7 @@
 #include "Shield.h"
 #include "Danmaku.h"
 #include "APlayer.h"
+#include "History.h"
 
 #ifndef EMBEDDED
 #include "Plugin.h"
@@ -1249,6 +1250,7 @@ Config::Config(QWidget *parent,int index):
 										 tr("Warning"),
 										 tr("Restart to apply changes?"),
 										 QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
+				delete History::instance();
 				delete APlayer::instance();
 				delete Danmaku::instance();
 				qApp->exit(12450);

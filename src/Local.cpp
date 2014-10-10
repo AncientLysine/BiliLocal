@@ -78,6 +78,21 @@ Local::Local(int &argc,char **argv):
 {
 }
 
+QString Local::suggestion(int code)
+{
+	switch (code){
+	case 3:
+	case 4:
+		return tr("check your network connection");
+	case 203:
+	case 403:
+	case -8:
+		return tr("access denied, try login");
+	default:
+		return QString();
+	}
+}
+
 static void loadTranslator()
 {
 	QString locale=QLocale::system().name();

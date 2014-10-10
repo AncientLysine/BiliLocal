@@ -26,11 +26,11 @@
 =========================================================================*/
 
 #include "Post.h"
-#include "Local.h"
+#include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "APlayer.h"
 #include "Graphic.h"
+#include "Local.h"
 
 Post *Post::ins=NULL;
 
@@ -237,8 +237,9 @@ void Post::postComment()
 				}
 			}
 			if(error!=QNetworkReply::NoError){
-				QString info=tr("Network error occurred, error code: %1");
-				QMessageBox::warning(Local::mainWidget(),tr("Network Error"),info.arg(error));
+				QString info=tr("Network error occurred, error code: %1").arg(error);
+				QString sugg=Local::instance()->suggestion(error);
+				QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			}
 			else{
 				emit posted((quintptr)&c);

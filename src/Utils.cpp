@@ -26,6 +26,7 @@
 
 #include "Utils.h"
 #include "Config.h"
+#include "History.h"
 
 Utils::Site Utils::getSite(QString url)
 {
@@ -252,8 +253,15 @@ double Utils::evaluate(QString exp)
 
 QString Utils::defaultPath()
 {
-	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-	return Config::getValue("/Playing/Path",paths.isEmpty()?QDir::homePath():paths.last());
+	QString path=History::instance()->lastPath();
+	if(!path.isEmpty()){
+		return QFileInfo(path).absolutePath();
+	}
+	else{
+		QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
+		paths.append(QDir::homePath());
+		return paths.front();
+	}
 }
 
 QString Utils::defaultFont(bool monospace)

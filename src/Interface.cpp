@@ -29,6 +29,7 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
+#include "History.h"
 #include "Info.h"
 #include "Load.h"
 #include "Local.h"
@@ -51,8 +52,10 @@ Interface::Interface(QWidget *parent):
 	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
+	history=History::instance();
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["APlayer"]=aplayer;
+	Local::objects["History"]=history;
 	
 	render=Render::instance();
 	Local::objects["Render"]=render;
@@ -98,15 +101,15 @@ Interface::Interface(QWidget *parent):
 			setCenter(render->getPreferredSize(),false);
 		}
 		rat->setEnabled(true);
+		rat->defaultAction()->setChecked(true);
+		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
 	});
 	connect(aplayer,&APlayer::reach,[this](){
 		danmaku->resetTime();
 		danmaku->clearCurrent();
-		rat->defaultAction()->setChecked(true);
 		rat->setEnabled(false);
-		sca->defaultAction()->setChecked(true);
 		sca->setEnabled(false);
 		render->setVideoAspectRatio(0);
 		if(!geo.isEmpty()&&next->getNext().isEmpty()){
@@ -270,7 +273,6 @@ Interface::Interface(QWidget *parent):
 	rat->addAction("4:3");
 	rat->addAction("16:9");
 	rat->addAction("16:10");
-	rat->defaultAction()->setChecked(true);
 	connect(rat,&QMenu::triggered,[this](QAction *action){
 		if(action->text()==tr("Default")){
 			render->setVideoAspectRatio(0);
@@ -298,7 +300,6 @@ Interface::Interface(QWidget *parent):
 	sca->addAction("1:2");
 	sca->setDefaultAction(sca->addAction("1:1"));
 	sca->addAction("2:1");
-	sca->defaultAction()->setChecked(true);
 	connect(sca,&QMenu::triggered,[this](QAction *action){
 		if(render->getPreferredSize().isValid()){
 			QSize s=action->data().toSize();
@@ -364,6 +365,7 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=Config::getValue("/Interface/Size",QString("960,540"));
 		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
 	}
+	delete history;
 	delete aplayer;
 	delete danmaku;
 	if(!update.isNull()){

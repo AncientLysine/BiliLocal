@@ -31,10 +31,10 @@
 #include "Utils.h"
 
 namespace{
-class History:public QDialog
+class Calendar:public QDialog
 {
 public:
-	explicit History(QWidget *parent=0):
+	explicit Calendar(QWidget *parent=0):
 		QDialog(parent,Qt::Popup)
 	{
 		auto layout=new QGridLayout(this);
@@ -467,7 +467,7 @@ Editor::Editor(QWidget *parent):
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("History")),&QAction::triggered,[=,&r](){
-			History history(this);
+			Calendar history(this);
 			QMap<QDate,int> count;
 			QDate c=r.limit==0?QDate::currentDate().addDays(1):QDateTime::fromTime_t(r.limit).date();
 			history.setCurrentDate(c);

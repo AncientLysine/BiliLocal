@@ -37,6 +37,11 @@ class Local:public QGuiApplication
 	Q_OBJECT
 public:
 	Local(int &argc,char **argv);
+	
+	static Local *instance()
+	{
+		return dynamic_cast<Local *>(qApp);
+	}
 
 	static QHash<QString,QObject *> objects;
 
@@ -55,6 +60,11 @@ class Local:public QApplication
 public:
 	Local(int &argc,char **argv);
 
+	static Local *instance()
+	{
+		return dynamic_cast<Local *>(qApp);
+	}
+
 	static QWidget *mainWidget()
 	{
 		return qobject_cast<QWidget *>(objects["Interface"]);
@@ -67,6 +77,8 @@ public slots:
 	{
 		((void (*)())func)();
 	}
+
+	QString suggestion(int code);
 };
 #endif
 

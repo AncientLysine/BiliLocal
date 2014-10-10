@@ -29,6 +29,7 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
+#include "History.h"
 #include "Load.h"
 #include "Local.h"
 #include "Render.h"
@@ -118,6 +119,41 @@ private:
 	QString s;
 	QAbstractItemModel *m;
 };
+
+class MFileEdit:public QLineEdit
+{
+public:
+	MFileEdit(QCompleter *completer,QWidget *parent=0):
+		QLineEdit(parent),completer(completer)
+	{
+		historyFlag=0;
+		connect(this,&QLineEdit::selectionChanged,[this](){historyFlag=0;});
+	}
+
+	void mousePressEvent(QMouseEvent *e)
+	{
+		if (e->button()==Qt::LeftButton){
+			historyFlag=1;
+		}
+		QLineEdit::mousePressEvent(e);
+	}
+
+	void mouseReleaseEvent(QMouseEvent *e)
+	{
+		if (e->button()==Qt::LeftButton){
+			if (historyFlag){
+				completer->complete();
+				completer->popup()->setCurrentIndex(completer->model()->index(0,0));
+			}
+			historyFlag=0;
+		}
+		QLineEdit::mouseReleaseEvent(e);
+	}
+
+private:
+	bool historyFlag;
+	QCompleter *completer;
+};
 }
 
 Menu::Menu(QWidget *parent):
@@ -126,7 +162,8 @@ Menu::Menu(QWidget *parent):
 	setObjectName("Menu");
 	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
-	fileL=new QLineEdit(this);
+	fileC=new QCompleter(History::instance()->getModel(),this);
+	fileL=new MFileEdit(fileC,this);
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
 	fileL->installEventFilter(this);
@@ -149,21 +186,36 @@ Menu::Menu(QWidget *parent):
 		}
 		danmL->setText(match.toLower().replace('_','#'));
 	});
+	QAbstractItemView *popup;
+	fileC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+	fileC->setWidget(fileL);
+	popup=fileC->popup();
+	popup->setMouseTracking(true);
+	QAction *hdelA=new QAction(popup);
+	hdelA->setShortcut(QKeySequence(Qt::Key_Delete));
+	connect(hdelA,&QAction::triggered,[this](){
+		fileC->model()->removeRow(fileC->popup()->currentIndex().row());
+	});
+	popup->addAction(hdelA);
+	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
+	connect<void (QCompleter::*)(const QModelIndex &)>(fileC,&QCompleter::activated,[this](const QModelIndex &index){
+		History::instance()->rollback(index);
+	});
+
 	danmC=new QCompleter(new LoadModelWapper(Load::instance()->getModel(),tr("Load All")),this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
-	danmC->setCaseSensitivity(Qt::CaseInsensitive);
 	danmC->setWidget(danmL);
-	QAbstractItemView *popup=danmC->popup();
+	popup=danmC->popup();
 	popup->setMouseTracking(true);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
+		QModelIndex i;
 		QVariant v=index.data(Load::UrlRole);
-		if(!v.isNull()&&!v.toUrl().isValid()){
-			Load::instance()->loadDanmaku();
+		if(v.isNull()||v.toUrl().isValid()){
+			i=index;
 		}
-		else{
-			Load::instance()->loadDanmaku(index);
-		}
+		Load::instance()->dequeue();
+		Load::instance()->loadDanmaku(i);
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
@@ -336,9 +388,13 @@ Menu::Menu(QWidget *parent):
 			isStay=0;
 			break;
 		default:
-			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(state));
+		{
+			QString info=tr("Network error occurred, error code: %1").arg(state);
+			QString sugg=Local::instance()->suggestion(state);
+			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			isStay=0;
 			break;
+		}
 		}
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
@@ -350,7 +406,9 @@ Menu::Menu(QWidget *parent):
 
 bool Menu::eventFilter(QObject *o,QEvent *e)
 {
-	if(e->type()==QEvent::ContextMenu){
+	switch(e->type()){
+	case QEvent::ContextMenu:
+	{
 		isStay=1;
 		QMenu *m=dynamic_cast<QLineEdit *>(o)->createStandardContextMenu();
 		m->exec(dynamic_cast<QContextMenuEvent *>(e)->globalPos());
@@ -358,9 +416,14 @@ bool Menu::eventFilter(QObject *o,QEvent *e)
 		isStay=0;
 		return 1;
 	}
-	else{
-		return 0;
+	case QEvent::FocusIn:
+		isStay=1;
+		break;
+	case QEvent::FocusOut:
+		isStay=0;
+		break;
 	}
+	return 0;
 }
 
 void Menu::pop()

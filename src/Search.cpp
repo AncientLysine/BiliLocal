@@ -26,9 +26,10 @@
 =========================================================================*/
 
 #include "Search.h"
-#include "Utils.h"
-#include "Config.h"
 #include "APlayer.h"
+#include "Config.h"
+#include "Local.h"
+#include "Utils.h"
 
 static QHash<int,QString> getChannel(QString name)
 {
@@ -218,8 +219,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 			return;
 		}
 		auto error=[this](int code){
-			QString info=tr("Network error occurred, error code: %1");
-			QMessageBox::warning(this,tr("Network Error"),info.arg(code));
+			QString info=tr("Network error occurred, error code: %1").arg(code);
+			QString sugg=Local::instance()->suggestion(code);
+			QMessageBox::warning(this,tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			clearSearch();
 			isWaiting=false;
 		};

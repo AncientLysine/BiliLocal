@@ -367,7 +367,6 @@ void VPlayer::setMedia(QString _file,bool manually)
 	if(m){
 		mp=libvlc_media_player_new_from_media(m);
 		if(mp){
-			Config::setValue("/Playing/Path",QFileInfo(_file).absolutePath());
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerPlaying,
@@ -627,14 +626,19 @@ QPlayer::QPlayer(QObject *parent):
 {
 	mp=(new PlayerThread(this))->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Playing/Volume",50));
+	manuallyStopped=false;
 
 	connect(mp,&QMediaPlayer::stateChanged,		this,&QPlayer::stateChanged	);
 	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
 	connect(mp,&QMediaPlayer::volumeChanged,	this,&QPlayer::volumeChanged);
-	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){emit errorOccurred(error);});
+	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){
+		if (mp->state()==Play){
+			manuallyStopped=true;
+		}
+		emit errorOccurred(error);
+	});
 
-	manuallyStopped=false;
-	connect(this,&QPlayer::stateChanged,[=](int state){
+	connect(this,&QPlayer::stateChanged,[this](int state){
 		static int lastState;
 		if(state==Stop){
 			if(!manuallyStopped&&Config::getValue("/Playing/Loop",false)){
@@ -707,7 +711,6 @@ void QPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
 	QMetaObject::invokeMethod(mp,"setMedia",Qt::BlockingQueuedConnection,Q_ARG(QMediaContent,QUrl::fromLocalFile(_file)));
-	Config::setValue("/Playing/Path", QFileInfo(_file).absolutePath());
 	emit mediaChanged(getMedia());
 	if(Config::getValue("/Playing/Immediate",false)){
 		play();

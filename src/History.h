@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Load.h
-*   Time:        2014/04/22
+*   Filename:    History.h
+*   Time:        2014/10/05
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,76 +24,37 @@
 *
 =========================================================================*/
 
-#ifndef LOAD_H
-#define LOAD_H
+#ifndef HISTORY_H
+#define HISTORY_H
 
 #include <QtGui>
 #include <QtCore>
-#include <QtNetwork>
 
-class Load:public QObject
+class History:public QObject
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	enum State
+	enum
 	{
-		None=0,
-		Page=381,
-		Part=407,
-		Code=379,
-		File=384,
-		Pool=410
+		FileRole=Qt::UserRole,
+		TimeRole
 	};
 
-	enum Role
-	{
-		UrlRole=Qt::UserRole,
-		StrRole,
-		NxtRole
-	};
-
-	struct Task
-	{
-		QString code;
-		QNetworkRequest request;
-		int state;
-		qint64 delay;
-		Task():state(None),delay(0){}
-	};
-
-	bool event(QEvent *e);
-	int  size();
-	Task codeToTask(QString code);
-	QStandardItemModel *getModel();
-	static Load *instance();
+	~History();
+	QStandardItemModel *getModel(){return model;}
+	static History *instance();
 
 private:
-	bool automated;
+	QStandardItem *last;
 	QStandardItemModel *model;
-	QNetworkAccessManager *manager;
-	QQueue<Task> queue;
-	static Load *ins;
+	static History *ins;
 
-	Load(QObject *parent=0);
-
-signals:
-	void stateChanged(int state);
+    History(QObject *parent=0);
+	void updateDanmaku();
 
 public slots:
-	QString getStr();
-	QString getUrl();
-
-	void setAutoLoad(bool enabled);
-	bool autoLoad();
-
-	void dequeue();
-	bool enqueue(const Task &task);
-	void forward();
-	void forward(QNetworkRequest request);
-	void forward(QNetworkRequest request,int state);
-
-	void loadDanmaku(QString code);
-	void loadDanmaku(const QModelIndex &index=QModelIndex());
+	QString lastPath();
+	void rollback(const QModelIndex &index);
 };
 
-#endif // LOAD_H
+#endif // HISTORY_H

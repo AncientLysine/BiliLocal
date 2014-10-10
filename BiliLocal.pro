@@ -15,6 +15,7 @@ SOURCES += \
     src/Config.cpp \
     src/Danmaku.cpp \
     src/Graphic.cpp \
+    src/History.cpp \
     src/Load.cpp \
     src/Local.cpp \
     src/Render.cpp \
@@ -26,6 +27,7 @@ HEADERS  += \
     src/Config.h \
     src/Danmaku.h \
     src/Graphic.h \
+    src/History.h \
     src/Load.h \
     src/Local.h \
     src/Render.h \

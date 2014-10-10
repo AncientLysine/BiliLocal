@@ -45,6 +45,7 @@ private:
 	QLineEdit *fileL;
 	QLineEdit *danmL;
 	QLineEdit *sechL;
+	QCompleter *fileC;
 	QCompleter *danmC;
 	QPushButton *fileB;
 	QPushButton *danmB;
