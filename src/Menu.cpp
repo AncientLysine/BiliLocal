@@ -388,9 +388,13 @@ Menu::Menu(QWidget *parent):
 			isStay=0;
 			break;
 		default:
-			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),tr("Network error occurred, error code: %1").arg(state));
+		{
+			QString info=tr("Network error occurred, error code: %1").arg(state);
+			QString sugg=Local::instance()->suggestion(state);
+			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			isStay=0;
 			break;
+		}
 		}
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
@@ -402,7 +406,9 @@ Menu::Menu(QWidget *parent):
 
 bool Menu::eventFilter(QObject *o,QEvent *e)
 {
-	if(e->type()==QEvent::ContextMenu){
+	switch(e->type()){
+	case QEvent::ContextMenu:
+	{
 		isStay=1;
 		QMenu *m=dynamic_cast<QLineEdit *>(o)->createStandardContextMenu();
 		m->exec(dynamic_cast<QContextMenuEvent *>(e)->globalPos());
@@ -410,9 +416,14 @@ bool Menu::eventFilter(QObject *o,QEvent *e)
 		isStay=0;
 		return 1;
 	}
-	else{
-		return 0;
+	case QEvent::FocusIn:
+		isStay=1;
+		break;
+	case QEvent::FocusOut:
+		isStay=0;
+		break;
 	}
+	return 0;
 }
 
 void Menu::pop()
