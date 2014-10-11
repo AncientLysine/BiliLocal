@@ -199,6 +199,7 @@ Menu::Menu(QWidget *parent):
 	popup->addAction(hdelA);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(fileC,&QCompleter::activated,[this](const QModelIndex &index){
+		setFocus();
 		History::instance()->rollback(index);
 	});
 

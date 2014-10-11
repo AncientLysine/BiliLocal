@@ -279,7 +279,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						row->setText(5,Utils::decodeXml(m.captured()));
 						r.setPattern("<i class");
 						m=r.match(item,m.capturedEnd());
-						r.setPattern("(?<=>)[\\s\\d]+(?=</i>)");
+						r.setPattern("(?<=>)[\\s\\d\\-]+(?=</i>)");
 						auto i=r.globalMatch(item,m.capturedEnd());
 						row->setText(1,i.next().captured().simplified());
 						i.next();
