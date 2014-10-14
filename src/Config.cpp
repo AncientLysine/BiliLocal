@@ -161,9 +161,9 @@ public:
 				if(!pixmap.isNull()){
 					label->setPixmap(pixmap.scaled(limit,Qt::KeepAspectRatio,Qt::SmoothTransformation));
 				}
-			}
-			if(!label->pixmap()){
-				label->setText(error);
+				else{
+					label->setText(error);
+				}
 			}
 			reply->deleteLater();
 		});
@@ -743,6 +743,9 @@ Config::Config(QWidget *parent,int index):
 				m->setData(m->index(m->rowCount()-1),d->edit->text());
 				d->edit->clear();
 			}
+			else{
+				d->edit->setFocus();
+			}
 		});
 		connect(d->action[1],&QAction::triggered,[d](){
 			auto remove=[d](QListView *v){
@@ -823,8 +826,9 @@ Config::Config(QWidget *parent,int index):
 				stream<<"</filters>";
 			}
 		});
-		d->widget[3]->addAction(d->action[2]);
-		d->widget[3]->addAction(d->action[3]);
+		for(QAction *action:d->action){
+			d->widget[3]->addAction(action);
+		}
 		d->button[0]=new QPushButton(tr("Add"),d->widget[3]);
 		d->button[1]=new QPushButton(tr("Del"),d->widget[3]);
 		d->button[0]->setFixedWidth(60);
