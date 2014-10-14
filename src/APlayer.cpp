@@ -632,7 +632,7 @@ QPlayer::QPlayer(QObject *parent):
 	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
 	connect(mp,&QMediaPlayer::volumeChanged,	this,&QPlayer::volumeChanged);
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){
-		if (mp->state()==Play){
+		if ((State)mp->state()==Play){
 			manuallyStopped=true;
 		}
 		emit errorOccurred(error);

@@ -419,12 +419,13 @@ bool Menu::eventFilter(QObject *o,QEvent *e)
 	}
 	case QEvent::FocusIn:
 		isStay=1;
-		break;
+		return 0;
 	case QEvent::FocusOut:
 		isStay=0;
-		break;
+		return 0;
+	default:
+		return 0;
 	}
-	return 0;
 }
 
 void Menu::pop()
