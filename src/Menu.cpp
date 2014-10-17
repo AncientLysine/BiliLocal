@@ -120,10 +120,10 @@ private:
 	QAbstractItemModel *m;
 };
 
-class MFileEdit:public QLineEdit
+class EditWithHistory:public QLineEdit
 {
 public:
-	MFileEdit(QCompleter *completer,QWidget *parent=0):
+	EditWithHistory(QCompleter *completer,QWidget *parent=0):
 		QLineEdit(parent),completer(completer)
 	{
 		historyFlag=0;
@@ -154,6 +154,23 @@ private:
 	bool historyFlag;
 	QCompleter *completer;
 };
+
+class PartingListener:public QObject
+{
+public:
+	PartingListener(QObject *parent):
+		QObject(parent)
+	{
+	}
+
+	bool eventFilter(QObject *,QEvent *e) override
+	{
+		if(e->type()==QEvent::Hide){
+			Load::instance()->dequeue();
+		}
+		return false;
+	}
+};
 }
 
 Menu::Menu(QWidget *parent):
@@ -163,7 +180,7 @@ Menu::Menu(QWidget *parent):
 	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
 	fileC=new QCompleter(History::instance()->getModel(),this);
-	fileL=new MFileEdit(fileC,this);
+	fileL=new EditWithHistory(fileC,this);
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
 	fileL->installEventFilter(this);
@@ -208,6 +225,7 @@ Menu::Menu(QWidget *parent):
 	danmC->setWidget(danmL);
 	popup=danmC->popup();
 	popup->setMouseTracking(true);
+	popup->installEventFilter(new PartingListener(popup));
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
 		QModelIndex i;
@@ -215,7 +233,6 @@ Menu::Menu(QWidget *parent):
 		if(v.isNull()||v.toUrl().isValid()){
 			i=index;
 		}
-		Load::instance()->dequeue();
 		Load::instance()->loadDanmaku(i);
 	});
 	fileB=new QPushButton(this);
