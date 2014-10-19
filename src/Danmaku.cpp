@@ -336,6 +336,8 @@ void Danmaku::parse(int flag)
 	}
 }
 
+namespace
+{
 class Process:public QRunnable
 {
 public:
@@ -444,6 +446,7 @@ private:
 	QList<Graphic *> &current;
 	QList<const Comment *> wait;
 };
+}
 
 void Danmaku::setTime(qint64 _time)
 {
@@ -483,7 +486,9 @@ void Danmaku::jumpToTime(qint64 _time)
 	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }
 
-static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
+namespace
+{
+void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 {
 	QFile f(_file);
 	f.open(QIODevice::WriteOnly|QIODevice::Text);
@@ -545,6 +550,7 @@ static void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 	}
 	f.close();
 }
+}
 
 void Danmaku::saveToFile(QString _file)
 {
@@ -570,6 +576,30 @@ void Danmaku::saveToFile(QString _file)
 	}
 }
 
+namespace
+{
+class CommentPointer
+{
+public:
+	const Comment *comment;
+
+	CommentPointer(const Comment *comment):
+		comment(comment)
+	{
+	}
+
+	inline bool operator == (const CommentPointer &o) const
+	{
+		return *comment==*o.comment;
+	}
+};
+
+inline uint qHash(const CommentPointer &p, uint seed = 0)
+{
+	return ::qHash(*p.comment,seed);
+}
+}
+
 void Danmaku::appendToPool(const Record &record)
 {
 	Record *append=0;
@@ -581,14 +611,30 @@ void Danmaku::appendToPool(const Record &record)
 	}
 	if(!append){
 		pool.append(record);
+		QSet<CommentPointer> s;
+		auto &d=pool.last().danmaku;
+		for(auto iter=d.begin();iter!=d.end();){
+			CommentPointer p(&(*iter));
+			if(!s.contains(p)){
+				++iter;
+				s.insert(p);
+			}
+			else{
+				iter=d.erase(iter);
+			}
+		}
 	}
 	else{
 		auto &d=append->danmaku;
-		QSet<Comment> set=d.toSet();
+		QSet<CommentPointer> s;
+		for(const Comment &c:d){
+			s.insert(&c);
+		}
 		for(Comment c:record.danmaku){
 			c.time+=append->delay-record.delay;
-			if(!set.contains(c)){
+			if(!s.contains(&c)){
 				d.append(c);
+				s.insert(&d.last());
 			}
 		}
 		if(record.full){
