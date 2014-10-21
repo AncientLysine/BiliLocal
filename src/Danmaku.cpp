@@ -663,7 +663,30 @@ bool Danmaku::appendToPool(QString source,const Comment &comment)
 	return false;
 }
 
-void Danmaku::insertToCurrent(quintptr graphic, int index)
+void Danmaku::appendByNetwork(quintptr comment,QString from)
+{
+	Record *append=nullptr;
+	for(Record &r:pool){
+		if(r.source==from){
+			append=&r;
+			break;
+		}
+	}
+	if(!append){
+		Record r;
+		r.source=from;
+		pool.append(r);
+		append=&pool.last();
+	}
+	Comment *c=(Comment *)comment;
+	append->danmaku.append(*c);
+	delete c;
+	c=&append->danmaku.last();
+	danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
+	parse(0x2);
+}
+
+void Danmaku::insertToCurrent(quintptr graphic,int index)
 {
 	lock.lockForWrite();
 	Graphic *g=(Graphic *)graphic;

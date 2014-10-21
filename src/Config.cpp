@@ -657,6 +657,13 @@ Config::Config(QWidget *parent,int index):
 						   <<d->getLogo("DirectX")
 						   <<d->getLogo("Qt"));
 			}
+			if(text=="NIL"){
+				desc=tr("dummy backend\n"
+						"for danmaku only playback");
+				updateLogo(e,d->delogo,QStringList()
+						   <<""
+						   <<"");
+			}
 			d->detext->setText(desc);
 			if(delist.size()>=2){
 				setValue("/Performance/Decode",text);

@@ -749,6 +749,125 @@ void QPlayer::event(int)
 }
 #endif
 
+#ifdef BACKEND_NIL
+class NPlayer:public APlayer
+{
+public:
+	explicit NPlayer(QObject *parent=0);
+	QList<QAction *> getTracks(int type);
+
+private:
+	qint64 start; 
+	int state;
+
+	void	timerEvent(QTimerEvent * e);
+
+public slots:
+	void	play();
+	void	stop(bool manually=true);
+	int 	getState();
+
+	void	setTime(qint64 _time);
+	qint64	getTime();
+
+	void	setMedia(QString _file,bool manually=true);
+	QString getMedia();
+
+	qint64	getDuration();
+	void	addSubtitle(QString _file);
+
+	void	setVolume(int _volume);
+	int 	getVolume();
+
+	void	event(int type);
+
+};
+
+NPlayer::NPlayer(QObject *parent):
+	APlayer(parent)
+{
+	state=Stop;
+	startTimer(100);
+
+	setObjectName("NPlayer");
+	ins=this;
+}
+
+void NPlayer::timerEvent(QTimerEvent *)
+{
+	if(state==Play){
+		emit timeChanged(getTime());
+	}
+}
+
+QList<QAction *> NPlayer::getTracks(int)
+{
+	return QList<QAction *>();
+}
+
+void NPlayer::play()
+{
+	if(state!=Stop){
+		return;
+	}
+	Render::instance()->setMusic(true);
+	emit stateChanged(state=Play);
+	emit begin();
+	start=QDateTime::currentMSecsSinceEpoch();
+}
+
+void NPlayer::stop(bool)
+{
+	emit reach(true);
+	emit stateChanged(state=Stop);
+}
+
+int NPlayer::getState()
+{
+	return state;
+}
+
+void NPlayer::setTime(qint64)
+{
+}
+
+qint64 NPlayer::getTime()
+{
+	return QDateTime::currentMSecsSinceEpoch()-start;
+}
+
+void NPlayer::setMedia(QString,bool)
+{
+}
+
+QString NPlayer::getMedia()
+{
+	return QString();
+}
+
+qint64 NPlayer::getDuration()
+{
+	return -1;
+}
+
+void NPlayer::addSubtitle(QString)
+{
+}
+
+void NPlayer::setVolume(int)
+{
+}
+
+int NPlayer::getVolume()
+{
+	return 0;
+}
+
+void NPlayer::event(int)
+{
+}
+#endif
+
 APlayer *APlayer::instance()
 {
 	if(ins){
@@ -774,6 +893,11 @@ APlayer *APlayer::instance()
 #ifdef BACKEND_QMM
 	if(d=="QMM"){
 		return new QPlayer(qApp);
+	}
+#endif
+#ifdef BACKEND_NIL
+	if(d=="NIL"){
+		return new NPlayer(qApp);
 	}
 #endif
 	return 0;

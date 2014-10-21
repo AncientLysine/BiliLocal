@@ -412,6 +412,9 @@ QStringList Utils::getDecodeModules()
 #ifdef BACKEND_QMM
 	modules<<"QMM";
 #endif
+#ifdef BACKEND_NIL
+	modules<<"NIL";
+#endif
 	return modules;
 }
 
