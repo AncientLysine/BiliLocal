@@ -772,58 +772,106 @@ Config::Config(QWidget *parent,int index):
 			}
 		});
 		connect(d->action[2],&QAction::triggered,[d,this](){
-			QString path=QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath());
-			if(!path.isEmpty()){
-				QFile file(path);
-				if(file.exists()){
-					file.open(QIODevice::ReadOnly|QIODevice::Text);
-					QTextStream stream(&file);
-					stream.setCodec("UTF-8");
-					QString all=stream.readAll();
-					file.close();
-					QRegExp del(QString("[")+QChar(0)+"-"+QChar(31)+"]");
-					all.replace(del," ");
-					all.replace("</item>"," ");
-					all=all.simplified();
-					QRegExp fix("[tu]\\=\\S*");
-					int cur=0;
-					while((cur=fix.indexIn(all,cur))!=-1){
-						int len=fix.matchedLength();
-						QString item=all.mid(cur,len);
-						QString text=item.mid(2);
-						cur+=len;
-						if(item.startsWith("u=")&&!d->sm->stringList().contains(text)){
-							d->sm->insertRow(d->sm->rowCount());
-							d->sm->setData(d->sm->index(d->sm->rowCount()-1),text);
-						}
-						if(item.startsWith("t=")&&!d->rm->stringList().contains(text)){
-							d->rm->insertRow(d->rm->rowCount());
-							d->rm->setData(d->rm->index(d->rm->rowCount()-1),text);
+			QFile file(QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath(),tr("Shield files (*.xml *.sol)")));
+			if(file.open(QIODevice::ReadOnly|QIODevice::Text)){
+				QStringList rl=d->rm->stringList();
+				QStringList sl=d->sm->stringList();
+				{
+					QTextStream read(&file);
+					read.setCodec("UTF-8");
+					QStringList list;
+					QString type=QFileInfo(file).suffix();
+					QRegularExpression rule;
+					rule.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
+					if (type=="xml"){
+						rule.setPattern("[tu]\\=[^\\s<]*");
+						QRegularExpressionMatchIterator iter=rule.globalMatch(read.readAll());
+						while(iter.hasNext()){
+							list.append(Utils::decodeXml(iter.next().captured()));
 						}
 					}
-					d->regexp->setCurrentIndex(QModelIndex());
-					d->sender->setCurrentIndex(QModelIndex());
+					if (type=="sol"){
+						rule.setPattern("[tu]\\=\\S*");
+						QRegularExpressionMatchIterator iter=rule.globalMatch(read.readAll().replace('\x3', ' '));
+						while(iter.hasNext()){
+							list.append(iter.next().captured());
+						}
+					}
+					for (QString item:list){
+						(item[0]=='t'?rl:sl).append(item.mid(2));
+					}
 				}
+				rl.removeDuplicates();
+				sl.removeDuplicates();
+				d->rm->setStringList(rl);
+				d->sm->setStringList(sl);
+				d->regexp->setCurrentIndex(QModelIndex());
+				d->sender->setCurrentIndex(QModelIndex());
 			}
+			file.close();
 		});
 		connect(d->action[3],&QAction::triggered,[d,this](){
-			QString path=QFileDialog::getSaveFileName(this,tr("Export File"),QDir::homePath()+"/shield.bililocal.xml");
+			QString path=QFileDialog::getSaveFileName(this,tr("Export File"),QDir::homePath()+"/shield.bililocal.xml",tr("Shield files (*.xml *.sol)"));
 			if(!path.isEmpty()){
-				if(!path.endsWith(".xml")){
-					path.append(".xml");
-				}
 				QFile file(path);
-				file.open(QIODevice::WriteOnly|QIODevice::Text);
-				QTextStream stream(&file);
-				stream.setCodec("UTF-8");
-				stream<<"<filters>"<<endl;
-				for(const QString &iter:d->rm->stringList()){
-					stream<<"  <item enabled=\"true\">t="<<iter<<"</item>"<<endl;
+				if(!path.endsWith(".sol")){
+					file.open(QIODevice::WriteOnly|QIODevice::Text);
+					QTextStream stream(&file);
+					stream.setCodec("UTF-8");
+					stream<<"<filters>"<<endl;
+					for(const QString &iter:d->rm->stringList()){
+						stream<<"  <item enabled=\"true\">t="<<iter<<"</item>"<<endl;
+					}
+					for(const QString &iter:d->sm->stringList()){
+						stream<<"  <item enabled=\"true\">u="<<iter<<"</item>"<<endl;
+					}
+					stream<<"</filters>";
 				}
-				for(const QString &iter:d->sm->stringList()){
-					stream<<"  <item enabled=\"true\">u="<<iter<<"</item>"<<endl;
+				else if(file.open(QIODevice::ReadOnly)){
+					QByteArray data=file.readAll();
+					file.close();
+					QString back=path+".bak";
+					QFile::remove(back);
+					QFile::rename(path,back);
+					file.open(QIODevice::WriteOnly);
+					QStringList list;
+					for(const QString &iter:d->rm->stringList()){
+						list.append("t="+iter);
+					}
+					for(const QString &iter:d->sm->stringList()){
+						list.append("u="+iter);
+					}
+					auto encode=[](quint64 n){
+						QByteArray data;
+						while(n>=128){
+							data.append((n&0x127)|128);
+							n=n>>7;
+						}
+						data.append(n);
+						return data;
+					};
+					QByteArray buff;
+					buff+="\x09list\x09"+encode(list.size()*2+1)+"\x01";
+					for(const QString &iter:list){
+						QByteArray text=iter.toUtf8();
+						buff+="\x09\x05\x01\x06"+encode(text.length()*2+1)+text+"\x03";
+					}
+					buff+=QByteArray("\x01\x00",2);
+					int pos=data.indexOf("\x09list\x09");
+					int len=data.indexOf('\x00',pos)-pos+1;
+					data.replace(pos,len,buff);
+					int all=data.length()-6;
+					QByteArray size;
+					for(int i=0;i<4;++i){
+						size.prepend(all&0xFF);
+						all=all>>8;
+					}
+					data.replace(2,4,size);
+					file.write(data);
 				}
-				stream<<"</filters>";
+				else{
+					QMessageBox::warning(this,tr("Warning"),tr("Please select an existing sol file."));
+				}
 			}
 		});
 		for(QAction *action:d->action){
