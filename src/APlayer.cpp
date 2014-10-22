@@ -103,7 +103,7 @@ static unsigned fmt(void **,char *chroma,
 	for(const QSize &s:b){
 		p[i]=s.width();l[i++]=s.height();
 	}
-	return 1;
+	return b.isEmpty()?0:1;
 }
 
 static void *lck(void *,void **planes)

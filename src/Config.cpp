@@ -626,13 +626,20 @@ Config::Config(QWidget *parent,int index):
 						   <<d->getLogo("FFmpeg"));
 			}
 			if(text=="OpenGL"){
-				desc=tr("opengl es2 renedr\n"
+				desc=tr("opengl es2 render\n"
 						"texture unit for size transform\n"
 						"glsl code for chroma transform\n"
 						"only accept YV12/I420 but significantly faster");
 				updateLogo(r,d->relogo,QStringList()
 						   <<""
 						   <<d->getLogo("OpenGL"));
+			}
+			if(text=="Detach"){
+				desc=tr("detach window render\n"
+						"for danmaku only playback");
+				updateLogo(r,d->relogo,QStringList()
+						   <<""
+						   <<"");
 			}
 			d->retext->setText(desc);
 			if(relist.size()>=2){

@@ -400,6 +400,9 @@ QStringList Utils::getRenderModules()
 #ifdef RENDER_OPENGL
 	modules<<"OpenGL";
 #endif
+#ifdef RENDER_DETACH
+	modules<<"Detach";
+#endif
 	return modules;
 }
 
