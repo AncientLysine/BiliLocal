@@ -335,14 +335,13 @@ QMutex RasterRenderPrivate::dataLock;
 #ifdef EMBEDDED
 //TODO EmbeddedRasterRender
 #else
-class Widget:public QWidget
+class RWidget:public QWidget
 {
 public:
-	Widget(RenderPrivate *render):
+	RWidget(RenderPrivate *render):
 		QWidget(Local::mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
-		setFocusPolicy(Qt::NoFocus);
 	}
 
 private:
@@ -369,12 +368,12 @@ public:
 	RasterRender(QObject *parent=0):
 		Render(new RasterRenderPrivate,parent)
 	{
-		widget=new Widget(d_ptr);
+		widget=new RWidget(d_ptr);
 		ins=this;
 	}
 
 private:
-	QWidget *widget;
+	RWidget *widget;
 	Q_DECLARE_PRIVATE(RasterRender)
 
 public slots:
@@ -881,7 +880,8 @@ public:
 	DetachRender(QObject *parent=0):
 		Render(new DetachRenderPrivate,parent)
 	{
-		ins=this;
+		Q_D(DetachRender);
+		d->tv.disconnect();
 		device=nullptr;
 		window=new QWindow;
 		window->setSurfaceType(QSurface::OpenGLSurface);
@@ -892,6 +892,7 @@ public:
 		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::showFullScreen);
 		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
 		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
+		ins=this;
 	}
 
 	~DetachRender()

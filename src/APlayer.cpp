@@ -833,7 +833,7 @@ void NPlayer::setTime(qint64)
 
 qint64 NPlayer::getTime()
 {
-	return QDateTime::currentMSecsSinceEpoch()-start;
+	return state==Stop?-1:(QDateTime::currentMSecsSinceEpoch()-start);
 }
 
 void NPlayer::setMedia(QString,bool)
