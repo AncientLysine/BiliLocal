@@ -130,6 +130,9 @@ void Next::parse()
 {
 	clear();
 	QFileInfo info(APlayer::instance()->getMedia()),next;
+	if(!info.isFile()){
+		return;
+	}
 	for(QFileInfo iter:info.absoluteDir().entryInfoList()){
 		if(iter.isFile()&&iter.suffix()==info.suffix()){
 			QString n=iter.absoluteFilePath(),c=info.absoluteFilePath();

@@ -48,8 +48,8 @@ class Interface:public QMdiSubWindow
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	void tryLocal(QString p);
-	void tryLocal(QStringList p);
+	bool event(QEvent *e);
+
 
 private:
 	QTimer *timer;
@@ -63,12 +63,12 @@ private:
 	QMenu *rat;
 	QMenu *sca;
 
+	Render *render;
 	Menu *menu;
 	Info *info;
 	Post *post;
 	Next *next;
 	Load *load;
-	Render *render;
 	APlayer *aplayer;
 	Danmaku *danmaku;
 	History *history;
@@ -81,14 +81,19 @@ private:
 	bool showprg;
 	bool sliding;
 
-	void dropEvent(QDropEvent *e);
 	void closeEvent(QCloseEvent *e);
-	void resizeEvent(QResizeEvent *e);
 	void dragEnterEvent(QDragEnterEvent *e);
+	void dropEvent(QDropEvent *e);
+	void mouseDoubleClickEvent(QMouseEvent *e);
 	void mouseMoveEvent(QMouseEvent *e);
 	void mousePressEvent(QMouseEvent *e);
 	void mouseReleaseEvent(QMouseEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
+	void resizeEvent(QResizeEvent *e);
+
+public slots:
+	void tryLocal(QString p);
+	void tryLocal(QStringList p);
+	void setVisible(bool f);
 
 private slots:
 	void checkForUpdate();

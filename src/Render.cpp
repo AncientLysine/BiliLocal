@@ -335,14 +335,13 @@ QMutex RasterRenderPrivate::dataLock;
 #ifdef EMBEDDED
 //TODO EmbeddedRasterRender
 #else
-class Widget:public QWidget
+class RWidget:public QWidget
 {
 public:
-	Widget(RenderPrivate *render):
+	RWidget(RenderPrivate *render):
 		QWidget(Local::mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
-		setFocusPolicy(Qt::NoFocus);
 	}
 
 private:
@@ -369,12 +368,12 @@ public:
 	RasterRender(QObject *parent=0):
 		Render(new RasterRenderPrivate,parent)
 	{
-		widget=new Widget(d_ptr);
+		widget=new RWidget(d_ptr);
 		ins=this;
 	}
 
 private:
-	QWidget *widget;
+	RWidget *widget;
 	Q_DECLARE_PRIVATE(RasterRender)
 
 public slots:
@@ -703,18 +702,17 @@ public slots:
 	}
 };
 #else
-class Window:public QWindow
+class OWindow:public QWindow
 {
 public:
-	explicit Window(RenderPrivate *render):
+	explicit OWindow(RenderPrivate *render):
 		render(render)
 	{
-		device=NULL;
-		context=NULL;
+		device=nullptr;
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
 
-	~Window()
+	~OWindow()
 	{
 		if(device){
 			delete device;
@@ -727,16 +725,14 @@ public:
 			return;
 		}
 		bool initialize=false;
-		if(!context){
+		if(!device){
 			context=new QOpenGLContext(this);
 			context->create();
 			initialize=true;
 		}
 		context->makeCurrent(this);
-		if(!device){
-			device=new QOpenGLPaintDevice;
-		}
 		if(initialize){
+			device=new QOpenGLPaintDevice;
 			glEnable(GL_TEXTURE_2D);
 		}
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
@@ -755,9 +751,10 @@ public:
 	}
 
 private:
-	RenderPrivate  *render;
-	QOpenGLContext *context;
-	QOpenGLPaintDevice *device;
+		RenderPrivate  * render;
+		QOpenGLContext * context;
+	QOpenGLPaintDevice * device;
+
 	bool event(QEvent *e)
 	{
 		switch(e->type()){
@@ -776,14 +773,11 @@ private:
 		case QEvent::DragLeave:
 		case QEvent::ContextMenu:
 		{
-			QWidget *parent=Local::mainWidget();
-			if(parent){
-				QBackingStore *backing=parent->backingStore();
-				if(backing){
-					QWindow *window=backing->window();
-					if(window){
-						return qApp->sendEvent(window,e);
-					}
+			QBackingStore *backing=Local::mainWidget()->backingStore();
+			if(backing){
+				QWindow *window=backing->window();
+				if(window){
+					return qApp->sendEvent(window,e);
 				}
 			}
 			return false;
@@ -803,13 +797,13 @@ public:
 	OpenGLRender(QObject *parent=0):
 		Render(new OpenGLRenderPrivate,parent)
 	{
-		window=new Window(d_ptr);
+		window=new OWindow(d_ptr);
 		widget=QWidget::createWindowContainer(window,Local::mainWidget());
 		ins=this;
 	}
 
 private:
-	Window  *window;
+	OWindow *window;
 	QWidget *widget;
 	Q_DECLARE_PRIVATE(OpenGLRender)
 
@@ -843,6 +837,130 @@ public slots:
 #endif
 #endif
 
+#ifdef RENDER_DETACH
+class DetachRenderPrivate:public RenderPrivate
+{
+public:
+	void drawData(QPainter *,QRect)
+	{
+	}
+	
+	void drawDanm(QPainter *painter,QRect)
+	{
+		APlayer *aplayer=APlayer::instance();
+		Danmaku *danmaku=Danmaku::instance();
+		qint64 time=0;
+		if(!last.isNull()){
+			time=last.elapsed();
+		}
+		if(aplayer->getState()==APlayer::Play){
+			last.start();
+		}
+		danmaku->draw(painter,time);
+	}
+
+	QList<quint8 *> getBuffer()
+	{
+		return QList<quint8 *>();
+	}
+
+	void setBuffer(QString &chroma,QSize,QList<QSize> *)
+	{
+		chroma="NONE";
+	}
+
+	void releaseBuffer()
+	{
+	}
+};
+
+class DetachRender:public Render
+{
+public:
+	DetachRender(QObject *parent=0):
+		Render(new DetachRenderPrivate,parent)
+	{
+		Q_D(DetachRender);
+		d->tv.disconnect();
+		device=nullptr;
+		window=new QWindow;
+		window->setSurfaceType(QSurface::OpenGLSurface);
+		QSurfaceFormat format;
+		format.setAlphaBufferSize(8);
+		window->setFormat(format);
+		window->setFlags(window->flags()|Qt::Popup|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
+		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::showFullScreen);
+		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
+		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
+		ins=this;
+	}
+
+	~DetachRender()
+	{
+		if(device){
+			delete device;
+		}
+		if(window){
+			delete window;
+		}
+	}
+	
+private:
+			   QWindow *window;
+		QOpenGLContext *context;
+	QOpenGLPaintDevice *device;
+
+	Q_DECLARE_PRIVATE(DetachRender)
+
+public slots:
+	void resize(QSize)
+	{
+	}
+
+	QSize getActualSize()
+	{
+		return window->size();
+	}
+
+	QSize getBufferSize()
+	{
+		return QSize();
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)window;
+	}
+
+	void draw(QRect)
+	{
+		Q_D(DetachRender);
+		if(!window->isExposed()){
+			return;
+		}
+		bool initialize=false;
+		if(!device){
+			context=new QOpenGLContext(this);
+			context->setFormat(window->format());
+			context->create();
+			initialize=true;
+		}
+		context->makeCurrent(window);
+		if(initialize){
+			device=new QOpenGLPaintDevice;
+		}
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+		device->setSize(window->size());
+		QPainter painter(device);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QRect rect(QPoint(0,0),window->size());
+		painter.fillRect(rect,Qt::transparent);
+		d->drawDanm(&painter,rect);
+		context->swapBuffers(window);
+	}
+};
+#endif
+
 Render *Render::instance()
 {
 	if(ins){
@@ -868,6 +986,11 @@ Render *Render::instance()
 #ifdef RENDER_RASTER
 	if(r=="Raster"){
 		return new RasterRender(qApp);
+	}
+#endif
+#ifdef RENDER_DETACH
+	if(r=="Detach"){
+		return new DetachRender(qApp);
 	}
 #endif
 	return 0;
