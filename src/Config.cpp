@@ -613,7 +613,7 @@ Config::Config(QWidget *parent,int index):
 				pool.append(l);
 			}
 		};
-
+		
 		connect(d->render,&QComboBox::currentTextChanged,[=](QString text){
 			QString desc;
 			if(text=="Raster"){
@@ -636,6 +636,8 @@ Config::Config(QWidget *parent,int index):
 			}
 			if(text=="Detach"){
 				desc=tr("detach window render\n"
+						"transparent opengl window on top\n"
+						"video frames won't be displayed\n"
 						"for danmaku only playback");
 				updateLogo(r,d->relogo,QStringList()
 						   <<""
@@ -666,6 +668,7 @@ Config::Config(QWidget *parent,int index):
 			}
 			if(text=="NIL"){
 				desc=tr("dummy backend\n"
+						"no need for actual media file\n"
 						"for danmaku only playback");
 				updateLogo(e,d->delogo,QStringList()
 						   <<""

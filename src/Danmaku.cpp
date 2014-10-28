@@ -55,6 +55,7 @@ Danmaku::Danmaku(QObject *parent):
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
 	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
+	QMetaObject::invokeMethod(this,"alphaChanged",Qt::QueuedConnection,Q_ARG(int,Config::getValue("/Danmaku/Alpha",100)));
 }
 
 Danmaku::~Danmaku()
@@ -201,6 +202,12 @@ const Comment *Danmaku::commentAt(QPoint point) const
 	}
 	lock.unlock();
 	return NULL;
+}
+
+void Danmaku::setAlpha(int _alpha)
+{
+	Config::setValue("/Danmaku/Alpha", _alpha);
+	emit alphaChanged(_alpha);
 }
 
 void Danmaku::resetTime()

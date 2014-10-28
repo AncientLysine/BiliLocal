@@ -288,8 +288,12 @@ only accept YV12/I420 but significantly faster</source>
     <message>
         <location filename="../src/Config.cpp" line="638"/>
         <source>detach window render
+transparent opengl window on top
+video frames won't be displayed
 for danmaku only playback</source>
         <translation>分離窗口渲染
+使用置頂透明opengl窗口
+視頻畫面不會被渲染出來
 用於純彈幕播放</translation>
     </message>
     <message>
@@ -314,8 +318,10 @@ k-lite/win7codecs recommended</source>
     <message>
         <location filename="../src/Config.cpp" line="668"/>
         <source>dummy backend
+no need for actual media file
 for danmaku only playback</source>
         <translation>虛設後端
+不需要真實媒體文件
 用於純彈幕播放</translation>
     </message>
     <message>

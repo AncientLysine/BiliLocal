@@ -309,14 +309,16 @@ Menu::Menu(QWidget *parent):
 	alphaS->setOrientation(Qt::Horizontal);
 	alphaS->setGeometry(QRect(10,170,180,15));
 	alphaS->setRange(0,100);
-	alphaS->setValue(Config::getValue("/Danmaku/Alpha",100));
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){
-		Config::setValue("/Danmaku/Alpha",_alpha);
-		QPoint p;
-		p.setX(QCursor::pos().x());
-		p.setY(alphaS->mapToGlobal(alphaS->rect().center()).y());
-		QToolTip::showText(p,QString::number(_alpha));
+		Danmaku::instance()->setAlpha(_alpha);
+		if (alphaS->isVisible()){
+			QPoint p;
+			p.setX(QCursor::pos().x());
+			p.setY(alphaS->mapToGlobal(alphaS->rect().center()).y());
+			QToolTip::showText(p,QString::number(_alpha));
+		}
 	});
+	connect(Danmaku::instance(),&Danmaku::alphaChanged,alphaS,&QSlider::setValue);
 	powerT=new QLabel(this);
 	powerT->setGeometry(QRect(10,205,100,20));
 	powerT->setText(tr("Danmaku Power"));

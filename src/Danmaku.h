@@ -64,9 +64,11 @@ private:
 	void setTime(qint64 _time);
 
 signals:
+	void alphaChanged(int);
 	void unrecognizedComment(quintptr);
 
 public slots:
+	void setAlpha(int _alpha);
 	void resetTime();
 	void clearPool();
 	void clearCurrent(bool soft=false);

@@ -325,6 +325,11 @@ Interface::Interface(QWidget *parent):
 	checkForUpdate();
 }
 
+bool Interface::event(QEvent *e)
+{
+	return e->type()==QEvent::User?false:QWidget::event(e);
+}
+
 void Interface::tryLocal(QString p)
 {
 	QFileInfo info(p);
@@ -350,12 +355,11 @@ void Interface::tryLocal(QStringList p)
 	}
 }
 
-void Interface::dropEvent(QDropEvent *e)
+void Interface::setVisible(bool f)
 {
-	if(e->mimeData()->hasFormat("text/uri-list")){
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
-			tryLocal(QUrl(item).toLocalFile().trimmed());
-		}
+	QEvent e(QEvent::User);
+	if(!qApp->sendEvent(this,&e)){
+		QWidget::setVisible(f);
 	}
 }
 
@@ -389,15 +393,21 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 	QWidget::dragEnterEvent(e);
 }
 
-void Interface::resizeEvent(QResizeEvent *e)
+void Interface::dropEvent(QDropEvent *e)
 {
-	render->resize(e->size());
-	int w=e->size().width(),h=e->size().height();
-	menu->terminate();
-	info->terminate();
-	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
-	info->setGeometry(info->isShown()?w-200:w,0,200,h);
-	QWidget::resizeEvent(e);
+	if(e->mimeData()->hasFormat("text/uri-list")){
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+			tryLocal(QUrl(item).toLocalFile().trimmed());
+		}
+	}
+}
+
+void Interface::mouseDoubleClickEvent(QMouseEvent *e)
+{
+	if(!menu->isShown()&&!info->isShown()){
+		fullA->toggle();
+	}
+	QWidget::mouseDoubleClickEvent(e);
 }
 
 void Interface::mouseMoveEvent(QMouseEvent *e)
@@ -478,12 +488,15 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 	QWidget::mouseReleaseEvent(e);
 }
 
-void Interface::mouseDoubleClickEvent(QMouseEvent *e)
+void Interface::resizeEvent(QResizeEvent *e)
 {
-	if(!menu->isShown()&&!info->isShown()){
-		fullA->toggle();
-	}
-	QWidget::mouseDoubleClickEvent(e);
+	render->resize(e->size());
+	int w=e->size().width(),h=e->size().height();
+	menu->terminate();
+	info->terminate();
+	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
+	info->setGeometry(info->isShown()?w-200:w,0,200,h);
+	QWidget::resizeEvent(e);
 }
 
 void Interface::checkForUpdate()
