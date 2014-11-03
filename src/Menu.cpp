@@ -190,9 +190,6 @@ Menu::Menu(QWidget *parent):
 	fileL->setPlaceholderText(tr("choose a local media"));
 	danmL->setPlaceholderText(tr("input av/ac number"));
 	sechL->setPlaceholderText(tr("search danmaku online"));
-	fileL->setGeometry(QRect(10,25, 120,25));
-	danmL->setGeometry(QRect(10,65, 120,25));
-	sechL->setGeometry(QRect(10,105,120,25));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
 		QRegularExpression regexp("(av|ac|dd)((\\d+)([#_])?(\\d+)?)?|[ad]");
 		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
@@ -238,9 +235,6 @@ Menu::Menu(QWidget *parent):
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
 	danmB=new QPushButton(this);
-	fileB->setGeometry(QRect(135,25, 55,25));
-	danmB->setGeometry(QRect(135,65, 55,25));
-	sechB->setGeometry(QRect(135,105,55,25));
 	fileB->setText(tr("Open"));
 	danmB->setText(tr("Load"));
 	sechB->setText(tr("Search"));
@@ -303,11 +297,9 @@ Menu::Menu(QWidget *parent):
 	connect(danmL,&QLineEdit::returnPressed,danmA,&QAction::trigger);
 	connect(sechL,&QLineEdit::returnPressed,sechA,&QAction::trigger);
 	alphaT=new QLabel(this);
-	alphaT->setGeometry(QRect(10,145,100,25));
 	alphaT->setText(tr("Danmaku Alpha"));
 	alphaS=new QSlider(this);
 	alphaS->setOrientation(Qt::Horizontal);
-	alphaS->setGeometry(QRect(10,170,180,15));
 	alphaS->setRange(0,100);
 	connect(alphaS,&QSlider::valueChanged,[this](int _alpha){
 		Danmaku::instance()->setAlpha(_alpha);
@@ -320,10 +312,8 @@ Menu::Menu(QWidget *parent):
 	});
 	connect(Danmaku::instance(),&Danmaku::alphaChanged,alphaS,&QSlider::setValue);
 	powerT=new QLabel(this);
-	powerT->setGeometry(QRect(10,205,100,20));
 	powerT->setText(tr("Danmaku Power"));
 	powerL=new QLineEdit(this);
-	powerL->setGeometry(QRect(160,205,30,20));
 	powerL->setValidator(new QRegularExpressionValidator(QRegularExpression("^\\w*$"),powerL));
 	connect(powerL,&QLineEdit::editingFinished,[this](){
 		Render::instance()->setRefreshRate(powerL->text().toInt());
@@ -337,10 +327,8 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	localT=new QLabel(this);
-	localT->setGeometry(QRect(10,240,100,25));
 	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
-	localC->setGeometry(QRect(168,240,25,25));
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		bool local=state==Qt::Checked;
 		danmL->setText("");
@@ -361,19 +349,15 @@ Menu::Menu(QWidget *parent):
 	});
 	localC->setChecked(Config::getValue("/Danmaku/Local",false));
 	subT=new QLabel(this);
-	subT->setGeometry(QRect(10,275,100,25));
 	subT->setText(tr("Protect Sub"));
 	subC=new QCheckBox(this);
-	subC->setGeometry(QRect(168,275,25,25));
 	subC->setChecked(Config::getValue("/Danmaku/Protect",false));
 	connect(subC,&QCheckBox::stateChanged,[this](int state){
 		Config::setValue("/Danmaku/Protect",state==Qt::Checked);
 	});
 	loopT=new QLabel(this);
-	loopT->setGeometry(QRect(10,310,100,25));
 	loopT->setText(tr("Loop Playback"));
 	loopC=new QCheckBox(this);
-	loopC->setGeometry(QRect(168,310,25,25));
 	loopC->setChecked(Config::getValue("/Playing/Loop",false));
 	connect(loopC,&QCheckBox::stateChanged,[this](int state){
 		Config::setValue("/Playing/Loop",state==Qt::Checked);
@@ -424,6 +408,31 @@ Menu::Menu(QWidget *parent):
 	hide();
 }
 
+void Menu::resizeEvent(QResizeEvent *e)
+{
+	int w=e->size().width(),h=e->size().height();
+	double f=font().pointSizeF();
+	int x=logicalDpiX()*f/72,y=logicalDpiY()*f/72;
+	fileL->setGeometry(QRect(0.83*x,2.08*y,w-6.67*x,2.08*y));
+	danmL->setGeometry(QRect(0.83*x,5.42*y,w-6.67*x,2.08*y));
+	sechL->setGeometry(QRect(0.83*x,8.75*y,w-6.67*x,2.08*y));
+	fileB->setGeometry(QRect(w-5.42*x,2.08*y,4.58*x,2.08*y));
+	danmB->setGeometry(QRect(w-5.42*x,5.42*y,4.58*x,2.08*y));
+	sechB->setGeometry(QRect(w-5.42*x,8.75*y,4.58*x,2.08*y));
+	alphaT->setGeometry(QRect(0.83*x,12.08*y,w-1.67*x,2.08*y));
+	alphaS->setGeometry(QRect(0.83*x,14.17*y,w-1.67*x,1.25*y));
+	powerT->setGeometry(QRect(0.83*x,17.08*y,w-1.67*x,1.67*y));
+	powerL->setGeometry(QRect(w-3.33*x,17.08*y,2.50*x,1.67*y));
+	localT->setGeometry(QRect(0.83*x,20.00*y,w-1.67*x,2.08*y));
+	localC->setGeometry(QRect(w-7-2.08*x,20.00*y,15,2.08*y));
+	subT->setGeometry(QRect(0.83*x,22.92*y,w-1.67*x,2.08*y));
+	subC->setGeometry(QRect(w-7-2.08*x,22.92*y,15,2.08*y));
+	loopT->setGeometry(QRect(0.83*x,25.83*y,w-1.67*x,2.08*y));
+	loopC->setGeometry(QRect(w-7-2.08*x,25.83*y,15,2.08*y));
+	Q_UNUSED(h);
+	QWidget::resizeEvent(e);
+}
+
 bool Menu::eventFilter(QObject *o,QEvent *e)
 {
 	switch(e->type()){
@@ -452,7 +461,7 @@ void Menu::pop()
 	if(!isPoped&&animation->state()==QAbstractAnimation::Stopped){
 		show();
 		animation->setStartValue(pos());
-		animation->setEndValue(pos()+QPoint(200,0));
+		animation->setEndValue(pos()+QPoint(width(),0));
 		animation->start();
 		isPoped=true;
 	}
@@ -465,7 +474,7 @@ void Menu::push(bool force)
 			isStay=false;
 		}
 		animation->setStartValue(pos());
-		animation->setEndValue(pos()-QPoint(200,0));
+		animation->setEndValue(pos()-QPoint(width(),0));
 		animation->start();
 		isPoped=false;
 	}

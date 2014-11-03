@@ -45,7 +45,7 @@ private:
 	bool updating;
 	qint64 duration;
 
-	QLabel *durT;
+	QLabel *duraT;
 	QLabel *timeT;
 	QLabel *volmT;
 	QLabel *plfmT;

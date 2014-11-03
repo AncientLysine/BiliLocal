@@ -494,8 +494,9 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int w=e->size().width(),h=e->size().height();
 	menu->terminate();
 	info->terminate();
-	menu->setGeometry(menu->isShown()?0:0-200,0,200,h);
-	info->setGeometry(info->isShown()?w-200:w,0,200,h);
+	int l=Config::getValue("/Interface/Popup/Width",150)*logicalDpiX()/72;
+	menu->setGeometry(menu->isShown()?0:0-l,0,l,h);
+	info->setGeometry(info->isShown()?w-l:w,0,l,h);
 	QWidget::resizeEvent(e);
 }
 

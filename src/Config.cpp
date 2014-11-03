@@ -725,7 +725,6 @@ Config::Config(QWidget *parent,int index):
 		d->type->addItem(tr("Text"));
 		d->type->addItem(tr("User"));
 		d->edit=new QLineEdit(d->widget[3]);
-		d->edit->setFixedHeight(25);
 		d->regexp=new QListView(d->widget[3]);
 		d->sender=new QListView(d->widget[3]);
 		d->regexp->setSelectionMode(QListView::ExtendedSelection);
@@ -1198,12 +1197,13 @@ Config::Config(QWidget *parent,int index):
 		QStringList header;
 		header<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"";
 		d->plugin->setHeaderLabels(header);
+		double s=logicalDpiX()/72.0;
 		d->plugin->setColumnWidth(0,60);
-		d->plugin->setColumnWidth(1,75);
-		d->plugin->setColumnWidth(2,45);
-		d->plugin->setColumnWidth(3,180);
-		d->plugin->setColumnWidth(4,75);
-		d->plugin->setColumnWidth(5,30);
+		d->plugin->setColumnWidth(1,55*s);
+		d->plugin->setColumnWidth(2,35*s);
+		d->plugin->setColumnWidth(3,135*s);
+		d->plugin->setColumnWidth(4,55*s);
+		d->plugin->setColumnWidth(5,25*s);
 		w->addWidget(d->plugin);
 		for(Plugin &iter:Plugin::plugins){
 			QStringList content;
@@ -1221,7 +1221,7 @@ Config::Config(QWidget *parent,int index):
 			row->setData(5,Qt::FontRole,f);
 			row->setData(5,Qt::ForegroundRole,qApp->palette().color(QPalette::Highlight));
 			row->setTextAlignment(5,Qt::AlignCenter);
-			row->setSizeHint(0,QSize(60,40));
+			row->setSizeHint(0,QSize(60,30*logicalDpiY()/72));
 		}
 		connect(d->plugin,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item){
 			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
@@ -1245,7 +1245,7 @@ Config::Config(QWidget *parent,int index):
 		d->hotkey->setSelectionMode(QAbstractItemView::NoSelection);
 		d->hotkey->header()->hide();
 		d->hotkey->setColumnCount(2);
-		d->hotkey->setColumnWidth(0,350);
+		d->hotkey->setColumnWidth(0,3.6*logicalDpiX());
 		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
 		for(QAction *iter:Local::mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 			QTreeWidgetItem *item=new QTreeWidgetItem;
@@ -1253,7 +1253,7 @@ Config::Config(QWidget *parent,int index):
 			item->setData(1,Qt::DisplayRole,iter->shortcut().toString());
 			item->setData(1,Qt::UserRole,iter->objectName());
 			item->setFlags(Qt::ItemIsEditable|Qt::ItemIsEnabled);
-			item->setSizeHint(0,QSize(60,35));
+			item->setSizeHint(0,QSize(60,25*logicalDpiY()/72));
 			d->hotkey->addTopLevelItem(item);
 		}
 		w->addWidget(d->hotkey);
@@ -1326,8 +1326,9 @@ Config::Config(QWidget *parent,int index):
 			}
 		}
 	});
-	setMinimumWidth(540);
-	resize(540,outer->minimumSize().height());
+	int h=outer->minimumSize().height(),w=1.15*h;
+	setMinimumWidth(w);
+	resize(w,h);
 	Utils::setCenter(this);
 
 	d->restart=d->getRestart();

@@ -46,14 +46,10 @@ Info::Info(QWidget *parent):
 	animation->setEasingCurve(QEasingCurve::OutCubic);
 	timeT=new QLabel(tr("Time"),this);
 	volmT=new QLabel(tr("Volume"),this);
-	timeT->setGeometry(QRect(10,50,100,25));
-	volmT->setGeometry(QRect(10,100,100,25));
 	timeS=new QSlider(this);
 	volmS=new QSlider(this);
 	timeS->setOrientation(Qt::Horizontal);
 	volmS->setOrientation(Qt::Horizontal);
-	timeS->setGeometry(QRect(10,75,180,15));
-	volmS->setGeometry(QRect(10,125,180,15));
 	timeS->setRange(0,0);
 	volmS->setRange(0,100);
 	timeS->setValue(0);
@@ -77,8 +73,6 @@ Info::Info(QWidget *parent):
 	});
 	playB=new QPushButton(this);
 	stopB=new QPushButton(this);
-	playB->setGeometry(QRect(10,15,25,25));
-	stopB->setGeometry(QRect(40,15,25,25));
 	playI=QIcon::fromTheme("media-playback-start",QIcon(":/Picture/play.png"));
 	stopI=QIcon::fromTheme("media-playback-stop",QIcon(":/Picture/stop.png"));
 	pausI=QIcon::fromTheme("media-playback-pause",QIcon(":/Picture/pause.png"));
@@ -101,10 +95,9 @@ Info::Info(QWidget *parent):
 	connect(stopA,SIGNAL(triggered()),APlayer::instance(),SLOT(stop()));
 	connect(playB,&QPushButton::clicked,playA,&QAction::trigger);
 	connect(stopB,&QPushButton::clicked,stopA,&QAction::trigger);
-	durT=new QLabel(this);
-	durT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
-	durT->setGeometry(QRect(70,15,120,25));
-	durT->setText("00:00/00:00");
+	duraT=new QLabel(this);
+	duraT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
+	duraT->setText("00:00/00:00");
 	danmV=new QTableView(this);
 	danmV->setWordWrap(false);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -114,11 +107,14 @@ Info::Info(QWidget *parent):
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
 	danmV->setModel(Danmaku::instance());
 	Utils::setSelection(danmV);
-	QHeaderView *header=danmV->horizontalHeader();
+	QHeaderView *header;
+	header=danmV->horizontalHeader();
 	header->setSectionResizeMode(0,QHeaderView::Fixed);
 	header->setSectionResizeMode(1,QHeaderView::Stretch);
 	header->setHighlightSections(false);
 	resizeHeader();
+	header=danmV->verticalHeader();
+	header->setDefaultSectionSize(22.5*logicalDpiY()/72);
 	connect(Danmaku::instance(),&Danmaku::layoutChanged,this,&Info::resizeHeader);
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
 		APlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
@@ -235,7 +231,7 @@ void Info::pop()
 	if(!isPoped&&animation->state()==QAbstractAnimation::Stopped){
 		show();
 		animation->setStartValue(pos());
-		animation->setEndValue(pos()-QPoint(200,0));
+		animation->setEndValue(pos()-QPoint(width(),0));
 		animation->start();
 		isPoped=true;
 	}
@@ -248,7 +244,7 @@ void Info::push(bool force)
 			isStay=false;
 		}
 		animation->setStartValue(pos());
-		animation->setEndValue(pos()+QPoint(200,0));
+		animation->setEndValue(pos()+QPoint(width(),0));
 		animation->start();
 		isPoped=false;
 	}
@@ -263,7 +259,18 @@ void Info::terminate()
 
 void Info::resizeEvent(QResizeEvent *e)
 {
-	danmV->setGeometry(QRect(10,170,180,e->size().height()-185));
+	int w=e->size().width(),h=e->size().height();
+	double f=font().pointSizeF();
+	int x=logicalDpiX()*f/72,y=logicalDpiY()*f/72;
+	playB->setGeometry(QRect(0.83*x,1.25*y, 2.08*x,  2.08*y));
+	stopB->setGeometry(QRect(3.33*x,1.25*y, 2.08*x,  2.08*y));
+	duraT->setGeometry(QRect(5.83*x,1.25*y, w-6.67*x,2.08*y));
+	timeT->setGeometry(QRect(0.83*x,4.17*y, w-1.67*x,2.08*y));
+	timeS->setGeometry(QRect(0.83*x,6.25*y, w-1.67*x,1.25*y));
+	volmT->setGeometry(QRect(0.83*x,8.33*y, w-1.67*x,2.08*y));
+	volmS->setGeometry(QRect(0.83*x,10.42*y,w-1.67*x,1.25*y));
+	danmV->setGeometry(QRect(0.83*x,14.17*y,w-1.67*x,h-15.00*y));
+	QWidget::resizeEvent(e);
 }
 
 void Info::resizeHeader()
@@ -309,7 +316,7 @@ void Info::setTime(qint64 _time)
 	t+=to(c/60)+':'+to(c%60);
 	t+='/';
 	t+=to(s/60)+':'+to(s%60);
-	durT->setText(t);
+	duraT->setText(t);
 }
 
 void Info::setDuration(qint64 _duration)
@@ -322,6 +329,6 @@ void Info::setDuration(qint64 _duration)
 		duration=-1;
 		timeS->setValue(0);
 		timeS->setRange(0,0);
-		durT->setText("00:00/00:00");
+		duraT->setText("00:00/00:00");
 	}
 }

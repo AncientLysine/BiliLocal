@@ -64,6 +64,7 @@ private:
 	QLabel *loopT;
 	QCheckBox *loopC;
 	QPropertyAnimation *animation;
+	void resizeEvent(QResizeEvent *e);
 	bool eventFilter(QObject *o,QEvent *e);
 
 public slots:
