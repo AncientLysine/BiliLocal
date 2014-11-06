@@ -28,7 +28,7 @@
 #include "Config.h"
 #include "History.h"
 
-Utils::Site Utils::getSite(QString url)
+Utils::Site Utils::parseSite(QString url)
 {
 	if(url.indexOf("letv.com")!=-1){
 		return Letv;
@@ -47,7 +47,6 @@ Utils::Site Utils::getSite(QString url)
 	}
 }
 
-#ifndef EMBEDDED
 void Utils::setCenter(QWidget *widget)
 {
 	QRect rect=widget->geometry();
@@ -77,18 +76,6 @@ void Utils::setGround(QWidget *widget,QColor color)
 	palette.setColor(QPalette::Window,color);
 	widget->setPalette(palette);
 }
-
-void Utils::setSelection(QAbstractItemView *view)
-{
-	QObject::connect(view->selectionModel(),
-					 &QItemSelectionModel::selectionChanged,
-					 [view](QItemSelection selected){
-		if(selected.isEmpty()){
-			view->setCurrentIndex(QModelIndex());
-		}
-	});
-}
-#endif
 
 namespace{
 template<class T>
@@ -309,15 +296,11 @@ QString Utils::customUrl(Site site)
 
 QString Utils::decodeXml(QString string,bool fast)
 {
-#ifndef EMBEDDED
 	if(!fast){
 		QTextDocument text;
 		text.setHtml(string);
 		return text.toPlainText();
 	}
-#else
-	Q_UNUSED(fast)
-#endif
 	QString fixed;
 	fixed.reserve(string.length());
 	int i=0,l=string.length();

@@ -27,15 +27,13 @@
 #include "Danmaku.h"
 #include "APlayer.h"
 #include "Config.h"
+#include "Editor.h"
 #include "Graphic.h"
 #include "Load.h"
+#include "Local.h"
 #include "Render.h"
 #include "Shield.h"
 #include <functional>
-#ifndef EMBEDDED
-#include "Editor.h"
-#include "Local.h"
-#endif
 
 #define qThreadPool QThreadPool::globalInstance()
 
@@ -649,11 +647,9 @@ void Danmaku::appendToPool(const Record &record)
 		}
 	}
 	parse(0x1|0x2);
-#ifndef EMBEDDED
 	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
 		Editor::exec(Local::mainWidget());
 	}
-#endif
 }
 
 bool Danmaku::appendToPool(QString source,const Comment &comment)

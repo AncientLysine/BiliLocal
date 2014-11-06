@@ -25,15 +25,13 @@
 =========================================================================*/
 
 #include "Config.h"
-#include "Local.h"
-#include "Utils.h"
-#include "Shield.h"
-#include "Danmaku.h"
 #include "APlayer.h"
+#include "Danmaku.h"
 #include "History.h"
-
-#ifndef EMBEDDED
+#include "Local.h"
 #include "Plugin.h"
+#include "Shield.h"
+#include "Utils.h"
 
 class ConfigPrivate
 {
@@ -183,7 +181,6 @@ public:
 		return l[name];
 	}
 };
-#endif
 
 class Cookie:public QNetworkCookieJar
 {
@@ -280,7 +277,6 @@ public:
 
 QJsonObject Config::config;
 
-#ifndef EMBEDDED
 void Config::exec(QWidget *parent,int index)
 {
 	static bool isExecuting;
@@ -291,6 +287,22 @@ void Config::exec(QWidget *parent,int index)
 		isExecuting=0;
 	}
 }
+
+class MListView:public QListView
+{
+public:
+	MListView(QWidget *parent=0):
+		QListView(parent)
+	{
+	}
+
+	void currentChanged(const QModelIndex &c,
+						const QModelIndex &p)
+	{
+		QListView::currentChanged(c,p);
+		selectionModel()->setCurrentIndex(QModelIndex(),QItemSelectionModel::NoUpdate);
+	}
+};
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent),d_ptr(new ConfigPrivate)
@@ -725,16 +737,12 @@ Config::Config(QWidget *parent,int index):
 		d->type->addItem(tr("Text"));
 		d->type->addItem(tr("User"));
 		d->edit=new QLineEdit(d->widget[3]);
-		d->regexp=new QListView(d->widget[3]);
-		d->sender=new QListView(d->widget[3]);
+		d->regexp=new MListView(d->widget[3]);
+		d->sender=new MListView(d->widget[3]);
 		d->regexp->setSelectionMode(QListView::ExtendedSelection);
 		d->sender->setSelectionMode(QListView::ExtendedSelection);
 		d->regexp->setModel(d->rm=new QStringListModel(d->regexp));
 		d->sender->setModel(d->sm=new QStringListModel(d->sender));
-		Utils::setSelection(d->regexp);
-		Utils::setSelection(d->sender);
-		connect(d->regexp,&QListView::pressed,[d](QModelIndex){d->sender->setCurrentIndex(QModelIndex());});
-		connect(d->sender,&QListView::pressed,[d](QModelIndex){d->regexp->setCurrentIndex(QModelIndex());});
 		QStringList r,s;
 		for(const auto &i:Shield::shieldR){
 			r.append(i.pattern());
@@ -1339,7 +1347,6 @@ Config::~Config()
 {
 	delete d_ptr;
 }
-#endif
 
 void Config::load()
 {

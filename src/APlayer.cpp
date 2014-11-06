@@ -25,14 +25,11 @@
 =========================================================================*/
 
 #include "APlayer.h"
-#include "Local.h"
-#include "Utils.h"
-#include "Render.h"
 #include "Config.h"
-
-#ifndef EMBEDDED
+#include "Local.h"
 #include "Next.h"
-#endif
+#include "Render.h"
+#include "Utils.h"
 
 APlayer *APlayer::ins=NULL;
 
@@ -681,11 +678,9 @@ void QPlayer::play()
 
 void QPlayer::stop(bool manually)
 {
-#ifndef EMBEDDED
 	if(manually){
 		Next::instance()->clear();
 	}
-#endif
 	manuallyStopped=manually;
 	QMetaObject::invokeMethod(mp,"stop",Qt::BlockingQueuedConnection);
 }

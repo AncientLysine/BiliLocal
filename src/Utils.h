@@ -29,9 +29,7 @@
 
 #include <QtGui>
 #include <QtCore>
-#ifndef EMBEDDED
 #include <QtWidgets>
-#endif
 
 class Comment
 {
@@ -102,6 +100,7 @@ namespace Utils
 		AcfunLocalizer,
 		Niconico
 	};
+
 	enum Type
 	{
 		Video=1,
@@ -109,12 +108,10 @@ namespace Utils
 		Subtitle=4,
 		Danmaku=8
 	};
-	Site getSite(QString url);
-#ifndef EMBEDDED
+
+	Site parseSite(QString url);
 	void setCenter(QWidget *widget);
 	void setGround(QWidget *widget,QColor color);
-	void setSelection(QAbstractItemView *view);
-#endif
 	double evaluate(QString expression);
 	QString defaultPath();
 	QString defaultFont(bool monospace=false);

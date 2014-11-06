@@ -70,7 +70,7 @@ Load::Load(QObject *parent):
 			forward(QNetworkRequest(redirect));
 			return;
 		}
-		Utils::Site site=Utils::getSite(url);
+		Utils::Site site=Utils::parseSite(url);
 		if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
 			emit stateChanged(task.state=Pool);
 			Record load;

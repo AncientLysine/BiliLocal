@@ -152,7 +152,7 @@ QList<const Record *> Post::getRecords()
 {
 	QList<const Record *> list;
 	for(const Record &r:Danmaku::instance()->getPool()){
-		int s=Utils::getSite(r.source);
+		int s=Utils::parseSite(r.source);
 		if(s==Utils::Bilibili||s==Utils::AcPlay){
 			list.append(&r);
 		}
@@ -171,7 +171,7 @@ void Post::postComment()
 	QNetworkRequest request;
 	QByteArray data;
 	const Comment &c=getComment();
-	switch(Utils::getSite(r->source)){
+	switch(Utils::parseSite(r->source)){
 	case Utils::Bilibili:
 	{
 		QString api("http://interface.%1/dmpost");
@@ -219,7 +219,7 @@ void Post::postComment()
 		connect(reply,&QNetworkReply::finished,[=](){
 			int error=reply->error();
 			if(error==QNetworkReply::NoError){
-				switch(Utils::getSite(reply->url().url()))
+				switch(Utils::parseSite(reply->url().url()))
 				{
 				case Utils::Bilibili:
 				{

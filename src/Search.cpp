@@ -238,7 +238,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 			}
 		}
 		else if(reply->error()==QNetworkReply::NoError){
-			switch(Utils::getSite(reply->url().url())){
+			switch(Utils::parseSite(reply->url().url())){
 			case Utils::Bilibili:
 			{
 				QString data(reply->readAll());

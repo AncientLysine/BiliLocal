@@ -34,6 +34,26 @@
 #include "Danmaku.h"
 #include "APlayer.h"
 
+namespace
+{
+class MTableView:public QTableView
+{
+public:
+	MTableView(QWidget *parent=0):
+		QTableView(parent)
+	{
+	}
+
+	void currentChanged(const QModelIndex &c,
+						const QModelIndex &p)
+	{
+		QTableView::currentChanged(c,p);
+		selectionModel()->setCurrentIndex(QModelIndex(),QItemSelectionModel::NoUpdate);
+	}
+};
+
+}
+
 Info::Info(QWidget *parent):
 	QWidget(parent)
 {
@@ -98,7 +118,7 @@ Info::Info(QWidget *parent):
 	duraT=new QLabel(this);
 	duraT->setAlignment(Qt::AlignRight|Qt::AlignBottom);
 	duraT->setText("00:00/00:00");
-	danmV=new QTableView(this);
+	danmV=new MTableView(this);
 	danmV->setWordWrap(false);
 	danmV->setSelectionBehavior(QAbstractItemView::SelectRows);
 	danmV->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -106,7 +126,6 @@ Info::Info(QWidget *parent):
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
 	danmV->setModel(Danmaku::instance());
-	Utils::setSelection(danmV);
 	QHeaderView *header;
 	header=danmV->horizontalHeader();
 	header->setSectionResizeMode(0,QHeaderView::Fixed);

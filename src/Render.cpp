@@ -28,10 +28,8 @@
 #include "Config.h"
 #include "APlayer.h"
 #include "Danmaku.h"
-#ifndef EMBEDDED
 #include "Local.h"
 #include <QtWidgets>
-#endif
 
 Render *Render::ins=NULL;
 
@@ -332,9 +330,6 @@ public:
 
 QMutex RasterRenderPrivate::dataLock;
 
-#ifdef EMBEDDED
-//TODO EmbeddedRasterRender
-#else
 class RWidget:public QWidget
 {
 public:
@@ -370,6 +365,7 @@ public:
 	{
 		widget=new RWidget(d_ptr);
 		ins=this;
+		setObjectName("RRender");
 	}
 
 private:
@@ -409,10 +405,9 @@ public slots:
 	}
 };
 #endif
-#endif
 
 #ifdef RENDER_OPENGL
-#ifdef QT_OPENGL_ES_2
+#ifdef QT_OPENGL_ES
 static const char *vShaderCode=
 		"attribute vec4 VtxCoord;\n"
 		"attribute vec2 TexCoord;\n"
@@ -621,87 +616,6 @@ public:
 
 QMutex OpenGLRenderPrivate::dataLock;
 
-#ifdef EMBEDDED
-class OpenGLRender:public Render
-{
-public:
-	OpenGLRender(QObject *parent=0):
-		Render(new OpenGLRenderPrivate,parent)
-	{
-		buffer=0;
-		surface=new QOffscreenSurface;
-		context=new QOpenGLContext(this);
-		context->create();
-		context->makeCurrent(surface);
-		glEnable(GL_TEXTURE_2D);
-		ins=this;
-	}
-
-	~OpenGLRender()
-	{
-		if(buffer){
-			delete buffer;
-		}
-	}
-
-private:
-	QOpenGLContext *context;
-	QSurface *surface;
-	QOpenGLPaintDevice *device;
-	QOpenGLFramebufferObject *buffer;
-	Q_DECLARE_PRIVATE(OpenGLRender)
-
-public slots:
-	void resize(QSize size)
-	{
-		if(buffer){
-			delete buffer;
-		}
-		buffer=new QOpenGLFramebufferObject(size);
-		buffer->bind();
-	}
-
-	QSize getActualSize()
-	{
-		return buffer?buffer->size():QSize();
-	}
-
-	QSize getBufferSize()
-	{
-		Q_D(OpenGLRender);
-		return d->inner;
-	}
-
-	quintptr getHandle()
-	{
-		return (quintptr)buffer;
-	}
-
-	void draw(QRect)
-	{
-		if(!buffer){
-			return;
-		}
-		Q_D(Render);
-		if(!device){
-			device=new QOpenGLPaintDevice;
-		}
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		device->setSize(buffer->size());
-		QPainter painter(device);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0,0),buffer->size());
-		if(APlayer::instance()->getState()==APlayer::Stop){
-			d->drawStop(&painter,rect);
-		}
-		else{
-			d->drawPlay(&painter,rect);
-			d->drawTime(&painter,rect);
-		}
-		context->swapBuffers(surface);
-	}
-};
-#else
 class OWindow:public QWindow
 {
 public:
@@ -800,6 +714,7 @@ public:
 		window=new OWindow(d_ptr);
 		widget=QWidget::createWindowContainer(window,Local::mainWidget());
 		ins=this;
+		setObjectName("ORender");
 	}
 
 private:
@@ -834,7 +749,6 @@ public slots:
 		window->draw();
 	}
 };
-#endif
 #endif
 
 #ifdef RENDER_DETACH
@@ -888,11 +802,13 @@ public:
 		QSurfaceFormat format;
 		format.setAlphaBufferSize(8);
 		window->setFormat(format);
-		window->setFlags(window->flags()|Qt::Popup|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
-		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::showFullScreen);
+		window->setFlags(window->flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
+		window->setGeometry(qApp->desktop()->screenGeometry());
+		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
 		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
 		ins=this;
+		setObjectName("DRender");
 	}
 
 	~DetachRender()

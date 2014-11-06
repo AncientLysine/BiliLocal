@@ -25,9 +25,12 @@
 =========================================================================*/
 
 #include "Local.h"
-#include "Utils.h"
 #include "Config.h"
+#include "Interface.h"
+#include "Plugin.h"
 #include "Shield.h"
+#include "Utils.h"
+
 
 QHash<QString,QObject *> Local::objects;
 
@@ -42,36 +45,6 @@ static void setDefaultFont()
 	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
 	qApp->setFont(f);
 }
-
-#ifdef EMBEDDED
-#include <jni.h>
-
-Local::Local(int &argc,char **argv):
-	QGuiApplication(argc,argv)
-{
-	QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
-	Config::load();
-	Shield::load();
-	setDefaultFont();
-	connect(this,&Local::aboutToQuit,[](){
-		Shield::save();
-		Config::save();
-	});
-	qsrand(QTime::currentTime().msec());
-}
-
-extern "C" JNIEXPORT void JNICALL Java_tv_danmaku_local_jni_LocalJNI_init
-  (JNIEnv *, jobject)
-{
-}
-
-extern "C" JNIEXPORT void JNICALL Java_tv_danmaku_local_jni_LocalJNI_free
-  (JNIEnv *, jobject)
-{
-}
-#else
-#include "Plugin.h"
-#include "Interface.h"
 
 Local::Local(int &argc,char **argv):
 	QApplication(argc,argv)
@@ -181,4 +154,3 @@ int main(int argc,char *argv[])
 		return r;
 	}
 }
-#endif

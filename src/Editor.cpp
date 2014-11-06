@@ -175,6 +175,11 @@ public:
 		});
 	}
 
+	Record &getRecord()
+	{
+		return *m_record;
+	}
+
 	void setRecord(Record *r)
 	{
 		m_record=r;
@@ -377,96 +382,91 @@ Editor::Editor(QWidget *parent):
 
 	widget=new QWidget(this);
 	widget->setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(widget,&QWidget::customContextMenuRequested,[this](QPoint p){
-		int i=-1;
-		QObjectList c=widget->children();
-		for(i=0;i<c.size();++i){
-			if(qobject_cast<QWidget *>(c[i])->geometry().contains(p)){
-				break;
-			}
-		}
-		if(i<0||i>=c.size()){
+	connect(widget,&QWidget::customContextMenuRequested,[this](QPoint point){
+		Track *c=dynamic_cast<Track *>(childAt(point));
+		if(!c){
 			return;
 		}
-		Record &r=Danmaku::instance()->getPool()[i];
 		QMenu menu(this);
-		if(!r.full){
-			connect(menu.addAction(tr("Full")),&QAction::triggered,[this,&r](){
-				QString cid=QFileInfo(r.source).baseName();
-				QString api("http://comment.%1/rolldate,%2");
-				api=api.arg(Utils::customUrl(Utils::Bilibili));
-				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
+		auto &p=Danmaku::instance()->getPool();
+		auto &r=c->getRecord();
+		QAction *fullA=menu.addAction(tr("Full"));
+		connect (fullA,&QAction::triggered,[this,&r](){
+			QString cid=QFileInfo(r.source).baseName();
+			QString api("http://comment.%1/rolldate,%2");
+			api=api.arg(Utils::customUrl(Utils::Bilibili));
+			QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
 				connect(reply,&QNetworkReply::finished,[=,&r](){
-					QMap<QDate,int> count=parseCount(reply->readAll());
-					reply->deleteLater();
-					if(count.isEmpty()){
-						return;
+				QMap<QDate,int> count=parseCount(reply->readAll());
+				reply->deleteLater();
+				if(count.isEmpty()){
+					return;
+				}
+				QString url("http://comment.%1/dmroll,%3,%2");
+				url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(cid);
+				QSet<Comment> set;
+				QProgressDialog progress(this);
+				progress.setFixedSize(progress.sizeHint());
+				progress.setWindowTitle(tr("Loading"));
+				auto getHistory=[&](QDate date){
+					return manager->get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
+				};
+				QSet<QNetworkReply *> remain;
+				QNetworkReply *header=getHistory(count.firstKey());
+				connect(header,&QNetworkReply::finished,[&](){
+					QByteArray data=header->readAll();
+					header->deleteLater();
+					for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
+						set.insert(c);
 					}
-					QString url("http://comment.%1/dmroll,%3,%2");
-					url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(cid);
-					QSet<Comment> set;
-					QProgressDialog progress(this);
-					progress.setFixedSize(progress.sizeHint());
-					progress.setWindowTitle(tr("Loading"));
-					auto getHistory=[&](QDate date){
-						return manager->get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
-					};
-					QSet<QNetworkReply *> remain;
-					QNetworkReply *header=getHistory(count.firstKey());
-					connect(header,&QNetworkReply::finished,[&](){
-						QByteArray data=header->readAll();
-						header->deleteLater();
-						for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
-							set.insert(c);
-						}
-						int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
-						int now=0;
-						if(count.size()>=2){
-							for(auto iter=count.begin()+1;;++iter){
-								now+=iter.value();
-								if(iter+1==count.end()){
-									remain+=getHistory(iter.key());
-									break;
-								}
-								else if(now+(iter+1).value()>max){
-									remain+=getHistory(iter.key());
-									now=0;
-								}
+					int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
+					int now=0;
+					if(count.size()>=2){
+						for(auto iter=count.begin()+1;;++iter){
+							now+=iter.value();
+							if(iter+1==count.end()){
+								remain+=getHistory(iter.key());
+								break;
 							}
-							progress.setMaximum(remain.size()+1);
-							for(QNetworkReply *re:remain){
-								connect(re,&QNetworkReply::finished,[&,re](){
-									for(const Comment &c:Utils::parseComment(re->readAll(),Utils::Bilibili)){
-										set.insert(c);
-									}
-									re->deleteLater();
-									remain.remove(re);
-									int m=progress.maximum(),f=m-remain.size();
-									if (f*100/m!=progress.value()*100/m) {
-										progress.setValue(f);
-									}
-								});
+							else if(now+(iter+1).value()>max){
+								remain+=getHistory(iter.key());
+								now=0;
 							}
-							progress.setValue(1);
 						}
-						else{
-							progress.reject();
+						progress.setMaximum(remain.size()+1);
+						for(QNetworkReply *re:remain){
+							connect(re,&QNetworkReply::finished,[&,re](){
+								for(const Comment &c:Utils::parseComment(re->readAll(),Utils::Bilibili)){
+									set.insert(c);
+								}
+								re->deleteLater();
+								remain.remove(re);
+								int m=progress.maximum(),f=m-remain.size();
+								if (f*100/m!=progress.value()*100/m) {
+									progress.setValue(f);
+								}
+							});
 						}
-					});
-					progress.exec();
-					for(QNetworkReply *r:remain){
-						delete r;
+						progress.setValue(1);
 					}
-					Record load;
-					load.full=true;
-					load.danmaku=set.toList();
-					load.source=r.source;
-					Danmaku::instance()->appendToPool(load);
+					else{
+						progress.reject();
+					}
 				});
+				progress.exec();
+				for(QNetworkReply *r:remain){
+					delete r;
+				}
+				Record load;
+				load.full=true;
+				load.danmaku=set.toList();
+				load.source=r.source;
+				Danmaku::instance()->appendToPool(load);
 			});
-			menu.addSeparator();
-		}
-		connect(menu.addAction(tr("History")),&QAction::triggered,[=,&r](){
+		});
+		fullA->setEnabled(!r.full);
+		menu.addSeparator();
+		connect(menu.addAction(tr("History")),&QAction::triggered,[this,&r](){
 			Calendar history(this);
 			QMap<QDate,int> count;
 			QDate c=r.limit==0?QDate::currentDate().addDays(1):QDateTime::fromTime_t(r.limit).date();
@@ -512,7 +512,7 @@ Editor::Editor(QWidget *parent):
 						url=url.arg(cid);
 					}
 					QNetworkReply *reply=manager->get(QNetworkRequest(url));
-					connect(reply,&QNetworkReply::finished,[=,&r](){
+					connect(reply,&QNetworkReply::finished,[reply,&r](){
 						r.danmaku.clear();
 						Record load;
 						load.full=false;
@@ -523,12 +523,15 @@ Editor::Editor(QWidget *parent):
 				}
 			}
 		});
-		connect(menu.addAction(tr("Delete")),&QAction::triggered,[this,i](){
-			auto &p=Danmaku::instance()->getPool();
-			p.removeAt(i);
+		connect(menu.addAction(tr("Delete")),&QAction::triggered,[&p,&r](){
+			for(auto i=p.begin();i!=p.end();++i){
+				if(&r==&(*i)){
+					p.erase(i);
+				}
+			}
 			Danmaku::instance()->parse(0x1|0x2);
 		});
-		menu.exec(mapToGlobal(p));
+		menu.exec(mapToGlobal(point));
 	});
 
 	remind=new QLabel(this);
