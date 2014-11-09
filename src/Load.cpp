@@ -178,38 +178,6 @@ Load::Load(QObject *parent):
 				}
 			}
 		}
-		else if(site==Utils::Letv){
-			model->clear();
-			QRegularExpressionMatchIterator match=QRegularExpression("cid\\=.*?</a>").globalMatch(reply->readAll());
-			while(match.hasNext()){
-				QStandardItem *item=new QStandardItem;
-				QString part=match.next().captured();
-				QRegularExpression r;
-				r.setPattern("(?<=>)[^>]+?(?=</a>)");
-				item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
-				r.setPattern("(?<=cid=\").+?(?=\")");
-				item->setData(File,NxtRole);
-				QString next("http://comment.%1/%2.xml");
-				next=next.arg(Utils::customUrl(Utils::Bilibili));
-				next=next.arg(r.match(part).captured());
-				item->setData(next,UrlRole);
-				item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
-				model->appendRow(item);
-			}
-			if(str.indexOf('#')==-1&&model->rowCount()>=2){
-				emit stateChanged(task.state=Part);
-			}
-			else{
-				int i=str.indexOf('#');
-				i=(i==-1)?0:(str.mid(i+1).toInt()-1);
-				if(i>=0&&i<model->rowCount()){
-					forward(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),File);
-				}
-				else{
-					error(203);
-				}
-			}
-		}
 		else{
 			error(203);
 		}

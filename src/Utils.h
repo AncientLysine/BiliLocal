@@ -95,6 +95,7 @@ namespace Utils
 		Unknown,
 		Bilibili,
 		AcFun,
+		Tudou,
 		Letv,
 		AcPlay,
 		AcfunLocalizer,

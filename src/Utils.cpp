@@ -30,21 +30,23 @@
 
 Utils::Site Utils::parseSite(QString url)
 {
-	if(url.indexOf("letv.com")!=-1){
+	url=url.toLower();
+	if(-1!=url.indexOf("letv")){
 		return Letv;
 	}
-	else if(url.indexOf("bilibili")!=-1){
+	if(-1!=url.indexOf("tudou")){
+		return Tudou;
+	}
+	if(-1!=url.indexOf("bilibili")){
 		return Bilibili;
 	}
-	else if(url.indexOf("acfun")!=-1){
+	if(-1!=url.indexOf("acfun")){
 		return AcFun;
 	}
-	else if(url.indexOf("acplay")!=-1){
+	if(-1!=url.indexOf("acplay")){
 		return AcPlay;
 	}
-	else{
-		return Unknown;
-	}
+	return Unknown;
 }
 
 void Utils::setCenter(QWidget *widget)
