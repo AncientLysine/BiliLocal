@@ -56,14 +56,16 @@ public:
 		table=new QTableWidget(7,7,this);
 		table->setShowGrid(false);
 		table->setSelectionMode(QAbstractItemView::SingleSelection);
-		table->verticalHeader()->hide();
-		table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+		table->verticalHeader()  ->hide();
+		table->verticalHeader()  ->setSectionResizeMode(QHeaderView::Stretch);
 		table->horizontalHeader()->hide();
 		table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-		table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		table->setVerticalScrollBarPolicy  (Qt::ScrollBarAlwaysOff);
 		table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 		connect(table,&QTableWidget::itemDoubleClicked,this,&QDialog::accept);
 		layout->addWidget(table,1,0,1,3);
+		resize(280*logicalDpiX()/96,250*logicalDpiY()/96);
+		Utils::setCenter(this);
 	}
 
 	QDate selectedDate()
@@ -152,16 +154,17 @@ public:
 	explicit Track(QWidget *parent=0):
 		QWidget(parent)
 	{
-		resize(parent->width(),100);
-		m_record=NULL;
+		double x=100*logicalDpiX()/96,y=100*logicalDpiY()/96;
+		resize(parent->width(),y);
+		m_record=nullptr;
 		m_wheel=0;
 		m_magnet<<0<<0<<0;
 		m_lable=new QLabel(this);
-		m_lable->setGeometry(0,0,98,73);
+		m_lable->setGeometry(0, 0, x-2,y*0.75-2);
 		m_lable->setWordWrap(true);
 		m_lable->setAlignment(Qt::AlignCenter);
 		m_delay=new QLineEdit(this);
-		m_delay->setGeometry(0,73,98,25);
+		m_delay->setGeometry(0,y*0.75-2,x-2,y/4);
 		m_delay->setFrame(false);
 		m_delay->setAlignment(Qt::AlignCenter);
 		connect(m_delay,&QLineEdit::editingFinished,[this](){
@@ -218,9 +221,10 @@ private:
 	void paintEvent(QPaintEvent *e)
 	{
 		QPainter painter(this);
+		double x=100*logicalDpiX()/96,y=100*logicalDpiY()/96;
 		painter.fillRect(e->rect(),Qt::gray);
-		painter.fillRect(0,0,98,98,Qt::white);
-		int w=width()-100,m=0,d=m_duration/(w/5)+1,t=0;
+		painter.fillRect(0,0,x-2,y-2,Qt::white);
+		int w=width()-x,m=0,d=m_duration/(w/5)+1,t=0;
 		QHash<int,int> c;
 		for(const Comment &com:m_record->danmaku){
 			if(com.blocked){
@@ -245,19 +249,19 @@ private:
 					}
 				}
 			}
-			painter.setClipRect(100,0,w,100);
+			painter.setClipRect(x,0,w,y);
 			for(int j=0;j<w;j+=5){
-				int he=c[j/5]*98/m;
-				painter.fillRect(o+j+100,98-he,5,he,Qt::white);
+				int he=c[j/5]*(y-2)/m;
+				painter.fillRect(o+j+x,y-2-he,5,he,Qt::white);
 			}
 			painter.setPen(Qt::white);
 			QString count=QString("%1/%2").arg(t).arg(m_record->danmaku.size());
-			QRect rect=painter.fontMetrics().boundingRect(100,0,w,98,Qt::AlignRight,count);
+			QRect rect=painter.fontMetrics().boundingRect(x,0,w,y-2,Qt::AlignRight,count);
 			rect.adjust(-5,0,0,0);
 			painter.fillRect(rect,QColor(160,160,164,100));
 			painter.drawText(rect,Qt::AlignCenter,count);
 			if(m_current>0){
-				painter.fillRect(m_current*w/m_duration+100,0,1,100,Qt::red);
+				painter.fillRect(m_current*w/m_duration+x,0,1,y,Qt::red);
 			}
 		}
 	}
@@ -288,7 +292,7 @@ private:
 	void mouseReleaseEvent(QMouseEvent *e)
 	{
 		if(!m_point.isNull()){
-			int w=width()-100;
+			int w=width()-100*logicalDpiX()/96;
 			qint64 d=(e->x()-m_point.x())*m_duration/w;
 			for(qint64 p:m_magnet){
 				if(qAbs(d+m_record->delay-p)<m_duration/(w/5)+1){
@@ -361,8 +365,7 @@ void Editor::exec(QWidget *parent)
 Editor::Editor(QWidget *parent):
 	QDialog(parent)
 {
-	resize(640,450);
-	setMinimumSize(300,200);
+	setMinimumSize(640*logicalDpiX()/96,450*logicalDpiY()/96);
 	setWindowTitle(tr("Editor"));
 	setFocus();
 	Utils::setCenter(this);
@@ -376,7 +379,7 @@ Editor::Editor(QWidget *parent):
 		value=-value;
 		for(QObject *c:widget->children()){
 			qobject_cast<QWidget *>(c)->move(0,value);
-			value+=100;
+			value+=100*logicalDpiY()/96;
 		}
 	});
 
@@ -527,16 +530,17 @@ Editor::Editor(QWidget *parent):
 			for(auto i=p.begin();i!=p.end();++i){
 				if(&r==&(*i)){
 					p.erase(i);
+					Danmaku::instance()->parse(0x1|0x2);
+					break;
 				}
 			}
-			Danmaku::instance()->parse(0x1|0x2);
 		});
 		menu.exec(mapToGlobal(point));
 	});
 
 	remind=new QLabel(this);
 	QFont f;
-	f.setPixelSize(75);
+	f.setPointSize(55);
 	f.setBold(true);
 	remind->setFont(f);
 	remind->setAlignment(Qt::AlignCenter);
@@ -572,7 +576,7 @@ void Editor::parseRecords()
 			Track *t=new Track(widget);
 			t->setPrefix(tr("Delay: %1s"));
 			t->move(0,height);
-			height+=100;
+			height+=100*logicalDpiY()/96;
 			t->setCurrent(APlayer::instance()->getTime());
 			t->setDuration(duration);
 			t->setRecord(&r);
@@ -587,10 +591,11 @@ void Editor::parseRecords()
 }
 void Editor::parseLayouts()
 {
+	double y=100*logicalDpiY()/96;
 	QRect r=rect();
 	r.adjust(10,10,-10,-10);
 	remind->setGeometry(r);
-	if (widget->children().size()*100-2>r.height()){
+	if (widget->children().size()*y-2>r.height()){
 		scroll->show();
 		scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));
 		widget->setGeometry(r.adjusted(0,0,-scroll->width(),0));
@@ -600,13 +605,13 @@ void Editor::parseLayouts()
 		widget->setGeometry(r);
 	}
 	QObjectList c=widget->children();
-	scroll->setRange(0,c.size()*100-r.height()-2);
+	scroll->setRange(0,c.size()*y-r.height()-2);
 	scroll->setValue(c.size()?-qobject_cast<QWidget *>(c.first())->y():0);
 	scroll->setPageStep(r.height());
 	for(QObject *o:c){
 		QWidget *w=qobject_cast<QWidget *>(o);
 		if (w){
-			w->resize(widget->width(),100);
+			w->resize(widget->width(),y);
 		}
 	}
 }

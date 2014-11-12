@@ -44,7 +44,7 @@ Interface::Interface(QWidget *parent):
 	QMdiSubWindow(parent)
 {
 	setAcceptDrops(true);
-	setMinimumSize(480,360);
+	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	setObjectName("Interface");
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setCenter(QSize(),true);
@@ -366,8 +366,9 @@ void Interface::setVisible(bool f)
 void Interface::closeEvent(QCloseEvent *e)
 {
 	if(aplayer->getState()==APlayer::Stop&&!isFullScreen()&&!isMaximized()){
-		QString size=Config::getValue("/Interface/Size",QString("960,540"));
-		Config::setValue("/Interface/Size",size.endsWith(' ')?size.trimmed():QString("%1,%2").arg(width()).arg(height()));
+		QString conf=Config::getValue("/Interface/Size",QString("720,405"));
+		QString size=QString("%1,%2").arg(width()*72/logicalDpiX()).arg(height()*72/logicalDpiY());
+		Config::setValue("/Interface/Size",conf.endsWith(' ')?conf.trimmed():size);
 	}
 	delete history;
 	delete aplayer;
@@ -534,10 +535,11 @@ void Interface::checkForUpdate()
 
 void Interface::setCenter(QSize _s,bool f)
 {
+	double x=logicalDpiX()/72.0,y=logicalDpiY()/72.0;
 	if(!_s.isValid()){
-		QStringList l=Config::getValue("/Interface/Size",QString("960,540")).split(',',QString::SkipEmptyParts);
+		QStringList l=Config::getValue("/Interface/Size",QString("720,405")).trimmed().split(',',QString::SkipEmptyParts);
 		if(l.size()>=2){
-			_s=QSize(l[0].toInt(),l[1].toInt());
+			_s=QSize(l[0].toInt()*x,l[1].toInt()*y);
 		}
 	}
 	QSize m=minimumSize();
@@ -555,7 +557,7 @@ void Interface::setCenter(QSize _s,bool f)
 			flag=false;
 		}
 		else{
-			r.setSize(QSize(960,540));
+			r.setSize(QSize(720*x,405*y));
 		}
 	}
 	if(flag){

@@ -78,6 +78,7 @@ QList<const char *> Search::BiOrder()
 
 Search::Search(QWidget *parent):QDialog(parent)
 {
+	double x=logicalDpiX()/72.0,y=logicalDpiY()/72.0;
 	pageNum=pageCur=-1;
 	isWaiting=false;
 	auto outerLayout=new QVBoxLayout;
@@ -85,10 +86,10 @@ Search::Search(QWidget *parent):QDialog(parent)
 	statusL=new QLabel(tr("Ready"),this);
 	pageTxL=new QLabel(tr("Page"),this);
 	pageNuL=new QLabel(this);
-	pageNuL->setFixedWidth(40);
+	pageNuL->setFixedWidth(30*x);
 	keywE=new QLineEdit(this);
 	pageE=new QLineEdit(this);
-	pageE->setFixedWidth(40);
+	pageE->setFixedWidth(30*x);
 	keywdLayout->addWidget(keywE);
 
 	orderC=new QComboBox(this);
@@ -112,7 +113,8 @@ Search::Search(QWidget *parent):QDialog(parent)
 	pageDnB=new QPushButton(tr("PgDn"),this);
 
 	resultW=new QTreeWidget(this);
-	resultW->setIconSize(QSize(120,90));
+	resultW->setIconSize(QSize(90*x,67.5*y));
+	resultW->setIndentation(0);
 	outerLayout->addWidget(resultW);
 	setSite();
 	int widthHint=qMax(orderC->sizeHint().width(),sitesC->sizeHint().width());
@@ -140,15 +142,17 @@ Search::Search(QWidget *parent):QDialog(parent)
 
 	setLayout(outerLayout);
 	setWindowTitle(tr("Search"));
-	resize(900,520);
+	setMinimumSize(450*x,300*y);
+	resize(675*x,390*y);
 	Utils::setCenter(this);
 
 	resultW->setSelectionMode(QAbstractItemView::SingleSelection);
-	resultW->setColumnWidth(0,165);
-	resultW->setColumnWidth(1,60);
-	resultW->setColumnWidth(2,60);
-	resultW->setColumnWidth(3,370);
-	resultW->setColumnWidth(4,100);
+	resultW->setColumnWidth(0,90*x+6);
+	resultW->setColumnWidth(1,45*x);
+	resultW->setColumnWidth(2,45*x);
+	resultW->setColumnWidth(4,75*x);
+	resultW->header()->setStretchLastSection(false);
+	resultW->header()->setSectionResizeMode(3,QHeaderView::Stretch);
 
 	connect(orderC,&QComboBox::currentTextChanged,[this](QString){
 		if(!isWaiting&&resultW->topLevelItemCount()>0){
@@ -232,7 +236,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 				QPixmap pixmap;
 				pixmap.loadFromData(reply->readAll());
 				if(!pixmap.isNull()){
-					pixmap=pixmap.scaled(120,90,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+					pixmap=pixmap.scaled(resultW->iconSize(),Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
 				}
 				line->setIcon(0,QIcon(pixmap));
 			}
@@ -260,7 +264,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						r.setPattern("av\\d+");
 						m=r.match(item);
 						row->setData(0,Qt::UserRole,m.captured());
-						row->setSizeHint(0,QSize(120,92));
+						row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
 						r.setPattern("(?<=img src=\")[^\"']+");
 						m=r.match(item,m.capturedEnd());
 						QNetworkRequest request(QUrl(m.captured()));
@@ -319,7 +323,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					content+=Utils::decodeXml(item["username"].toString());
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,item["contentId"].toString());
-					row->setSizeHint(0,QSize(120,92));
+					row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
 					row->setToolTip(3,item["description"].toString());
 					QNetworkRequest request(QUrl(item["titleImg"].toString()));
 					request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
@@ -343,7 +347,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					content+="";
 					QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
 					row->setData(0,Qt::UserRole,QString("dd%1").arg(item["EpisodeId"].toInt()));
-					row->setSizeHint(0,QSize(120,92));
+					row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
 				}
 				pageNum=1;
 				pageNuL->setText("/1");

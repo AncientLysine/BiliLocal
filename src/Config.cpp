@@ -288,10 +288,10 @@ void Config::exec(QWidget *parent,int index)
 	}
 }
 
-class MListView:public QListView
+class List:public QListView
 {
 public:
-	MListView(QWidget *parent=0):
+	List(QWidget *parent=0):
 		QListView(parent)
 	{
 	}
@@ -453,7 +453,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto s=new QHBoxLayout;
 		d->size=new QLineEdit(d->widget[1]);
-		d->size->setText(Config::getValue("/Interface/Size",QString("960,540")).trimmed());
+		d->size->setText(Config::getValue("/Interface/Size",QString("720,405")).trimmed());
 		connect(d->size,&QLineEdit::editingFinished,[=](){
 			QRegularExpression r("\\D");
 			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
@@ -737,8 +737,8 @@ Config::Config(QWidget *parent,int index):
 		d->type->addItem(tr("Text"));
 		d->type->addItem(tr("User"));
 		d->edit=new QLineEdit(d->widget[3]);
-		d->regexp=new MListView(d->widget[3]);
-		d->sender=new MListView(d->widget[3]);
+		d->regexp=new List(d->widget[3]);
+		d->sender=new List(d->widget[3]);
 		d->regexp->setSelectionMode(QListView::ExtendedSelection);
 		d->sender->setSelectionMode(QListView::ExtendedSelection);
 		d->regexp->setModel(d->rm=new QStringListModel(d->regexp));
@@ -991,10 +991,9 @@ Config::Config(QWidget *parent,int index):
 		l->addWidget(d->sheet[1],0,1);
 		l->addWidget(d->sheet[2],0,2);
 		d->info=new QLabel(d->widget[4]);
-		d->info->setFixedWidth(100);
 		d->info->setAlignment(Qt::AlignCenter);
 		d->info->setText(tr("waiting"));
-		l->addWidget(d->info,0,3,Qt::AlignCenter);
+		l->addWidget(d->info,0,3);
 		auto loadValid=[=](){
 			QString url("https://secure.%1/captcha?r=%2");
 			url=url.arg(Utils::customUrl(Utils::Bilibili));
@@ -1206,12 +1205,14 @@ Config::Config(QWidget *parent,int index):
 		header<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"";
 		d->plugin->setHeaderLabels(header);
 		double s=logicalDpiX()/72.0;
-		d->plugin->setColumnWidth(0,60);
+		d->plugin->header()->setStretchLastSection(false);
+		d->plugin->header()->setSectionResizeMode(3,QHeaderView::Stretch);
+		d->plugin->setColumnWidth(0,50);
 		d->plugin->setColumnWidth(1,55*s);
 		d->plugin->setColumnWidth(2,35*s);
-		d->plugin->setColumnWidth(3,135*s);
-		d->plugin->setColumnWidth(4,55*s);
-		d->plugin->setColumnWidth(5,25*s);
+		d->plugin->setColumnWidth(4,50*s);
+		d->plugin->setColumnWidth(5,30*s);
+		d->plugin->setIndentation(15);
 		w->addWidget(d->plugin);
 		for(Plugin &iter:Plugin::plugins){
 			QStringList content;
@@ -1251,9 +1252,11 @@ Config::Config(QWidget *parent,int index):
 		auto w=new QGridLayout(d->widget[6]);
 		d->hotkey=new QTreeWidget(d->widget[6]);
 		d->hotkey->setSelectionMode(QAbstractItemView::NoSelection);
-		d->hotkey->header()->hide();
 		d->hotkey->setColumnCount(2);
-		d->hotkey->setColumnWidth(0,3.6*logicalDpiX());
+		d->hotkey->header()->hide();
+		d->hotkey->header()->setStretchLastSection(false);
+		d->hotkey->header()->setSectionResizeMode(0,QHeaderView::Stretch);
+		d->hotkey->setColumnWidth(1,1.2*logicalDpiX());
 		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
 		for(QAction *iter:Local::mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 			QTreeWidgetItem *item=new QTreeWidgetItem;
@@ -1335,8 +1338,7 @@ Config::Config(QWidget *parent,int index):
 		}
 	});
 	int h=outer->minimumSize().height(),w=1.15*h;
-	setMinimumWidth(w);
-	resize(w,h);
+	setMinimumSize(w,h);
 	Utils::setCenter(this);
 
 	d->restart=d->getRestart();
