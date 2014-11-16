@@ -87,7 +87,7 @@ public:
 	inline T &top()
 	{
 		if(isEmpty()){
-			QT_THROW("Empty");
+			throw("token mismatch");
 		}
 		return stk.top();
 	}
@@ -95,7 +95,7 @@ public:
 	inline T pop()
 	{
 		if(isEmpty()){
-			QT_THROW("Empty");
+			throw("token mismatch");
 		}
 		return stk.pop();
 	}
@@ -136,7 +136,7 @@ double Utils::evaluate(QString exp)
 		}
 	};
 	exp=exp.trimmed();
-	QT_TRY{
+	try{
 		QString pst;
 		SStack<QChar> opt;
 		int i=0;
@@ -172,7 +172,7 @@ double Utils::evaluate(QString exp)
 				case ' ':
 					break;
 				default:
-					QT_THROW("Invalid");
+					throw("token unrecognized");
 				}
 			}
 			++i;
@@ -235,7 +235,7 @@ double Utils::evaluate(QString exp)
 		}
 		return num.top();
 	}
-	QT_CATCH(...){
+	catch(...){
 		return 0;
 	}
 }
@@ -281,19 +281,35 @@ QString Utils::defaultFont(bool monospace)
 
 QString Utils::customUrl(Site site)
 {
-	switch(site){
+	QString name;
+	switch (site){
 	case AcFun:
-		return Config::getValue("/Network/Url/AcFun",
-								QString("acfun.tv"));
+		name="acfun";
+		break;
 	case Bilibili:
-		return Config::getValue("/Network/Url/Bilibili",
-								QString("bilibili.com"));
+		name="bili";
+		break;
 	case AcPlay:
-		return Config::getValue("/Network/Url/AcPlay",
-								QString("acplay.net"));
+		name="acplay";
+		break;
+	case Tudou:
+		name="tudou";
+		break;
+	case Niconico:
+		name="nico";
+		break;
 	default:
 		return QString();
 	}
+	QStringList urls;
+	urls<<"acfun.tv"<<"bilibili.com"<<"acplay.net";
+	urls=Config::getValue("/Network/Url",urls.join(';')).split(';',QString::SkipEmptyParts);
+	for (QString iter:urls){
+		if (iter.toLower().indexOf(name)!=-1){
+			return iter;
+		}
+	}
+	return QString();
 }
 
 QString Utils::decodeXml(QString string,bool fast)

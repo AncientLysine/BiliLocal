@@ -43,6 +43,7 @@ History::History(QObject *parent) :
 	ins=this;
 	setObjectName("History");
 	last=nullptr;
+	time=0;
 	model=new QStandardItemModel(this);
 	for(const QJsonValue &value:Config::getValue<QJsonArray>("/Playing/History/List")){
 		QStandardItem *head=new QStandardItem;
@@ -65,9 +66,12 @@ History::History(QObject *parent) :
 		}
 		model->appendRow(head);
 	}
+	connect(APlayer::instance(),&APlayer::timeChanged, [this](qint64 _time){
+		time=_time;
+	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
 		QFileInfo info(file);
-		updateDanmaku();
+		updateRecord();
 		QString name=info.completeBaseName();
 		QString path=info.absoluteFilePath();
 		int c=model->rowCount(),i;
@@ -93,7 +97,7 @@ History::History(QObject *parent) :
 History::~History()
 {
 	QJsonArray history;
-	updateDanmaku();
+	updateRecord();
 	for(int i=0;i<model->rowCount();++i){
 		QJsonObject record;
 		QList<QStandardItem *> items;
@@ -111,7 +115,7 @@ History::~History()
 	Config::setValue("/Playing/History/List",history);
 }
 
-void History::updateDanmaku()
+void History::updateRecord()
 {
 	int c=model->rowCount();
 	if (c==0||last==nullptr){
@@ -119,6 +123,7 @@ void History::updateDanmaku()
 	}
 	QStandardItem *head=model->item(0);
 	head->setRowCount(0);
+	head->setData(time,TimeRole);
 	for(const Record &r:Danmaku::instance()->getPool()){
 		QUrl u(r.source);
 		QStandardItem *item=new QStandardItem;

@@ -32,10 +32,14 @@
 #include <QtWidgets>
 
 namespace{
-template<class T>
-T fromJsonValue(QJsonValue v)
+template<class TypeName>
+TypeName fromJsonValue(QJsonValue v)
 {
-	return v.toVariant().value<T>();
+	QVariant t=v.toVariant();
+	if(!t.canConvert<TypeName>()){
+		throw("type missmatch");
+	}
+	return t.value<TypeName>();
 }
 
 template<>
@@ -47,17 +51,23 @@ QVariant fromJsonValue(QJsonValue v)
 template<>
 QJsonArray fromJsonValue(QJsonValue v)
 {
+	if (QJsonValue::Array!=v.type()){
+		throw("type missmatch");
+	}
 	return v.toArray();
 }
 
 template<>
 QJsonObject fromJsonValue(QJsonValue v)
 {
+	if (QJsonValue::Object!=v.type()){
+		throw("type missmatch");
+	}
 	return v.toObject();
 }
 
-template<class T>
-QJsonValue toJsonValue(T v)
+template<class TypeName>
+QJsonValue toJsonValue(TypeName v)
 {
 	return QJsonValue(v);
 }
@@ -65,17 +75,7 @@ QJsonValue toJsonValue(T v)
 template<>
 QJsonValue toJsonValue(QVariant v)
 {
-	switch(v.type()){
-	case QVariant::Bool:
-		return v.toBool();
-	case QVariant::Int:
-	case QVariant::Double:
-		return v.toDouble();
-	case QVariant::String:
-		return v.toString();
-	default:
-		return QJsonValue();
-	}
+	return QJsonValue::fromVariant(v);
 }
 }
 
@@ -93,16 +93,28 @@ public:
 		QStringList tree=key.split('/',QString::SkipEmptyParts);
 		QString last=tree.takeLast();
 		QJsonObject cur=config;
+		QList<QJsonObject> path;
 		for(const QString &k:tree){
+			path.append(cur);
 			cur=cur.value(k).toObject();
 		}
-		if(cur.contains(last)){
-			return fromJsonValue<T>(cur.value(last));
+		if (cur.contains(last)){
+			try{
+				return fromJsonValue<T>(cur.value(last));
+			}
+			catch(...){}
 		}
-		else{
-			setValue(key,def);
-			return def;
+		QJsonValue val=toJsonValue(def);
+		if(!val.isNull()){
+			cur[last]=val;
+			while(!path.isEmpty()){
+				QJsonObject pre=path.takeLast();
+				pre[tree.takeLast()]=cur;
+				cur=pre;
+			}
+			config=cur;
 		}
+		return def;
 	}
 
 	template<class T>
@@ -116,16 +128,13 @@ public:
 			path.append(cur);
 			cur=cur.value(k).toObject();
 		}
-		QJsonValue val=toJsonValue(set);
-		if(!val.isNull()){
-			cur[last]=val;
-			while(!path.isEmpty()){
-				QJsonObject pre=path.takeLast();
-				pre[tree.takeLast()]=cur;
-				cur=pre;
-			}
-			config=cur;
+		cur[last]=toJsonValue(set);
+		while(!path.isEmpty()){
+			QJsonObject pre=path.takeLast();
+			pre[tree.takeLast()]=cur;
+			cur=pre;
 		}
+		config=cur;
 	}
 
 	static void exec(QWidget *parent=0,int index=0);

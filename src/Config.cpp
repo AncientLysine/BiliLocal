@@ -562,7 +562,7 @@ Config::Config(QWidget *parent,int index):
 		});
 		b->addWidget(d->back);
 		d->open=new QPushButton(tr("choose"),d->widget[1]);
-		d->open->setFixedWidth(50);
+		d->open->setFixedWidth(50*logicalDpiX()/96);
 		d->open->setFocusPolicy(Qt::NoFocus);
 		connect(d->open,&QPushButton::clicked,[d,this](){
 			QString path=d->back->text().isEmpty()?QDir::currentPath():QFileInfo(d->back->text()).absolutePath();
@@ -903,8 +903,8 @@ Config::Config(QWidget *parent,int index):
 		}
 		d->button[0]=new QPushButton(tr("Add"),d->widget[3]);
 		d->button[1]=new QPushButton(tr("Del"),d->widget[3]);
-		d->button[0]->setFixedWidth(60);
-		d->button[1]->setFixedWidth(60);
+		d->button[0]->setFixedWidth(60*logicalDpiX()/96);
+		d->button[1]->setFixedWidth(60*logicalDpiX()/96);
 		d->button[0]->setFocusPolicy(Qt::NoFocus);
 		d->button[1]->setFocusPolicy(Qt::NoFocus);
 		connect(d->button[0],&QPushButton::clicked,d->action[0],&QAction::trigger);

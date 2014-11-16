@@ -47,10 +47,11 @@ public:
 private:
 	QStandardItem *last;
 	QStandardItemModel *model;
+	qint64 time;
 	static History *ins;
 
     History(QObject *parent=0);
-	void updateDanmaku();
+	void updateRecord();
 
 public slots:
 	QString lastPath();

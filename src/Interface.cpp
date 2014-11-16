@@ -270,17 +270,13 @@ Interface::Interface(QWidget *parent):
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
 	rat->setDefaultAction(rat->addAction(tr("Default")));
-	rat->addAction("4:3");
-	rat->addAction("16:9");
-	rat->addAction("16:10");
+	rat->addAction("4:3")   ->setData( 4.0/ 3);
+	rat->addAction("16:10") ->setData(16.0/10);
+	rat->addAction("16:9")  ->setData(16.0/ 9);
+	rat->addAction("1.85:1")->setData(1.85);
+	rat->addAction("2.35:1")->setData(2.35);
 	connect(rat,&QMenu::triggered,[this](QAction *action){
-		if(action->text()==tr("Default")){
-			render->setVideoAspectRatio(0);
-		}
-		else{
-			QStringList l=action->text().split(':');
-			render->setVideoAspectRatio(l[0].toDouble()/l[1].toDouble());
-		}
+		render->setVideoAspectRatio(action->data().toDouble());
 		if(aplayer->getState()==APlayer::Pause){
 			render->draw();
 		}
