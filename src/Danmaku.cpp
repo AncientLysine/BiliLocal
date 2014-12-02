@@ -37,7 +37,7 @@
 
 #define qThreadPool QThreadPool::globalInstance()
 
-Danmaku *Danmaku::ins=NULL;
+Danmaku *Danmaku::ins=nullptr;
 
 Danmaku *Danmaku::instance()
 {
@@ -47,9 +47,9 @@ Danmaku *Danmaku::instance()
 Danmaku::Danmaku(QObject *parent):
 	QAbstractItemModel(parent)
 {
-	cur=time=0;
 	ins=this;
 	setObjectName("Danmaku");
+	cur=time=0;
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
 	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
@@ -648,7 +648,7 @@ void Danmaku::appendToPool(const Record &record)
 	}
 	parse(0x1|0x2);
 	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
-		Editor::exec(Local::mainWidget());
+		Editor::exec(lApp->mainWidget());
 	}
 }
 

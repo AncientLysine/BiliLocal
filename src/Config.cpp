@@ -27,7 +27,6 @@
 #include "Config.h"
 #include "APlayer.h"
 #include "Danmaku.h"
-#include "History.h"
 #include "Local.h"
 #include "Plugin.h"
 #include "Shield.h"
@@ -182,6 +181,8 @@ public:
 	}
 };
 
+namespace
+{
 class Cookie:public QNetworkCookieJar
 {
 public:
@@ -275,19 +276,6 @@ public:
 	}
 };
 
-QJsonObject Config::config;
-
-void Config::exec(QWidget *parent,int index)
-{
-	static bool isExecuting;
-	if(!isExecuting){
-		isExecuting=1;
-		Config config(parent,index);
-		config.QDialog::exec();
-		isExecuting=0;
-	}
-}
-
 class List:public QListView
 {
 public:
@@ -303,6 +291,23 @@ public:
 		selectionModel()->setCurrentIndex(QModelIndex(),QItemSelectionModel::NoUpdate);
 	}
 };
+}
+
+QJsonObject Config::config;
+
+void Config::exec(QWidget *parent,int index)
+{
+	static Config *executing;
+	if(!executing){
+		Config config(parent,index);
+		executing=&config;
+		config.QDialog::exec();
+		executing=nullptr;
+	}
+	else{
+		executing->activateWindow();
+	}
+}
 
 Config::Config(QWidget *parent,int index):
 	QDialog(parent),d_ptr(new ConfigPrivate)
@@ -1258,7 +1263,7 @@ Config::Config(QWidget *parent,int index):
 		d->hotkey->header()->setSectionResizeMode(0,QHeaderView::Stretch);
 		d->hotkey->setColumnWidth(1,1.2*logicalDpiX());
 		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
-		for(QAction *iter:Local::mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
+		for(QAction *iter:lApp->mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 			QTreeWidgetItem *item=new QTreeWidgetItem;
 			item->setData(0,Qt::DisplayRole,iter->text());
 			item->setData(1,Qt::DisplayRole,iter->shortcut().toString());
@@ -1280,7 +1285,7 @@ Config::Config(QWidget *parent,int index):
 			if(column==1){
 				QVariant v=item->data(1,Qt::UserRole);
 				if(v.isValid()){
-					QAction *a=Local::mainWidget()->findChild<QAction *>(v.toString());
+					QAction *a=lApp->mainWidget()->findChild<QAction *>(v.toString());
 					QString ns=item->text(1);
 					a->setShortcut(ns);
 					Config::setValue("/Shortcut/"+a->objectName(),ns);
@@ -1330,10 +1335,7 @@ Config::Config(QWidget *parent,int index):
 										 tr("Warning"),
 										 tr("Restart to apply changes?"),
 										 QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
-				delete History::instance();
-				delete APlayer::instance();
-				delete Danmaku::instance();
-				qApp->exit(12450);
+				lApp->exit(12450);
 			}
 		}
 	});

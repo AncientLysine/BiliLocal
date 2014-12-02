@@ -26,7 +26,6 @@
 
 #include "Utils.h"
 #include "Config.h"
-#include "History.h"
 
 Utils::Site Utils::parseSite(QString url)
 {
@@ -237,19 +236,6 @@ double Utils::evaluate(QString exp)
 	}
 	catch(...){
 		return 0;
-	}
-}
-
-QString Utils::defaultPath()
-{
-	QString path=History::instance()->lastPath();
-	if(!path.isEmpty()){
-		return QFileInfo(path).absolutePath();
-	}
-	else{
-		QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-		paths.append(QDir::homePath());
-		return paths.front();
 	}
 }
 

@@ -30,7 +30,7 @@
 #include "Danmaku.h"
 #include "Utils.h"
 
-Load *Load::ins=NULL;
+Load *Load::ins=nullptr;
 
 Load *Load::instance()
 {
@@ -40,10 +40,10 @@ Load *Load::instance()
 Load::Load(QObject *parent):
 	QObject(parent)
 {
-	model=new QStandardItemModel(this);
-	automated=Config::getValue("/Danmaku/Auto",true);
 	ins=this;
 	setObjectName("Load");
+	model=new QStandardItemModel(this);
+	automated=Config::getValue("/Danmaku/Auto",true);
 
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);

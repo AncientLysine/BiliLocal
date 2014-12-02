@@ -113,14 +113,13 @@ namespace Utils
 	Site parseSite(QString url);
 	void setCenter(QWidget *widget);
 	void setGround(QWidget *widget,QColor color);
-	double evaluate(QString expression);
-	QString defaultPath();
 	QString defaultFont(bool monospace=false);
 	QString customUrl(Site site);
 	QString decodeXml(QString string,bool fast=false);
 	QStringList getRenderModules();
 	QStringList getDecodeModules();
 	QStringList getSuffix(int type,QString format="");
+	double evaluate(QString expression);
 	QList<Comment> parseComment(QByteArray data,Site site);
 }
 

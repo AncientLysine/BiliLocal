@@ -35,13 +35,13 @@
 
 class Menu;
 class Info;
+class Jump;
 class Post;
-class Next;
+class List;
 class Load;
 class Render;
 class APlayer;
 class Danmaku;
-class History;
 
 class Interface:public QMdiSubWindow
 {
@@ -66,12 +66,12 @@ private:
 	Render *render;
 	Menu *menu;
 	Info *info;
+	Jump *jump;
 	Post *post;
-	Next *next;
+	List *list;
 	Load *load;
 	APlayer *aplayer;
 	Danmaku *danmaku;
-	History *history;
 
 	QPoint sta;
 	QPoint wgd;

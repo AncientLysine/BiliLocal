@@ -32,18 +32,10 @@
 #include "Graphic.h"
 #include "Local.h"
 
-Post *Post::ins=NULL;
-
-Post *Post::instance()
-{
-	return ins?ins:new Post(Local::mainWidget());
-}
-
 Post::Post(QWidget *parent):
 	QDialog(parent,Qt::FramelessWindowHint)
 {
-	ins=this;
-	setFixedSize(480,25);
+	setFixedSize(parent->minimumWidth(),25);
 	setAttribute(Qt::WA_TranslucentBackground);
 	setObjectName("Post");
 	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
@@ -63,7 +55,7 @@ Post::Post(QWidget *parent):
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
 	connect(commentC,&QPushButton::clicked,[this](){
-		QColor color=QColorDialog::getColor(getColor(),Local::mainWidget());
+		QColor color=QColorDialog::getColor(getColor(),lApp->mainWidget());
 		if(color.isValid()){
 			setColor(color);
 		}
@@ -239,7 +231,7 @@ void Post::postComment()
 			if(error!=QNetworkReply::NoError){
 				QString info=tr("Network error occurred, error code: %1").arg(error);
 				QString sugg=Local::instance()->suggestion(error);
-				QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+				QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			}
 			else{
 				emit posted((quintptr)&c);

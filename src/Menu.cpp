@@ -29,7 +29,7 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "History.h"
+#include "List.h"
 #include "Load.h"
 #include "Local.h"
 #include "Render.h"
@@ -37,17 +37,17 @@
 #include "Utils.h"
 
 namespace{
-class LoadModelWapper:public QAbstractItemModel
+class LoadProxyModel:public QAbstractProxyModel
 {
 public:
-	explicit LoadModelWapper(QAbstractItemModel *m,QString s=QString()):
-		QAbstractItemModel(m),s(s),m(m)
+	explicit LoadProxyModel(QObject *parent=0,QString string=QString()):
+		QAbstractProxyModel(parent),string(string)
 	{
 	}
 
-	int columnCount(const QModelIndex &parent) const
+	int columnCount(const QModelIndex &) const
 	{
-		return m->columnCount(parent);
+		return 1;
 	}
 
 	QVariant data(const QModelIndex &index,int role) const
@@ -64,7 +64,7 @@ public:
 			}
 			case Qt::DisplayRole:
 			case Qt::EditRole:
-				return s;
+				return string;
 			case Qt::BackgroundRole:
 				return QColor(0xA0A0A4);
 			case Qt::ForegroundRole:
@@ -80,7 +80,7 @@ public:
 			}
 		}
 		else{
-			return m->data(index,role);
+			return sourceModel()->data(mapToSource(index),role);
 		}
 	}
 
@@ -89,35 +89,43 @@ public:
 		return Qt::ItemIsSelectable|Qt::ItemIsEnabled;
 	}
 
-	QModelIndex index(int row,int column,const QModelIndex &parent) const
+	QModelIndex index(int r,int c,const QModelIndex &p) const
 	{
-		if(!parent.isValid()&&row==0){
-			//'F'+'A'+'K'+'E'==279
-			return createIndex(row,column,279);
+		if(!p.isValid()&&r==0&&c==0){
+			return createIndex(0,0,1);
 		}
 		else{
-			return m->index(row-1,column,parent);
+			return createIndex(r,c);
 		}
 	}
 
-	QModelIndex parent(const QModelIndex &child) const
+	QModelIndex parent(const QModelIndex &) const
 	{
-		return isFakeItem(child)?QModelIndex():m->parent(child);
+		return QModelIndex();
 	}
 
 	int rowCount(const QModelIndex &parent) const
 	{
-		return m->rowCount(parent)+(parent.isValid()?0:1);
+		return sourceModel()->rowCount(mapToSource(parent))+(parent.isValid()?0:1);
 	}
 
 	bool isFakeItem(const QModelIndex &index) const
 	{
-		return index.internalId()==279;
+		return index.internalId();
+	}
+
+	QModelIndex mapToSource  (const QModelIndex &i) const
+	{
+		return (isFakeItem(i)||!i.isValid())?QModelIndex():sourceModel()->index(i.row()-1,i.column(),mapToSource(i.parent()));
+	}
+
+	QModelIndex mapFromSource(const QModelIndex &i) const
+	{
+		return i.isValid()?index(i.row()+1,i.column(),mapFromSource(i.parent())):QModelIndex();
 	}
 
 private:
-	QString s;
-	QAbstractItemModel *m;
+	QString string;
 };
 
 class EditWithHistory:public QLineEdit
@@ -179,7 +187,11 @@ Menu::Menu(QWidget *parent):
 	setObjectName("Menu");
 	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
-	fileC=new QCompleter(History::instance()->getModel(),this);
+	QSortFilterProxyModel *fileM=new QSortFilterProxyModel(this);
+	fileM->setSortRole(List::DateRole);
+	fileM->setSourceModel(List::instance()->getModel());
+	fileM->sort(0,Qt::DescendingOrder);
+	fileC=new QCompleter(fileM,this);
 	fileL=new EditWithHistory(fileC,this);
 	danmL=new QLineEdit(this);
 	sechL=new QLineEdit(this);
@@ -212,25 +224,22 @@ Menu::Menu(QWidget *parent):
 	});
 	popup->addAction(hdelA);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
-	connect<void (QCompleter::*)(const QModelIndex &)>(fileC,&QCompleter::activated,[this](const QModelIndex &index){
+	connect<void (QCompleter::*)(const QModelIndex &)>(fileC,&QCompleter::activated,[=](const QModelIndex &index){
 		setFocus();
-		History::instance()->rollback(index);
+		List::instance()->jumpToIndex(fileM->mapToSource(dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
 	});
-
-	danmC=new QCompleter(new LoadModelWapper(Load::instance()->getModel(),tr("Load All")),this);
+	LoadProxyModel *danmM=new LoadProxyModel(this,tr("Load All"));
+	danmM->setSourceModel(Load::instance()->getModel());
+	danmC=new QCompleter(danmM,this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setWidget(danmL);
 	popup=danmC->popup();
 	popup->setMouseTracking(true);
 	popup->installEventFilter(new PartingListener(popup));
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
-	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[this](const QModelIndex &index){
-		QModelIndex i;
-		QVariant v=index.data(Load::UrlRole);
-		if(v.isNull()||v.toUrl().isValid()){
-			i=index;
-		}
-		Load::instance()->loadDanmaku(i);
+	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[=](const QModelIndex &index){
+		setFocus();
+		Load::instance()->loadDanmaku(danmM->mapToSource(dynamic_cast<QAbstractProxyModel *>(danmC->completionModel())->mapToSource(index)));
 	});
 	fileB=new QPushButton(this);
 	sechB=new QPushButton(this);
@@ -248,9 +257,9 @@ Menu::Menu(QWidget *parent):
 	sechA->setObjectName("Sech");
 	sechA->setShortcut(Config::getValue("/Shortcut/Sech",QString()));
 	connect(fileA,&QAction::triggered,[this](){
-		QString _file=QFileDialog::getOpenFileName(Local::mainWidget(),
+		QString _file=QFileDialog::getOpenFileName(lApp->mainWidget(),
 												   tr("Open File"),
-												   Utils::defaultPath(),
+												   List::instance()->defaultPath(Utils::Video|Utils::Audio),
 												   tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video|Utils::Audio,"*.%1").join(' ')));
 		if(!_file.isEmpty()){
 			APlayer::instance()->setMedia(_file);
@@ -258,9 +267,9 @@ Menu::Menu(QWidget *parent):
 	});
 	connect(danmA,&QAction::triggered,[this](){
 		if(Config::getValue("/Danmaku/Local",false)){
-			QString _file=QFileDialog::getOpenFileName(Local::mainWidget(),
+			QString _file=QFileDialog::getOpenFileName(lApp->mainWidget(),
 													   tr("Open File"),
-													   Utils::defaultPath(),
+													   List::instance()->defaultPath(Utils::Danmaku),
 													   tr("Danmaku files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Danmaku,"*.%1").join(' ')));
 			if(!_file.isEmpty()){
 				Load::instance()->loadDanmaku(_file);
@@ -278,7 +287,7 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	connect(sechA,&QAction::triggered,[this](){
-		Search searchBox(Local::mainWidget());
+		Search searchBox(lApp->mainWidget());
 		sechL->setText(sechL->text().simplified());
 		if(!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
@@ -375,9 +384,9 @@ Menu::Menu(QWidget *parent):
 		switch(state){
 		case Load::Page:
 			isStay=1;
+			danmL->setText(Load::instance()->getStr());
 			break;
 		case Load::Part:
-			danmL->setText(Load::instance()->getStr());
 			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
 				danmC->complete();
 				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));
@@ -385,8 +394,8 @@ Menu::Menu(QWidget *parent):
 		case Load::File:
 		case Load::Pool:
 			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());
-			danmL->setText(Load::instance()->getStr());
 			danmL->setCursorPosition(0);
+			danmL->setText(Load::instance()->getStr());
 		case Load::Code:
 		case Load::None:
 			isStay=0;
@@ -395,7 +404,7 @@ Menu::Menu(QWidget *parent):
 		{
 			QString info=tr("Network error occurred, error code: %1").arg(state);
 			QString sugg=Local::instance()->suggestion(state);
-			QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+			QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			isStay=0;
 			break;
 		}

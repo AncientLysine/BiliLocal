@@ -27,11 +27,10 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Local.h"
-#include "Next.h"
 #include "Render.h"
 #include "Utils.h"
 
-APlayer *APlayer::ins=NULL;
+APlayer *APlayer::ins=nullptr;
 
 #ifdef BACKEND_VLC
 extern "C"
@@ -146,6 +145,8 @@ static void err(const libvlc_event_t *,void *)
 VPlayer::VPlayer(QObject *parent):
 	APlayer(parent)
 {
+	ins=this;
+	setObjectName("VPlayer");
 	QList<QByteArray> args;
 	for(QJsonValue arg:Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
@@ -166,12 +167,10 @@ VPlayer::VPlayer(QObject *parent):
 	m=NULL;
 	mp=NULL;
 	state=Stop;
-	setObjectName("VPlayer");
 	for(auto &iter:tracks){
 		iter=new QActionGroup(this);
 		iter->setExclusive(true);
 	}
-	ins=this;
 }
 
 VPlayer::~VPlayer()
@@ -316,9 +315,6 @@ void VPlayer::stop(bool manually)
 		setState(Stop);
 		for(auto g:tracks){
 			qDeleteAll(g->actions());
-		}
-		if(manually){
-			Next::instance()->clear();
 		}
 		emit reach(manually);
 	}
@@ -621,6 +617,9 @@ public slots:
 QPlayer::QPlayer(QObject *parent):
 	APlayer(parent)
 {
+	ins=this;
+	setObjectName("QPlayer");
+
 	mp=(new PlayerThread(this))->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Playing/Volume",50));
 	manuallyStopped=false;
@@ -661,9 +660,6 @@ QPlayer::QPlayer(QObject *parent):
 			emit begin();
 		}
 	});
-	
-	setObjectName("QPlayer");
-	ins=this;
 }
 
 QList<QAction *> QPlayer::getTracks(int)
@@ -678,9 +674,6 @@ void QPlayer::play()
 
 void QPlayer::stop(bool manually)
 {
-	if(manually){
-		Next::instance()->clear();
-	}
 	manuallyStopped=manually;
 	QMetaObject::invokeMethod(mp,"stop",Qt::BlockingQueuedConnection);
 }
@@ -781,11 +774,11 @@ public slots:
 NPlayer::NPlayer(QObject *parent):
 	APlayer(parent)
 {
+	ins=this;
+	setObjectName("NPlayer");
+
 	state=Stop;
 	startTimer(100);
-
-	setObjectName("NPlayer");
-	ins=this;
 }
 
 void NPlayer::timerEvent(QTimerEvent *)

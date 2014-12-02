@@ -29,12 +29,12 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "History.h"
 #include "Info.h"
+#include "Jump.h"
+#include "List.h"
 #include "Load.h"
 #include "Local.h"
 #include "Menu.h"
-#include "Next.h"
 #include "Post.h"
 #include "Render.h"
 #include "Shield.h"
@@ -52,22 +52,21 @@ Interface::Interface(QWidget *parent):
 	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
-	history=History::instance();
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["APlayer"]=aplayer;
-	Local::objects["History"]=history;
 	
 	render=Render::instance();
 	Local::objects["Render"]=render;
 	
 	menu=new Menu(this);
 	info=new Info(this);
-	post=Post::instance();
-	next=Next::instance();
+	jump=new Jump(this);
+	post=new Post(this);
+	list=List::instance();
 	load=Load::instance();
 	Local::objects["Info"]=info;
 	Local::objects["Menu"]=menu;
-	Local::objects["Next"]=next;
+	Local::objects["Next"]=list;
 	Local::objects["Post"]=post;
 	Local::objects["Load"]=load;
 	
@@ -94,7 +93,7 @@ Interface::Interface(QWidget *parent):
 		}
 	});
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
-	connect(aplayer,&APlayer::begin,[this](){
+	connect(aplayer,&APlayer::begin,this,[this](){
 		if(!isFullScreen()&&geo.isEmpty()){
 			geo=saveGeometry();
 			sca->setEnabled(true);
@@ -105,14 +104,14 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
-	});
-	connect(aplayer,&APlayer::reach,[this](){
+	},Qt::QueuedConnection);
+	connect(aplayer,&APlayer::reach,this,[this](){
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->setEnabled(false);
 		sca->setEnabled(false);
 		render->setVideoAspectRatio(0);
-		if(!geo.isEmpty()&&next->getNext().isEmpty()){
+		if(!geo.isEmpty()&&list->finished()){
 			if(isFullScreen()){
 				fullA->toggle();
 			}
@@ -121,7 +120,7 @@ Interface::Interface(QWidget *parent):
 		}
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
-	});
+	},Qt::QueuedConnection);
 	
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
@@ -190,7 +189,7 @@ Interface::Interface(QWidget *parent):
 	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
 	addAction(confA);
 	connect(confA,&QAction::triggered,[](){
-		Config::exec(Local::mainWidget());
+		Config::exec(lApp->mainWidget());
 	});
 	
 	toggA=new QAction(tr("Block All"),this);
@@ -366,13 +365,11 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=QString("%1,%2").arg(width()*72/logicalDpiX()).arg(height()*72/logicalDpiY());
 		Config::setValue("/Interface/Size",conf.endsWith(' ')?conf.trimmed():size);
 	}
-	delete history;
-	delete aplayer;
-	delete danmaku;
 	if(!update.isNull()){
 		update->abort();
 	}
 	QWidget::closeEvent(e);
+	lApp->exit();
 }
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)

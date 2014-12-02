@@ -334,7 +334,7 @@ class RWidget:public QWidget
 {
 public:
 	RWidget(RenderPrivate *render):
-		QWidget(Local::mainWidget()),render(render)
+		QWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 	}
@@ -363,9 +363,9 @@ public:
 	RasterRender(QObject *parent=0):
 		Render(new RasterRenderPrivate,parent)
 	{
-		widget=new RWidget(d_ptr);
 		ins=this;
 		setObjectName("RRender");
+		widget=new RWidget(d_ptr);
 	}
 
 private:
@@ -650,10 +650,10 @@ public:
 			glEnable(GL_TEXTURE_2D);
 		}
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		device->setSize(size());
+		device->setSize(size()*devicePixelRatio());
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0,0),size());
+		QRect rect(QPoint(0,0),device->size());
 		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
@@ -687,7 +687,7 @@ private:
 		case QEvent::DragLeave:
 		case QEvent::ContextMenu:
 		{
-			QBackingStore *backing=Local::mainWidget()->backingStore();
+			QBackingStore *backing=lApp->mainWidget()->backingStore();
 			if(backing){
 				QWindow *window=backing->window();
 				if(window){
@@ -711,10 +711,10 @@ public:
 	OpenGLRender(QObject *parent=0):
 		Render(new OpenGLRenderPrivate,parent)
 	{
-		window=new OWindow(d_ptr);
-		widget=QWidget::createWindowContainer(window,Local::mainWidget());
 		ins=this;
 		setObjectName("ORender");
+		window=new OWindow(d_ptr);
+		widget=QWidget::createWindowContainer(window,lApp->mainWidget());
 	}
 
 private:
@@ -794,6 +794,8 @@ public:
 	DetachRender(QObject *parent=0):
 		Render(new DetachRenderPrivate,parent)
 	{
+		ins=this;
+		setObjectName("DRender");
 		Q_D(DetachRender);
 		d->tv.disconnect();
 		device=nullptr;
@@ -807,8 +809,6 @@ public:
 		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
 		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
-		ins=this;
-		setObjectName("DRender");
 	}
 
 	~DetachRender()

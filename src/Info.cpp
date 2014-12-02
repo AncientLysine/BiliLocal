@@ -26,13 +26,14 @@
 =========================================================================*/
 
 #include "Info.h"
-#include "Local.h"
-#include "Utils.h"
-#include "Shield.h"
-#include "Config.h"
-#include "Editor.h"
-#include "Danmaku.h"
 #include "APlayer.h"
+#include "Config.h"
+#include "Danmaku.h"
+#include "Editor.h"
+#include "List.h"
+#include "Local.h"
+#include "Shield.h"
+#include "Utils.h"
 
 namespace
 {
@@ -179,14 +180,14 @@ Info::Info(QWidget *parent):
 			menu.addSeparator();
 		}
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
-			Config::exec(Local::mainWidget(),3);
+			Config::exec(lApp->mainWidget(),3);
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool" )),&QAction::triggered,[this](){
-			Editor::exec(Local::mainWidget());
+			Editor::exec(lApp->mainWidget());
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
 		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-			QFileDialog save(Local::mainWidget(),tr("Save File"));
+			QFileDialog save(lApp->mainWidget(),tr("Save File"));
 			save.setAcceptMode(QFileDialog::AcceptSave);
 			QFileInfo info(APlayer::instance()->getMedia());
 			if(info.isFile()){
@@ -194,7 +195,7 @@ Info::Info(QWidget *parent):
 				save.selectFile(info.baseName());
 			}
 			else{
-				save.setDirectory(Utils::defaultPath());
+				save.setDirectory(List::instance()->defaultPath(Utils::Danmaku));
 			}
 			save.setDefaultSuffix("json");
 			QStringList type;

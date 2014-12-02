@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Next.h
+*   Filename:    Jump.cpp
 *   Time:        2013/04/22
 *   Author:      Lysine
 *
@@ -24,48 +24,48 @@
 *
 =========================================================================*/
 
-#ifndef NEXT_H
-#define NEXT_H
+#include "Jump.h"
+#include "Load.h"
+#include "Local.h"
+#include "Config.h"
+#include "APlayer.h"
+#include "Danmaku.h"
+#include <functional>
 
-#include <QtCore>
-#include <QtWidgets>
-
-class Next:public QDialog
+Jump::Jump(QWidget *parent):
+	QDialog(parent,Qt::FramelessWindowHint)
 {
-	Q_OBJECT
-public:
-	enum Action
-	{
-		DoNotContinnue,
-		WaitUntilEnded,
-		InheritDanmaku,
-		PlayImmediately
-	};
-	QString getNext();
-	static Next *instance();
+	setFixedSize(parent->minimumWidth(),25);
+	setAttribute(Qt::WA_TranslucentBackground);
+	setObjectName("Jump");
+	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
+	moveWithParent();
+	parent->installEventFilter(this);
 
-private:
-	QString fileC;
-	QString fileN;
-	QLineEdit *fileL;
-	QMenu *nextM;
-	QPushButton *nextB;
-	qint64 duration;
-	static Next *ins;
+	auto layout=new QHBoxLayout(this);
+	layout->setMargin(0);layout->setSpacing(0);
 
-	Next(QWidget *parent);
-	bool eventFilter(QObject *o,QEvent *e);
+	fileL=new QLineEdit(this);
+	fileL->setReadOnly(true);
+	fileL->setFocusPolicy(Qt::NoFocus);
+	layout->addWidget(fileL);
 
-signals:
-	void nextChanged(QString);
+}
 
-public slots:
-	void parse();
-	void clear();
-	void shift();
+bool Jump::eventFilter(QObject *,QEvent *e)
+{
+	switch(e->type()){
+	case QEvent::Move:
+	case QEvent::Resize:
+		moveWithParent();
+		return false;
+	default:
+		return false;
+	}
+}
 
-private slots:
-	void moveWithParent();
-};
-
-#endif // NEXT_H
+void Jump::moveWithParent()
+{
+	QRect p=parentWidget()->geometry(),c=geometry();
+	move(p.center().x()-c.width()/2,p.top()+2);
+}

@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    List.h
+*   Time:        2014/11/19
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,40 +24,41 @@
 *
 =========================================================================*/
 
-#ifndef LOCAL_H
-#define LOCAL_H
+#ifndef LIST_H
+#define LIST_H
 
 #include <QtCore>
 #include <QtWidgets>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local:public QApplication
+class List:public QObject
 {
 	Q_OBJECT
 public:
-	Local(int &argc,char **argv);
-
-	static Local *instance()
+	enum
 	{
-		return lApp;
-	}
+		FileRole=Qt::UserRole,
+		CodeRole,
+		TimeRole,
+		DateRole
+	};
 
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
+	~List();
+	QStandardItemModel *getModel(){return model;}
+	static List *instance();
 
-	static QHash<QString,QObject *> objects;
+private:
+	bool stop;
+	QStandardItem *cur;
+	QStandardItemModel *model;
+	qint64 time;
+	static List *ins;
+	List(QObject *parent);
 
 public slots:
-	QString suggestion(int code);
-	void exit(int code=0);
-
-	void synchronize(quintptr func)
-	{
-		((void (*)())func)();
-	}
+	QString defaultPath(int type);
+	bool finished();
+	void updateCurrent();
+	bool jumpToIndex(const QModelIndex &index,bool manually=true);
 };
 
-#endif // LOCAL_H
+#endif // LIST_H

@@ -25,30 +25,32 @@
 =========================================================================*/
 
 #include "Local.h"
+#include "APlayer.h"
 #include "Config.h"
+#include "Danmaku.h"
 #include "Interface.h"
+#include "List.h"
 #include "Plugin.h"
+#include "Render.h"
 #include "Shield.h"
 #include "Utils.h"
 
-
 QHash<QString,QObject *> Local::objects;
-
-static void setDefaultFont()
-{
-	QString def=Utils::defaultFont();
-	QFont f=qApp->font();
-	if(!QFontDatabase().families().contains(def)){
-		def=QFontInfo(f).family();
-	}
-	f.setFamily(Config::getValue("/Interface/Font/Family",def));
-	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
-	qApp->setFont(f);
-}
 
 Local::Local(int &argc,char **argv):
 	QApplication(argc,argv)
 {
+}
+
+void Local::exit(int code)
+{
+	delete List::instance();
+	Shield::save();
+	Config::save();
+	delete APlayer::instance();
+	delete Danmaku::instance();
+	QApplication::exit(code);
+	delete Render::instance();
 }
 
 QString Local::suggestion(int code)
@@ -66,9 +68,21 @@ QString Local::suggestion(int code)
 	}
 }
 
+static void setDefaultFont()
+{
+	QString def=Utils::defaultFont();
+	QFont f=qApp->font();
+	if(!QFontDatabase().families().contains(def)){
+		def=QFontInfo(f).family();
+	}
+	f.setFamily(Config::getValue("/Interface/Font/Family",def));
+	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
+	qApp->setFont(f);
+}
+
 static void loadTranslator()
 {
-	QString locale=QLocale::system().name();
+	QString locale=Config::getValue("/Interface/Locale",QLocale::system().name());
 	QFileInfoList list;
 	list+=QDir("./locale/"+locale).entryInfoList();
 	list+=QFileInfo("./locale/"+locale+".qm");
@@ -119,10 +133,6 @@ int main(int argc,char *argv[])
 	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
-	a.connect(&a,&Local::aboutToQuit,[](){
-		Shield::save();
-		Config::save();
-	});
 	qsrand(QTime::currentTime().msec());
 	Interface w;
 	Plugin::loadPlugins();
