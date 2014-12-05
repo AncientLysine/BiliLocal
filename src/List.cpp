@@ -53,14 +53,12 @@ bool diffAtNum(QString f,QString s)
 }
 
 List::List(QObject *parent):
-	QObject(parent)
+	QStandardItemModel(parent)
 {
 	ins=this;
 	setObjectName("List");
 	cur=nullptr;
-	stop=0;
 	time=0;
-	model=new QStandardItemModel(this);
 	for(const QJsonValue &i:Config::getValue<QJsonArray>("/Playing/List")){
 		QStandardItem *item=new QStandardItem;
 		QJsonObject data=i.toObject();
@@ -69,7 +67,8 @@ List::List(QObject *parent):
 		item->setText(info.completeBaseName());
 		item->setData(info.absoluteFilePath(),FileRole);
 		item->setData(data["Time"].toDouble(),TimeRole);
-		item->setData(data["Date"].toDouble(),DateRole);
+		item->setData(data["Date"].toString(),DateRole);
+		item->setEditable(false);item->setDropEnabled(false);
 		for(const QJsonValue &j:data["Danm"].toArray()){
 			QStandardItem *c=new QStandardItem;
 			QJsonObject d=j.toObject();
@@ -77,65 +76,61 @@ List::List(QObject *parent):
 			c->setData(d["Time"].toDouble(),TimeRole);
 			item->appendRow(c);
 		}
-		model->appendRow(item);
+		appendRow(item);
 	}
 	connect(APlayer::instance(),&APlayer::timeChanged, [this](qint64 _time){
 		time=_time;
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
+		if (cur){
+			cur->setData(QColor(Qt::black),Qt::ForegroundRole);
+		}
 		QFileInfo info(file);
 		updateCurrent();
 		QString name=info.completeBaseName();
 		QString path=info.absoluteFilePath();
-		int c=model->rowCount(),i;
-		for(i=0;i<c;++i){
-			if (model->item(i)->data(FileRole).toString()==path){
-				Danmaku::instance()->clearPool();
-				cur=model->item(i);
-				Load *load=Load::instance();
-				for(int i=0;i<cur->rowCount();++i){
-					QStandardItem *d=cur->child(i);
-					Load::Task task=load->codeToTask(d->data(List::CodeRole).toString());
-					task.delay=d->data(List::TimeRole).value<qint64>();
-					load->enqueue(task);
-				}
-				break;
-			}
-		}
-		if(i>=c){
+		cur=itemFromFile(path);
+		if(!cur){
 			cur=new QStandardItem;
 			cur->setText(name);
 			cur->setData(path,FileRole);
-			model->appendRow(cur);
-		}
-		cur->setData(QDateTime::currentMSecsSinceEpoch(),DateRole);
-	});
-	connect(APlayer::instance(),&APlayer::begin,[this](){
-		stop=false;
-	});
-	connect(APlayer::instance(),&APlayer::reach,[this](bool m){
-		if(m){
-			stop=true;
+			cur->setEditable(false);
+			appendRow(cur);
 		}
 		else{
-			QModelIndex i=model->indexFromItem(cur);
-			if(jumpToIndex(model->index(i.row()+1,0,i.parent()),false)){
+			Danmaku::instance()->clearPool();
+			Load *load=Load::instance();
+			for(int i=0;i<cur->rowCount();++i){
+				QStandardItem *d=cur->child(i);
+				Load::Task task=load->codeToTask(d->data(List::CodeRole).toString());
+				task.delay=d->data(List::TimeRole).value<qint64>();
+				load->enqueue(task);
+			}
+		}
+		cur->setData(QColor(90,115,210),Qt::ForegroundRole);
+		cur->setData(QDateTime::currentDateTime(),DateRole);
+	});
+	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
+		if(!m){
+			QModelIndex i=indexFromItem(cur);
+			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
+				APlayer::instance()->getState()!=APlayer::Play){
 				APlayer::instance()->play();
 			}
 		}
-	});
+	},Qt::QueuedConnection);
 }
 
 List::~List()
 {
 	QJsonArray list;
 	updateCurrent();
-	for(int i=0;i<model->rowCount();++i){
-		QStandardItem *item=model->item(i);
+	for(int i=0;i<rowCount();++i){
+		QStandardItem *item=this->item(i);
 		QJsonObject data;
 		data["File"]=item->data(FileRole).toString();
 		data["Time"]=item->data(TimeRole).toDouble();
-		data["Date"]=item->data(DateRole).toDouble();
+		data["Date"]=item->data(DateRole).toString();
 		QJsonArray danm;
 		for(int i=0;i<item->rowCount();++i){
 			QStandardItem *c=item->child(i);
@@ -153,34 +148,45 @@ List::~List()
 QString List::defaultPath(int type)
 {
 	QStandardItem *item=cur;
-	if (model->hasChildren()&&!item){
-		item=model->item(0);
-		for(int i=1;i<model->rowCount();++i){
-			QStandardItem *iter=model->item(i);
-			if (iter->data(DateRole).toDouble()>item->data(DateRole).toDouble()){
+	if (hasChildren()&&!item){
+		item=this->item(0);
+		for(int i=1;i<rowCount();++i){
+			QStandardItem *iter=this->item(i);
+			if (iter->data(DateRole).toDateTime()>item->data(DateRole).toDateTime()){
 				item=iter;
 			}
 		}
 	}
 	if (item){
-		if (type!=Utils::Danmaku){
-			return item->data(FileRole).toString();
-		}
-		for(int i=0;i<item->rowCount();++i){
-			QString code=item->child(i)->data(CodeRole).toString();
-			if (QFile::exists(code)){
-				return code;
+		if (type==Utils::Danmaku){
+			for(int i=0;i<item->rowCount();++i){
+				QString code=item->child(i)->data(CodeRole).toString();
+				if (QFile::exists(code)){
+					return code;
+				}
 			}
 		}
+		return item->data(FileRole).toString();
 	}
 	QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
 	paths.append(QDir::homePath());
 	return paths.front();
 }
 
+QStandardItem *List::itemFromFile(QString path)
+{
+	int c=rowCount(),i;
+	for(i=0;i<c;++i){
+		if (item(i)->data(FileRole).toString()==path){
+			return item(i);
+		}
+	}
+	return nullptr;
+}
+
 bool List::finished()
 {
-	return stop||!model->hasChildren()||cur==model->item(model->rowCount()-1);
+	return !hasChildren()||cur==item(rowCount()-1);
 }
 
 void List::updateCurrent()
@@ -201,7 +207,7 @@ void List::updateCurrent()
 
 bool List::jumpToIndex(const QModelIndex &index,bool manually)
 {
-	QStandardItem *head=model->itemFromIndex(index);
+	QStandardItem *head=itemFromIndex(index);
 	if(!head){
 		return false;
 	}

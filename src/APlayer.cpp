@@ -624,17 +624,16 @@ QPlayer::QPlayer(QObject *parent):
 	mp->setVolume(Config::getValue("/Playing/Volume",50));
 	manuallyStopped=false;
 
-	connect(mp,&QMediaPlayer::stateChanged,		this,&QPlayer::stateChanged	);
-	connect(mp,&QMediaPlayer::positionChanged,	this,&QPlayer::timeChanged	);
-	connect(mp,&QMediaPlayer::volumeChanged,	this,&QPlayer::volumeChanged);
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){
 		if ((State)mp->state()==Play){
 			manuallyStopped=true;
 		}
 		emit errorOccurred(error);
 	});
+	
+	connect(mp,&QMediaPlayer::volumeChanged,this,&QPlayer::volumeChanged);
 
-	connect(this,&QPlayer::stateChanged,[this](int state){
+	connect(mp,&QMediaPlayer::stateChanged,this,[this](int state){
 		static int lastState;
 		if(state==Stop){
 			if(!manuallyStopped&&Config::getValue("/Playing/Loop",false)){
@@ -651,14 +650,16 @@ QPlayer::QPlayer(QObject *parent):
 			waitingForBegin=true;
 		}
 		lastState=state;
+		emit stateChanged(state);
 	});
 
-	connect(this,&QPlayer::timeChanged,[this](qint64 t){
-		if (waitingForBegin&&t>0){
+	connect(mp,&QMediaPlayer::positionChanged,this,[this](qint64 time){
+		if (waitingForBegin&&time>0){
 			waitingForBegin=false;
 			Render::instance()->setMusic(!mp->isVideoAvailable());
 			emit begin();
 		}
+		emit timeChanged(time);
 	});
 }
 

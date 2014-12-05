@@ -39,15 +39,9 @@ public:
 	static void exec(QWidget *parent=0);
 
 private:
-	QWidget *widget;
-	QLabel  *remind;
-	QScrollBar *scroll;
-	QNetworkAccessManager *manager;
-
+	QWidget *list;
+	QWidget *pool;
 	explicit Editor(QWidget *parent=0);
-	void parseRecords();
-	void parseLayouts();
-	void resizeEvent(QResizeEvent *e);
 };
 
 #endif // EDITOR_H

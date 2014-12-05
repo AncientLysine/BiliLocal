@@ -30,7 +30,7 @@
 #include <QtCore>
 #include <QtWidgets>
 
-class List:public QObject
+class List:public QStandardItemModel
 {
 	Q_OBJECT
 public:
@@ -43,19 +43,18 @@ public:
 	};
 
 	~List();
-	QStandardItemModel *getModel(){return model;}
+	QStandardItem *getCurrent(){return cur;}
 	static List *instance();
 
 private:
-	bool stop;
 	QStandardItem *cur;
-	QStandardItemModel *model;
 	qint64 time;
 	static List *ins;
 	List(QObject *parent);
 
 public slots:
 	QString defaultPath(int type);
+	QStandardItem *itemFromFile(QString path);
 	bool finished();
 	void updateCurrent();
 	bool jumpToIndex(const QModelIndex &index,bool manually=true);

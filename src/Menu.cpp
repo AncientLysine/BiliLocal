@@ -189,7 +189,7 @@ Menu::Menu(QWidget *parent):
 	Utils::setGround(this,Qt::white);
 	QSortFilterProxyModel *fileM=new QSortFilterProxyModel(this);
 	fileM->setSortRole(List::DateRole);
-	fileM->setSourceModel(List::instance()->getModel());
+	fileM->setSourceModel(List::instance());
 	fileM->sort(0,Qt::DescendingOrder);
 	fileC=new QCompleter(fileM,this);
 	fileL=new EditWithHistory(fileC,this);
@@ -394,8 +394,8 @@ Menu::Menu(QWidget *parent):
 		case Load::File:
 		case Load::Pool:
 			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());
-			danmL->setCursorPosition(0);
 			danmL->setText(Load::instance()->getStr());
+			danmL->setCursorPosition(0);
 		case Load::Code:
 		case Load::None:
 			isStay=0;

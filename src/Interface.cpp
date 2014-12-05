@@ -29,6 +29,7 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
+#include "Editor.h"
 #include "Info.h"
 #include "Jump.h"
 #include "List.h"
@@ -94,8 +95,10 @@ Interface::Interface(QWidget *parent):
 	});
 	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
 	connect(aplayer,&APlayer::begin,this,[this](){
-		if(!isFullScreen()&&geo.isEmpty()){
-			geo=saveGeometry();
+		if(!isFullScreen()){
+			if (geo.isEmpty()){
+				geo=saveGeometry();
+			}
 			sca->setEnabled(true);
 			setCenter(render->getPreferredSize(),false);
 		}
@@ -104,15 +107,15 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
-	},Qt::QueuedConnection);
-	connect(aplayer,&APlayer::reach,this,[this](){
+	});
+	connect(aplayer,&APlayer::reach,this,[this](bool m){
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->setEnabled(false);
 		sca->setEnabled(false);
 		render->setVideoAspectRatio(0);
-		if(!geo.isEmpty()&&list->finished()){
-			if(isFullScreen()){
+		if(!geo.isEmpty()&&(list->finished()||m)){
+			if (isFullScreen()){
 				fullA->toggle();
 			}
 			restoreGeometry(geo);
@@ -120,7 +123,7 @@ Interface::Interface(QWidget *parent):
 		}
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
-	},Qt::QueuedConnection);
+	});
 	
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
@@ -205,6 +208,12 @@ Interface::Interface(QWidget *parent):
 	connect(danmaku,&Danmaku::layoutChanged,[this](){
 		toggA->setChecked(Shield::shieldG[7]);
 	});
+
+	listA=new QAction(tr("Playlist"),this);
+	listA->setObjectName("List");
+	listA->setShortcut(Config::getValue("/Shortcut/List",QString("Ctrl+L")));
+	addAction(listA);
+	connect(listA,&QAction::triggered,std::bind(&Editor::exec,this));
 	
 	postA=new QAction(tr("Post Danmaku"),this);
 	postA->setObjectName("Post");
@@ -600,6 +609,7 @@ void Interface::showContextMenu(QPoint p)
 		top.addActions(info->actions());
 		top.addAction(fullA);
 		top.addAction(toggA);
+		top.addAction(listA);
 		top.addActions(menu->actions());
 		top.addAction(postA);
 		QMenu sub(tr("Subtitle"),this);
