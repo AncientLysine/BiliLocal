@@ -222,6 +222,7 @@ Info::Info(QWidget *parent):
 	connect(animation,&QPropertyAnimation::finished,[this](){
 		if(!isPoped){
 			hide();
+			lApp->mainWidget()->setFocus();
 		}
 	});
 

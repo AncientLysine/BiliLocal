@@ -30,7 +30,7 @@
 #include <QtCore>
 #include <QtWidgets>
 
-class Jump:public QDialog
+class Jump:public QWidget
 {
 	Q_OBJECT
 public:
@@ -40,10 +40,6 @@ private:
 	QLineEdit *fileL;
 	QMenu *jumpM;
 	QPushButton *jumpB;
-	bool eventFilter(QObject *o,QEvent *e);
-
-private slots:
-	void moveWithParent();
 };
 
 #endif // JUMP_H

@@ -41,7 +41,7 @@ public:
 		setModel(List::instance());
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 		setSelectionMode(ExtendedSelection);setDragDropMode(InternalMove);
-		setContextMenuPolicy(Qt::ActionsContextMenu);
+		setContextMenuPolicy(Qt::CustomContextMenu);
 
 		connect(this,&ListEditor::doubleClicked,[this](const QModelIndex &index){
 			List::instance()->jumpToIndex(index);
@@ -73,7 +73,13 @@ public:
 		});
 		addAction(delA);
 
-
+		connect(this,&QWidget::customContextMenuRequested,[=](QPoint p){
+			QMenu menu(this);
+			connect(menu.addAction(tr("Merge")),&QAction::triggered,[this](){
+			});
+			menu.addAction(delA);
+			menu.exec(mapToGlobal(p));
+		});
 	}
 
 private:
@@ -82,11 +88,6 @@ private:
 	{
 		QListView::currentChanged(c,p);
 		selectionModel()->setCurrentIndex(QModelIndex(),QItemSelectionModel::NoUpdate);
-	}
-
-	void paintEvent(QPaintEvent *e)
-	{
-		QListView::paintEvent(e);
 	}
 
 	QSize sizeHint() const

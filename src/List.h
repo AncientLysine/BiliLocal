@@ -43,7 +43,6 @@ public:
 	};
 
 	~List();
-	QStandardItem *getCurrent(){return cur;}
 	static List *instance();
 
 private:
@@ -54,6 +53,7 @@ private:
 
 public slots:
 	QString defaultPath(int type);
+	QStandardItem *getCurrent(){return cur;}
 	QStandardItem *itemFromFile(QString path);
 	bool finished();
 	void updateCurrent();

@@ -33,7 +33,7 @@
 #include <QtNetwork>
 #include "Utils.h"
 
-class Post:public QDialog
+class Post:public QWidget
 {
 	Q_OBJECT
 public:
@@ -53,7 +53,6 @@ private:
 	QColor getColor();
 	Comment getComment();
 	QList<const Record *> getRecords();
-	bool eventFilter(QObject *o,QEvent *e);
 
 signals:
 	void posted(quintptr comment);
@@ -61,7 +60,6 @@ signals:
 private slots:
 	void setColor(QColor color);
 	void postComment();
-	void moveWithParent();
 };
 
 #endif // POST_H

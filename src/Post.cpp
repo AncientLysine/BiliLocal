@@ -33,14 +33,10 @@
 #include "Local.h"
 
 Post::Post(QWidget *parent):
-	QDialog(parent,Qt::FramelessWindowHint)
+	QWidget(parent)
 {
 	setFixedSize(parent->minimumWidth(),25);
-	setAttribute(Qt::WA_TranslucentBackground);
 	setObjectName("Post");
-	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
-	moveWithParent();
-	parent->installEventFilter(this);
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	auto layout=new QHBoxLayout(this);
@@ -89,24 +85,10 @@ Post::Post(QWidget *parent):
 			commentS->addItem(r->string,(quintptr)r);
 			w=qMax(w,commentS->fontMetrics().width(r->string));
 		}
-		if(commentS->count()==0){
-			hide();
-		}
 		commentS->setVisible(commentS->count()>=2);
 		commentS->setFixedWidth(w+30);
 	});
-}
-
-bool Post::eventFilter(QObject *,QEvent *e)
-{
-	switch(e->type()){
-	case QEvent::Move:
-	case QEvent::Resize:
-		moveWithParent();
-		return false;
-	default:
-		return false;
-	}
+	hide();
 }
 
 QColor Post::getColor()
@@ -239,10 +221,4 @@ void Post::postComment()
 			reply->deleteLater();
 		});
 	}
-}
-
-void Post::moveWithParent()
-{
-	QRect p=parentWidget()->geometry(),c=geometry();
-	move(p.center().x()-c.width()/2,p.bottom()-c.height()-2);
 }

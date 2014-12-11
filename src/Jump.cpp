@@ -33,14 +33,10 @@
 #include <functional>
 
 Jump::Jump(QWidget *parent):
-	QDialog(parent,Qt::FramelessWindowHint)
+	QWidget(parent)
 {
 	setFixedSize(parent->minimumWidth(),25);
-	setAttribute(Qt::WA_TranslucentBackground);
 	setObjectName("Jump");
-	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
-	moveWithParent();
-	parent->installEventFilter(this);
 
 	auto layout=new QHBoxLayout(this);
 	layout->setMargin(0);layout->setSpacing(0);
@@ -49,23 +45,5 @@ Jump::Jump(QWidget *parent):
 	fileL->setReadOnly(true);
 	fileL->setFocusPolicy(Qt::NoFocus);
 	layout->addWidget(fileL);
-
-}
-
-bool Jump::eventFilter(QObject *,QEvent *e)
-{
-	switch(e->type()){
-	case QEvent::Move:
-	case QEvent::Resize:
-		moveWithParent();
-		return false;
-	default:
-		return false;
-	}
-}
-
-void Jump::moveWithParent()
-{
-	QRect p=parentWidget()->geometry(),c=geometry();
-	move(p.center().x()-c.width()/2,p.top()+2);
+	hide();
 }

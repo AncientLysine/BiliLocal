@@ -378,6 +378,7 @@ Menu::Menu(QWidget *parent):
 	connect(animation,&QPropertyAnimation::finished,[this](){
 		if(!isPoped){
 			hide();
+			lApp->mainWidget()->setFocus();
 		}
 	});
 	connect(Load::instance(),&Load::stateChanged,[this](int state){

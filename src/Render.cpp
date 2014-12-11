@@ -341,6 +341,7 @@ public:
 
 private:
 	RenderPrivate *render;
+
 	void paintEvent(QPaintEvent *e)
 	{
 		QPainter painter(this);
@@ -584,19 +585,21 @@ public:
 			chroma="I420";
 		}
 		inner=size;
-		int w=size.width(),h=size.height();
+		int s=size.width()*size.height();
 		for(quint8 *iter:buffer){
 			delete[]iter;
 		}
 		buffer.clear();
-		buffer.append(new quint8[w*h]);
-		buffer.append(new quint8[w*h/4]);
-		buffer.append(new quint8[w*h/4]);
+		buffer.append(new quint8[s]);
+		s/=4;
+		buffer.append(new quint8[s]);
+		buffer.append(new quint8[s]);
 		if (bufferSize){
 			bufferSize->clear();
 			bufferSize->append(size);
-			bufferSize->append(size/2);
-			bufferSize->append(size/2);
+			size/=2;
+			bufferSize->append(size);
+			bufferSize->append(size);
 		}
 	}
 
@@ -616,91 +619,29 @@ public:
 
 QMutex OpenGLRenderPrivate::dataLock;
 
-class OWindow:public QWindow
+class OWidget:public QOpenGLWidget
 {
 public:
-	explicit OWindow(RenderPrivate *render):
-		render(render)
+	explicit OWidget(RenderPrivate *render):
+		QOpenGLWidget(lApp->mainWidget()),render(render)
 	{
-		device=nullptr;
-		setSurfaceType(QWindow::OpenGLSurface);
+		setAttribute(Qt::WA_TransparentForMouseEvents);
 	}
 
-	~OWindow()
-	{
-		if(device){
-			delete device;
-		}
-	}
+private:
+	RenderPrivate  *render;
 
-	void draw()
+	void paintGL()
 	{
-		if(!isExposed()){
-			return;
-		}
-		bool initialize=false;
-		if(!device){
-			context=new QOpenGLContext(this);
-			context->create();
-			initialize=true;
-		}
-		context->makeCurrent(this);
-		if(initialize){
-			device=new QOpenGLPaintDevice;
-			glEnable(GL_TEXTURE_2D);
-		}
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		device->setSize(size()*devicePixelRatio());
-		QPainter painter(device);
+		QPainter painter(this);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0,0),device->size());
+		QRect rect=painter.viewport();
 		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
 		else{
 			render->drawPlay(&painter,rect);
 			render->drawTime(&painter,rect);
-		}
-		context->swapBuffers(this);
-	}
-
-private:
-		RenderPrivate  * render;
-		QOpenGLContext * context;
-	QOpenGLPaintDevice * device;
-
-	bool event(QEvent *e)
-	{
-		switch(e->type()){
-		case QEvent::Drop:
-		case QEvent::KeyPress:
-		case QEvent::KeyRelease:
-		case QEvent::Enter:
-		case QEvent::Leave:
-		case QEvent::MouseMove:
-		case QEvent::MouseButtonPress:
-		case QEvent::MouseButtonRelease:
-		case QEvent::MouseButtonDblClick:
-		case QEvent::Wheel:
-		case QEvent::DragEnter:
-		case QEvent::DragMove:
-		case QEvent::DragLeave:
-		case QEvent::ContextMenu:
-		{
-			QBackingStore *backing=lApp->mainWidget()->backingStore();
-			if(backing){
-				QWindow *window=backing->window();
-				if(window){
-					return qApp->sendEvent(window,e);
-				}
-			}
-			return false;
-		}
-		case QEvent::Expose:
-			draw();
-			return false;
-		default:
-			return QWindow::event(e);
 		}
 	}
 };
@@ -713,12 +654,10 @@ public:
 	{
 		ins=this;
 		setObjectName("ORender");
-		window=new OWindow(d_ptr);
-		widget=QWidget::createWindowContainer(window,lApp->mainWidget());
+		widget=new OWidget(d_ptr);
 	}
 
 private:
-	OWindow *window;
 	QWidget *widget;
 	Q_DECLARE_PRIVATE(OpenGLRender)
 
@@ -741,12 +680,17 @@ public slots:
 
 	quintptr getHandle()
 	{
-		return (quintptr)window;
+		return (quintptr)widget;
 	}
-
-	void draw(QRect)
+	
+	void draw(QRect rect)
 	{
-		window->draw();
+		if(rect.isValid()){
+			widget->update(rect);
+		}
+		else{
+			widget->update();
+		}
 	}
 };
 #endif
@@ -865,12 +809,13 @@ public slots:
 		if(initialize){
 			device=new QOpenGLPaintDevice;
 		}
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		device->setSize(window->size());
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		QRect rect(QPoint(0,0),window->size());
+		painter.setCompositionMode(QPainter::CompositionMode_Source    );
 		painter.fillRect(rect,Qt::transparent);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 		d->drawDanm(&painter,rect);
 		context->swapBuffers(window);
 	}

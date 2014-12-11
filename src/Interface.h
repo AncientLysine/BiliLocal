@@ -43,7 +43,7 @@ class Render;
 class APlayer;
 class Danmaku;
 
-class Interface:public QMdiSubWindow
+class Interface:public QWidget
 {
 	Q_OBJECT
 public:

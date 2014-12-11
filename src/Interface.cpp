@@ -42,12 +42,13 @@
 #include <functional>
 
 Interface::Interface(QWidget *parent):
-	QMdiSubWindow(parent)
+	QWidget(parent)
 {
-	setAcceptDrops(true);
-	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	setObjectName("Interface");
+	setMouseTracking(true);
+	setAcceptDrops(true);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
+	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	setCenter(QSize(),true);
 	Local::objects["Interface"]=this;
 	
@@ -93,7 +94,7 @@ Interface::Interface(QWidget *parent):
 			render->setDisplayTime(0);
 		}
 	});
-	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
+
 	connect(aplayer,&APlayer::begin,this,[this](){
 		if(!isFullScreen()){
 			if (geo.isEmpty()){
@@ -124,7 +125,6 @@ Interface::Interface(QWidget *parent):
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
-	
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
 		switch(error){
@@ -477,6 +477,7 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		menu->push(true);
 		info->push(true);
 		post->hide();
+		jump->hide();
 	}
 	sta=wgd=QPoint();
 	if(sliding&&e->button()==Qt::LeftButton){
@@ -500,6 +501,8 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int l=Config::getValue("/Interface/Popup/Width",150)*logicalDpiX()/72;
 	menu->setGeometry(menu->isShown()?0:0-l,0,l,h);
 	info->setGeometry(info->isShown()?w-l:w,0,l,h);
+	post->move(width()/2-post->width()/2,height()-post->height()-2);
+	jump->move(width()/2-post->width()/2,2);
 	QWidget::resizeEvent(e);
 }
 
