@@ -50,7 +50,7 @@ public:
 			}
 		});
 
-		QAction *delA=new QAction(tr("Delete"),this);
+		QAction *delA=new QAction(Editor::tr("Delete"),this);
 		delA->setShortcut(QString("Del"));
 		connect(delA,&QAction::triggered,[this](){
 			QList<int> rows;
@@ -75,7 +75,7 @@ public:
 
 		connect(this,&QWidget::customContextMenuRequested,[=](QPoint p){
 			QMenu menu(this);
-			connect(menu.addAction(tr("Merge")),&QAction::triggered,[this](){
+			connect(menu.addAction(Editor::tr("Merge")),&QAction::triggered,[this](){
 			});
 			menu.addAction(delA);
 			menu.exec(mapToGlobal(p));

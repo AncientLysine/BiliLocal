@@ -59,13 +59,12 @@ public slots:
 	void setDisplayTime(double t);
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
+	virtual quintptr getHandle()=0;
 	virtual void resize(QSize size)=0;
 	virtual QSize getBufferSize()=0;
 	virtual QSize getActualSize()=0;
 	virtual	QSize getPreferredSize();
-	virtual quintptr getHandle()=0;
-
-	virtual void draw(QRect rect=QRect())=0;
+	virtual void draw(QRect rect=QRect());
 };
 
 #endif // RENDER_H

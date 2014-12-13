@@ -250,7 +250,6 @@ public:
 			return;
 		}
 		QRect dest=fitRect(srcFrame->size,rect);
-		dataLock.lock();
 		if(!dstFrame||dstFrame->size!=dest.size()){
 			if(dstFrame){
 				delete dstFrame;
@@ -265,13 +264,14 @@ public:
 										srcFrame->size.width(),srcFrame->size.height(),srcFrame->format,
 										dstFrame->size.width(),dstFrame->size.height(),dstFrame->format,
 										SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			dataLock.lock();
 			sws_scale(swsctx,
 					  srcFrame->data,srcFrame->line,
 					  0,srcFrame->size.height(),
 					  dstFrame->data,dstFrame->line);
 			dirty=false;
+			dataLock.unlock();
 		}
-		dataLock.unlock();
 		painter->drawImage(dest,frame);
 	}
 
@@ -333,19 +333,19 @@ QMutex RasterRenderPrivate::dataLock;
 class RWidget:public QWidget
 {
 public:
-	RWidget(RenderPrivate *render):
+	RWidget(RasterRenderPrivate *render):
 		QWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 	}
 
 private:
-	RenderPrivate *render;
+	RasterRenderPrivate *render;
 
 	void paintEvent(QPaintEvent *e)
 	{
 		QPainter painter(this);
-		QRect rect(QPoint(0,0),size());
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
@@ -364,9 +364,10 @@ public:
 	RasterRender(QObject *parent=0):
 		Render(new RasterRenderPrivate,parent)
 	{
+		Q_D(RasterRender);
 		ins=this;
 		setObjectName("RRender");
-		widget=new RWidget(d_ptr);
+		widget=new RWidget(d);
 	}
 
 private:
@@ -374,6 +375,11 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender)
 
 public slots:
+	quintptr getHandle()
+	{
+		return (quintptr)widget;
+	}
+
 	void resize(QSize size)
 	{
 		widget->resize(size);
@@ -390,11 +396,6 @@ public slots:
 		return d->srcFrame->size;
 	}
 
-	quintptr getHandle()
-	{
-		return (quintptr)widget;
-	}
-
 	void draw(QRect rect)
 	{
 		if(rect.isValid()){
@@ -408,7 +409,6 @@ public slots:
 #endif
 
 #ifdef RENDER_OPENGL
-#ifdef QT_OPENGL_ES
 static const char *vShaderCode=
 		"attribute vec4 VtxCoord;\n"
 		"attribute vec2 TexCoord;\n"
@@ -420,36 +420,7 @@ static const char *vShaderCode=
 		"}\n";
 
 static const char *fShaderCode=
-		"varying lowp vec2 TexCoordOut;\n"
-		"uniform sampler2D SamplerY;\n"
-		"uniform sampler2D SamplerU;\n"
-		"uniform sampler2D SamplerV;\n"
-		"void main(void)\n"
-		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    lowp vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
-		"}";
-#else
-static const char *vShaderCode=
-		"#version 120\n"
-		"attribute vec4 VtxCoord;\n"
-		"attribute vec2 TexCoord;\n"
-		"varying vec2 TexCoordOut;\n"
-		"void main(void)\n"
-		"{\n"
-		"  gl_Position = VtxCoord;\n"
-		"  TexCoordOut = TexCoord;\n"
-		"}\n";
-
-static const char *fShaderCode=
-		"#version 120\n"
+		"precision mediump float;\n"  
 		"varying vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerU;\n"
@@ -466,7 +437,6 @@ static const char *fShaderCode=
 		"               1.596, -0.813, 0) * yuv;\n"
 		"    gl_FragColor = vec4(rgb, 1);\n"
 		"}";
-#endif
 
 class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
 {
@@ -505,7 +475,6 @@ public:
 			return;
 		}
 		QRect dest=fitRect(inner,rect);
-		dataLock.lock();
 		painter->beginNativePainting();
 		if(dirty){
 			if(initialize){
@@ -523,15 +492,24 @@ public:
 				glBindAttribLocation(program,0,"VtxCoord");
 				glBindAttribLocation(program,1,"TexCoord");
 				glLinkProgram(program);
+				QOpenGLContext * current =QOpenGLContext::currentContext();
+				QObject::connect(current,&QOpenGLContext::aboutToBeDestroyed,[=](){
+					current->makeCurrent(current->surface());
+					glDeleteTextures(3,frame);
+					glDeleteShader(vShader);
+					glDeleteShader(fShader);
+					glDeleteProgram(program);
+				});
 				initialize=false;
 			}
 			int w=inner.width(),h=inner.height();
+			dataLock.lock();
 			uploadTexture(0,w,h);
 			uploadTexture(1,w/2,h/2);
 			uploadTexture(2,w/2,h/2);
 			dirty=false;
+			dataLock.unlock();
 		}
-		dataLock.unlock();
 		glUseProgram(program);
 		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
 		GLfloat vtx[8]={
@@ -605,12 +583,6 @@ public:
 
 	~OpenGLRenderPrivate()
 	{
-		if(!initialize){
-			glDeleteShader(vShader);
-			glDeleteShader(fShader);
-			glDeleteProgram(program);
-			glDeleteTextures(3,frame);
-		}
 		for(quint8 *iter:buffer){
 			delete[]iter;
 		}
@@ -622,20 +594,21 @@ QMutex OpenGLRenderPrivate::dataLock;
 class OWidget:public QOpenGLWidget
 {
 public:
-	explicit OWidget(RenderPrivate *render):
+	explicit OWidget(OpenGLRenderPrivate *render):
 		QOpenGLWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
 	}
 
 private:
-	RenderPrivate  *render;
+	OpenGLRenderPrivate  *render;
 
 	void paintGL()
 	{
 		QPainter painter(this);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect=painter.viewport();
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
 		if(APlayer::instance()->getState()==APlayer::Stop){
 			render->drawStop(&painter,rect);
 		}
@@ -652,16 +625,22 @@ public:
 	OpenGLRender(QObject *parent=0):
 		Render(new OpenGLRenderPrivate,parent)
 	{
+		Q_D(OpenGLRender);
 		ins=this;
 		setObjectName("ORender");
-		widget=new OWidget(d_ptr);
+		widget=new OWidget(d);
 	}
 
 private:
-	QWidget *widget;
+	OWidget *widget;
 	Q_DECLARE_PRIVATE(OpenGLRender)
 
 public slots:
+	quintptr getHandle()
+	{
+		return (quintptr)widget;
+	}
+
 	void resize(QSize size)
 	{
 		widget->resize(size);
@@ -676,21 +655,6 @@ public slots:
 	{
 		Q_D(OpenGLRender);
 		return d->inner;
-	}
-
-	quintptr getHandle()
-	{
-		return (quintptr)widget;
-	}
-	
-	void draw(QRect rect)
-	{
-		if(rect.isValid()){
-			widget->update(rect);
-		}
-		else{
-			widget->update();
-		}
 	}
 };
 #endif
@@ -732,6 +696,35 @@ public:
 	}
 };
 
+class OWindow:public QOpenGLWindow
+{
+public:
+	explicit OWindow(DetachRenderPrivate *render):
+		render(render)
+	{
+		QSurfaceFormat f=format();
+		f.setAlphaBufferSize(8);
+		setFormat(f);
+		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
+		setGeometry(qApp->desktop()->screenGeometry());
+		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
+	}
+
+private:
+	DetachRenderPrivate  *render;
+
+	void paintGL()
+	{
+		QPainter painter(this);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
+		painter.setCompositionMode(QPainter::CompositionMode_Source    );
+		painter.fillRect(rect,Qt::transparent);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		render->drawDanm(&painter,rect);
+	}
+};
+
 class DetachRender:public Render
 {
 public:
@@ -742,14 +735,7 @@ public:
 		setObjectName("DRender");
 		Q_D(DetachRender);
 		d->tv.disconnect();
-		device=nullptr;
-		window=new QWindow;
-		window->setSurfaceType(QSurface::OpenGLSurface);
-		QSurfaceFormat format;
-		format.setAlphaBufferSize(8);
-		window->setFormat(format);
-		window->setFlags(window->flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
-		window->setGeometry(qApp->desktop()->screenGeometry());
+		window=new OWindow(d);
 		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
 		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
@@ -757,22 +743,21 @@ public:
 
 	~DetachRender()
 	{
-		if(device){
-			delete device;
-		}
 		if(window){
 			delete window;
 		}
 	}
 	
 private:
-			   QWindow *window;
-		QOpenGLContext *context;
-	QOpenGLPaintDevice *device;
-
+	OWindow *window;
 	Q_DECLARE_PRIVATE(DetachRender)
 
 public slots:
+	quintptr getHandle()
+	{
+		return (quintptr)window;
+	}
+
 	void resize(QSize)
 	{
 	}
@@ -785,39 +770,6 @@ public slots:
 	QSize getBufferSize()
 	{
 		return QSize();
-	}
-
-	quintptr getHandle()
-	{
-		return (quintptr)window;
-	}
-
-	void draw(QRect)
-	{
-		Q_D(DetachRender);
-		if(!window->isExposed()){
-			return;
-		}
-		bool initialize=false;
-		if(!device){
-			context=new QOpenGLContext(this);
-			context->setFormat(window->format());
-			context->create();
-			initialize=true;
-		}
-		context->makeCurrent(window);
-		if(initialize){
-			device=new QOpenGLPaintDevice;
-		}
-		device->setSize(window->size());
-		QPainter painter(device);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0,0),window->size());
-		painter.setCompositionMode(QPainter::CompositionMode_Source    );
-		painter.fillRect(rect,Qt::transparent);
-		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-		d->drawDanm(&painter,rect);
-		context->swapBuffers(window);
 	}
 };
 #endif
@@ -984,4 +936,9 @@ QSize Render::getPreferredSize()
 	QSize s=getBufferSize();
 	d->pixelAspectRatio>1?(s.rwidth()*=d->pixelAspectRatio):(s.rheight()/=d->pixelAspectRatio);
 	return s;
+}
+
+void Render::draw(QRect rect)
+{
+	Q_UNUSED(rect);
 }

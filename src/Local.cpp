@@ -50,7 +50,6 @@ void Local::exit(int code)
 	delete APlayer::instance();
 	delete Danmaku::instance();
 	QApplication::exit(code);
-	delete Render::instance();
 }
 
 QString Local::suggestion(int code)
@@ -116,6 +115,9 @@ int main(int argc,char *argv[])
 	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
 	Local::addLibraryPath("./plugins");
 	Local::setStyle("Fusion");
+#ifdef Q_OS_WIN
+	Local::setAttribute(Qt::AA_UseOpenGLES);
+#endif
 	Local a(argc,argv);
 	Config::load();
 	int single;
