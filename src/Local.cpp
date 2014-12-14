@@ -154,6 +154,7 @@ int main(int argc,char *argv[])
 			w.tryLocal(args);
 		});
 	}
+	QThread::currentThread()->setPriority(QThread::TimeCriticalPriority);
 	int r;
 	if((r=a.exec())==12450){
 		if(server){

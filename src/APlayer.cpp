@@ -87,42 +87,101 @@ public slots:
 
 QMutex VPlayer::time;
 
-static unsigned fmt(void **,char *chroma,
+namespace
+{
+class Buffer
+{
+public:
+	explicit Buffer(const QList<int> &size):
+		size(size)
+	{
+		int n=0;
+		for(int s:size){
+			n +=s;
+		}
+		data=new quint8[n];
+	}
+
+	~Buffer()
+	{
+		delete []data;
+	}
+
+	void flush()
+	{
+		const QList<quint8 *> &buffer=Render::instance()->getBuffer();
+		quint8 *d=data;
+		for(int i=0;i<buffer.size();++i){
+			int s=size[i];
+			memcpy(buffer[i],d,s);
+			d+=s;
+		}
+		Render::instance()->releaseBuffer();
+	}
+
+	QList<quint8 *> getBuffer()
+	{
+		quint8 *d=data;
+		QList<quint8 *> b;
+		for(int s:size){
+			b+=d;
+			d+=s;
+		}
+		return b;
+	}
+
+private:
+	quint8 *data;
+	QList<int> size;
+};
+
+unsigned fmt(void **opaque,char *chroma,
 					unsigned *width,unsigned *height,
 					unsigned *p,unsigned *l)
 {
 	QString c(chroma);
 	QList<QSize> b;
 	Render::instance()->setBuffer(c,QSize(*width,*height),&b);
+	if (b.isEmpty()){
+		return 0;
+	}
 	memcpy(chroma,c.toUtf8(),4);
 	int i=0;
+	QList<int> size;
 	for(const QSize &s:b){
-		p[i]=s.width();l[i++]=s.height();
+		size.append((p[i]=s.width())*(l[i]=s.height()));
+		++i;
 	}
-	return b.isEmpty()?0:1;
+	*opaque=(void *)new Buffer(size);
+	return 1;
 }
 
-static void *lck(void *,void **planes)
+void *lck(void *opaque,void **planes)
 {
 	int i=0;
-	for(void *p:Render::instance()->getBuffer()){
-		planes[i++]=p;
+	for(quint8 *p:((Buffer *)opaque)->getBuffer()){
+		planes[i++]=(void *)p;
 	}
-	return NULL;
+	return nullptr;
 }
 
-static void dsp(void *,void *)
+void dsp(void *opaque,void *)
 {
-	Render::instance()->releaseBuffer();
+	((Buffer *)opaque)->flush();
 	QMetaObject::invokeMethod(APlayer::instance(),"decode");
 }
 
-static void sta(const libvlc_event_t *,void *)
+void clr(void *opaque)
+{
+	delete (Buffer *)opaque;
+}
+
+void sta(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Init));
 }
 
-static void mid(const libvlc_event_t *,void *)
+void mid(const libvlc_event_t *,void *)
 {
 	if (VPlayer::time.tryLock()) {
 		QMetaObject::invokeMethod(APlayer::instance(),
@@ -132,14 +191,15 @@ static void mid(const libvlc_event_t *,void *)
 	}
 }
 
-static void end(const libvlc_event_t *,void *)
+void end(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Free));
 }
 
-static void err(const libvlc_event_t *,void *)
+void err(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Fail));
+}
 }
 
 VPlayer::VPlayer(QObject *parent):
@@ -159,13 +219,13 @@ VPlayer::VPlayer(QObject *parent):
 		vlc=libvlc_new(args.size(),argv);
 	}
 	else{
-		vlc=libvlc_new(0,NULL);
+		vlc=libvlc_new(0,nullptr);
 	}
 #if (defined Q_OS_WIN)&&(defined QT_NO_DEBUG)
 	libvlc_add_intf(vlc,"bililocal");
 #endif
-	m=NULL;
-	mp=NULL;
+	m =nullptr;
+	mp=nullptr;
 	state=Stop;
 	for(auto &iter:tracks){
 		iter=new QActionGroup(this);
@@ -175,10 +235,9 @@ VPlayer::VPlayer(QObject *parent):
 
 VPlayer::~VPlayer()
 {
-	if(mp){
-		libvlc_media_player_release(mp);
-	}
-	if(m){
+	if (m){
+		if (mp)
+			libvlc_media_player_release(mp);
 		libvlc_media_release(m);
 	}
 	libvlc_release(vlc);
@@ -199,7 +258,9 @@ QList<QAction *> VPlayer::getTracks(int type)
 	return track;
 }
 
-static void copyTracks(libvlc_track_description_t *head,QActionGroup *group)
+namespace
+{
+void copyTracks(libvlc_track_description_t *head,QActionGroup *group)
 {
 	qDeleteAll(group->actions());
 	libvlc_track_description_t *iter=head;
@@ -210,6 +271,7 @@ static void copyTracks(libvlc_track_description_t *head,QActionGroup *group)
 		iter=iter->p_next;
 	}
 	libvlc_track_description_list_release(head);
+}
 }
 
 void VPlayer::init()
@@ -297,8 +359,8 @@ void VPlayer::play()
 {
 	if(mp){
 		if(state==Stop){
-			libvlc_video_set_format_callbacks(mp,fmt,NULL);
-			libvlc_video_set_callbacks(mp,lck,NULL,dsp,NULL);
+			libvlc_video_set_format_callbacks(mp,fmt,clr);
+			libvlc_video_set_callbacks(mp,lck,nullptr,dsp,nullptr);
 			libvlc_media_player_play(mp);
 		}
 		else{
@@ -363,16 +425,16 @@ void VPlayer::setMedia(QString _file,bool manually)
 			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerPlaying,
-								sta,NULL);
+								sta,nullptr);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerTimeChanged,
-								mid,NULL);
+								mid,nullptr);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEndReached,
-								end,NULL);
+								end,nullptr);
 			libvlc_event_attach(man,
 								libvlc_MediaPlayerEncounteredError,
-								err,NULL);
+								err,nullptr);
 			if(Config::getValue("/Playing/Immediate",false)){
 				play();
 			}
@@ -454,7 +516,9 @@ void VPlayer::event(int type)
 #ifdef BACKEND_QMM
 #include <QtMultimedia>
 
-static QString getFormat(QVideoFrame::PixelFormat format)
+namespace
+{
+QString getFormat(QVideoFrame::PixelFormat format)
 {
 	switch(format){
 	case QVideoFrame::Format_NV12:
@@ -538,15 +602,15 @@ public:
 	}
 };
 
-class PlayerThread:public QThread
+class QPlayerThread:public QThread
 {
 public:
-	explicit PlayerThread(QObject *parent=0):
+	explicit QPlayerThread(QObject *parent=0):
 		QThread(parent),mp(0)
 	{
 	}
 
-	~PlayerThread()
+	~QPlayerThread()
 	{
 		if (isRunning()){
 			quit();
@@ -581,6 +645,7 @@ private:
 		delete mp;
 	}
 };
+}
 
 class QPlayer:public APlayer
 {
@@ -620,7 +685,7 @@ QPlayer::QPlayer(QObject *parent):
 	ins=this;
 	setObjectName("QPlayer");
 
-	mp=(new PlayerThread(this))->getMediaPlayer();
+	mp=(new QPlayerThread(this))->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Playing/Volume",50));
 	manuallyStopped=false;
 

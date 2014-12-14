@@ -420,15 +420,14 @@ static const char *vShaderCode=
 		"}\n";
 
 static const char *fShaderCode=
-		"precision mediump float;\n"  
-		"varying vec2 TexCoordOut;\n"
+		"varying highp vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerU;\n"
 		"uniform sampler2D SamplerV;\n"
 		"void main(void)\n"
 		"{\n"
-		"    vec3 yuv;\n"
-		"    vec3 rgb;\n"
+		"    mediump vec3 yuv;\n"
+		"    mediump vec3 rgb;\n"
 		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
 		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
 		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
@@ -442,30 +441,30 @@ class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
 {
 public:
 	QSize inner;
-	bool initialize;
 	bool UVReverted;
-	GLuint vShader;
-	GLuint fShader;
-	GLuint program;
+	QOpenGLShaderProgram program;
 	GLuint frame[3];
 	static QMutex dataLock;
 	QList<quint8 *> buffer;
 
-	OpenGLRenderPrivate()
+	void initialize()
 	{
-		initialize=true;
-		vShader=fShader=program=0;
+		initializeOpenGLFunctions();
+		glGenTextures(3,frame);
+		program.addShaderFromSourceCode(QOpenGLShader::Vertex  ,vShaderCode);
+		program.addShaderFromSourceCode(QOpenGLShader::Fragment,fShaderCode);
+		program.bindAttributeLocation("VtxCoord",0);
+		program.bindAttributeLocation("TexCoord",1);
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 	}
 
 	void uploadTexture(int i,int w,int h)
 	{
-		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D,frame[i]);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
 	}
 
@@ -476,32 +475,7 @@ public:
 		}
 		QRect dest=fitRect(inner,rect);
 		painter->beginNativePainting();
-		if(dirty){
-			if(initialize){
-				initializeOpenGLFunctions();
-				glGenTextures(3,frame);
-				vShader=glCreateShader(GL_VERTEX_SHADER);
-				fShader=glCreateShader(GL_FRAGMENT_SHADER);
-				glShaderSource(vShader,1,&vShaderCode,NULL);
-				glShaderSource(fShader,1,&fShaderCode,NULL);
-				glCompileShader(vShader);
-				glCompileShader(fShader);
-				program=glCreateProgram();
-				glAttachShader(program,vShader);
-				glAttachShader(program,fShader);
-				glBindAttribLocation(program,0,"VtxCoord");
-				glBindAttribLocation(program,1,"TexCoord");
-				glLinkProgram(program);
-				QOpenGLContext * current =QOpenGLContext::currentContext();
-				QObject::connect(current,&QOpenGLContext::aboutToBeDestroyed,[=](){
-					current->makeCurrent(current->surface());
-					glDeleteTextures(3,frame);
-					glDeleteShader(vShader);
-					glDeleteShader(fShader);
-					glDeleteProgram(program);
-				});
-				initialize=false;
-			}
+		if (dirty){
 			int w=inner.width(),h=inner.height();
 			dataLock.lock();
 			uploadTexture(0,w,h);
@@ -510,7 +484,7 @@ public:
 			dirty=false;
 			dataLock.unlock();
 		}
-		glUseProgram(program);
+		program.bind();
 		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
 		GLfloat vtx[8]={
 			-h,-v,
@@ -524,19 +498,19 @@ public:
 			0,0,
 			1,0
 		};
-		glVertexAttribPointer(0,2,GL_FLOAT,0,0,vtx);
-		glVertexAttribPointer(1,2,GL_FLOAT,0,0,tex);
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
+		program.setAttributeArray(0,vtx,2);
+		program.setAttributeArray(1,tex,2);
+		program.enableAttributeArray(0);
+		program.enableAttributeArray(1);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D,frame[0]);
-		glUniform1i(glGetUniformLocation(program,"SamplerY"),0);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D,frame[UVReverted?2:1]);
-		glUniform1i(glGetUniformLocation(program,"SamplerU"),1);
+		glBindTexture(GL_TEXTURE_2D,frame[1]);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D,frame[UVReverted?1:2]);
-		glUniform1i(glGetUniformLocation(program,"SamplerV"),2);
+		glBindTexture(GL_TEXTURE_2D,frame[2]);
+		program.setUniformValue("SamplerY",0);
+		program.setUniformValue("SamplerU",UVReverted?2:1);
+		program.setUniformValue("SamplerV",UVReverted?1:2);
 		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 		painter->endNativePainting();
 	}
@@ -598,11 +572,16 @@ public:
 		QOpenGLWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
-		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
+		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()),Qt::QueuedConnection);
 	}
 
 private:
 	OpenGLRenderPrivate  *render;
+
+	void initializeGL()
+	{
+		render->initialize();
+	}
 
 	void paintGL()
 	{
@@ -707,7 +686,8 @@ public:
 		setFormat(f);
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
-		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
+		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()),Qt::QueuedConnection);
+		connect(context(),SIGNAL(aboutToBeDestroyed()),this,SLOT(deleteLater()));
 	}
 
 private:
@@ -739,13 +719,6 @@ public:
 		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
 		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
-	}
-
-	~DetachRender()
-	{
-		if(window){
-			delete window;
-		}
 	}
 	
 private:
