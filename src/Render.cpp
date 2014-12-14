@@ -132,7 +132,6 @@ extern "C"
 {
 #include <libavutil/mem.h>
 #include <libavutil/imgutils.h>
-#include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
 
@@ -142,28 +141,47 @@ public:
 	class Buffer
 	{
 	public:
-		quint8 *data[AV_NUM_DATA_POINTERS];
-		qint32  line[AV_NUM_DATA_POINTERS];
+		quint8 *data[4];
+		qint32 width[4];
+		qint32 lines[4];
 		AVPixelFormat format;
 		QSize size;
 
 		Buffer(AVPixelFormat format,QSize size):
-			format(format),size(size)
+			format(AV_PIX_FMT_NONE), size(size)
 		{
-			if(av_image_alloc(data,line,size.width(),size.height(),format,1)<0){
-				size=QSize();
+			memset(data,0,sizeof(data[0])*4);
+			if (av_image_fill_linesizes(width,format,size.width())<0)
+				return;
+			const AVPixFmtDescriptor *desc=av_pix_fmt_desc_get(format);
+			if(!desc||desc->flags&PIX_FMT_HWACCEL)
+				return;
+			int i,p[4]={0};
+			for(i=0;i<4;i++)
+				p[desc->comp[i].plane]=1;
+			lines[0]=size.height();
+			int n=width[0]*lines[0];
+			for(i=1;i<4&&p[i];i++){
+				int s=(i==1||i==2)?desc->log2_chroma_h:0;
+				lines[i]=(size.height()+(1<<s)-1)>>s;
+				n+=width[i]*lines[i];
 			}
+			data[0]=new quint8[n]; 
+			for(i=1;i<4&&p[i];i++){
+				data[i]=data[i-1]+width[i-1]*lines[i-1];
+			}
+			this->format=format;
 		}
 
 		bool isValid()
 		{
-			return size.isValid();
+			return format!=AV_PIX_FMT_NONE;
 		}
 
 		~Buffer()
 		{
 			if(isValid()){
-				av_free(data[0]);
+				delete data[0];
 			}
 		}
 	};
@@ -266,9 +284,9 @@ public:
 										SWS_FAST_BILINEAR,NULL,NULL,NULL);
 			dataLock.lock();
 			sws_scale(swsctx,
-					  srcFrame->data,srcFrame->line,
+					  srcFrame->data,srcFrame->width,
 					  0,srcFrame->size.height(),
-					  dstFrame->data,dstFrame->line);
+					  dstFrame->data,dstFrame->width);
 			dirty=false;
 			dataLock.unlock();
 		}
@@ -279,8 +297,8 @@ public:
 	{
 		dataLock.lock();
 		QList<quint8 *> p;
-		for(int i=0;i<8;++i){
-			if(srcFrame->line[i]==0){
+		for(int i=0;i<4;++i){
+			if(srcFrame->width[i]==0){
 				break;
 			}
 			p.append(srcFrame->data[i]);
@@ -297,13 +315,13 @@ public:
 		if (bufferSize){
 			bufferSize->clear();
 		}
-		for(int i=0;i<3;++i){
+		for(int i=0;i<4;++i){
 			int l;
-			if((l=srcFrame->line[i])==0){
+			if((l=srcFrame->width[i])==0){
 				break;
 			}
 			if (bufferSize){
-				bufferSize->append(QSize(l,size.height()));
+				bufferSize->append(QSize(srcFrame->width[i],srcFrame->lines[i]));
 			}
 		}
 	}
