@@ -40,6 +40,10 @@ QHash<QString,QObject *> Local::objects;
 Local::Local(int &argc,char **argv):
 	QApplication(argc,argv)
 {
+	QDir::setCurrent(applicationDirPath());
+	Config::load();
+	Shield::load();
+	qsrand(QTime::currentTime().msec());
 }
 
 void Local::exit(int code)
@@ -70,12 +74,14 @@ QString Local::suggestion(int code)
 static void setDefaultFont()
 {
 	QString def=Utils::defaultFont();
-	QFont f=qApp->font();
+	QFontInfo i(qApp->font());
 	if(!QFontDatabase().families().contains(def)){
-		def=QFontInfo(f).family();
+		def=i.family();
 	}
+	double p=i.pointSizeF();
+	QFont f;
 	f.setFamily(Config::getValue("/Interface/Font/Family",def));
-	f.setPointSizeF(Config::getValue("/Interface/Font/Size",f.pointSizeF()));
+	f.setPointSizeF(Config::getValue("/Interface/Font/Size",p));
 	qApp->setFont(f);
 }
 
@@ -112,14 +118,11 @@ static void setToolTipBase()
 
 int main(int argc,char *argv[])
 {
-	QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath());
-	Local::addLibraryPath("./plugins");
 	Local::setStyle("Fusion");
 #ifdef Q_OS_WIN
 	Local::setAttribute(Qt::AA_UseOpenGLES);
 #endif
 	Local a(argc,argv);
-	Config::load();
 	int single;
 	if((single=Config::getValue("/Interface/Single",1))){
 		QLocalSocket socket;
@@ -131,16 +134,14 @@ int main(int argc,char *argv[])
 			return 0;
 		}
 	}
-	Shield::load();
 	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
-	qsrand(QTime::currentTime().msec());
 	Interface w;
 	Plugin::loadPlugins();
 	w.show();
 	w.tryLocal(a.arguments().mid(1));
-	QLocalServer *server=NULL;
+	QLocalServer *server=nullptr;
 	if(single){
 		server=new QLocalServer(qApp);
 		server->listen("BiliLocalInstance");

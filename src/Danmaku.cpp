@@ -61,6 +61,7 @@ Danmaku::~Danmaku()
 {
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
+	qDeleteAll(current);
 }
 
 void Danmaku::draw(QPainter *painter,qint64 move)
@@ -200,7 +201,7 @@ const Comment *Danmaku::commentAt(QPoint point) const
 		}
 	}
 	lock.unlock();
-	return NULL;
+	return nullptr;
 }
 
 void Danmaku::setAlpha(int _alpha)
@@ -247,7 +248,7 @@ void Danmaku::clearCurrent(bool soft)
 		current.clear();
 	}
 	lock.unlock();
-	emit layoutChanged();
+	Render::instance()->draw();
 }
 
 namespace

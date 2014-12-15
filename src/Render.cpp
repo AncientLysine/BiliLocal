@@ -166,7 +166,7 @@ public:
 				lines[i]=(size.height()+(1<<s)-1)>>s;
 				n+=width[i]*lines[i];
 			}
-			data[0]=new quint8[n]; 
+			data[0]=new quint8[n];
 			for(i=1;i<4&&p[i];i++){
 				data[i]=data[i-1]+width[i-1]*lines[i-1];
 			}
@@ -705,7 +705,6 @@ public:
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
 		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()),Qt::QueuedConnection);
-		connect(context(),SIGNAL(aboutToBeDestroyed()),this,SLOT(deleteLater()));
 	}
 
 private:
@@ -734,9 +733,15 @@ public:
 		Q_D(DetachRender);
 		d->tv.disconnect();
 		window=new OWindow(d);
-		connect(APlayer::instance(),&APlayer::begin,	window,&QWindow::show);
-		connect(APlayer::instance(),&APlayer::reach,	window,&QWindow::hide);
-		connect(APlayer::instance(),&APlayer::destroyed,window,&QWindow::hide);
+		connect(APlayer::instance(),&APlayer::begin,window,&QWindow::show);
+		connect(APlayer::instance(),&APlayer::reach,window,&QWindow::hide);
+	}
+	
+	~DetachRender()
+	{
+		if (window){
+			delete window;
+		}
 	}
 	
 private:
@@ -845,6 +850,7 @@ Render::Render(RenderPrivate *data,QObject *parent):
 			draw();
 		}
 	});
+	connect(lApp,&Local::aboutToQuit,this,&Render::deleteLater);
 	QMetaObject::invokeMethod(this,"setRefreshRate",Qt::QueuedConnection,
 							  Q_ARG(int,Config::getValue("/Danmaku/Power",60)));
 }

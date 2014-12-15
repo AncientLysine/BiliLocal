@@ -498,7 +498,7 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int w=e->size().width(),h=e->size().height();
 	menu->terminate();
 	info->terminate();
-	int l=Config::getValue("/Interface/Popup/Width",150)*logicalDpiX()/72;
+	int l=Config::getValue("/Interface/Popup/Width",16*font().pointSizeF())*logicalDpiX()/72;
 	menu->setGeometry(menu->isShown()?0:0-l,0,l,h);
 	info->setGeometry(info->isShown()?w-l:w,0,l,h);
 	post->move(width()/2-post->width()/2,height()-post->height()-2);
@@ -538,7 +538,7 @@ void Interface::checkForUpdate()
 	});
 }
 
-void Interface::setCenter(QSize _s,bool f)
+void Interface::setCenter(QSize _s,bool _f)
 {
 	double x=logicalDpiX()/72.0,y=logicalDpiY()/72.0;
 	if(!_s.isValid()){
@@ -551,7 +551,7 @@ void Interface::setCenter(QSize _s,bool f)
 	QRect r;
 	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
 	QRect s=QApplication::desktop()->screenGeometry(this);
-	QRect t=f?s:geometry();
+	QRect t=_f?s:geometry();
 	if((windowFlags()&Qt::CustomizeWindowHint)==0){
 		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
 	}

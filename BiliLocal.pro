@@ -59,8 +59,7 @@ TRANSLATIONS += \
 
 linux{
 DEFINES += \
-    BACKEND_VLC \
-    BACKEND_QMM
+    BACKEND_VLC
 
 DEFINES += \
     RENDER_RASTER \

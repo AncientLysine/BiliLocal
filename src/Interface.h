@@ -50,7 +50,6 @@ public:
 	explicit Interface(QWidget *parent=0);
 	bool event(QEvent *e);
 
-
 private:
 	QTimer *timer;
 	QTimer *delay;
