@@ -26,6 +26,7 @@
 
 #include "Utils.h"
 #include "Config.h"
+#include <algorithm>
 
 Utils::Site Utils::parseSite(QString url)
 {

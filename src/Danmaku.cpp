@@ -33,6 +33,7 @@
 #include "Local.h"
 #include "Render.h"
 #include "Shield.h"
+#include <algorithm>
 #include <functional>
 
 #define qThreadPool QThreadPool::globalInstance()

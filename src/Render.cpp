@@ -29,7 +29,6 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 #include "Local.h"
-#include <QtWidgets>
 
 Render *Render::ins=NULL;
 
@@ -40,7 +39,6 @@ public:
 	double time;
 	QImage me,background,sound;
 	QTime last;
-	QTimer *power;
 	bool music;
 	bool dirty;
 	double videoAspectRatio;
@@ -186,6 +184,7 @@ public:
 		}
 	};
 
+	QTimer *power;
 	SwsContext *swsctx;
 	Buffer *srcFrame;
 	Buffer *dstFrame;
@@ -268,11 +267,11 @@ public:
 			return;
 		}
 		QRect dest=fitRect(srcFrame->size,rect);
-		if(!dstFrame||dstFrame->size!=dest.size()){
+		QSize dstSize=dest.size()*painter->device()->devicePixelRatio();
+		if(!dstFrame||dstFrame->size!=dstSize){
 			if(dstFrame){
 				delete dstFrame;
 			}
-			QSize dstSize=dest.size();
 			dstFrame=new Buffer(AV_PIX_FMT_RGB32,dstSize);
 			frame=QImage(*dstFrame->data,dstSize.width(),dstSize.height(),QImage::Format_RGB32);
 			dirty=true;
@@ -355,6 +354,7 @@ public:
 		QWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+		lower();
 	}
 
 private:
@@ -386,6 +386,18 @@ public:
 		ins=this;
 		setObjectName("RRender");
 		widget=new RWidget(d);
+		d->power=new QTimer(this);
+		d->power->setTimerType(Qt::PreciseTimer);
+		connect(APlayer::instance(),&APlayer::decode,[=](){
+			if(!d->power->isActive()){
+				draw();
+			}
+		});
+		connect(d->power,&QTimer::timeout,APlayer::instance(),[this](){
+			if(APlayer::instance()->getState()==APlayer::Play){
+				draw();
+			}
+		});
 	}
 
 private:
@@ -402,6 +414,24 @@ public slots:
 	{
 		widget->resize(size);
 	}
+	
+	void setRefreshRate(int rate,bool soft)
+	{
+		Q_D(RasterRender);
+		if (rate){
+			rate =qBound(30,rate,200);
+			int r=qRound(1000.0/rate);
+			if(soft&&d->power->interval()<r){
+				return;
+			}
+			d->power->start(r);
+		}
+		else{
+			rate=0;
+			d->power->stop();
+		}
+		Render::setRefreshRate(rate,soft);
+	}
 
 	QSize getActualSize()
 	{
@@ -414,7 +444,7 @@ public slots:
 		return d->srcFrame->size;
 	}
 
-	void draw(QRect rect)
+	void draw(QRect rect=QRect())
 	{
 		if(rect.isValid()){
 			widget->update(rect);
@@ -590,7 +620,8 @@ public:
 		QOpenGLWidget(lApp->mainWidget()),render(render)
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
-		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()),Qt::QueuedConnection);
+		lower();
+		connect(this,&OWidget::frameSwapped,[this](){QTimer::singleShot(2,this,SLOT(update()));});
 	}
 
 private:
@@ -641,6 +672,12 @@ public slots:
 	void resize(QSize size)
 	{
 		widget->resize(size);
+	}
+
+	void setRefreshRate(int rate,bool soft)
+	{
+		rate=60/widget->format().swapInterval();
+		Render::setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
@@ -704,7 +741,7 @@ public:
 		setFormat(f);
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
-		connect(this,SIGNAL(frameSwapped()),this,SLOT(update()),Qt::QueuedConnection);
+		connect(this,&OWindow::frameSwapped,[this](){QTimer::singleShot(2,this,SLOT(update()));});
 	}
 
 private:
@@ -756,6 +793,14 @@ public slots:
 
 	void resize(QSize)
 	{
+	}
+	
+	void setRefreshRate(int rate,bool soft)
+	{
+		QSurfaceFormat f=window->format();
+		f.setSwapInterval(rate<60?2:1);
+		window->setFormat(f);
+		Render::setRefreshRate(60/window->format().swapInterval(),soft);
 	}
 
 	QSize getActualSize()
@@ -838,18 +883,6 @@ Render::Render(RenderPrivate *data,QObject *parent):
 		setRefreshRate(Config::getValue("/Danmaku/Power",60));
 	});
 
-	d->power=new QTimer(this);
-	d->power->setTimerType(Qt::PreciseTimer);
-	connect(APlayer::instance(),&APlayer::decode,[=](){
-		if(!d->power->isActive()){
-			draw();
-		}
-	});
-	connect(d->power,&QTimer::timeout,APlayer::instance(),[this](){
-		if(APlayer::instance()->getState()==APlayer::Play){
-			draw();
-		}
-	});
 	connect(lApp,&Local::aboutToQuit,this,&Render::deleteLater);
 	QMetaObject::invokeMethod(this,"setRefreshRate",Qt::QueuedConnection,
 							  Q_ARG(int,Config::getValue("/Danmaku/Power",60)));
@@ -878,29 +911,18 @@ void Render::setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	d->setBuffer(chroma,size,bufferSize);
 }
 
-void Render::setMusic(bool isMusic)
+void Render::setBackground(QString path)
 {
 	Q_D(Render);
-	if((d->music=isMusic)&&!d->power->isActive()){
-		setRefreshRate(60,true);
-	}
+	d->background=QImage(path);
+	Config::setValue("/Interface/Background",path);
 }
 
-void Render::setRefreshRate(int rate,bool soft)
+void Render::setMusic(bool music)
 {
 	Q_D(Render);
-	if(rate){
-		rate=qBound(30,rate,200);
-		d->power->start(qRound(1000.0/rate));
-		emit refreshRateChanged(rate);
-	}
-	else{
-		rate=0;
-		d->power->stop();
-		emit refreshRateChanged(rate);
-	}
-	if(!soft){
-		Config::setValue("/Danmaku/Power",rate);
+	if((d->music=music)){
+		setRefreshRate(60,true);
 	}
 }
 
@@ -922,6 +944,14 @@ void Render::setPixelAspectRatio(double ratio)
 {
 	Q_D(Render);
 	d->pixelAspectRatio=ratio;
+}
+
+void Render::setRefreshRate(int rate,bool soft)
+{
+	if(!soft){
+		Config::setValue("/Danmaku/Power",rate);
+	}
+	emit refreshRateChanged(rate);
 }
 
 QSize Render::getPreferredSize()

@@ -68,7 +68,6 @@ public:
 	static Load *instance();
 
 private:
-	bool automated;
 	QStandardItemModel *model;
 	QNetworkAccessManager *manager;
 	QQueue<Task> queue;
@@ -82,9 +81,6 @@ signals:
 public slots:
 	QString getStr();
 	QString getUrl();
-
-	void setAutoLoad(bool enabled);
-	bool autoLoad();
 
 	void dequeue();
 	bool enqueue(const Task &task);

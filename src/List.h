@@ -27,14 +27,14 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
 class List:public QStandardItemModel
 {
 	Q_OBJECT
 public:
-	enum
+	enum Role
 	{
 		FileRole=Qt::UserRole,
 		CodeRole,
@@ -42,14 +42,24 @@ public:
 		DateRole
 	};
 
+	enum Danm
+	{
+		Records,
+		Inherit,
+		Surmise
+	};
+
 	~List();
 	static List *instance();
+	bool dropMimeData(const QMimeData *data,Qt::DropAction action,int row,int column,const QModelIndex &parent);
 
 private:
 	QStandardItem *cur;
 	qint64 time;
+	QList<QIcon> icons;
 	static List *ins;
 	List(QObject *parent);
+	void setRelated(const QModelIndexList &indexes,int reason);
 
 public slots:
 	QString defaultPath(int type);
@@ -57,6 +67,9 @@ public slots:
 	QStandardItem *itemFromFile(QString path);
 	bool finished();
 	void updateCurrent();
+	void merge(const QModelIndexList &indexes);
+	void group(const QModelIndexList &indexes);
+	void split(const QModelIndexList &indexes);
 	bool jumpToIndex(const QModelIndex &index,bool manually=true);
 };
 

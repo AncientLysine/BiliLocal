@@ -37,9 +37,8 @@ public:
 	Jump(QWidget *parent);
 
 private:
-	QLineEdit *fileL;
-	QMenu *jumpM;
-	QPushButton *jumpB;
+	  QLineEdit * fileL;
+	QPushButton * jumpB;
 };
 
 #endif // JUMP_H

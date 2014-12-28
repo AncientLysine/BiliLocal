@@ -29,8 +29,10 @@
 #include "Danmaku.h"
 #include "Local.h"
 #include "Plugin.h"
+#include "Render.h"
 #include "Shield.h"
 #include "Utils.h"
+#include <algorithm>
 
 class ConfigPrivate
 {
@@ -118,7 +120,6 @@ public:
 	{
 		QStringList path;
 		path<<"/Performance"<<
-			  "/Interface/Background"<<
 			  "/Interface/Font"<<
 			  "/Interface/Frameless"<<
 			  "/Interface/Single"<<
@@ -563,7 +564,7 @@ Config::Config(QWidget *parent,int index):
 		d->back=new QLineEdit(d->widget[1]);
 		d->back->setText(Config::getValue("/Interface/Background",QString()));
 		connect(d->back,&QLineEdit::textChanged,[=](){
-			Config::setValue("/Interface/Background",d->back->text());
+			Render::instance()->setBackground(d->back->text());
 		});
 		b->addWidget(d->back);
 		d->open=new QPushButton(tr("choose"),d->widget[1]);

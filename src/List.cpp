@@ -30,7 +30,7 @@
 #include "Config.h"
 #include "Load.h"
 #include "Local.h"
-#include <functional>
+#include <algorithm>
 
 List *List::ins=nullptr;
 
@@ -41,14 +41,49 @@ List *List::instance()
 
 namespace
 {
-bool diffAtNum(QString f,QString s)
+class IconEngine:public QIconEngine
 {
-	for(int i=0;i<f.size()&&i<s.size();++i){
-		if(f[i]!=s[i]){
-			return f[i].isNumber()&&s[i].isNumber();
+public:
+	explicit IconEngine(int state):
+		state(state)
+	{
+	}
+
+	void paint(QPainter *p,const QRect &r,QIcon::Mode,QIcon::State)
+	{
+		switch(state){
+		case 0:
+			p->drawPolyline(QPolygon({(r.topRight()+r.bottomRight())/2,r.center(),(r.bottomLeft()+r.bottomRight())/2}));
+			break;
+		case 1:
+			p->drawLine((r.topRight()+r.topLeft())/2,(r.bottomLeft()+r.bottomRight())/2);
+			break;
+		case 2:
+			p->drawPolyline(QPolygon({(r.topRight()+r.bottomRight())/2,r.center(),(r.topLeft()   +r.topRight())   /2}));
+			break;
+		default:
+			break;
 		}
 	}
-	return false;
+
+	QIconEngine *clone() const
+	{
+		return new IconEngine(state);
+	}
+
+private:
+	int state;
+};
+
+int diffAtNum(QString f,QString s)
+{
+	for(int i=0;i<f.size()&&i<s.size();++i){
+		int d=s[i].unicode()-f[i].unicode();
+		if (d!=0){
+			return f[i].isNumber()&&s[i].isNumber()?d:0;
+		}
+	}
+	return 0;
 }
 }
 
@@ -59,6 +94,19 @@ List::List(QObject *parent):
 	setObjectName("List");
 	cur=nullptr;
 	time=0;
+	for(int i=0;i<3;++i){
+		icons.append(QIcon(new IconEngine(i)));
+	}
+	QStandardItem *lastE=nullptr,*lastD=nullptr;
+	auto conbine=[&](){
+		if (lastE&&lastD){
+			QModelIndexList indexes;
+			for(int i=lastE->row();i<=lastD->row();++i){
+				indexes.append(index(i,0));
+			}
+			setRelated(indexes,lastD->data(CodeRole).toInt());
+		}
+	};
 	for(const QJsonValue &i:Config::getValue<QJsonArray>("/Playing/List")){
 		QStandardItem *item=new QStandardItem;
 		QJsonObject data=i.toObject();
@@ -69,22 +117,31 @@ List::List(QObject *parent):
 		item->setData(data["Time"].toDouble(),TimeRole);
 		item->setData(data["Date"].toString(),DateRole);
 		item->setEditable(false);item->setDropEnabled(false);
-		for(const QJsonValue &j:data["Danm"].toArray()){
-			QStandardItem *c=new QStandardItem;
-			QJsonObject d=j.toObject();
-			c->setData(d["Code"].toString(),CodeRole);
-			c->setData(d["Time"].toDouble(),TimeRole);
-			item->appendRow(c);
+		QJsonValue danm=data["Danm"];
+		if (danm.isArray()){
+			for(const QJsonValue &j:danm.toArray()){
+				QStandardItem *c=new QStandardItem;
+				QJsonObject d=j.toObject();
+				c->setData(d["Code"].toString(),CodeRole);
+				c->setData(d["Time"].toDouble(),TimeRole);
+				item->appendRow(c);
+			}
+			conbine();
+			lastE=item;
+		}
+		else{
+			item->setData(data["Danm"].toString()=="Inherit"?Inherit:Surmise,CodeRole);
+			lastD=item;
 		}
 		appendRow(item);
 	}
+	conbine();
+
 	connect(APlayer::instance(),&APlayer::timeChanged, [this](qint64 _time){
 		time=_time;
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
-		if (cur){
-			cur->setData(QColor(Qt::black),Qt::ForegroundRole);
-		}
+		QStandardItem *old=cur;
 		QFileInfo info(file);
 		updateCurrent();
 		QString name=info.completeBaseName();
@@ -96,16 +153,68 @@ List::List(QObject *parent):
 			cur->setData(path,FileRole);
 			cur->setEditable(false);
 			appendRow(cur);
+			QStringList accept=Utils::getSuffix(Utils::Danmaku);
+			bool only=Config::getValue("/Playing/Clear",true);
+			QModelIndexList indexes;
+			indexes.append(cur->index());
+			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
+				QString p=iter.absoluteFilePath();
+				if (accept.contains(iter.suffix().toLower())&&
+					info.baseName()==iter.baseName()&&(cur->hasChildren()||!only)){
+					QStandardItem *d=new QStandardItem;
+					d->setData(p,CodeRole);
+					cur->appendRow(d);
+				}
+				QString c=info.completeBaseName(),o=iter.completeBaseName();
+				if(!itemFromFile(p)&&info.suffix()==iter.suffix()&&diffAtNum(c,o)>0){
+					QStandardItem *i=new QStandardItem;
+					i->setText(o);
+					i->setData(p,FileRole);
+					i->setEditable(false);i->setDropEnabled(false);
+					appendRow(i);
+					indexes.append(i->index());
+				}
+			}
+			group(indexes);
 		}
-		else{
+		if (old){
+			old->setData(QColor(Qt::black),Qt::ForegroundRole);
+		}
+		switch(cur->data(CodeRole).toInt()){
+		case Inherit:
+			Danmaku::instance()->delayAll(-time);
+			break;
+		case Surmise:
+			for(int i=1;;i++){
+				QStandardItem *head=item(cur->row()-i);
+				if (head->data(CodeRole).toInt()==Records){
+					for(int j=0;j<head->rowCount();++j){
+						QString code=head->child(j)->data(CodeRole).toString();
+						int sharp=code.indexOf("#");
+						if (sharp!=-1&&!QFile::exists(code)){
+							QString id=code.mid(0,sharp);
+							QString pt=code.mid(sharp+1);
+							Load::instance()->loadDanmaku((id+"#%1").arg(pt.toInt()+i));
+						}
+					}
+					break;
+				}
+				
+			}
 			Danmaku::instance()->clearPool();
-			Load *load=Load::instance();
+			break;
+		case Records:
 			for(int i=0;i<cur->rowCount();++i){
+				Load *load=Load::instance();
 				QStandardItem *d=cur->child(i);
-				Load::Task task=load->codeToTask(d->data(List::CodeRole).toString());
+				Load::Task task=load->codeToTask(d->data(CodeRole).toString());
 				task.delay=d->data(List::TimeRole).value<qint64>();
 				load->enqueue(task);
 			}
+			if (old){
+				Danmaku::instance()->clearPool();
+			}
+			break;
 		}
 		cur->setData(QColor(90,115,210),Qt::ForegroundRole);
 		cur->setData(QDateTime::currentDateTime(),DateRole);
@@ -131,18 +240,78 @@ List::~List()
 		data["File"]=item->data(FileRole).toString();
 		data["Time"]=item->data(TimeRole).toDouble();
 		data["Date"]=item->data(DateRole).toString();
-		QJsonArray danm;
-		for(int i=0;i<item->rowCount();++i){
-			QStandardItem *c=item->child(i);
-			QJsonObject d;
-			d["Code"]=c->data(CodeRole).toString();
-			d["Time"]=c->data(TimeRole).toDouble();
-			danm.append(d);
+		switch(item->data(CodeRole).toInt()){
+		case Records:
+		{
+			QJsonArray danm;
+			for(int i=0;i<item->rowCount();++i){
+				QStandardItem *c=item->child(i);
+				QJsonObject d;
+				d["Code"]=c->data(CodeRole).toString();
+				d["Time"]=c->data(TimeRole).toDouble();
+				danm.append(d);
+			}
+			data["Danm"]=danm;
+			break;
 		}
-		data["Danm"]=danm;
+		case Inherit:
+			data["Danm"]="Inherit";
+			break;
+		case Surmise:
+			data["Danm"]="Surmise";
+			break;
+		}
 		list.append(data);
 	}
 	Config::setValue("/Playing/List",list);
+}
+
+bool List::dropMimeData(const QMimeData *data,Qt::DropAction action,int row,int column,const QModelIndex &parent)
+{
+	if ((!item(row)||item(row)->data(CodeRole).toInt()==Records)&&
+		QStandardItemModel::dropMimeData(data,action,row,column,parent)){
+		QModelIndexList indexes;
+		indexes.append(index(row,0));
+		for(int o=row+1;;++o){
+			QModelIndex i=index(o,0);
+			if (i.data(CodeRole).toInt()==Records){
+				setRelated(indexes,indexes.last().data(CodeRole).toInt());
+				break;
+			}
+			else{
+				indexes.append(i);
+			}
+		}
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
+
+void List::setRelated(const QModelIndexList &indexes,int reason)
+{
+	QList<int> rows;
+	for(const QModelIndex&i:indexes){
+		rows.append(i.row());
+	}
+	int s=rows.size()-1;
+	if (s<=0){
+		return;
+	}
+	std::sort(rows.begin(),rows.end());
+	int b=rows[0];
+	for(int r:rows){
+		insertRow(b++,takeRow(r));
+	}
+	int f=rows.first(),t=b-1;
+	item(f)->setIcon(icons[0]);
+	for(int i=f+1;i<=t;++i){
+		QStandardItem *item=this->item(i);
+		item->setIcon(icons[i==t?2:1]);
+		item->setData(reason,CodeRole);
+		item->setRowCount(0);
+	}
 }
 
 QString List::defaultPath(int type)
@@ -191,7 +360,7 @@ bool List::finished()
 
 void List::updateCurrent()
 {
-	if(!cur){
+	if(!cur||cur->data(CodeRole).toInt()!=Records){
 		return;
 	}
 	cur->setRowCount(0);
@@ -205,16 +374,30 @@ void List::updateCurrent()
 	}
 }
 
+void List::merge(const QModelIndexList &indexes)
+{
+	setRelated(indexes,Inherit);
+}
+
+void List::group(const QModelIndexList &indexes)
+{
+	setRelated(indexes,Surmise);
+}
+
+void List::split(const QModelIndexList &indexes)
+{
+	for(const QModelIndex&i:indexes){
+		QStandardItem *item=itemFromIndex(i);
+		item->setIcon(QIcon());item->setData(0,CodeRole);
+	}
+}
+
 bool List::jumpToIndex(const QModelIndex &index,bool manually)
 {
 	QStandardItem *head=itemFromIndex(index);
 	if(!head){
 		return false;
 	}
-	Load *load=Load::instance();
-	bool state=load->autoLoad();
-	load->setAutoLoad(false);
 	APlayer::instance()->setMedia(head->data(FileRole).toString(),manually);
-	load->setAutoLoad(state);
 	return true;
 }

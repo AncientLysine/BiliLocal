@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -43,6 +43,7 @@ public:
 	explicit LoadProxyModel(QObject *parent=0,QString string=QString()):
 		QAbstractProxyModel(parent),string(string)
 	{
+		setSourceModel(Load::instance()->getModel());
 	}
 
 	int columnCount(const QModelIndex &) const
@@ -128,6 +129,34 @@ private:
 	QString string;
 };
 
+class ListProxyModel:public QSortFilterProxyModel
+{
+public:
+	explicit ListProxyModel(QObject *parent=0):
+		QSortFilterProxyModel(parent)
+	{
+		setSourceModel(List::instance());
+		setSortRole(List::DateRole);
+		sort(0,Qt::DescendingOrder);
+	}
+
+	QVariant data(const QModelIndex &index,int role) const
+	{
+		return role==Qt::DecorationRole?QVariant():QSortFilterProxyModel::data(index,role);
+	}
+
+private:
+	bool filterAcceptsRow(int row,const QModelIndex &parent) const
+	{
+		QModelIndex i=sourceModel()->index(row,0,parent);
+		if (!i.data(List::DateRole).toDateTime().isValid()||i.data(List::CodeRole).toInt()==List::Inherit){
+			return false;
+		}
+		QStandardItem *c=List::instance()->getCurrent();
+		return !c||c->index()!=i;
+	}
+};
+
 class EditWithHistory:public QLineEdit
 {
 public:
@@ -187,10 +216,7 @@ Menu::Menu(QWidget *parent):
 	setObjectName("Menu");
 	isStay=isPoped=false;
 	Utils::setGround(this,Qt::white);
-	QSortFilterProxyModel *fileM=new QSortFilterProxyModel(this);
-	fileM->setSortRole(List::DateRole);
-	fileM->setSourceModel(List::instance());
-	fileM->sort(0,Qt::DescendingOrder);
+	ListProxyModel *fileM=new ListProxyModel(this);
 	fileC=new QCompleter(fileM,this);
 	fileL=new EditWithHistory(fileC,this);
 	danmL=new QLineEdit(this);
@@ -219,8 +245,11 @@ Menu::Menu(QWidget *parent):
 	popup->setMouseTracking(true);
 	QAction *hdelA=new QAction(popup);
 	hdelA->setShortcut(QKeySequence(Qt::Key_Delete));
-	connect(hdelA,&QAction::triggered,[this](){
-		fileC->model()->removeRow(fileC->popup()->currentIndex().row());
+	connect(hdelA,&QAction::triggered,[=](){
+		QModelIndex index=popup->currentIndex();
+		index=dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index);
+		index=fileM->mapToSource(index);
+		List::instance()->itemFromIndex(index)->setData(QVariant(),List::DateRole);
 	});
 	popup->addAction(hdelA);
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
@@ -229,7 +258,6 @@ Menu::Menu(QWidget *parent):
 		List::instance()->jumpToIndex(fileM->mapToSource(dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
 	});
 	LoadProxyModel *danmM=new LoadProxyModel(this,tr("Load All"));
-	danmM->setSourceModel(Load::instance()->getModel());
 	danmC=new QCompleter(danmM,this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setWidget(danmL);

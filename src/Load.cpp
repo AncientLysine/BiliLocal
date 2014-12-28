@@ -42,9 +42,7 @@ Load::Load(QObject *parent):
 {
 	ins=this;
 	setObjectName("Load");
-	model=new QStandardItemModel(this);
-	automated=Config::getValue("/Danmaku/Auto",true);
-
+	model  =new QStandardItemModel   (this);
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
@@ -182,25 +180,6 @@ Load::Load(QObject *parent):
 			error(203);
 		}
 	});
-
-	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){
-		if(!automated||!Config::getValue("/Danmaku/Local",false)){
-			return;
-		}
-		QFileInfo info(_file);
-		QStringList accept=Utils::getSuffix(Utils::Danmaku);
-		bool only=Config::getValue("/Playing/Clear",true);
-		if(Danmaku::instance()->rowCount()==0||only){
-			for(const QFileInfo &iter:info.dir().entryInfoList()){
-				if(accept.contains(iter.suffix().toLower())&&info.baseName()==iter.baseName()){
-					loadDanmaku(iter.absoluteFilePath());
-					if(only){
-						break;
-					}
-				}
-			}
-		}
-	});
 }
 
 bool Load::event(QEvent *e)
@@ -275,16 +254,6 @@ QString Load::getStr()
 QString Load::getUrl()
 {
 	return queue.isEmpty()?QString():queue.head().request.url().url();
-}
-
-void Load::setAutoLoad(bool enabled)
-{
-	Config::setValue("/Danmaku/Auto",automated=enabled);
-}
-
-bool Load::autoLoad()
-{
-	return automated;
 }
 
 void Load::loadDanmaku(QString code)

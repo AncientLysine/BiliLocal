@@ -39,6 +39,7 @@
 #include "Post.h"
 #include "Render.h"
 #include "Shield.h"
+#include <algorithm>
 #include <functional>
 
 Interface::Interface(QWidget *parent):
@@ -99,9 +100,9 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			if (geo.isEmpty()){
 				geo=saveGeometry();
+				setCenter(render->getPreferredSize(),false);
 			}
 			sca->setEnabled(true);
-			setCenter(render->getPreferredSize(),false);
 		}
 		rat->setEnabled(true);
 		rat->defaultAction()->setChecked(true);

@@ -211,16 +211,11 @@ VPlayer::VPlayer(QObject *parent):
 	for(QJsonValue arg:Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
 	}
-	if(!args.isEmpty()){
-		const char **argv=new const char *[args.size()];
-		for(int i=0;i<args.size();++i){
-			argv[i]=args[i];
-		}
-		vlc=libvlc_new(args.size(),argv);
+	const char **argv=args.isEmpty()?nullptr:new const char *[args.size()];
+	for(int i=0;i<args.size();++i){
+		argv[i]=args[i];
 	}
-	else{
-		vlc=libvlc_new(0,nullptr);
-	}
+	vlc=libvlc_new(args.size(),argv);
 #if (defined Q_OS_WIN)&&(defined QT_NO_DEBUG)
 	libvlc_add_intf(vlc,"bililocal");
 #endif

@@ -30,8 +30,43 @@
 #include "Danmaku.h"
 #include "List.h"
 #include "Utils.h"
+#include <algorithm>
 
-namespace{	
+namespace{
+class SelectionModel:public QItemSelectionModel
+{
+public:
+	SelectionModel(QAbstractItemModel *model,QObject *parent=nullptr):
+		QItemSelectionModel(model,parent)
+	{
+	}
+	
+	void select(const QItemSelection &selection,QItemSelectionModel::SelectionFlags command)
+	{
+		QItemSelection s;
+		for(auto i:selection.indexes()){
+			QModelIndex f=i,t=i;
+			for(;;){
+				QModelIndex j=t.sibling(t.row()+1,0);
+				if (j.isValid()&&j.data(List::CodeRole).toInt()!=List::Records){
+					t=j;
+				}
+				else{
+					break;
+				}
+			}
+			for(int o=0;;++o){
+				f=i.sibling(i.row()-o,0);
+				if (f.data(List::CodeRole).toInt()==List::Records){
+					break;
+				}
+			}
+			s.select(f,t);
+		}
+		QItemSelectionModel::select(s,command);
+	}
+};
+
 class ListEditor:public QListView
 {
 public:
@@ -39,18 +74,14 @@ public:
 		QListView(parent)
 	{
 		setModel(List::instance());
+		setMinimumWidth(200*logicalDpiX()/96);
+		setSelectionModel(new SelectionModel(model(),this));
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 		setSelectionMode(ExtendedSelection);setDragDropMode(InternalMove);
 		setContextMenuPolicy(Qt::CustomContextMenu);
+		setIconSize(QSize(15*logicalDpiX()/96,15*logicalDpiY()/96));
 
-		connect(this,&ListEditor::doubleClicked,[this](const QModelIndex &index){
-			List::instance()->jumpToIndex(index);
-			if (APlayer::instance()->getState()!=APlayer::Play){
-				APlayer::instance()->play();
-			}
-		});
-
-		QAction *delA=new QAction(Editor::tr("Delete"),this);
+		delA=new QAction(Editor::tr("Delete"),this);
 		delA->setShortcut(QString("Del"));
 		connect(delA,&QAction::triggered,[this](){
 			QList<int> rows;
@@ -72,10 +103,19 @@ public:
 			}
 		});
 		addAction(delA);
+		
+		connect(this,SIGNAL(doubleClicked(QModelIndex)),List::instance(),SLOT(jumpToIndex(QModelIndex)));
 
-		connect(this,&QWidget::customContextMenuRequested,[=](QPoint p){
+		connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
 			QMenu menu(this);
 			connect(menu.addAction(Editor::tr("Merge")),&QAction::triggered,[this](){
+				List::instance()->merge(selectionModel()->selectedRows());
+			});
+			connect(menu.addAction(Editor::tr("Group")),&QAction::triggered,[this](){
+				List::instance()->group(selectionModel()->selectedRows());
+			});
+			connect(menu.addAction(Editor::tr("Split")),&QAction::triggered,[this](){
+				List::instance()->split(selectionModel()->selectedRows());
 			});
 			menu.addAction(delA);
 			menu.exec(mapToGlobal(p));
@@ -83,6 +123,8 @@ public:
 	}
 
 private:
+	QAction *delA;
+
 	void currentChanged(const QModelIndex &c,
 						const QModelIndex &p)
 	{
@@ -691,7 +733,7 @@ void Editor::exec(QWidget *parent)
 Editor::Editor(QWidget *parent):
 	QDialog(parent)
 {
-	setMinimumSize(640*logicalDpiX()/96,450*logicalDpiY()/96);
+	setMinimumSize(650*logicalDpiX()/96,450*logicalDpiY()/96);
 	setWindowTitle(tr("Editor"));
 	
 	QSplitter *splitter=new QSplitter(this);
