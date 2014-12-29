@@ -50,7 +50,6 @@ Interface::Interface(QWidget *parent):
 	setAcceptDrops(true);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
-	setCenter(QSize(),true);
 	Local::objects["Interface"]=this;
 	
 	aplayer=APlayer::instance();
@@ -328,6 +327,7 @@ Interface::Interface(QWidget *parent):
 	}
 	
 	checkForUpdate();
+	setCenter(QSize(),true);
 }
 
 bool Interface::event(QEvent *e)
@@ -374,9 +374,6 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString conf=Config::getValue("/Interface/Size",QString("720,405"));
 		QString size=QString("%1,%2").arg(width()*72/logicalDpiX()).arg(height()*72/logicalDpiY());
 		Config::setValue("/Interface/Size",conf.endsWith(' ')?conf.trimmed():size);
-	}
-	if(!update.isNull()){
-		update->abort();
 	}
 	QWidget::closeEvent(e);
 	lApp->exit();
@@ -511,11 +508,11 @@ void Interface::checkForUpdate()
 {
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 	QNetworkRequest request(QUrl("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO"));
-	update=manager->get(request);
+	manager->get(request);
 	connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *info){
 		QUrl redirect=info->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){
-			update=manager->get(QNetworkRequest(redirect));
+			manager->get(QNetworkRequest(redirect));
 			return;
 		}
 		if(info->error()==QNetworkReply::NoError){

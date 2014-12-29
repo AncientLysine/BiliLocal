@@ -29,8 +29,9 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 #include "Local.h"
+#include <functional>
 
-Render *Render::ins=NULL;
+Render *Render::ins=nullptr;
 
 class RenderPrivate
 {
@@ -347,6 +348,8 @@ public:
 
 QMutex RasterRenderPrivate::dataLock;
 
+namespace
+{
 class RWidget:public QWidget
 {
 public:
@@ -375,6 +378,7 @@ private:
 		QWidget::paintEvent(e);
 	}
 };
+}
 
 class RasterRender:public Render
 {
@@ -457,33 +461,36 @@ public slots:
 #endif
 
 #ifdef RENDER_OPENGL
-static const char *vShaderCode=
-		"attribute vec4 VtxCoord;\n"
-		"attribute vec2 TexCoord;\n"
-		"varying vec2 TexCoordOut;\n"
-		"void main(void)\n"
-		"{\n"
-		"  gl_Position = VtxCoord;\n"
-		"  TexCoordOut = TexCoord;\n"
-		"}\n";
+namespace
+{
+const char *vShaderCode=
+	"attribute vec4 VtxCoord;\n"
+	"attribute vec2 TexCoord;\n"
+	"varying vec2 TexCoordOut;\n"
+	"void main(void)\n"
+	"{\n"
+	"  gl_Position = VtxCoord;\n"
+	"  TexCoordOut = TexCoord;\n"
+	"}\n";
 
-static const char *fShaderCode=
-		"varying highp vec2 TexCoordOut;\n"
-		"uniform sampler2D SamplerY;\n"
-		"uniform sampler2D SamplerU;\n"
-		"uniform sampler2D SamplerV;\n"
-		"void main(void)\n"
-		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    mediump vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
-		"}";
+const char *fShaderCode=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerY;\n"
+	"uniform sampler2D SamplerU;\n"
+	"uniform sampler2D SamplerV;\n"
+	"void main(void)\n"
+	"{\n"
+	"    mediump vec3 yuv;\n"
+	"    mediump vec3 rgb;\n"
+	"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+	"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+	"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+	"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+	"               0,     -0.391, 2.018,   \n"
+	"               1.596, -0.813, 0) * yuv;\n"
+	"    gl_FragColor = vec4(rgb, 1);\n"
+	"}";
+}
 
 class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
 {
@@ -613,6 +620,8 @@ public:
 
 QMutex OpenGLRenderPrivate::dataLock;
 
+namespace
+{
 class OWidget:public QOpenGLWidget
 {
 public:
@@ -623,7 +632,7 @@ public:
 		lower();
 		connect(this,&OWidget::frameSwapped,[this](){QTimer::singleShot(2,this,SLOT(update()));});
 	}
-
+	
 private:
 	OpenGLRenderPrivate  *render;
 
@@ -646,6 +655,7 @@ private:
 		}
 	}
 };
+}
 
 class OpenGLRender:public Render
 {
@@ -730,6 +740,8 @@ public:
 	}
 };
 
+namespace
+{
 class OWindow:public QOpenGLWindow
 {
 public:
@@ -758,6 +770,7 @@ private:
 		render->drawDanm(&painter,rect);
 	}
 };
+}
 
 class DetachRender:public Render
 {

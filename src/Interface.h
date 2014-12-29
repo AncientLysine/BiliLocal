@@ -76,7 +76,6 @@ private:
 	QPoint sta;
 	QPoint wgd;
 	QByteArray geo;
-	QPointer<QNetworkReply> update;
 
 	bool showprg;
 	bool sliding;

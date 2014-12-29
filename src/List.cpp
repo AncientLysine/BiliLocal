@@ -143,7 +143,6 @@ List::List(QObject *parent):
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
 		QStandardItem *old=cur;
 		QFileInfo info(file);
-		updateCurrent();
 		QString name=info.completeBaseName();
 		QString path=info.absoluteFilePath();
 		cur=itemFromFile(path);
@@ -154,13 +153,13 @@ List::List(QObject *parent):
 			cur->setEditable(false);
 			appendRow(cur);
 			QStringList accept=Utils::getSuffix(Utils::Danmaku);
-			bool only=Config::getValue("/Playing/Clear",true);
 			QModelIndexList indexes;
 			indexes.append(cur->index());
 			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
 				QString p=iter.absoluteFilePath();
-				if (accept.contains(iter.suffix().toLower())&&
-					info.baseName()==iter.baseName()&&(cur->hasChildren()||!only)){
+				if(!cur->hasChildren()&&
+					accept.contains(iter.suffix().toLower())&&
+					info.baseName()==iter.baseName()){
 					QStandardItem *d=new QStandardItem;
 					d->setData(p,CodeRole);
 					cur->appendRow(d);
@@ -220,6 +219,7 @@ List::List(QObject *parent):
 		cur->setData(QDateTime::currentDateTime(),DateRole);
 	});
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
+		updateCurrent();
 		if(!m){
 			QModelIndex i=indexFromItem(cur);
 			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
@@ -360,11 +360,14 @@ bool List::finished()
 
 void List::updateCurrent()
 {
-	if(!cur||cur->data(CodeRole).toInt()!=Records){
+	if(!cur){
 		return;
 	}
 	cur->setRowCount(0);
 	cur->setData(time,TimeRole);
+	if (cur->data(CodeRole).toInt()!=Records){
+		return;
+	}
 	for(const Record &r:Danmaku::instance()->getPool()){
 		QUrl u(r.source);
 		QStandardItem *d=new QStandardItem;

@@ -30,6 +30,7 @@
 #include "Danmaku.h"
 #include "Interface.h"
 #include "List.h"
+#include "Load.h"
 #include "Plugin.h"
 #include "Render.h"
 #include "Shield.h"
@@ -41,6 +42,8 @@ Local::Local(int &argc,char **argv):
 	QApplication(argc,argv)
 {
 	QDir::setCurrent(applicationDirPath());
+	setPalette(setStyle("Fusion")->standardPalette());
+	setAttribute(Qt::AA_UseOpenGLES);
 	Config::load();
 	Shield::load();
 	qsrand(QTime::currentTime().msec());
@@ -49,6 +52,7 @@ Local::Local(int &argc,char **argv):
 void Local::exit(int code)
 {
 	delete List::instance();
+	delete Load::instance();
 	Shield::save();
 	Config::save();
 	delete APlayer::instance();
@@ -71,7 +75,9 @@ QString Local::suggestion(int code)
 	}
 }
 
-static void setDefaultFont()
+namespace
+{
+void setDefaultFont()
 {
 	QString def=Utils::defaultFont();
 	QFontInfo i(qApp->font());
@@ -85,7 +91,7 @@ static void setDefaultFont()
 	qApp->setFont(f);
 }
 
-static void loadTranslator()
+void loadTranslator()
 {
 	QString locale=Config::getValue("/Interface/Locale",QLocale::system().name());
 	QFileInfoList list;
@@ -108,26 +114,23 @@ static void loadTranslator()
 	}
 }
 
-static void setToolTipBase()
+void setToolTipBase()
 {
 	QPalette tip=qApp->palette();
 	tip.setColor(QPalette::Inactive,QPalette::ToolTipBase,Qt::white);
 	qApp->setPalette(tip);
 	QToolTip::setPalette(tip);
 }
+}
 
 int main(int argc,char *argv[])
 {
-	Local::setStyle("Fusion");
-#ifdef Q_OS_WIN
-	Local::setAttribute(Qt::AA_UseOpenGLES);
-#endif
 	Local a(argc,argv);
 	int single;
 	if((single=Config::getValue("/Interface/Single",1))){
 		QLocalSocket socket;
 		socket.connectToServer("BiliLocalInstance");
-		if(socket.waitForConnected()){
+		if (socket.waitForConnected()){
 			QDataStream s(&socket);
 			s<<a.arguments().mid(1);
 			socket.waitForBytesWritten();
@@ -143,7 +146,7 @@ int main(int argc,char *argv[])
 	w.tryLocal(a.arguments().mid(1));
 	QLocalServer *server=nullptr;
 	if(single){
-		server=new QLocalServer(qApp);
+		server=new QLocalServer(lApp);
 		server->listen("BiliLocalInstance");
 		QObject::connect(server,&QLocalServer::newConnection,[&](){
 			QLocalSocket *r=server->nextPendingConnection();
@@ -151,7 +154,7 @@ int main(int argc,char *argv[])
 			QDataStream s(r);
 			QStringList args;
 			s>>args;
-			r->deleteLater();
+			delete r;
 			w.tryLocal(args);
 		});
 	}
