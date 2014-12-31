@@ -392,12 +392,12 @@ public:
 		widget=new RWidget(d);
 		d->power=new QTimer(this);
 		d->power->setTimerType(Qt::PreciseTimer);
-		connect(APlayer::instance(),&APlayer::decode,[=](){
+		connect(APlayer::instance(),&APlayer::decode,d->power,[=](){
 			if(!d->power->isActive()){
 				draw();
 			}
 		});
-		connect(d->power,&QTimer::timeout,APlayer::instance(),[this](){
+		connect(d->power,&QTimer::timeout,APlayer::instance(),[=](){
 			if(APlayer::instance()->getState()==APlayer::Play){
 				draw();
 			}
@@ -450,12 +450,7 @@ public slots:
 
 	void draw(QRect rect=QRect())
 	{
-		if(rect.isValid()){
-			widget->update(rect);
-		}
-		else{
-			widget->update();
-		}
+		widget->update(rect.isValid()?rect:QRect(QPoint(0,0),getActualSize()));
 	}
 };
 #endif
@@ -686,7 +681,8 @@ public slots:
 
 	void setRefreshRate(int rate,bool soft)
 	{
-		rate=60/widget->format().swapInterval();
+		QWindow *window=widget->window()->windowHandle();
+		rate=window->screen()->refreshRate()/widget->format().swapInterval();
 		Render::setRefreshRate(rate,soft);
 	}
 
@@ -699,6 +695,11 @@ public slots:
 	{
 		Q_D(OpenGLRender);
 		return d->inner;
+	}
+
+	void draw(QRect rect)
+	{
+		Q_UNUSED(rect);
 	}
 };
 #endif
@@ -810,10 +811,8 @@ public slots:
 	
 	void setRefreshRate(int rate,bool soft)
 	{
-		QSurfaceFormat f=window->format();
-		f.setSwapInterval(rate<60?2:1);
-		window->setFormat(f);
-		Render::setRefreshRate(60/window->format().swapInterval(),soft);
+		rate=window->screen()->refreshRate()/window->format().swapInterval();
+		Render::setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
@@ -824,6 +823,11 @@ public slots:
 	QSize getBufferSize()
 	{
 		return QSize();
+	}
+	
+	void draw(QRect rect)
+	{
+		Q_UNUSED(rect);
 	}
 };
 #endif
@@ -976,9 +980,4 @@ QSize Render::getPreferredSize()
 	QSize s=getBufferSize();
 	d->pixelAspectRatio>1?(s.rwidth()*=d->pixelAspectRatio):(s.rheight()/=d->pixelAspectRatio);
 	return s;
-}
-
-void Render::draw(QRect rect)
-{
-	Q_UNUSED(rect);
 }

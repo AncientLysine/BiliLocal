@@ -221,13 +221,15 @@ List::List(QObject *parent):
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
 		updateCurrent();
 		if(!m){
-			QModelIndex i=indexFromItem(cur);
-			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
-				APlayer::instance()->getState()!=APlayer::Play){
-				APlayer::instance()->play();
-			}
+			QTimer::singleShot(0,[this]{
+				QModelIndex i=indexFromItem(cur);
+				if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
+					APlayer::instance()->getState()!=APlayer::Play){
+					APlayer::instance()->play();
+				}
+			});
 		}
-	},Qt::QueuedConnection);
+	});
 }
 
 List::~List()

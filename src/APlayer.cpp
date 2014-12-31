@@ -168,7 +168,7 @@ void *lck(void *opaque,void **planes)
 void dsp(void *opaque,void *)
 {
 	((Buffer *)opaque)->flush();
-	QMetaObject::invokeMethod(APlayer::instance(),"decode");
+	emit APlayer::instance()->decode();
 }
 
 void clr(void *opaque)
@@ -273,7 +273,7 @@ void VPlayer::init()
 {
 	if(mp){
 		auto *connection=new QMetaObject::Connection;
-		*connection=QObject::connect(this,&VPlayer::timeChanged,[=](){
+		*connection=QObject::connect(this,&VPlayer::timeChanged,this,[=](){
 			if(state==Stop){
 				setState(Play);
 				bool music=true;
@@ -580,7 +580,7 @@ public:
 			Render::instance()->releaseBuffer();
 			f.unmap();
 		}
-		QMetaObject::invokeMethod(APlayer::instance(),"decode");
+		emit APlayer::instance()->decode();
 		return flag;
 	}
 

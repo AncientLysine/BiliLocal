@@ -35,6 +35,7 @@
 #include "Shield.h"
 #include <algorithm>
 #include <functional>
+#include <numeric>
 
 #define qThreadPool QThreadPool::globalInstance()
 
@@ -367,26 +368,22 @@ public:
 			Graphic *g=Graphic::create(*c);
 			if(g){
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
-					int b=0,e=0,s=0;
 					QRectF &r=g->currentRect();
+					int b=r.top(),e=0,s=10;
 					std::function<bool(int,int)> f;
 					switch(c->mode){
 					case 1:
 					case 5:
 					case 6:
-						b=r.top();
 						e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-r.height();
-						s=10;
-						f=std::less_equal<int>();
+						f=std::less_equal   <int>();
 						break;
 					case 4:
-						b=r.top();
-						e=0;
-						s=-10;
+						s=-s;
 						f=std::greater_equal<int>();
 						break;
 					}
-					QVector<uint> result(qMax((e-b)/s+1,0),0);
+					QVector<int> result(qMax((e-b)/s+1,0),0);
 					auto calculate=[&](const QList<Graphic *> &data){
 						QRectF t=r;
 						int i=0,h=b;
@@ -399,7 +396,7 @@ public:
 						r=t;
 					};
 					lock->lockForRead();
-					quint64 lastIndex=current.isEmpty()?0:current.last()->getIndex();
+					quint64 last=current.isEmpty()?0:current.last()->getIndex();
 					calculate(current);
 					lock->unlock();
 					g->setEnabled(false);
@@ -410,21 +407,17 @@ public:
 					iter.toBack();
 					while(iter.hasPrevious()){
 						Graphic *p=iter.previous();
-						if(p->getIndex()>lastIndex){
+						if(p->getIndex()>last){
 							addtion.prepend(p);
 						}
 						else break;
 					}
 					calculate(addtion);
-					uint m=UINT_MAX;
-					int i=0,h=b;
-					for(;f(h,e);h+=s,++i){
-						if(m>result[i]){
-							r.moveTop(h);
-							if(m==0){
-								break;
-							}
+					int h=b,m=std::numeric_limits<int>::max();
+					for(int i=0;f(h,e)&&m!=0;h+=s,++i){
+						if (m>result[i]){
 							m=result[i];
+							r.moveTop(h);
 						}
 					}
 				}
@@ -448,10 +441,12 @@ public:
 		lock->unlock();
 	}
 
+	Process &operator=(const Process &)=delete;
+
 private:
+	QList<Graphic *> &current;
 	qint64 createTime;
 	QReadWriteLock *lock;
-	QList<Graphic *> &current;
 	QList<const Comment *> wait;
 };
 }

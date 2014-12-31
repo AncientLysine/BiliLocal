@@ -101,7 +101,6 @@ Interface::Interface(QWidget *parent):
 				geo=saveGeometry();
 				setCenter(render->getPreferredSize(),false);
 			}
-			sca->setEnabled(true);
 		}
 		rat->setEnabled(true);
 		rat->defaultAction()->setChecked(true);

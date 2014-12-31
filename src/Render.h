@@ -66,7 +66,7 @@ public slots:
 	virtual QSize getBufferSize()=0;
 	virtual QSize getActualSize()=0;
 	virtual	QSize getPreferredSize();
-	virtual void draw(QRect rect=QRect());
+	virtual void draw(QRect rect=QRect())=0;
 };
 
 #endif // RENDER_H
