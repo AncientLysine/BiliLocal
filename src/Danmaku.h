@@ -46,9 +46,6 @@ public:
 	QModelIndex parent(const QModelIndex &) const;
 	QModelIndex index(int row,int colum,const QModelIndex &parent=QModelIndex()) const;
 	QVariant headerData(int section,Qt::Orientation orientation,int role) const;
-	const Comment *commentAt(QPoint point) const;
-	void appendToPool(const Record &record);
-	bool appendToPool(QString source,const Comment &comment);
 	static Danmaku *instance();
 
 private:
@@ -65,19 +62,21 @@ private:
 
 signals:
 	void alphaChanged(int);
-	void unrecognizedComment(quintptr);
+	void unrecognizedComment(const Comment *);
 
 public slots:
 	void setAlpha(int _alpha);
 	void resetTime();
 	void clearPool();
+	void appendToPool(const Record &record);
+	void appendToPool(QString source,const Comment *comment);
 	void clearCurrent(bool soft=false);
+	void insertToCurrent(Graphic *graphic,int index=-1);
+	const Comment *commentAt(QPoint point) const;
 	void parse(int flag=0);
 	void delayAll(qint64 _time);
 	void jumpToTime(qint64 _time);
-	void saveToFile(QString _file);
-	void appendByNetwork(quintptr comment,QString from);
-	void insertToCurrent(quintptr graphic,int index=-1);
+	void saveToFile(QString file);
 };
 
 #endif // DANMAKU_H

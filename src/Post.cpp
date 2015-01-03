@@ -188,37 +188,36 @@ void Post::postComment()
 	default:
 		break;
 	}
-	if(Danmaku::instance()->appendToPool(r->source,c)){
-		QNetworkReply *reply=manager->post(request,data);
-		connect(reply,&QNetworkReply::finished,[=](){
-			int error=reply->error();
-			if(error==QNetworkReply::NoError){
-				switch(Utils::parseSite(reply->url().url()))
-				{
-				case Utils::Bilibili:
-				{
-					error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
-					break;
-				}
-				case Utils::AcPlay:
-				{
-					QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
-					error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
-					break;
-				}
-				default:
-					break;
-				}
+	Danmaku::instance()->appendToPool(r->source,&c);
+	QNetworkReply *reply=manager->post(request,data);
+	connect(reply,&QNetworkReply::finished,[=](){
+		int error=reply->error();
+		if (error==QNetworkReply::NoError){
+			switch(Utils::parseSite(reply->url().url()))
+			{
+			case Utils::Bilibili:
+			{
+				error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+				break;
 			}
-			if(error!=QNetworkReply::NoError){
-				QString info=tr("Network error occurred, error code: %1").arg(error);
-				QString sugg=Local::instance()->suggestion(error);
-				QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+			case Utils::AcPlay:
+			{
+				QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
+				error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
+				break;
 			}
-			else{
-				emit posted((quintptr)&c);
+			default:
+				break;
 			}
-			reply->deleteLater();
-		});
-	}
+		}
+		if(error!=QNetworkReply::NoError){
+			QString info=tr("Network error occurred, error code: %1").arg(error);
+			QString sugg=Local::instance()->suggestion(error);
+			QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+		}
+		else{
+			emit posted(&c);
+		}
+		reply->deleteLater();
+	});
 }

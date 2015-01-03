@@ -55,7 +55,7 @@ private:
 	QList<const Record *> getRecords();
 
 signals:
-	void posted(quintptr comment);
+	void posted(const Comment *);
 
 private slots:
 	void setColor(QColor color);

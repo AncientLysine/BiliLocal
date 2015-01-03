@@ -228,6 +228,118 @@ void Danmaku::clearPool()
 	}
 }
 
+namespace
+{
+class CommentPointer
+{
+public:
+	const Comment *comment;
+
+	CommentPointer(const Comment *comment):
+		comment(comment)
+	{
+	}
+
+	inline bool operator == (const CommentPointer &o) const
+	{
+		return *comment==*o.comment;
+	}
+};
+
+inline uint qHash(const CommentPointer &p, uint seed = 0)
+{
+	return ::qHash(*p.comment,seed);
+}
+}
+
+void Danmaku::appendToPool(const Record &record)
+{
+	Record *append=0;
+	for(Record &r:pool){
+		if(r.source==record.source){
+			append=&r;
+			break;
+		}
+	}
+	if(!append){
+		pool.append(record);
+		QSet<CommentPointer> s;
+		auto &d=pool.last().danmaku;
+		for(auto iter=d.begin();iter!=d.end();){
+			CommentPointer p(&(*iter));
+			if(!s.contains(p)){
+				++iter;
+				s.insert(p);
+			}
+			else{
+				iter=d.erase(iter);
+			}
+		}
+	}
+	else{
+		auto &d=append->danmaku;
+		QSet<CommentPointer> s;
+		for(const Comment &c:d){
+			s.insert(&c);
+		}
+		for(Comment c:record.danmaku){
+			c.time+=append->delay-record.delay;
+			if(!s.contains(&c)){
+				d.append(c);
+				s.insert(&d.last());
+			}
+		}
+		if(record.full){
+			append->full=true;
+		}
+	}
+	parse(0x1|0x2);
+	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
+		Editor::exec(lApp->mainWidget());
+	}
+}
+
+namespace
+{
+class Compare
+{
+public:
+	inline bool operator ()(const Comment *c,qint64 time)
+	{
+		return c->time<time;
+	}
+	inline bool operator ()(qint64 time,const Comment *c)
+	{
+		return time<c->time;
+	}
+	inline bool operator ()(const Comment *f,const Comment *s)
+	{
+		return f->time<s->time;
+	}
+};
+}
+
+void Danmaku::appendToPool(QString source,const Comment *comment)
+{
+	Record *append=nullptr;
+	for(Record &r:pool){
+		if (r.source==source){
+			append=&r;
+			break;
+		}
+	}
+	if(!append){
+		Record r;
+		r.source=source;
+		pool.append(r);
+		append=&pool.last();
+	}
+	append->danmaku.append(*comment);
+	auto ptr=&append->danmaku.last();
+	danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),ptr,Compare()),ptr);
+	parse(0x2);
+}
+
 void Danmaku::clearCurrent(bool soft)
 {
 	qThreadPool->clear();
@@ -253,24 +365,24 @@ void Danmaku::clearCurrent(bool soft)
 	Render::instance()->draw();
 }
 
-namespace
+void Danmaku::insertToCurrent(Graphic *graphic,int index)
 {
-class Compare
-{
-public:
-	inline bool operator ()(const Comment *c,qint64 time)
-	{
-		return c->time<time;
+	lock.lockForWrite();
+	Graphic *g=(Graphic *)graphic;
+	g->setIndex();
+	int size=current.size(),next;
+	if (size==0||index==0){
+		next=0;
 	}
-	inline bool operator ()(qint64 time,const Comment *c)
-	{
-		return time<c->time;
+	else{
+		int ring=size+1;
+		next=index>0?(index%ring):(ring+index%ring);
+		if (next==0){
+			next=size;
+		}
 	}
-	inline bool operator ()(const Comment *f,const Comment *s)
-	{
-		return f->time<s->time;
-	}
-};
+	current.insert(next,g);
+	lock.unlock();
 }
 
 void Danmaku::parse(int flag)
@@ -351,7 +463,7 @@ class Process:public QRunnable
 {
 public:
 	Process(QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
-		lock(l),current(c),wait(w)
+		current(c),lock(l),wait(w)
 	{
 		createTime=QDateTime::currentMSecsSinceEpoch();
 	}
@@ -431,7 +543,7 @@ public:
 				lock->unlock();
 			}
 			else{
-				Danmaku::instance()->unrecognizedComment((quintptr)c);
+				Danmaku::instance()->unrecognizedComment(c);
 			}
 		}
 		lock->lockForWrite();
@@ -555,17 +667,17 @@ void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 }
 }
 
-void Danmaku::saveToFile(QString _file)
+void Danmaku::saveToFile(QString file)
 {
 	QList<const Comment *> d;
 	if(Config::getValue("/Interface/Save/Single",true)){
 		for(const Comment *c:danmaku){
 			d.append(c);
 		}
-		saveToSingleFile(_file,d);
+		saveToSingleFile(file,d);
 	}
 	else{
-		QFileInfo info(_file);
+		QFileInfo info(file);
 		for(const Record &r:pool){
 			if(Utils::getSuffix(Utils::Danmaku).contains(QFileInfo(r.string).suffix().toLower())){
 				continue;
@@ -577,132 +689,4 @@ void Danmaku::saveToFile(QString _file)
 			saveToSingleFile(QFileInfo(info.dir(),"["+r.string+"]"+info.fileName()).absoluteFilePath(),d);
 		}
 	}
-}
-
-namespace
-{
-class CommentPointer
-{
-public:
-	const Comment *comment;
-
-	CommentPointer(const Comment *comment):
-		comment(comment)
-	{
-	}
-
-	inline bool operator == (const CommentPointer &o) const
-	{
-		return *comment==*o.comment;
-	}
-};
-
-inline uint qHash(const CommentPointer &p, uint seed = 0)
-{
-	return ::qHash(*p.comment,seed);
-}
-}
-
-void Danmaku::appendToPool(const Record &record)
-{
-	Record *append=0;
-	for(Record &r:pool){
-		if(r.source==record.source){
-			append=&r;
-			break;
-		}
-	}
-	if(!append){
-		pool.append(record);
-		QSet<CommentPointer> s;
-		auto &d=pool.last().danmaku;
-		for(auto iter=d.begin();iter!=d.end();){
-			CommentPointer p(&(*iter));
-			if(!s.contains(p)){
-				++iter;
-				s.insert(p);
-			}
-			else{
-				iter=d.erase(iter);
-			}
-		}
-	}
-	else{
-		auto &d=append->danmaku;
-		QSet<CommentPointer> s;
-		for(const Comment &c:d){
-			s.insert(&c);
-		}
-		for(Comment c:record.danmaku){
-			c.time+=append->delay-record.delay;
-			if(!s.contains(&c)){
-				d.append(c);
-				s.insert(&d.last());
-			}
-		}
-		if(record.full){
-			append->full=true;
-		}
-	}
-	parse(0x1|0x2);
-	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
-		Editor::exec(lApp->mainWidget());
-	}
-}
-
-bool Danmaku::appendToPool(QString source,const Comment &comment)
-{
-	for(Record &r:pool){
-		if(r.source==source){
-			r.danmaku.append(comment);
-			Comment *c=&r.danmaku.last();
-			danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
-			parse(0x2);
-			return true;
-		}
-	}
-	return false;
-}
-
-void Danmaku::appendByNetwork(quintptr comment,QString from)
-{
-	Record *append=nullptr;
-	for(Record &r:pool){
-		if(r.source==from){
-			append=&r;
-			break;
-		}
-	}
-	if(!append){
-		Record r;
-		r.source=from;
-		pool.append(r);
-		append=&pool.last();
-	}
-	Comment *c=(Comment *)comment;
-	append->danmaku.append(*c);
-	delete c;
-	c=&append->danmaku.last();
-	danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
-	parse(0x2);
-}
-
-void Danmaku::insertToCurrent(quintptr graphic,int index)
-{
-	lock.lockForWrite();
-	Graphic *g=(Graphic *)graphic;
-	g->setIndex();
-	int size=current.size(),next;
-	if (size==0||index==0){
-		next=0;
-	}
-	else{
-		int ring=size+1;
-		next=index>0?(index%ring):(ring+index%ring);
-		if (next==0){
-			next=size;
-		}
-	}
-	current.insert(next,g);
-	lock.unlock();
 }
