@@ -125,6 +125,21 @@ public:
 private:
 	QAction *delA;
 
+	void dragEnterEvent(QDragEnterEvent *e)
+	{
+		if(e->mimeData()->hasFormat("text/uri-list")){
+			QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio);
+			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
+				QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
+				if(std::binary_search(accept.begin(),accept.end(),suffix)){
+					e->acceptProposedAction();
+					break;
+				}
+			}
+		}
+		QListView::dragEnterEvent(e);
+	}
+	
 	void currentChanged(const QModelIndex &c,
 						const QModelIndex &p)
 	{
@@ -135,6 +150,16 @@ private:
 	QSize sizeHint() const
 	{
 		return QSize(150*logicalDpiX()/96,QListView::sizeHint().height());
+	}
+
+	void dropEvent(QDropEvent *e)
+	{
+		if(e->mimeData()->hasFormat("text/uri-list")){
+			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
+				List::instance()->itemFromFile(QUrl(item).toLocalFile().trimmed(),true);
+			}
+		}
+		QListView::dropEvent(e);
 	}
 };
 
@@ -619,26 +644,39 @@ public:
 			menu.exec(mapToGlobal(point));
 		});
 		
-		remind=new QLabel(this);
-		QFont f;
-		f.setPointSize(55);
-		f.setBold(true);
-		remind->setFont(f);
-		remind->setAlignment(Qt::AlignCenter);
-		QPalette p=remind->palette();
-		p.setColor(QPalette::Foreground,Qt::gray);
-		remind->setPalette(p);
-		remind->setText(QStringLiteral("_(:з」∠)_"));
-		
 		parseRecords();
 		connect(Danmaku::instance(),&Danmaku::modelReset,this,&PoolEditor::parseRecords);
 	}
 
 private:
 	QWidget *widget;
-	QLabel  *remind;
 	QScrollBar *scroll;
 	QNetworkAccessManager *manager;
+	
+	void paintEvent(QPaintEvent *)
+	{
+		if(!Danmaku::instance()->getPool().isEmpty()){
+			return;
+		}
+		QPainter p(this);
+		p.setPen(Qt::gray);
+		QString t=QStringLiteral("_(:з」∠)_");
+		QFont f=p.font();
+		f.setPointSize(55);
+		f.setBold(true);
+		p.setFont(f);
+		QSize s=p.fontMetrics().size(0,t);
+		if (width()<s.width()){
+			QTransform r;
+			r.translate(width()/2,height()/2);
+			r.rotate(qRadiansToDegrees(qAcos((width()-100)/(double)(s.width()-100))),Qt::YAxis);
+			p.setTransform(r);
+		}
+		else{
+			p.translate(width()/2,height()/2);
+		}
+		p.drawText(QRect(QPoint(-s.width()/2,-s.height()/2),s),t);
+	}
 
 	QMap<QDate,int> parseCount(QByteArray data)
 	{
@@ -675,19 +713,15 @@ private:
 				t->setRecord(&r);
 				t->show();
 			}
-			remind->hide();
-		}
-		else{
-			remind->show();
 		}
 		parseLayouts();
+		update();
 	}
 		
 	void parseLayouts()
 	{
 		double y=100*logicalDpiY()/96;
 		QRect r=rect();
-		remind->setGeometry(r);
 		if (widget->children().size()*y-2>r.height()){
 			scroll->show();
 			scroll->setGeometry(r.adjusted(r.width()-scroll->width(),0,0,0));

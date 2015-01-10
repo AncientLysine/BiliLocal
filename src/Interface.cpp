@@ -382,7 +382,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
 		QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio|Utils::Subtitle|Utils::Danmaku);
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
 			QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
 			if(std::binary_search(accept.begin(),accept.end(),suffix)){
 				e->acceptProposedAction();
@@ -396,7 +396,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
 			tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}

@@ -64,7 +64,7 @@ private:
 public slots:
 	QString defaultPath(int type);
 	QStandardItem *getCurrent(){return cur;}
-	QStandardItem *itemFromFile(QString path);
+	QStandardItem *itemFromFile(QString file,bool create=false);
 	bool finished();
 	void updateCurrent();
 	void merge(const QModelIndexList &indexes);

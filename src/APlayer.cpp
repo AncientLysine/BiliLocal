@@ -57,7 +57,6 @@ private:
 	int state;
 	QActionGroup *tracks[3];
 	libvlc_instance_t *vlc;
-	libvlc_media_t *m;
 	libvlc_media_player_t *mp;
 
 	void	init();
@@ -219,7 +218,6 @@ VPlayer::VPlayer(QObject *parent):
 #if (defined Q_OS_WIN)&&(defined QT_NO_DEBUG)
 	libvlc_add_intf(vlc,"bililocal");
 #endif
-	m =nullptr;
 	mp=nullptr;
 	state=Stop;
 	for(auto &iter:tracks){
@@ -230,10 +228,8 @@ VPlayer::VPlayer(QObject *parent):
 
 VPlayer::~VPlayer()
 {
-	if (m){
-		if (mp)
-			libvlc_media_player_release(mp);
-		libvlc_media_release(m);
+	if(mp){
+		libvlc_media_player_release(mp);
 	}
 	libvlc_release(vlc);
 }
@@ -278,7 +274,7 @@ void VPlayer::init()
 				setState(Play);
 				bool music=true;
 				libvlc_media_track_t **info;
-				int n=libvlc_media_tracks_get(m,&info);
+				int n=libvlc_media_tracks_get(libvlc_media_player_get_media(mp),&info);
 				for(int i=0;i<n;++i){
 					if(info[i]->i_type==libvlc_track_video){
 						libvlc_video_track_t *v=info[i]->video;
@@ -406,41 +402,41 @@ qint64 VPlayer::getTime()
 void VPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
-	if(m){
-		libvlc_media_release(m);
+	libvlc_media_t *m=libvlc_media_new_path(vlc,QDir::toNativeSeparators(_file).toUtf8());
+	if(!m){
+		return;
 	}
 	if(mp){
 		libvlc_media_player_release(mp);
 	}
-	m=libvlc_media_new_path(vlc,QDir::toNativeSeparators(_file).toUtf8());
-	emit mediaChanged(m?getMedia():QString());
-	if(m){
-		mp=libvlc_media_player_new_from_media(m);
-		if(mp){
-			libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
-			libvlc_event_attach(man,
-								libvlc_MediaPlayerPlaying,
-								sta,nullptr);
-			libvlc_event_attach(man,
-								libvlc_MediaPlayerTimeChanged,
-								mid,nullptr);
-			libvlc_event_attach(man,
-								libvlc_MediaPlayerEndReached,
-								end,nullptr);
-			libvlc_event_attach(man,
-								libvlc_MediaPlayerEncounteredError,
-								err,nullptr);
-			if(Config::getValue("/Playing/Immediate",false)){
-				play();
-			}
-		}
+	mp=libvlc_media_player_new_from_media(m);
+	libvlc_media_release(m);
+	if(!mp){
+		return;
+	}
+	libvlc_event_manager_t *man=libvlc_media_player_event_manager(mp);
+	libvlc_event_attach(man,
+						libvlc_MediaPlayerPlaying,
+						sta,nullptr);
+	libvlc_event_attach(man,
+						libvlc_MediaPlayerTimeChanged,
+						mid,nullptr);
+	libvlc_event_attach(man,
+						libvlc_MediaPlayerEndReached,
+						end,nullptr);
+	libvlc_event_attach(man,
+						libvlc_MediaPlayerEncounteredError,
+						err,nullptr);
+	emit mediaChanged(getMedia());
+	if (Config::getValue("/Playing/Immediate",false)){
+		play();
 	}
 }
 
 QString VPlayer::getMedia()
 {
-	if(m){
-		char *s=libvlc_media_get_mrl(m);
+	if(mp){
+		char *s=libvlc_media_get_mrl(libvlc_media_player_get_media(mp));
 		QUrl u(s);
 		libvlc_free(s);
 		if(u.isLocalFile()){
@@ -721,6 +717,10 @@ QPlayer::QPlayer(QObject *parent):
 		}
 		emit timeChanged(time);
 	});
+
+	connect(mp,&QMediaPlayer::mediaChanged,this,[this](){
+		emit mediaChanged(getMedia());
+	});
 }
 
 QList<QAction *> QPlayer::getTracks(int)
@@ -760,7 +760,6 @@ void QPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
 	QMetaObject::invokeMethod(mp,"setMedia",Qt::BlockingQueuedConnection,Q_ARG(QMediaContent,QUrl::fromLocalFile(_file)));
-	emit mediaChanged(getMedia());
 	if(Config::getValue("/Playing/Immediate",false)){
 		play();
 	}

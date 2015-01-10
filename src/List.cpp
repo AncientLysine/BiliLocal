@@ -142,40 +142,7 @@ List::List(QObject *parent):
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
 		QStandardItem *old=cur;
-		QFileInfo info(file);
-		QString name=info.completeBaseName();
-		QString path=info.absoluteFilePath();
-		cur=itemFromFile(path);
-		if(!cur){
-			cur=new QStandardItem;
-			cur->setText(name);
-			cur->setData(path,FileRole);
-			cur->setEditable(false);
-			appendRow(cur);
-			QStringList accept=Utils::getSuffix(Utils::Danmaku);
-			QModelIndexList indexes;
-			indexes.append(cur->index());
-			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
-				QString p=iter.absoluteFilePath();
-				if(!cur->hasChildren()&&
-					accept.contains(iter.suffix().toLower())&&
-					info.baseName()==iter.baseName()){
-					QStandardItem *d=new QStandardItem;
-					d->setData(p,CodeRole);
-					cur->appendRow(d);
-				}
-				QString c=info.completeBaseName(),o=iter.completeBaseName();
-				if(!itemFromFile(p)&&info.suffix()==iter.suffix()&&diffAtNum(c,o)>0){
-					QStandardItem *i=new QStandardItem;
-					i->setText(o);
-					i->setData(p,FileRole);
-					i->setEditable(false);i->setDropEnabled(false);
-					appendRow(i);
-					indexes.append(i->index());
-				}
-			}
-			group(indexes);
-		}
+		cur=itemFromFile(file,true);
 		if (old){
 			old->setData(QColor(Qt::black),Qt::ForegroundRole);
 		}
@@ -198,7 +165,6 @@ List::List(QObject *parent):
 					}
 					break;
 				}
-				
 			}
 			Danmaku::instance()->clearPool();
 			break;
@@ -344,15 +310,51 @@ QString List::defaultPath(int type)
 	return paths.front();
 }
 
-QStandardItem *List::itemFromFile(QString path)
+QStandardItem *List::itemFromFile(QString file,bool create)
 {
 	int c=rowCount(),i;
 	for(i=0;i<c;++i){
-		if (item(i)->data(FileRole).toString()==path){
+		if (item(i)->data(FileRole).toString()==file){
 			return item(i);
 		}
 	}
-	return nullptr;
+	if(!create){
+		return nullptr;
+	}
+	else{
+		QFileInfo info(file);
+		QString name=info.completeBaseName();
+		QString path=info.absoluteFilePath();
+		QStandardItem *item=new QStandardItem;
+		item->setText(name);
+		item->setData(path,FileRole);
+		item->setEditable(false);item->setDropEnabled(false);
+		appendRow(item);
+		QStringList accept=Utils::getSuffix(Utils::Danmaku);
+		QModelIndexList indexes;
+		indexes.append(item->index());
+			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
+			QString p=iter.absoluteFilePath();
+			if(!item->hasChildren()&&
+				accept.contains(iter.suffix().toLower())&&
+				info.baseName()==iter.baseName()){
+				QStandardItem *d=new QStandardItem;
+				d->setData(p,CodeRole);
+				item->appendRow(d);
+			}
+			QString c=info.completeBaseName(),o=iter.completeBaseName();
+			if(!itemFromFile(p)&&info.suffix()==iter.suffix()&&diffAtNum(c,o)>0){
+				QStandardItem *i=new QStandardItem;
+				i->setText(o);
+				i->setData(p,FileRole);
+				i->setEditable(false);i->setDropEnabled(false);
+				appendRow(i);
+				indexes.append(i->index());
+			}
+		}
+		group(indexes);
+		return item;
+	}
 }
 
 bool List::finished()
