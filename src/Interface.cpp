@@ -342,7 +342,15 @@ void Interface::tryLocal(QString p)
 	}
 	QString suffix=info.suffix().toLower();
 	if(Utils::getSuffix(Utils::Video|Utils::Audio).contains(suffix)){
-		aplayer->setMedia(p);
+		switch(Config::getValue("/Interface/Single",1)){
+		case 0:
+		case 1:
+			aplayer->setMedia(p);
+			break;
+		case 2:
+			list->appendMedia(p);
+			break;
+		}
 	}
 	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
 		load->loadDanmaku(p);

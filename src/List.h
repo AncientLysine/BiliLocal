@@ -66,6 +66,7 @@ public slots:
 	QStandardItem *getCurrent(){return cur;}
 	QStandardItem *itemFromFile(QString file,bool create=false);
 	bool finished();
+	void appendMedia(QString file);
 	void updateCurrent();
 	void merge(const QModelIndexList &indexes);
 	void group(const QModelIndexList &indexes);

@@ -156,7 +156,7 @@ private:
 	{
 		if(e->mimeData()->hasFormat("text/uri-list")){
 			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
-				List::instance()->itemFromFile(QUrl(item).toLocalFile().trimmed(),true);
+				List::instance()->appendMedia(QUrl(item).toLocalFile().trimmed());
 			}
 		}
 		QListView::dropEvent(e);
@@ -286,17 +286,17 @@ public:
 	explicit Track(QWidget *parent=0):
 		QWidget(parent)
 	{
-		double x=100*logicalDpiX()/96,y=100*logicalDpiY()/96;
+		int x=100*logicalDpiX()/96,y=100*logicalDpiY()/96;
 		resize(parent->width(),y);
 		m_record=nullptr;
 		m_wheel=0;
 		m_magnet<<0<<0<<0;
-		m_lable=new QLabel(this);
-		m_lable->setGeometry(0, 0, x-2,y*0.75-2);
-		m_lable->setWordWrap(true);
-		m_lable->setAlignment(Qt::AlignCenter);
+		m_label=new QLabel(this);
+		m_label->setGeometry(0, 0, x-2,y*0.8-2);
+		m_label->setFixedWidth(m_label->width());
+		m_label->setWordWrap(true);
 		m_delay=new QLineEdit(this);
-		m_delay->setGeometry(0,y*0.75-2,x-2,y/4);
+		m_delay->setGeometry(0,y*0.8-2,x-2,y/5);
 		m_delay->setFrame(false);
 		m_delay->setAlignment(Qt::AlignCenter);
 		connect(m_delay,&QLineEdit::editingFinished,[this](){
@@ -318,7 +318,8 @@ public:
 	void setRecord(Record *r)
 	{
 		m_record=r;
-		m_lable->setText(r->string);
+		m_label->setText(r->string);
+		m_label->setAlignment((m_label->sizeHint().height()>m_label->height()?Qt::AlignTop:Qt::AlignVCenter)|Qt::AlignHCenter);
 		m_delay->setText(m_prefix.arg(r->delay/1000));
 	}
 
@@ -339,7 +340,7 @@ public:
 	}
 
 private:
-	QLabel *m_lable;
+	QLabel *m_label;
 	QLineEdit *m_delay;
 
 	Record *m_record;

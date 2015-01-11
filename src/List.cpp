@@ -362,6 +362,11 @@ bool List::finished()
 	return !hasChildren()||cur==item(rowCount()-1);
 }
 
+void List::appendMedia(QString file)
+{
+	itemFromFile(file,true);
+}
+
 void List::updateCurrent()
 {
 	if(!cur){

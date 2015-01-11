@@ -529,7 +529,7 @@ Config::Config(QWidget *parent,int index):
 
 		auto r=new QHBoxLayout;
 		d->reop=new QComboBox(d->widget[1]);
-		d->reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window"));
+		d->reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window")<<tr("append to playlist"));
 		d->reop->setCurrentIndex(Config::getValue("/Interface/Single",1));
 		connect<void (QComboBox::*)(int)>(d->reop,&QComboBox::currentIndexChanged,[=](int i){
 			Config::setValue("/Interface/Single",i);
