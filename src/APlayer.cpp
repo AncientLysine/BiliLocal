@@ -44,6 +44,7 @@ public:
 	enum Event
 	{
 		Init,
+		Wait,
 		Free,
 		Fail
 	};
@@ -60,6 +61,7 @@ private:
 	libvlc_media_player_t *mp;
 
 	void	init();
+	void	wait();
 	void	free();
 	void	setState(int _state);
 
@@ -190,6 +192,11 @@ void mid(const libvlc_event_t *,void *)
 	}
 }
 
+void hal(const libvlc_event_t *,void *)
+{
+	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Wait));
+}
+
 void end(const libvlc_event_t *,void *)
 {
 	QMetaObject::invokeMethod(APlayer::instance(),"event",Q_ARG(int,VPlayer::Free));
@@ -269,9 +276,14 @@ void VPlayer::init()
 {
 	if(mp){
 		auto *connection=new QMetaObject::Connection;
-		*connection=QObject::connect(this,&VPlayer::timeChanged,this,[=](){
-			if(state==Stop){
-				setState(Play);
+		*connection=connect(this,&VPlayer::timeChanged,this,[=](){
+			int last=state;
+			setState(Play);
+			disconnect(*connection);
+			delete connection;
+			switch(last){
+			case Stop:
+			{
 				bool music=true;
 				libvlc_media_track_t **info;
 				int n=libvlc_media_tracks_get(libvlc_media_player_get_media(mp),&info);
@@ -309,9 +321,10 @@ void VPlayer::init()
 					i->setChecked(i->data().toInt()==libvlc_video_get_spu(mp));
 				}
 				emit begin();
+				break;
 			}
-			if(state==Loop){
-				setState(Play);
+			case Loop:
+			{
 				for(auto *g:tracks){
 					for(QAction *i:g->actions()){
 						if(i->isChecked()){
@@ -319,12 +332,19 @@ void VPlayer::init()
 						}
 					}
 				}
+				break;
+			}
+			default:
+				return;
 			}
 			setVolume(Config::getValue("/Playing/Volume",50));
-			QObject::disconnect(*connection);
-			delete connection;
 		});
 	}
+}
+
+void VPlayer::wait()
+{
+	setState(Pause);
 }
 
 void VPlayer::free()
@@ -422,6 +442,9 @@ void VPlayer::setMedia(QString _file,bool manually)
 						libvlc_MediaPlayerTimeChanged,
 						mid,nullptr);
 	libvlc_event_attach(man,
+						libvlc_MediaPlayerPaused,
+						hal,nullptr);
+	libvlc_event_attach(man,
 						libvlc_MediaPlayerEndReached,
 						end,nullptr);
 	libvlc_event_attach(man,
@@ -493,6 +516,9 @@ void VPlayer::event(int type)
 	switch(type){
 	case Init:
 		init();
+		break;
+	case Wait:
+		wait();
 		break;
 	case Free:
 		free();
