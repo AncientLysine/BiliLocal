@@ -29,12 +29,196 @@
 #include "Config.h"
 #include "Danmaku.h"
 #include "Utils.h"
+#include <functional>
 
 Load *Load::ins=nullptr;
 
 Load *Load::instance()
 {
 	return ins?ins:new Load(qApp);
+}
+
+namespace
+{
+QList<Comment> parseComment(QByteArray data,Utils::Site site)
+{
+	QList<Comment> list;
+	switch(site){
+	case Utils::Bilibili:
+	{
+		QStringList l=QString(data).split("<d p=\"");
+		l.removeFirst();
+		for(const QString &item:l){
+			Comment comment;
+			int sta=0;
+			int len=item.indexOf("\"");
+			QStringList args=item.mid(sta,len).split(',');
+			if (args.size()<=6){
+				continue;
+			}
+			comment.time=args[0].toDouble()*1000+0.5;
+			comment.date=args[4].toInt();
+			comment.mode=args[1].toInt();
+			comment.font=args[2].toInt();
+			comment.color=args[3].toInt();
+			comment.sender=args[6];
+			sta=item.indexOf(">")+1;
+			len=item.indexOf("<",sta)-sta;
+			comment.string=Utils::decodeXml(item.mid(sta,len),true);
+			list.append(comment);
+		}
+		break;
+	}
+	case Utils::AcFun:
+	{
+		QQueue<QJsonArray> queue;
+		queue.append(QJsonDocument::fromJson(data).array());
+		while(!queue.isEmpty()){
+			for(const QJsonValue &i:queue.head()){
+				if(i.isArray()){
+					queue.append(i.toArray());
+				}
+				else{
+					Comment comment;
+					QJsonObject item=i.toObject();
+					QStringList args=item["c"].toString().split(',');
+					if (args.size()<6){
+						continue;
+					}
+					comment.time=args[0].toDouble()*1000+0.5;
+					comment.date=args[5].toInt();
+					comment.mode=args[2].toInt();
+					comment.font=args[3].toInt();
+					comment.color=args[1].toInt();
+					comment.sender=args[4];
+					comment.string=item["m"].toString();
+					list.append(comment);
+				}
+			}
+			queue.dequeue();
+		}
+		break;
+	}
+	case Utils::AcPlay:
+	{
+		QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
+		for(const QJsonValue &i:a){
+			Comment comment;
+			QJsonObject item=i.toObject();
+			comment.time=item["Time"].toDouble()*1000+0.5;
+			comment.date=item["Timestamp"].toInt();
+			comment.mode=item["Mode"].toInt();
+			comment.font=25;
+			comment.color=item["Color"].toInt();
+			comment.sender=QString::number(item["UId"].toInt());
+			comment.string=item["Message"].toString();
+			list.append(comment);
+		}
+		break;
+	}
+	case Utils::AcfunLocalizer:
+	{
+		QStringList l=QString(data).split("<l i=\"");
+		l.removeFirst();
+		for(const QString &item:l){
+			Comment comment;
+			int sta=0;
+			int len=item.indexOf("\"");
+			QStringList args=item.mid(sta,len).split(',');
+			if (args.size()<6){
+				continue;
+			}
+			comment.time=args[0].toDouble()*1000+0.5;
+			comment.date=args[5].toInt();
+			comment.mode=1;
+			comment.font=25;
+			comment.color=args[2].toInt();
+			comment.sender=args[4];
+			sta=item.indexOf("<![CDATA[")+9;
+			len=item.indexOf("]]>",sta)-sta;
+			comment.string=Utils::decodeXml(item.mid(sta,len),true);
+			list.append(comment);
+		}
+		break;
+	}
+	case Utils::Niconico:
+	{
+		QStringList l=QString(data).split("<chat ");
+		l.removeFirst();
+		for(const QString &item:l){
+			Comment comment;
+			QString key,val;
+			/* 0 wait for key
+			 * 1 wait for left quot
+			 * 2 wait for value
+			 * 3 wait for comment
+			 * 4 finsihed */
+			int state=0;
+			QMap<QString,QString> args;
+			for(const QChar &c:item){
+				switch(state){
+				case 0:
+					if(c=='='){
+						state=1;
+					}
+					else if(c=='>'){
+						state=3;
+					}
+					else if(c!=' '){
+						key.append(c);
+					}
+					break;
+				case 1:
+					if(c=='\"'){
+						state=2;
+					}
+					break;
+				case 2:
+					if(c=='\"'){
+						state=0;
+						args.insert(key,val);
+						key=val=QString();
+					}
+					else{
+						val.append(c);
+					}
+					break;
+				case 3:
+					if(c=='<'){
+						state=4;
+					}
+					else{
+						comment.string.append(c);
+					}
+					break;
+				}
+			}
+			if(state!=4){
+				continue;
+			}
+			comment.time=args["vpos"].toLongLong()*10;
+			comment.date=args["date"].toLongLong();
+			QStringList ctrl=args["mail"].split(' ',QString::SkipEmptyParts);
+			comment.mode=ctrl.contains("shita")?4 :(ctrl.contains("ue") ?5 :1 );
+			comment.font=ctrl.contains("small")?15:(ctrl.contains("big")?36:25);
+			comment.color=0xFFFFFF;
+			for(const QString &name:ctrl){
+				QColor color(name);
+				if(color.isValid()){
+					comment.color=color.rgb();
+					break;
+				}
+			}
+			comment.sender=args["user_id"];
+			list.append(comment);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return list;
+}
 }
 
 Load::Load(QObject *parent):
@@ -46,94 +230,65 @@ Load::Load(QObject *parent):
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
-		auto error=[this](int code){
-			if(code==QNetworkReply::OperationCanceledError){
-				return;
-			}
-			QEvent e(QEvent::User);
-			if(!qApp->sendEvent(this,&e)){
-				emit stateChanged(code);
-				dequeue();
-			}
-		};
-		Task &task=queue.front();
 		reply->deleteLater();
-		QString url=reply->url().url(),str=task.code;
-		if(reply->error()!=QNetworkReply::NoError){
-			error(reply->error());
-			return;
-		}
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
-		if(redirect.isValid()){
-			forward(QNetworkRequest(redirect));
+		if (reply->error()!=QNetworkReply::NoError){
+			if (reply->error()!=QNetworkReply::OperationCanceledError)
+				emit stateChanged(reply->error());
+			dequeue();
 			return;
 		}
-		Utils::Site site=Utils::parseSite(url);
-		if(reply->url().isLocalFile()||url.indexOf("comment")!=-1){
-			emit stateChanged(task.state=Pool);
-			Record load;
-			load.full=true;
-			load.source=url;
-			load.string=str;
-			load.delay=task.delay;
-			if(url.endsWith("xml",Qt::CaseInsensitive)){
-				QByteArray data=reply->readAll();
-				if(data.indexOf("<packet>")!=-1){
-					load.danmaku=Utils::parseComment(data,Utils::Niconico);
-				}
-				else if(data.indexOf("<i>")!=-1){
-					load.danmaku=Utils::parseComment(data,Utils::Bilibili);
-					load.full=reply->url().isLocalFile();
-				}
-				else if(data.indexOf("<c>")!=-1){
-					load.danmaku=Utils::parseComment(data,Utils::AcfunLocalizer);
-				}
-			}
-			else if(url.indexOf("acfun")!=-1||url.endsWith("json",Qt::CaseInsensitive)){
-				load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcFun);
-			}
-			else if(url.indexOf("acplay")!=-1){
-				load.danmaku=Utils::parseComment(reply->readAll(),Utils::AcPlay);
-			}
-			if(load.delay!=0){
-				for(Comment &c:load.danmaku){
-					c.time+=load.delay;
-				}
-			}
-			Danmaku::instance()->appendToPool(load);
-			emit stateChanged(task.state=None);
-			dequeue();
+		if(!redirect.isValid()){
+			queue.head().processer->process(reply);
 		}
-		else if(site==Utils::Bilibili){
-			bool flag=true;
+		else{
+			forward(QNetworkRequest(redirect));
+		}
+	});
+
+	auto avProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		int sharp=task.code.indexOf(QRegularExpression("[#_]"));
+		switch(task.state){
+		case None:
+		{
+			QString i=task.code.mid(2,sharp-2);
+			QString p=sharp==-1?QString():task.code.mid(sharp+1);
+			QString url("http://www.%1/video/av%2/");
+			url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
+			if(!p.isEmpty()){
+				url+=QString("index_%1.html").arg(p);
+			}
+			forward(QNetworkRequest(url),Page);
+			break;
+		}
+		case Page:
+		{
+			model->clear();
 			QString api,id,video(reply->readAll());
-			if(!url.endsWith("html")){
-				int sta;
-				if((sta=video.indexOf("<div class=\"alist\">"))!=-1){
-					int len=video.indexOf("</select>",sta)-sta+1;
-					len=len<0?0:len;
-					QString select=video.mid(sta,len);
-					QRegExp regex("value\\='[^']+");
-					int cur=0;
-					api="http://www."+Utils::customUrl(Utils::Bilibili);
-					model->clear();
-					while((cur=regex.indexIn(select,cur))!=-1){
-						sta=select.indexOf('>',cur)+1;
-						cur+=regex.matchedLength();
-						QStandardItem *item=new QStandardItem;
-						item->setData(QUrl(api+regex.cap().mid(7)),UrlRole);
-						item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
-						item->setData(Page,NxtRole);
-						item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
-						model->appendRow(item);
-					}
-					if(model->rowCount()>0){
-						emit stateChanged(task.state=Part);
-						flag=false;
-					}
+			int sta;
+			if((sta=video.indexOf("<div class=\"alist\">"))!=-1&&sharp==-1){
+				int len=video.indexOf("</select>",sta)-sta+1;
+				len=len<0?0:len;
+				QString select=video.mid(sta,len);
+				QRegExp regex("value\\='[^']+");
+				int cur=0;
+				api="http://www."+Utils::customUrl(Utils::Bilibili);
+				while((cur=regex.indexIn(select,cur))!=-1){
+					sta=select.indexOf('>',cur)+1;
+					cur+=regex.matchedLength();
+					QStandardItem *item=new QStandardItem;
+					item->setData(QUrl(api+regex.cap().mid(7)),UrlRole);
+					item->setData((task.code+"#%1").arg(model->rowCount()+1),StrRole);
+					item->setData(Page,NxtRole);
+					item->setData(Utils::decodeXml(select.mid(sta,select.indexOf('<',sta)-sta)),Qt::EditRole);
+					model->appendRow(item);
 				}
 			}
-			if(flag){
+			if (model->rowCount()>0){
+				emit stateChanged(task.state=Part);
+			}
+			else{
 				id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption).match(video).captured();
 				if(!id.isEmpty()){
 					api="http://comment.%1/%2.xml";
@@ -141,11 +296,43 @@ Load::Load(QObject *parent):
 					forward(QNetworkRequest(api.arg(id)),File);
 				}
 				else{
-					error(203);
+					emit stateChanged(203);
+					dequeue();
 				}
 			}
+			break;
 		}
-		else if(site==Utils::AcFun){
+		case File:
+		{
+			dumpDanmaku(reply->readAll(),Utils::Bilibili,false);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
+		}
+		}
+	};
+	auto avRegular=QRegularExpression("a(v(\\d+([#_])?(\\d+)?)?)?");
+	avRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	pool.append({avRegular,0,avProcess});
+	
+	auto acProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		int sharp=task.code.indexOf(QRegularExpression("[#_]"));
+		switch(task.state){
+		case None:
+		{
+			QString i=task.code.mid(2,sharp-2);
+			QString p=sharp==-1?QString():task.code.mid(sharp+1);
+			QString url("http://www.%1/v/ac%2");
+			url=url.arg(Utils::customUrl(Utils::AcFun)).arg(i);
+			if(!p.isEmpty()){
+				url+=QString("_%1").arg(p);
+			}
+			forward(QNetworkRequest(url),Page);
+			break;;
+		}
+		case Page:
+		{
 			model->clear();
 			QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
 			while(match.hasNext()){
@@ -158,85 +345,220 @@ Load::Load(QObject *parent):
 				QString next("http://static.comment.acfun.mm111.net/%1");
 				next=next.arg(r.match(part).captured());
 				item->setData(next,UrlRole);
-				item->setData((str+"#%1").arg(model->rowCount()+1),StrRole);
+				item->setData((task.code+"#%1").arg(model->rowCount()+1),StrRole);
 				item->setData(File,NxtRole);
 				model->appendRow(item);
 			}
-			if(url.indexOf('_')==-1&&model->rowCount()>=2){
+			if (sharp==-1&&model->rowCount()>=2){
 				emit stateChanged(task.state=Part);
 			}
 			else{
+				QString url=reply->url().url();
 				int i=url.indexOf('_');
 				i=(i==-1)?0:(url.mid(i+1).toInt()-1);
 				if(i>=0&&i<model->rowCount()){
 					forward(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),File);
 				}
 				else{
-					error(203);
+					emit stateChanged(203);
+					dequeue();
 				}
 			}
+			break;
 		}
-		else{
-			error(203);
+		case File:
+		{
+			dumpDanmaku(reply->readAll(),Utils::AcFun,true);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
 		}
-	});
-}
+		}
+	};
+	auto acRegular=QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?");
+	pool.append({acRegular,0,acProcess});
 
-bool Load::event(QEvent *e)
-{
-	return e->type()==QEvent::User?false:QObject::event(e);
-}
+	auto directProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		switch(task.state){
+		case None:
+		{
+			task.request.setUrl(QUrl::fromLocalFile(task.code));
+			task.code=QFileInfo(task.code).fileName();
+			task.state=File;
+			forward();
+			break;
+		}
+		case File:
+			Record load;
+			load.full=true;
+			load.source=reply->url().url();
+			load.string=task.code;
+			load.delay=task.delay;
+			if (load.source.endsWith("xml",Qt::CaseInsensitive)){
+				QByteArray data=reply->readAll();
+				if(data.indexOf("<packet>")!=-1){
+					load.danmaku=parseComment(data,Utils::Niconico);
+				}
+				else if(data.indexOf("<i>")!=-1){
+					load.danmaku=parseComment(data,Utils::Bilibili);
+				}
+				else if(data.indexOf("<c>")!=-1){
+					load.danmaku=parseComment(data,Utils::AcfunLocalizer);
+				}
+			}
+			else{
+				load.danmaku=parseComment(reply->readAll(),Utils::AcFun);
+			}
+			if (load.delay!=0){
+				for(Comment &c:load.danmaku){
+					c.time+=load.delay;
+				}
+			}
+			Danmaku::instance()->appendToPool(&load);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
+		}
+	};
+	auto directRegular=QRegularExpression("^.*\\.(xml|json)$");
+	directRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	pool.append({directRegular,0,directProcess});
 
-int  Load::size()
-{
-	return queue.size();
+	auto fullBiProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		static QHash<const Task *,QPair<QSet<Comment>,QSet<QNetworkReply *>>> progress;
+		switch(task.state){
+		case None:
+		{
+			QString api("http://comment.%1/rolldate,%2");
+			api=api.arg(Utils::customUrl(Utils::Bilibili));
+			task.code=QUrlQuery(task.code.mid(5)).queryItemValue("source");
+			forward(QNetworkRequest(api.arg(QFileInfo(task.code).baseName())),Code);
+			break;
+		}
+		case Code:
+		{
+			QMap<QDate,int> count;
+			for(QJsonValue iter:QJsonDocument::fromJson(reply->readAll()).array()){
+				QJsonObject obj=iter.toObject();
+				QJsonValue time=obj["timestamp"],size=obj["new"];
+				count[QDateTime::fromTime_t(time.toVariant().toUInt()).date()]+=size.toVariant().toInt();
+			}
+			if (count.isEmpty()){
+				dequeue();
+				return;
+			}
+			QString url("http://comment.%1/dmroll,%3,%2");
+			url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(QFileInfo(task.code).baseName());
+			auto getHistory=[=](QDate date){
+				return manager->get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
+			};
+			emit stateChanged(task.state=File);
+			QNetworkReply *header=getHistory(count.firstKey());
+			connect(header,&QNetworkReply::finished,[=,&task](){
+				QByteArray data=header->readAll();
+				auto &record=progress[&task].first;
+				for(const Comment &c:parseComment(data,Utils::Bilibili)){
+					record.insert(c);
+				}
+				auto &remain=progress[&task].second;
+				int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
+				int now=0;
+				if (count.size()>=2){
+					for(auto iter=count.begin()+1;;++iter){
+						now+=iter.value();
+						if (iter+1==count.end()){
+							remain+=getHistory(iter.key());
+							break;
+						}
+						else if(now+(iter+1).value()>max){
+							remain+=getHistory(iter.key());
+							now=0;
+						}
+					}
+				}
+				else{
+					progress.remove(&task);
+					emit stateChanged(task.state=None);
+					dequeue();
+				}
+				for(QNetworkReply *it:remain){
+					connect(it,&QNetworkReply::finished,[&,this,it](){
+						QByteArray data=it->readAll();
+						for(const Comment &c:parseComment(data,Utils::Bilibili)){
+							record.insert(c);
+						}
+						remain.remove(it);
+						if (remain.isEmpty()){
+							Record load;
+							load.full=true;
+							load.danmaku=record.toList();
+							load.source=task.code;
+							Danmaku::instance()->appendToPool(&load);
+							progress.remove(&task);
+							emit stateChanged(task.state=None);
+							dequeue();
+						}
+					});
+				}
+			});
+			break;
+		}
+		}
+	};
+	auto fullBiRegular=QRegularExpression("^full\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml$");
+	pool.append({fullBiRegular,5,fullBiProcess});
+
+	auto histBiProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		switch(task.state){
+		case None:
+		{
+			QUrlQuery query(task.code.mid(5));
+			task.code=query.queryItemValue("source");
+			QString cid=QFileInfo(task.code).baseName(),url;
+			QString dat=query.queryItemValue("date");
+			if(dat!="0"){
+				url=QString("http://comment.%1/dmroll,%2,%3");
+				url=url.arg(Utils::customUrl(Utils::Bilibili));
+				url=url.arg(dat).arg(cid);
+			}
+			else{
+				url=QString("http://comment.%1/%2.xml").arg(Utils::customUrl(Utils::Bilibili));
+				url=url.arg(cid);
+			}
+			forward(QNetworkRequest(url),File);
+			break;
+		}
+		case File:
+		{
+			Record load;
+			load.danmaku=parseComment(reply->readAll(),Utils::Bilibili);
+			load.source=task.code;
+			for(Record &iter:Danmaku::instance()->getPool()){
+				if (iter.source==load.source){
+					iter.danmaku.clear();
+					break;
+				}
+			}
+			Danmaku::instance()->appendToPool(&load);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
+		}
+		}
+	};
+	auto histBiRegular=QRegularExpression("^hist\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml&date=\\d+$");
+	pool.append({histBiRegular,5,histBiProcess});
 }
 
 Load::Task Load::codeToTask(QString code)
 {
 	Task task;
-	int sharp=code.indexOf("#");
-	QString s=code.mid(0,2);
-	QString i=code.mid(2,sharp-2);
-	QString p=sharp==-1?QString():code.mid(sharp+1);
-	if((s=="av"||s=="ac"||s=="dd")&&code.length()>2){
-		QString url;
-		if(s=="av"){
-			url=QString("http://www.%1/video/av%2/");
-			url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(i);\
-			if(!p.isEmpty()){
-				url+=QString("index_%1.html").arg(p);
-			}
-			task.request.setUrl(url);
-			task.state=Page;
-		}
-		if(s=="ac"){
-			url=QString("http://www.%1/v/ac%2");
-			url=url.arg(Utils::customUrl(Utils::AcFun)).arg(i);
-			if(!p.isEmpty()){
-				url+=QString("_%1").arg(p);
-			}
-			task.request.setUrl(url);
-			task.state=Page;
-		}
-		if(s=="dd"){
-			url=QString("http://api.%1/api/v1/comment/%2");
-			url=url.arg(Utils::customUrl(Utils::AcPlay)).arg(i);
-			task.request.setUrl(url);
-			task.request.setRawHeader("Accept","application/json");
-			task.state=File;
-		}
-	}
-	else if(QFile::exists(code)){
-		task.request.setUrl(QUrl::fromLocalFile(code));
-		code=QFileInfo(code).fileName();
-		task.state=File;
-	}
-	else{
-		return task;
-	}
-	APlayer *aplayer=APlayer::instance();
+	task.processer=getProc(code);
 	task.code=code;
+	APlayer *aplayer=APlayer::instance();
 	task.delay=aplayer->getState()!=APlayer::Stop&&Config::getValue("/Playing/Delay",false)?aplayer->getTime():0;
 	return task;
 }
@@ -246,20 +568,33 @@ QStandardItemModel *Load::getModel()
 	return model;
 }
 
-QString Load::getStr()
+void Load::addProc(const Load::Proc *proc)
 {
-	return queue.isEmpty()?QString():queue.head().code;
+	pool.append(*proc);
 }
 
-QString Load::getUrl()
+const Load::Proc *Load::getProc(QString &code)
 {
-	return queue.isEmpty()?QString():queue.head().request.url().url();
+	const Proc *p=nullptr;
+	QString accept;
+	for(const Proc &i:pool){
+		QRegularExpressionMatchIterator g=i.regular.globalMatch(code);
+		while(g.hasNext()){
+			QRegularExpressionMatch m=g.next();
+			if (m.capturedLength()>accept.length()||(m.capturedLength()==accept.length()&&(!p||i.priority>p->priority))){
+				p=&i;
+				accept=m.captured();
+			}
+		}
+	}
+	code=accept;
+	return p;
 }
 
 void Load::loadDanmaku(QString code)
 {
 	const Task &task=codeToTask(code);
-	if(!task.code.isEmpty()){
+	if (task.processer){
 		enqueue(task);
 		if (Config::getValue("/Playing/Clear", true)){
 			Danmaku::instance()->clearPool();
@@ -271,9 +606,10 @@ void Load::loadDanmaku(const QModelIndex &index)
 {
 	if(index.isValid()){
 		QVariant u=index.data(UrlRole),s=index.data(StrRole);
-		if(u.isValid()&&s.isValid()){
+		if (u.isValid()&&s.isValid()){
 			Task task;
 			task.code=s.toString();
+			task.processer=getProc(task.code);
 			task.request=QNetworkRequest(u.toUrl());
 			task.state=index.data(NxtRole).toInt();
 			APlayer *aplayer=APlayer::instance();
@@ -289,6 +625,49 @@ void Load::loadDanmaku(const QModelIndex &index)
 	}
 }
 
+void Load::fullDanmaku(QString source)
+{
+	QUrlQuery query;
+	query.addQueryItem("source",source);
+	const Task &task=codeToTask("full?"+query.toString());
+	if (task.processer){
+		enqueue(task);
+	}
+}
+
+void Load::loadHistory(QString source,QDate date)
+{
+	QUrlQuery query;
+	query.addQueryItem("source",source);
+	query.addQueryItem("date",QString::number(date.isValid()?QDateTime(date).toTime_t():0));
+	const Task &task=codeToTask("hist?"+query.toString());
+	if (task.processer){
+		enqueue(task);
+	}
+}
+
+void Load::dumpDanmaku(QByteArray data,int site,bool full)
+{
+	Task &task=queue.head();
+	Record load;
+	load.full=full;
+	load.source=task.request.url().url();
+	load.string=task.code;
+	load.delay=task.delay;
+	load.danmaku=parseComment(data,(Utils::Site)site);
+	if (load.delay!=0){
+		for(Comment &c:load.danmaku){
+			c.time+=load.delay;
+		}
+	}
+	Danmaku::instance()->appendToPool(&load);
+}
+
+Load::Task *Load::getHead()
+{
+	return queue.isEmpty()?nullptr:&queue.head();
+}
+
 void Load::dequeue()
 {
 	queue.dequeue();
@@ -300,12 +679,12 @@ void Load::dequeue()
 bool Load::enqueue(const Task &task)
 {
 	for(const Task &iter:queue){
-		if(iter.code==task.code){
+		if (iter.code==task.code){
 			return false;
 		}
 	}
 	queue.enqueue(task);
-	if(queue.size()==1){
+	if (queue.size()==1){
 		forward();
 	}
 	return true;
@@ -315,21 +694,24 @@ void Load::forward()
 {
 	Task &task=queue.head();
 	emit stateChanged(task.state);
-	manager->get(task.request);
+	if (task.state==None){
+		task.processer->process(0);
+	}
+	else{
+		manager->get(task.request);
+	}
 }
 
 void Load::forward(QNetworkRequest request)
 {
 	Task &task=queue.head();
 	task.request=request;
-	emit stateChanged(task.state);
-	manager->get(task.request);
+	forward();
 }
 
 void Load::forward(QNetworkRequest request,int state)
 {
 	Task &task=queue.head();
-	task.request=request;
-	emit stateChanged(task.state=state);
-	manager->get(task.request);
+	task.request=request;task.state=state;
+	forward();
 }

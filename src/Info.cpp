@@ -31,6 +31,7 @@
 #include "Danmaku.h"
 #include "Editor.h"
 #include "List.h"
+#include "Load.h"
 #include "Local.h"
 #include "Shield.h"
 #include "Utils.h"
@@ -179,6 +180,20 @@ Info::Info(QWidget *parent):
 			}
 			menu.addSeparator();
 		}
+		QAction *fullA=menu.addAction(tr("Full Danmaku"));
+		for(const Record &r:Danmaku::instance()->getPool()){
+			if(!r.full){
+				fullA->setEnabled(true);
+				break;
+			}
+		}
+		connect(fullA,&QAction::triggered,[this](){
+			for(const Record &r:Danmaku::instance()->getPool()){
+				if(!r.full){
+					Load::instance()->fullDanmaku(r.source);
+				}
+			}
+		});
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config::exec(lApp->mainWidget(),3);
 		});

@@ -120,7 +120,6 @@ namespace Utils
 	QStringList getDecodeModules();
 	QStringList getSuffix(int type,QString format="");
 	double evaluate(QString expression);
-	QList<Comment> parseComment(QByteArray data,Site site);
 }
 
 #endif // UTILS_H

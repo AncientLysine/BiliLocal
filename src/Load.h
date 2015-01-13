@@ -30,6 +30,7 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtNetwork>
+#include <functional>
 
 class Load:public QObject
 {
@@ -42,7 +43,6 @@ public:
 		Part=407,
 		Code=379,
 		File=384,
-		Pool=410
 	};
 
 	enum Role
@@ -52,23 +52,31 @@ public:
 		NxtRole
 	};
 
+	struct Proc
+	{
+		QRegularExpression regular;
+		int priority;
+		std::function<void(QNetworkReply *)> process;
+	};
+
 	struct Task
 	{
 		QString code;
 		QNetworkRequest request;
 		int state;
+		const Proc *processer;
 		qint64 delay;
-		Task():state(None),delay(0){}
+		Task():state(None),processer(nullptr),delay(0){}
 	};
 
-	bool event(QEvent *e);
-	int  size();
 	Task codeToTask(QString code);
 	QStandardItemModel *getModel();
+	int size(){return queue.size();}
 	static Load *instance();
 
 private:
 	QStandardItemModel *model;
+	QList <Proc> pool;
 	QNetworkAccessManager *manager;
 	QQueue<Task> queue;
 	static Load *ins;
@@ -79,17 +87,21 @@ signals:
 	void stateChanged(int state);
 
 public slots:
-	QString getStr();
-	QString getUrl();
-
-	void dequeue();
-	bool enqueue(const Task &task);
-	void forward();
-	void forward(QNetworkRequest request);
-	void forward(QNetworkRequest request,int state);
+	void addProc(const Proc *proc);
+	const Proc *getProc(QString &code);
 
 	void loadDanmaku(QString code);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
+	void fullDanmaku(QString);
+	void loadHistory(QString,QDate);
+	void dumpDanmaku(QByteArray data,int site,bool full);
+
+	void dequeue();
+	bool enqueue(const Task &);
+	Task*getHead();
+	void forward();
+	void forward(QNetworkRequest);
+	void forward(QNetworkRequest,int);
 };
 
 #endif // LOAD_H

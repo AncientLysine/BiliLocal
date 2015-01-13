@@ -29,6 +29,7 @@
 #include "Config.h"
 #include "Danmaku.h"
 #include "List.h"
+#include "Load.h"
 #include "Utils.h"
 #include <algorithm>
 
@@ -502,77 +503,7 @@ public:
 			auto &r=c->getRecord();
 			QAction *fullA=menu.addAction(Editor::tr("Full"));
 			connect (fullA,&QAction::triggered,[this,&r](){
-				QString cid=QFileInfo(r.source).baseName();
-				QString api("http://comment.%1/rolldate,%2");
-				api=api.arg(Utils::customUrl(Utils::Bilibili));
-				QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
-					connect(reply,&QNetworkReply::finished,[=,&r](){
-					QMap<QDate,int> count=parseCount(reply->readAll());
-					reply->deleteLater();
-					if(count.isEmpty()){
-						return;
-					}
-					QString url("http://comment.%1/dmroll,%3,%2");
-					url=url.arg(Utils::customUrl(Utils::Bilibili)).arg(cid);
-					QSet<Comment> set;
-					QProgressDialog progress(this);
-					progress.setFixedSize(progress.sizeHint());
-					progress.setWindowTitle(Editor::tr("Loading"));
-					auto getHistory=[&](QDate date){
-						return manager->get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
-					};
-					QSet<QNetworkReply *> remain;
-					QNetworkReply *header=getHistory(count.firstKey());
-					connect(header,&QNetworkReply::finished,[&](){
-						QByteArray data=header->readAll();
-						header->deleteLater();
-						for(const Comment &c:Utils::parseComment(data,Utils::Bilibili)){
-							set.insert(c);
-						}
-						int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
-						int now=0;
-						if(count.size()>=2){
-							for(auto iter=count.begin()+1;;++iter){
-								now+=iter.value();
-								if(iter+1==count.end()){
-									remain+=getHistory(iter.key());
-									break;
-								}
-								else if(now+(iter+1).value()>max){
-									remain+=getHistory(iter.key());
-									now=0;
-								}
-							}
-							progress.setMaximum(remain.size()+1);
-							for(QNetworkReply *re:remain){
-								connect(re,&QNetworkReply::finished,[&,re](){
-									for(const Comment &c:Utils::parseComment(re->readAll(),Utils::Bilibili)){
-										set.insert(c);
-									}
-									re->deleteLater();
-									remain.remove(re);
-									int m=progress.maximum(),f=m-remain.size();
-									if (f*100/m!=progress.value()*100/m) {
-										progress.setValue(f);
-									}
-								});
-							}
-							progress.setValue(1);
-						}
-						else{
-							progress.reject();
-						}
-					});
-					progress.exec();
-					for(QNetworkReply *r:remain){
-							delete r;
-					}
-					Record load;
-					load.full=true;
-					load.danmaku=set.toList();
-					load.source=r.source;
-					Danmaku::instance()->appendToPool(load);
-				});
+				Load::instance()->fullDanmaku(r.source);
 			});
 			fullA->setEnabled(!r.full);
 			menu.addSeparator();
@@ -596,7 +527,12 @@ public:
 					api=api.arg(Utils::customUrl(Utils::Bilibili));
 					QNetworkReply *reply=manager->get(QNetworkRequest(api.arg(cid)));
 					connect(reply,&QNetworkReply::finished,[&](){
-						count=parseCount(reply->readAll());
+						QMap<QDate,int> count;
+						for(QJsonValue iter:QJsonDocument::fromJson(reply->readAll()).array()){
+							QJsonObject obj=iter.toObject();
+							QJsonValue time=obj["timestamp"],size=obj["new"];
+							count[QDateTime::fromTime_t(time.toVariant().toInt()).date()]+=size.toVariant().toInt();
+						}
 						count[QDate::currentDate().addDays(1)]=0;
 						history.setCount(count);
 						history.setCurrentPage(c);
@@ -610,26 +546,7 @@ public:
 						widget->update();
 					}
 					else{
-						QString url,cid=QFileInfo(r.source).baseName();;
-						QDate selected=history.selectedDate();
-						if(selected.isValid()){
-							url=QString("http://comment.%1/dmroll,%2,%3");
-							url=url.arg(Utils::customUrl(Utils::Bilibili));
-							url=url.arg(QDateTime(selected).toTime_t()).arg(cid);
-						}
-						else{
-							url=QString("http://comment.%1/%2.xml").arg(Utils::customUrl(Utils::Bilibili));
-							url=url.arg(cid);
-						}
-						QNetworkReply *reply=manager->get(QNetworkRequest(url));
-						connect(reply,&QNetworkReply::finished,[reply,&r](){
-							r.danmaku.clear();
-							Record load;
-							load.full=false;
-							load.danmaku=Utils::parseComment(reply->readAll(),Utils::Bilibili);
-							load.source=r.source;
-							Danmaku::instance()->appendToPool(load);
-						});
+						Load::instance()->loadHistory(r.source,history.selectedDate());
 					}
 				}
 			});
@@ -677,17 +594,6 @@ private:
 			p.translate(width()/2,height()/2);
 		}
 		p.drawText(QRect(QPoint(-s.width()/2,-s.height()/2),s),t);
-	}
-
-	QMap<QDate,int> parseCount(QByteArray data)
-	{
-		QMap<QDate,int> count;
-		for(QJsonValue iter:QJsonDocument::fromJson(data).array()){
-			QJsonObject obj=iter.toObject();
-			QJsonValue time=obj["timestamp"],size=obj["new"];
-			count[QDateTime::fromTime_t(time.toVariant().toInt()).date()]+=size.toVariant().toInt();
-		}
-		return count;
 	}
 
 	void parseRecords()

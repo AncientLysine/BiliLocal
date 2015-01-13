@@ -68,7 +68,7 @@ public slots:
 	void setAlpha(int _alpha);
 	void resetTime();
 	void clearPool();
-	void appendToPool(const Record &record);
+	void appendToPool(const Record *record);
 	void appendToPool(QString source,const Comment *comment);
 	void clearCurrent(bool soft=false);
 	void insertToCurrent(Graphic *graphic,int index=-1);

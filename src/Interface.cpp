@@ -102,6 +102,7 @@ Interface::Interface(QWidget *parent):
 				setCenter(render->getPreferredSize(),false);
 			}
 		}
+		sca->setEnabled(!isFullScreen());
 		rat->setEnabled(true);
 		rat->defaultAction()->setChecked(true);
 		sca->defaultAction()->setChecked(true);

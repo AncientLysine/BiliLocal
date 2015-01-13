@@ -229,14 +229,8 @@ Menu::Menu(QWidget *parent):
 	danmL->setPlaceholderText(tr("input av/ac number"));
 	sechL->setPlaceholderText(tr("search danmaku online"));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		QRegularExpression regexp("(av|ac|dd)((\\d+)([#_])?(\\d+)?)?|[ad]");
-		regexp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-		auto iter=regexp.globalMatch(text);
-		QString match;
-		while(iter.hasNext()){
-			match=iter.next().captured();
-		}
-		danmL->setText(match.toLower().replace('_','#'));
+		Load::instance()->getProc(text);
+		danmL->setText(text);
 	});
 	QAbstractItemView *popup;
 	fileC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
@@ -368,12 +362,8 @@ Menu::Menu(QWidget *parent):
 	localC=new QCheckBox(this);
 	connect(localC,&QCheckBox::stateChanged,[this](int state){
 		bool local=state==Qt::Checked;
-		danmL->setText("");
-		sechL->setText("");
+		danmL->clear();
 		danmL->setReadOnly(local);
-		sechL->setEnabled(!local);
-		sechB->setEnabled(!local);
-		sechA->setEnabled(!local);
 		danmB->setText(local?tr("Open"):tr("Load"));
 		danmL->setPlaceholderText(local?tr("choose a local danmaku"):tr("input av/ac number"));
 		for(const Record &r:Danmaku::instance()->getPool()){
@@ -410,10 +400,17 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	connect(Load::instance(),&Load::stateChanged,[this](int state){
+		Load::Task *task=Load::instance()->getHead();
+		auto syncDanmL=[&](){
+			if(!task->code.isEmpty()&&task->processer->regular.match(task->code).hasMatch()){
+				danmL->setText(task->code);
+				danmL->setCursorPosition(0);
+			}
+		};
 		switch(state){
 		case Load::Page:
 			isStay=1;
-			danmL->setText(Load::instance()->getStr());
+			syncDanmL();
 			break;
 		case Load::Part:
 			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
@@ -421,10 +418,8 @@ Menu::Menu(QWidget *parent):
 				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));
 			}
 		case Load::File:
-		case Load::Pool:
-			localC->setChecked(QUrl(Load::instance()->getUrl()).isLocalFile());
-			danmL->setText(Load::instance()->getStr());
-			danmL->setCursorPosition(0);
+			localC->setChecked(task->request.url().isLocalFile());
+			syncDanmL();
 		case Load::Code:
 		case Load::None:
 			isStay=0;

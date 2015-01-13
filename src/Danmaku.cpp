@@ -252,17 +252,17 @@ inline uint qHash(const CommentPointer &p, uint seed = 0)
 }
 }
 
-void Danmaku::appendToPool(const Record &record)
+void Danmaku::appendToPool(const Record *record)
 {
 	Record *append=0;
 	for(Record &r:pool){
-		if(r.source==record.source){
+		if (r.source==record->source){
 			append=&r;
 			break;
 		}
 	}
 	if(!append){
-		pool.append(record);
+		pool.append(*record);
 		QSet<CommentPointer> s;
 		auto &d=pool.last().danmaku;
 		for(auto iter=d.begin();iter!=d.end();){
@@ -282,14 +282,14 @@ void Danmaku::appendToPool(const Record &record)
 		for(const Comment &c:d){
 			s.insert(&c);
 		}
-		for(Comment c:record.danmaku){
-			c.time+=append->delay-record.delay;
+		for(Comment c:record->danmaku){
+			c.time+=append->delay-record->delay;
 			if(!s.contains(&c)){
 				d.append(c);
 				s.insert(&d.last());
 			}
 		}
-		if(record.full){
+		if (record->full){
 			append->full=true;
 		}
 	}
