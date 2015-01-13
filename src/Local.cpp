@@ -142,7 +142,9 @@ int main(int argc,char *argv[])
 	setToolTipBase();
 	Interface w;
 	Plugin::loadPlugins();
-	w.show();
+	if(!w.testAttribute(Qt::WA_WState_ExplicitShowHide)){
+		w.show();
+	}
 	w.tryLocal(a.arguments().mid(1));
 	QLocalServer *server=nullptr;
 	if(single){

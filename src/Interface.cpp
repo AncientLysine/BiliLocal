@@ -330,11 +330,6 @@ Interface::Interface(QWidget *parent):
 	setCenter(QSize(),true);
 }
 
-bool Interface::event(QEvent *e)
-{
-	return e->type()==QEvent::User?false:QWidget::event(e);
-}
-
 void Interface::tryLocal(QString p)
 {
 	QFileInfo info(p);
@@ -365,14 +360,6 @@ void Interface::tryLocal(QStringList p)
 {
 	for(const QString &i:p){
 		tryLocal(i);
-	}
-}
-
-void Interface::setVisible(bool f)
-{
-	QEvent e(QEvent::User);
-	if(!qApp->sendEvent(this,&e)){
-		QWidget::setVisible(f);
 	}
 }
 

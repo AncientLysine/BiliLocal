@@ -48,7 +48,6 @@ class Interface:public QWidget
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	bool event(QEvent *e);
 
 private:
 	QTimer *timer;
@@ -92,13 +91,11 @@ private:
 public slots:
 	void tryLocal(QString p);
 	void tryLocal(QStringList p);
-	void setVisible(bool f);
 
 private slots:
 	void checkForUpdate();
 	void setCenter(QSize s,bool f);
 	void showContextMenu(QPoint p);
-
 };
 
 #endif // INTERFACE_H
