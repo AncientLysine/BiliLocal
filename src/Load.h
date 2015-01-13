@@ -79,12 +79,15 @@ private:
 	QList <Proc> pool;
 	QNetworkAccessManager *manager;
 	QQueue<Task> queue;
+	QSet<QNetworkReply *> remain;
 	static Load *ins;
 
 	Load(QObject *parent=0);
 
 signals:
 	void stateChanged(int state);
+	void errorOccured(int state);
+	void progressChanged(double progress);
 
 public slots:
 	void addProc(const Proc *proc);

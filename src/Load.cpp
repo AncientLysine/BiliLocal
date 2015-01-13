@@ -230,6 +230,7 @@ Load::Load(QObject *parent):
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	connect(manager,&QNetworkAccessManager::finished,[this](QNetworkReply *reply){
+		remain.remove(reply);
 		reply->deleteLater();
 		QUrl redirect=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if (reply->error()!=QNetworkReply::NoError){
@@ -289,7 +290,18 @@ Load::Load(QObject *parent):
 				emit stateChanged(task.state=Part);
 			}
 			else{
-				id=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption).match(video).captured();
+				QRegularExpression r=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption);
+				QRegularExpressionMatchIterator i=r.globalMatch(video);
+				while(i.hasNext()){
+					QString m=i.next().captured();
+					if (id.isEmpty()){
+						id=m;
+					}
+					else if(id!=m){
+						id.clear();
+						break;
+					}
+				}
 				if(!id.isEmpty()){
 					api="http://comment.%1/%2.xml";
 					api=api.arg(Utils::customUrl(Utils::Bilibili));
@@ -383,7 +395,8 @@ Load::Load(QObject *parent):
 		switch(task.state){
 		case None:
 		{
-			task.request.setUrl(QUrl::fromLocalFile(task.code));
+			QUrl url(task.code,QUrl::StrictMode);
+			task.request.setUrl(url.isValid()?url:QUrl::fromLocalFile(task.code));
 			task.code=QFileInfo(task.code).fileName();
 			task.state=File;
 			forward();
@@ -427,7 +440,7 @@ Load::Load(QObject *parent):
 
 	auto fullBiProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
-		static QHash<const Task *,QPair<QSet<Comment>,QSet<QNetworkReply *>>> progress;
+		static QHash<const Task *,QSet<Comment>> progress;
 		switch(task.state){
 		case None:
 		{
@@ -458,14 +471,14 @@ Load::Load(QObject *parent):
 			QNetworkReply *header=getHistory(count.firstKey());
 			connect(header,&QNetworkReply::finished,[=,&task](){
 				QByteArray data=header->readAll();
-				auto &record=progress[&task].first;
+				auto &record=progress[&task];
 				for(const Comment &c:parseComment(data,Utils::Bilibili)){
 					record.insert(c);
 				}
-				auto &remain=progress[&task].second;
-				int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
-				int now=0;
+				double total=0;
 				if (count.size()>=2){
+					int max=QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
+					int now=0;
 					for(auto iter=count.begin()+1;;++iter){
 						now+=iter.value();
 						if (iter+1==count.end()){
@@ -477,6 +490,8 @@ Load::Load(QObject *parent):
 							now=0;
 						}
 					}
+					total=remain.size()+2;
+					emit progressChanged(2/total);
 				}
 				else{
 					progress.remove(&task);
@@ -484,21 +499,25 @@ Load::Load(QObject *parent):
 					dequeue();
 				}
 				for(QNetworkReply *it:remain){
-					connect(it,&QNetworkReply::finished,[&,this,it](){
+					connect(it,&QNetworkReply::finished,[&,this,it,total](){
 						QByteArray data=it->readAll();
 						for(const Comment &c:parseComment(data,Utils::Bilibili)){
 							record.insert(c);
 						}
-						remain.remove(it);
-						if (remain.isEmpty()){
-							Record load;
-							load.full=true;
-							load.danmaku=record.toList();
-							load.source=task.code;
-							Danmaku::instance()->appendToPool(&load);
-							progress.remove(&task);
-							emit stateChanged(task.state=None);
-							dequeue();
+						switch(it->error()){
+						case QNetworkReply::NoError:
+							emit progressChanged((total-remain.size())/total);
+						case QNetworkReply::OperationCanceledError:
+							if (remain.isEmpty()){
+								Record load;
+								load.full=true;
+								load.danmaku=record.toList();
+								load.source=task.code;
+								Danmaku::instance()->appendToPool(&load);
+								progress.remove(&task);
+								emit stateChanged(task.state=None);
+								dequeue();
+							}
 						}
 					});
 				}
@@ -551,6 +570,48 @@ Load::Load(QObject *parent):
 	};
 	auto histBiRegular=QRegularExpression("^hist\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml&date=\\d+$");
 	pool.append({histBiRegular,5,histBiProcess});
+
+	connect(this,&Load::stateChanged,[this](int code){
+		switch(code){
+		case None:
+		case Page:
+		case Part:
+		case Code:
+		case File:
+			break;
+		default:
+		{
+			Task task=queue.head();
+			task.request=QNetworkRequest();
+			task.state=None;
+			QList<const Proc *> list;
+			int accept=0;
+			for(const Proc &i:pool){
+				QRegularExpressionMatchIterator g=i.regular.globalMatch(task.code);
+				while(g.hasNext()){
+					QRegularExpressionMatch m=g.next();
+					if (m.capturedLength()> accept){
+						accept= m.capturedLength();
+						list.clear();
+					}
+					if (m.capturedLength()==accept){
+						list.append(&i);
+					}
+				}
+			}
+			std::stable_sort(list.begin(),list.end(),[](const Proc* f,const Proc *s){return f->priority>s->priority;});
+			int offset=list.indexOf(task.processer)+1;
+			if (offset<list.size()&&offset){
+				task.processer=list[offset];
+				queue.enqueue(task);
+			}
+			else{
+				emit errorOccured(code);
+			}
+			break;
+		}
+		}
+	});
 }
 
 Load::Task Load::codeToTask(QString code)
@@ -670,6 +731,15 @@ Load::Task *Load::getHead()
 
 void Load::dequeue()
 {
+	static bool flag;
+	if (flag){
+		return; 
+	}
+	flag=1;
+	for(QNetworkReply *r:QSet<QNetworkReply *>(remain)){
+		r->abort();
+	}
+	flag=0;
 	queue.dequeue();
 	if(!queue.isEmpty()){
 		forward();
@@ -698,7 +768,7 @@ void Load::forward()
 		task.processer->process(0);
 	}
 	else{
-		manager->get(task.request);
+		remain.insert(manager->get(task.request));
 	}
 }
 

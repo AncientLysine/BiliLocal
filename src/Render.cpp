@@ -682,7 +682,8 @@ public slots:
 	void setRefreshRate(int rate,bool soft)
 	{
 		QWindow *window=widget->window()->windowHandle();
-		rate=window->screen()->refreshRate()/widget->format().swapInterval();
+		QScreen *screen=window?window->screen():lApp->primaryScreen();
+		rate=screen->refreshRate()/widget->format().swapInterval();
 		Render::setRefreshRate(rate,soft);
 	}
 

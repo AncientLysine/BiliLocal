@@ -33,15 +33,16 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
+class Render;
 class Menu;
 class Info;
 class Jump;
 class Post;
 class List;
 class Load;
-class Render;
 class APlayer;
 class Danmaku;
+class Message;
 
 class Interface:public QWidget
 {
@@ -71,6 +72,7 @@ private:
 	Load *load;
 	APlayer *aplayer;
 	Danmaku *danmaku;
+	Message *message;
 
 	QPoint sta;
 	QPoint wgd;

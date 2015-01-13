@@ -425,13 +425,8 @@ Menu::Menu(QWidget *parent):
 			isStay=0;
 			break;
 		default:
-		{
-			QString info=tr("Network error occurred, error code: %1").arg(state);
-			QString sugg=Local::instance()->suggestion(state);
-			QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 			isStay=0;
 			break;
-		}
 		}
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString _file){

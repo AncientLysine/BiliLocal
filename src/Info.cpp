@@ -181,6 +181,7 @@ Info::Info(QWidget *parent):
 			menu.addSeparator();
 		}
 		QAction *fullA=menu.addAction(tr("Full Danmaku"));
+		fullA->setEnabled(false);
 		for(const Record &r:Danmaku::instance()->getPool()){
 			if(!r.full){
 				fullA->setEnabled(true);

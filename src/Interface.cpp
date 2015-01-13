@@ -42,6 +42,46 @@
 #include <algorithm>
 #include <functional>
 
+class Message:public QMessageBox
+{
+public:
+	explicit Message(QWidget *parent):
+		QMessageBox(parent)
+	{
+		setIcon(Warning);
+		connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
+	}
+
+	void warning(QString title,QString text)
+	{
+		if (p){
+			p->hide();
+		}
+		setWindowTitle(title);
+		setText(text);
+		show();
+	}
+
+	void setProgress(double progress)
+	{
+		QWidget *active=lApp->activeWindow();
+		if(!p||(p!=active&&p->parent()!=active&&active)){
+			if (p){
+				delete p;
+			}
+			p=new QProgressDialog(active);
+			p->setMaximum(1000);
+			p->setWindowTitle(Interface::tr("Loading"));
+			p->setFixedSize(p->sizeHint());
+			p->show();
+		}
+		p->setValue(1000*progress);
+	}
+
+private:
+	QPointer<QProgressDialog> p;
+};
+
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
@@ -51,6 +91,7 @@ Interface::Interface(QWidget *parent):
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	Local::objects["Interface"]=this;
+	message=new Message(this);
 	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
@@ -149,9 +190,16 @@ Interface::Interface(QWidget *parent):
 			string=tr("An error occurred.");
 			break;
 		}
-		QMessageBox::warning(this,tr("Warning"),string);
+		message->warning(tr("Warning"),string);
 	});
 	
+	connect(load   ,&Load::errorOccured,[this](int error){
+			QString info=tr("Network error occurred, error code: %1").arg(error);
+			QString sugg=Local::instance()->suggestion(error);
+			message->warning(tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+	});
+	connect(load,&Load::progressChanged,message,&Message::setProgress);
+
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
 		if(!sliding&&aplayer->getState()!=APlayer::Stop){
