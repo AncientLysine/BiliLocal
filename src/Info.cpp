@@ -182,16 +182,17 @@ Info::Info(QWidget *parent):
 		}
 		QAction *fullA=menu.addAction(tr("Full Danmaku"));
 		fullA->setEnabled(false);
+		Load *load=Load::instance();
 		for(const Record &r:Danmaku::instance()->getPool()){
-			if(!r.full){
+			if(!r.full&&load->canFull(r.source)){
 				fullA->setEnabled(true);
 				break;
 			}
 		}
-		connect(fullA,&QAction::triggered,[this](){
+		connect(fullA,&QAction::triggered,[=](){
 			for(const Record &r:Danmaku::instance()->getPool()){
-				if(!r.full){
-					Load::instance()->fullDanmaku(r.source);
+				if(!r.full&&load->canFull(r.source)){
+					load->fullDanmaku(r.source);
 				}
 			}
 		});

@@ -499,20 +499,21 @@ public:
 				return;
 			}
 			QMenu menu(this);
+			Load *load=Load::instance();
 			auto &p=Danmaku::instance()->getPool();
 			auto &r=c->getRecord();
 			QAction *fullA=menu.addAction(Editor::tr("Full"));
-			connect (fullA,&QAction::triggered,[this,&r](){
-				Load::instance()->fullDanmaku(r.source);
+			fullA->setEnabled(!r.full&&load->canFull(r.source));
+			connect(fullA,&QAction::triggered,[=,&r](){
+				load->fullDanmaku(r.source);
 			});
-			fullA->setEnabled(!r.full);
 			menu.addSeparator();
-			connect(menu.addAction(Editor::tr("History")),&QAction::triggered,[this,&r](){
+			connect(menu.addAction(Editor::tr("History")),&QAction::triggered,[=,&r](){
 				Calendar history(window());
 				QMap<QDate,int> count;
 				QDate c=r.limit==0?QDate::currentDate().addDays(1):QDateTime::fromTime_t(r.limit).date();
 				history.setCurrentDate(c);
-				if(r.full){
+				if (r.full||!load->canHist(r.source)){
 					for(const Comment &c:r.danmaku){
 						++count[QDateTime::fromTime_t(c.date).date()];
 					}
@@ -540,13 +541,13 @@ public:
 				}
 				if(history.exec()==QDialog::Accepted){
 					QDate selected=history.selectedDate();
-					r.limit=selected.isValid()?QDateTime(selected).toTime_t():0;
-					if(r.full){
+					if (r.full||!load->canHist(r.source)){
+						r.limit=selected.isValid()?QDateTime(selected).toTime_t():0;
 						Danmaku::instance()->parse(0x2);
 						widget->update();
 					}
 					else{
-						Load::instance()->loadHistory(r.source,history.selectedDate());
+						load->loadHistory(r.source,history.selectedDate());
 					}
 				}
 			});

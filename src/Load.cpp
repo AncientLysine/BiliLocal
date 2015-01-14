@@ -380,7 +380,7 @@ Load::Load(QObject *parent):
 		}
 		case File:
 		{
-			dumpDanmaku(reply->readAll(),Utils::AcFun,true);
+			dumpDanmaku(reply->readAll(),Utils::AcFun,false);
 			emit stateChanged(task.state=None);
 			dequeue();
 			break;
@@ -395,8 +395,8 @@ Load::Load(QObject *parent):
 		switch(task.state){
 		case None:
 		{
-			QUrl url(task.code,QUrl::StrictMode);
-			task.request.setUrl(url.isValid()?url:QUrl::fromLocalFile(task.code));
+			QUrl url=QFileInfo(task.code).exists()?QUrl::fromLocalFile(task.code):QUrl(task.code);
+			task.request.setUrl(url);
 			task.code=QFileInfo(task.code).fileName();
 			task.state=File;
 			forward();
@@ -404,19 +404,25 @@ Load::Load(QObject *parent):
 		}
 		case File:
 			Record load;
-			load.full=true;
 			load.source=reply->url().url();
 			load.string=task.code;
 			load.delay=task.delay;
 			if (load.source.endsWith("xml",Qt::CaseInsensitive)){
-				QByteArray data=reply->readAll();
-				if(data.indexOf("<packet>")!=-1){
+				QByteArray data=reply->readAll(),head=data.left(512);
+				if(head.indexOf("<packet>")!=-1){
 					load.danmaku=parseComment(data,Utils::Niconico);
 				}
-				else if(data.indexOf("<i>")!=-1){
+				else if(head.indexOf("<i>")!=-1){
 					load.danmaku=parseComment(data,Utils::Bilibili);
+					QRegularExpression r;
+					r.setPattern("(?<=<chatid>)\\d+(?=</chatid>)");
+					QString i=r.match(head).captured();
+					if(!i.isEmpty()){
+						QString u=("http://comment.%1/%2.xml");
+						load.source=u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
+					}
 				}
-				else if(data.indexOf("<c>")!=-1){
+				else if(head.indexOf("<c>")!=-1){
 					load.danmaku=parseComment(data,Utils::AcfunLocalizer);
 				}
 			}
@@ -557,6 +563,7 @@ Load::Load(QObject *parent):
 			load.source=task.code;
 			for(Record &iter:Danmaku::instance()->getPool()){
 				if (iter.source==load.source){
+					iter.full=false;
 					iter.danmaku.clear();
 					break;
 				}
@@ -652,6 +659,38 @@ const Load::Proc *Load::getProc(QString &code)
 	return p;
 }
 
+bool Load::canLoad(QString code)
+{
+	QString t=code;
+	return getProc(t)&&t==code;
+}
+
+namespace
+{
+QString toFull(QString source)
+{
+	QUrlQuery query;
+	query.addQueryItem("source",source);
+	return "full?"+query.toString();
+}
+}
+
+bool Load::canFull(QString code)
+{
+	QString t=code=toFull(code);
+	return getProc(t)&&t==code;
+}
+
+bool Load::canHist(QString code)
+{
+	QUrlQuery query;
+	query.addQueryItem("source",code);
+	query.addQueryItem("date","0");
+	code="hist?"+query.toString();
+	QString t=code;
+	return getProc(t)&&t==code;
+}
+
 void Load::loadDanmaku(QString code)
 {
 	const Task &task=codeToTask(code);
@@ -688,9 +727,7 @@ void Load::loadDanmaku(const QModelIndex &index)
 
 void Load::fullDanmaku(QString source)
 {
-	QUrlQuery query;
-	query.addQueryItem("source",source);
-	const Task &task=codeToTask("full?"+query.toString());
+	const Task &task=codeToTask(toFull(source));
 	if (task.processer){
 		enqueue(task);
 	}

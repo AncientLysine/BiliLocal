@@ -93,7 +93,10 @@ public slots:
 	void addProc(const Proc *proc);
 	const Proc *getProc(QString &code);
 
-	void loadDanmaku(QString code);
+	bool canLoad(QString);
+	bool canFull(QString);
+	bool canHist(QString);
+	void loadDanmaku(QString);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
 	void fullDanmaku(QString);
 	void loadHistory(QString,QDate);
