@@ -46,25 +46,24 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 	switch(site){
 	case Utils::Bilibili:
 	{
-		QStringList l=QString(data).split("<d p=\"");
+		QString xml(data);
+		QVector<QStringRef> l=xml.splitRef("<d p=\"");
 		l.removeFirst();
-		for(const QString &item:l){
-			Comment comment;
-			int sta=0;
-			int len=item.indexOf("\"");
-			QStringList args=item.mid(sta,len).split(',');
+		for(const QStringRef &item:l){
+			const QVector<QStringRef> &args=item.left(item.indexOf("\"")).split(',');
 			if (args.size()<=6){
 				continue;
 			}
-			comment.time=args[0].toDouble()*1000+0.5;
-			comment.date=args[4].toInt();
-			comment.mode=args[1].toInt();
-			comment.font=args[2].toInt();
-			comment.color=args[3].toInt();
-			comment.sender=args[6];
-			sta=item.indexOf(">")+1;
-			len=item.indexOf("<",sta)-sta;
-			comment.string=Utils::decodeXml(item.mid(sta,len),true);
+			Comment comment;
+			comment.time  =args[0].toDouble()*1000+0.5;
+			comment.date  =args[4].toInt();
+			comment.mode  =args[1].toInt();
+			comment.font  =args[2].toInt();
+			comment.color =args[3].toInt();
+			comment.sender=args[6].toString();
+			int sta=item.indexOf(">")+1;
+			int len=item.indexOf("<",sta)-sta;
+			comment.string=Utils::decodeXml(item.mid(sta,len).toString(),true);
 			list.append(comment);
 		}
 		break;
@@ -79,19 +78,20 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 					queue.append(i.toArray());
 				}
 				else{
-					Comment comment;
 					QJsonObject item=i.toObject();
-					QStringList args=item["c"].toString().split(',');
+					QString c(item["c"].toString()),m(item["m"].toString());
+					const QVector<QStringRef> &args=c.splitRef(',');
 					if (args.size()<6){
 						continue;
 					}
-					comment.time=args[0].toDouble()*1000+0.5;
-					comment.date=args[5].toInt();
-					comment.mode=args[2].toInt();
-					comment.font=args[3].toInt();
-					comment.color=args[1].toInt();
-					comment.sender=args[4];
-					comment.string=item["m"].toString();
+					Comment comment;
+					comment.time  =args[0].toDouble()*1000+0.5;
+					comment.date  =args[5].toInt();
+					comment.mode  =args[2].toInt();
+					comment.font  =args[3].toInt();
+					comment.color =args[1].toInt();
+					comment.sender=args[4].toString();
+					comment.string=m;
 					list.append(comment);
 				}
 			}
@@ -118,25 +118,24 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 	}
 	case Utils::AcfunLocalizer:
 	{
-		QStringList l=QString(data).split("<l i=\"");
+		QString xml(data);
+		QVector<QStringRef> l=xml.splitRef("<l i=\"");
 		l.removeFirst();
-		for(const QString &item:l){
-			Comment comment;
-			int sta=0;
-			int len=item.indexOf("\"");
-			QStringList args=item.mid(sta,len).split(',');
+		for(const QStringRef &item:l){
+			const QVector<QStringRef> &args=item.left(item.indexOf("\"")).split(',');
 			if (args.size()<6){
 				continue;
 			}
-			comment.time=args[0].toDouble()*1000+0.5;
-			comment.date=args[5].toInt();
-			comment.mode=1;
-			comment.font=25;
-			comment.color=args[2].toInt();
-			comment.sender=args[4];
-			sta=item.indexOf("<![CDATA[")+9;
-			len=item.indexOf("]]>",sta)-sta;
-			comment.string=Utils::decodeXml(item.mid(sta,len),true);
+			Comment comment;
+			comment.time  =args[0].toDouble()*1000+0.5;
+			comment.date  =args[5].toInt();
+			comment.mode  =1;
+			comment.font  =25;
+			comment.color =args[2].toInt();
+			comment.sender=args[4].toString();
+			int sta=item.indexOf("<![CDATA[")+9;
+			int len=item.indexOf("]]>",sta)-sta;
+			comment.string=Utils::decodeXml(item.mid(sta,len).toString(),true);
 			list.append(comment);
 		}
 		break;
@@ -346,7 +345,7 @@ Load::Load(QObject *parent):
 		case Page:
 		{
 			model->clear();
-			QRegularExpressionMatchIterator match=QRegularExpression("<a data-vid.*?</a>").globalMatch(reply->readAll());
+			QRegularExpressionMatchIterator match=QRegularExpression("data-vid.*?</a>").globalMatch(reply->readAll());
 			while(match.hasNext()){
 				QStandardItem *item=new QStandardItem;
 				QString part=match.next().captured();
@@ -354,8 +353,8 @@ Load::Load(QObject *parent):
 				r.setPattern("(?<=>)[^>]+?(?=</a>)");
 				item->setData(Utils::decodeXml(r.match(part).captured()),Qt::EditRole);
 				r.setPattern("(?<=data-vid=\").+?(?=\")");
-				QString next("http://static.comment.acfun.mm111.net/%1");
-				next=next.arg(r.match(part).captured());
+				QString next("http://static.comment.%1/V2/%2?pageSize=1000&pageNo=1");
+				next=next.arg(Utils::customUrl(Utils::AcFun)).arg(r.match(part).captured());
 				item->setData(next,UrlRole);
 				item->setData((task.code+"#%1").arg(model->rowCount()+1),StrRole);
 				item->setData(File,NxtRole);
@@ -380,9 +379,25 @@ Load::Load(QObject *parent):
 		}
 		case File:
 		{
-			dumpDanmaku(reply->readAll(),Utils::AcFun,false);
-			emit stateChanged(task.state=None);
-			dequeue();
+			QByteArray data=reply->readAll();
+			if (data!="[[],[],[]]"){
+				QNetworkRequest &request=task.request;
+				QUrl url=request.url();
+				int page=QUrlQuery(url).queryItemValue("pageNo").toInt();
+				url.setQuery(QString());
+				request.setUrl(url);
+				dumpDanmaku(data,Utils::AcFun,false);
+				QUrlQuery query;
+				query.addQueryItem("pageSize","1000");
+				query.addQueryItem("pageNo",QString::number(page+1));
+				url.setQuery(query);
+				request.setUrl(url);
+				forward(request,File);
+			}
+			else{
+				emit stateChanged(task.state=None);
+				dequeue();
+			}
 			break;
 		}
 		}
@@ -390,12 +405,47 @@ Load::Load(QObject *parent):
 	auto acRegular=QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?");
 	pool.append({acRegular,0,acProcess});
 
+	auto ddProcess=[this](QNetworkReply *reply){Task &task=queue.head();
+		switch(task.state){
+		case None:
+		{
+			QString url=QString("http://api.%1/api/v1/comment/%2");
+			url=url.arg(Utils::customUrl(Utils::AcPlay)).arg(task.code.mid(2));
+			task.request.setUrl(url);
+			task.request.setRawHeader("Accept","application/json");
+			task.state=File;
+			forward();
+			break;
+		}
+		case File:
+		{
+			dumpDanmaku(reply->readAll(),Utils::AcPlay,false);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
+		}
+		}
+	};
+	auto ddRegular=QRegularExpression("d(d\\d*)?");
+	pool.append({ddRegular,0,ddProcess});
+
 	auto directProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
 		switch(task.state){
 		case None:
 		{
-			QUrl url=QFileInfo(task.code).exists()?QUrl::fromLocalFile(task.code):QUrl(task.code);
+			QUrl url;
+			if (QFileInfo(task.code).exists()){
+				url=QUrl::fromLocalFile(task.code);
+			}
+			else if(QRegularExpression("^\\d+(\\.xml)?$").match(task.code).hasMatch()){
+				QString api("http://comment.%1/%2");
+				api=api.arg(Utils::customUrl(Utils::Bilibili));
+				url=QUrl(api.arg(task.code));
+			}
+			else{
+				url=QUrl(task.code);
+			}
 			task.request.setUrl(url);
 			task.code=QFileInfo(task.code).fileName();
 			task.state=File;
@@ -440,7 +490,7 @@ Load::Load(QObject *parent):
 			break;
 		}
 	};
-	auto directRegular=QRegularExpression("^.*\\.(xml|json)$");
+	auto directRegular=QRegularExpression("^(?!(full|hist)\\?).*\\.(xml|json)$");
 	directRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 	pool.append({directRegular,0,directProcess});
 
