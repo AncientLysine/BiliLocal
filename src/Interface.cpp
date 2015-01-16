@@ -49,7 +49,6 @@ public:
 		QMessageBox(parent)
 	{
 		setIcon(Warning);
-		connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
 	}
 
 	void warning(QString title,QString text)
@@ -74,6 +73,7 @@ public:
 			p->setWindowTitle(Interface::tr("Loading"));
 			p->setFixedSize(p->sizeHint());
 			p->show();
+			connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
 		}
 		p->setValue(1000*progress);
 	}

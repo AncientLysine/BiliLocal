@@ -44,6 +44,10 @@ public:
 		QAbstractProxyModel(parent),string(string)
 	{
 		setSourceModel(Load::instance()->getModel());
+		connect(sourceModel(),&QAbstractItemModel::rowsInserted,this,&LoadProxyModel::endInsertRows);
+		connect(sourceModel(),&QAbstractItemModel::rowsAboutToBeInserted,[this](const QModelIndex &parent,int sta,int end){
+			beginInsertRows(mapFromSource(parent),sta,end);
+		});
 	}
 
 	int columnCount(const QModelIndex &) const
@@ -415,7 +419,7 @@ Menu::Menu(QWidget *parent):
 		case Load::Part:
 			if(isPoped&&animation->state()==QAbstractAnimation::Stopped){
 				danmC->complete();
-				danmC->popup()->setCurrentIndex(danmC->model()->index(0,0));
+				danmC->popup()->setCurrentIndex(QModelIndex());
 			}
 		case Load::File:
 			localC->setChecked(task->request.url().isLocalFile());

@@ -46,6 +46,9 @@ Utils::Site Utils::parseSite(QString url)
 	if(-1!=url.indexOf("acplay")){
 		return AcPlay;
 	}
+	if(-1!=url.indexOf("tucao")){
+		return TuCao;
+	}
 	return Unknown;
 }
 
@@ -285,13 +288,16 @@ QString Utils::customUrl(Site site)
 	case Niconico:
 		name="nico";
 		break;
+	case TuCao:
+		name="tucao";
+		break;
 	default:
 		return QString();
 	}
-	QStringList urls;
-	urls<<"acfun.tv"<<"bilibili.com"<<"acplay.net";
-	urls=Config::getValue("/Network/Url",urls.join(';')).split(';',QString::SkipEmptyParts);
-	for (QString iter:urls){
+	QStringList urls,defs;
+	defs<<"acfun.tv"<<"bilibili.com"<<"acplay.net"<<"tucao.cc";
+	urls=Config::getValue("/Network/Url",defs.join(';')).split(';',QString::SkipEmptyParts);
+	for (QString iter:urls+defs){
 		if (iter.toLower().indexOf(name)!=-1){
 			return iter;
 		}

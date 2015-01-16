@@ -213,6 +213,29 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 		}
 		break;
 	}
+	case Utils::TuCao:
+	{
+		QString xml(data);
+		QVector<QStringRef> l=xml.splitRef("<d p='");
+		l.removeFirst();
+		for(const QStringRef &item:l){
+			const QVector<QStringRef> &args=item.left(item.indexOf("\"")).split(',');
+			if (args.size()<=4){
+				continue;
+			}
+			Comment comment;
+			comment.time  =args[0].toDouble()*1000+0.5;
+			comment.date  =args[4].toInt();
+			comment.mode  =args[1].toInt();
+			comment.font  =args[2].toInt();
+			comment.color =args[3].toInt();
+			int sta=item.indexOf(">")+1;
+			int len=item.indexOf("<",sta)-sta;
+			comment.string=Utils::decodeXml(item.mid(sta,len).toString(),true);
+			list.append(comment);
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -364,10 +387,8 @@ Load::Load(QObject *parent):
 				emit stateChanged(task.state=Part);
 			}
 			else{
-				QString url=reply->url().url();
-				int i=url.indexOf('_');
-				i=(i==-1)?0:(url.mid(i+1).toInt()-1);
-				if(i>=0&&i<model->rowCount()){
+				int i=sharp==-1?0:task.code.mid(sharp+1).toInt()-1;
+				if (i>=0&&i<model->rowCount()){
 					forward(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),File);
 				}
 				else{
@@ -405,7 +426,8 @@ Load::Load(QObject *parent):
 	auto acRegular=QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?");
 	pool.append({acRegular,0,acProcess});
 
-	auto ddProcess=[this](QNetworkReply *reply){Task &task=queue.head();
+	auto ddProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
 		switch(task.state){
 		case None:
 		{
@@ -428,6 +450,162 @@ Load::Load(QObject *parent):
 	};
 	auto ddRegular=QRegularExpression("d(d\\d*)?");
 	pool.append({ddRegular,0,ddProcess});
+
+	auto abProcess=[=](QNetworkReply *reply){
+		Task &task=queue.head();
+		int sharp=task.code.indexOf(QRegularExpression("[#_]"));
+		switch(task.state){
+		case None:
+		{
+			QString url("http://www.%1/bangumi/video/page?bangumiId=%2&pageSize=30&pageNo=%3&order=2");
+			url=url.arg(Utils::customUrl(Utils::AcFun)).arg(task.code.mid(2,sharp-2));
+			url=url.arg(sharp==-1?1:(task.code.mid(sharp+1).toInt()-1)/30+1);
+			forward(QNetworkRequest(url),Page);
+			break;
+		}
+		case Page:
+		{
+			if (sharp!=-1){
+				QJsonObject data=QJsonDocument::fromJson(reply->readAll()).object()["data"].toObject();
+				int i=task.code.mid(sharp+1).toInt();
+				if (i>0){
+					i=(i-1)%30;
+				}
+				else{
+					i=data["totalCount"].toInt();
+					if (i>30){
+						task.code=task.code.left(sharp)+QString("#%1").arg(i);
+						task.state=None;
+						task.processer->process(nullptr);
+						break;
+					}
+				}
+				QJsonArray list=data["list"].toArray();
+				if (i<0||i>=list.size()){
+					emit stateChanged(203);
+					dequeue();
+					break;
+				}
+				QString head("http://static.comment.%1/V2/%2?pageSize=1000&pageNo=1");
+				head=head.arg(Utils::customUrl(Utils::AcFun));
+				head=head.arg(list[i].toObject()["danmakuId"].toString());
+				forward(QNetworkRequest(head),File);
+				break;
+			}
+			else{
+				model->clear();
+			}
+		}
+		case Part:
+		{
+			QJsonObject info=QJsonDocument::fromJson(reply->readAll()).object();
+			if(!info["success"].toBool()&&model->rowCount()==0){
+				emit stateChanged(info["status"].toInt());
+				dequeue();
+			}
+			QJsonObject data=info["data"].toObject();
+			for(const QJsonValue &value:data["list"].toArray()){
+				QStandardItem *item=new QStandardItem;
+				QJsonObject data=value.toObject();
+				item->setData(data["title"].toString(),Qt::EditRole);
+				QString head("http://static.comment.%1/V2/%2?pageSize=1000&pageNo=1");
+				head=head.arg(Utils::customUrl(Utils::AcFun)).arg(data["danmakuId"].toString());
+				item->setData(head,UrlRole);
+				item->setData((task.code+"#%1").arg(model->rowCount()+1),StrRole);
+				item->setData(File,NxtRole);
+				model->appendRow(item);
+			}
+			if (task.state!=Part){
+				emit stateChanged(task.state=Part);
+			}
+			if (data["pageNo"].toInt()<data["totalPage"].toInt()){
+				QUrl url=reply->request().url();
+				auto arg=QUrlQuery(url).queryItems();
+				for(auto &p:arg){
+					if (p.first=="pageNo"){
+						p.second=QString::number(p.second.toInt()+1);
+						break;
+					}
+				}
+				QUrlQuery query;
+				query.setQueryItems(arg);
+				url.setQuery(query);
+				remain.insert(manager->get(QNetworkRequest(url)));
+			}
+			break;
+		}
+		case File:
+		{
+			acProcess(reply);
+			break;
+		}
+		}
+	};
+	auto abRegular=QRegularExpression("a(b(\\d+([#_])?(\\d+)?)?)?");
+	pool.append({abRegular,0,abProcess});
+
+	auto ccProcess=[this](QNetworkReply *reply){
+		Task &task=queue.head();
+		int sharp=task.code.indexOf(QRegularExpression("[#_]"));
+		switch(task.state){
+		case None:
+		{
+			QString i=task.code.mid(2,sharp-2);
+			QString p=sharp==-1?QString():task.code.mid(sharp+1);
+			QString url("http://www.%1/play/h%2/");
+			url=url.arg(Utils::customUrl(Utils::TuCao)).arg(i);
+			if(!p.isEmpty()){
+				url+=QString("#%1").arg(p);
+			}
+			forward(QNetworkRequest(url),Page);
+			break;
+		}
+		case Page:
+		{
+			QString page=reply->readAll();
+			model->clear();
+			QRegularExpressionMatch m;
+			QRegularExpression r("(?<=<li>)[^<]*(?=</li>)");
+			m=r.match(page,page.indexOf("<ul id=\"player_code\""));
+			QStringList list=m.captured().split("**");
+			m=r.match(page,m.capturedEnd());
+			QString code=m.captured();
+			for(const QString &iter:list){
+				QStandardItem *item=new QStandardItem;
+				item->setData(iter.mid(iter.indexOf('|')+1),Qt::EditRole);
+				QString api("http://www.%1/index.php?m=mukio&c=index&a=init&playerID=%2");
+				api=api.arg(Utils::customUrl(Utils::TuCao)).arg((code+"-%1").arg(model->rowCount()));
+				item->setData(api,UrlRole);
+				item->setData((task.code+"#%1").arg(model->rowCount()+1),StrRole);
+				item->setData(File,NxtRole);
+				model->appendRow(item);
+			}
+			if (sharp==-1&&model->rowCount()>=2){
+				emit stateChanged(task.state=Part);
+			}
+			else{
+				int i=sharp==-1?0:task.code.mid(sharp+1).toInt()-1;
+				if (i>=0&&i<model->rowCount()){
+					forward(QNetworkRequest(model->item(i)->data(UrlRole).toUrl()),File);
+				}
+				else{
+					emit stateChanged(203);
+					dequeue();
+				}
+			}
+			break;
+		}
+		case File:
+		{
+			dumpDanmaku(reply->readAll(),Utils::TuCao,false);
+			emit stateChanged(task.state=None);
+			dequeue();
+			break;
+		}
+		}
+	};
+	auto ccRegular=QRegularExpression("c(c(\\d+([#_])?(\\d+)?)?)?");
+	pool.append({ccRegular,0,ccProcess});
 
 	auto directProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
@@ -464,9 +642,7 @@ Load::Load(QObject *parent):
 				}
 				else if(head.indexOf("<i>")!=-1){
 					load.danmaku=parseComment(data,Utils::Bilibili);
-					QRegularExpression r;
-					r.setPattern("(?<=<chatid>)\\d+(?=</chatid>)");
-					QString i=r.match(head).captured();
+					QString i=QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
 					if(!i.isEmpty()){
 						QString u=("http://comment.%1/%2.xml");
 						load.source=u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
