@@ -378,9 +378,13 @@ void List::updateCurrent()
 		return;
 	}
 	for(const Record &r:Danmaku::instance()->getPool()){
-		QUrl u(r.source);
+		QString code=r.string;
+		if(!Load::instance()->canLoad(code)){
+			QUrl u(r.source);
+			code=u.isLocalFile()?u.toLocalFile():r.source;
+		}
 		QStandardItem *d=new QStandardItem;
-		d->setData(u.isLocalFile()?u.toLocalFile():r.string,CodeRole);
+		d->setData(code   ,CodeRole);
 		d->setData(r.delay,TimeRole);
 		cur->appendRow(d);
 	}

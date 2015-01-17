@@ -32,6 +32,8 @@
 #include <QtNetwork>
 #include <functional>
 
+class Record;
+
 class Load:public QObject
 {
 	Q_OBJECT
@@ -54,7 +56,7 @@ public:
 
 	struct Proc
 	{
-		QRegularExpression regular;
+		std::function<bool(QString &      )> regular;
 		int priority;
 		std::function<void(QNetworkReply *)> process;
 	};
@@ -91,16 +93,19 @@ signals:
 
 public slots:
 	void addProc(const Proc *proc);
-	const Proc *getProc(QString &code);
+	const Proc *getProc(QString code);
 
+	void fixCode(QString &);
 	bool canLoad(QString);
 	bool canFull(QString);
 	bool canHist(QString);
+
 	void loadDanmaku(QString);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
 	void fullDanmaku(QString);
 	void loadHistory(QString,QDate);
-	void dumpDanmaku(QByteArray data,int site,bool full);
+	void dumpDanmaku(const QByteArray &data,int site,Record *r);
+	void dumpDanmaku(const QByteArray &data,int site,bool full);
 
 	void dequeue();
 	bool enqueue(const Task &);

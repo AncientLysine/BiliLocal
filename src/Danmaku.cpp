@@ -121,7 +121,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 		case Qt::ForegroundRole:
 			if(index.column()==0){
-				if(comment.blocked){
+				if(comment.blocked||comment.time>=60000000){
 					return QColor(Qt::red);
 				}
 			}

@@ -233,7 +233,7 @@ Menu::Menu(QWidget *parent):
 	danmL->setPlaceholderText(tr("input av/ac number"));
 	sechL->setPlaceholderText(tr("search danmaku online"));
 	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		Load::instance()->getProc(text);
+		Load::instance()->fixCode(text);
 		danmL->setText(text);
 	});
 	QAbstractItemView *popup;
@@ -406,7 +406,7 @@ Menu::Menu(QWidget *parent):
 	connect(Load::instance(),&Load::stateChanged,[this](int state){
 		Load::Task *task=Load::instance()->getHead();
 		auto syncDanmL=[&](){
-			if(!task->code.isEmpty()&&task->processer->regular.match(task->code).hasMatch()){
+			if(!task->code.isEmpty()&&task->processer->regular(QString(task->code))){
 				danmL->setText(task->code);
 				danmL->setCursorPosition(0);
 			}

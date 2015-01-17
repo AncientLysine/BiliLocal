@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -219,7 +219,7 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 		QVector<QStringRef> l=xml.splitRef("<d p='");
 		l.removeFirst();
 		for(const QStringRef &item:l){
-			const QVector<QStringRef> &args=item.left(item.indexOf("\"")).split(',');
+			const QVector<QStringRef> &args=item.left(item.indexOf("\'")).split(',');
 			if (args.size()<=4){
 				continue;
 			}
@@ -240,6 +240,18 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 		break;
 	}
 	return list;
+}
+
+std::function<bool(QString &)> getRegular(QRegularExpression ex)
+{
+	return [ex](QString &code){
+		auto iter=ex.globalMatch(code);
+		code.clear();
+		while(iter.hasNext()){
+			code=iter.next().captured();
+		}
+		return code.length()>2;
+	};
 }
 }
 
@@ -312,10 +324,11 @@ Load::Load(QObject *parent):
 				emit stateChanged(task.state=Part);
 			}
 			else{
-				QRegularExpression r=QRegularExpression("((?<=cid=)|(?<=\"cid\":\"))\\d+",QRegularExpression::CaseInsensitiveOption);
+				QRegularExpression r=QRegularExpression("cid[=\":]*\\d+",QRegularExpression::CaseInsensitiveOption);
 				QRegularExpressionMatchIterator i=r.globalMatch(video);
 				while(i.hasNext()){
 					QString m=i.next().captured();
+					m=QRegularExpression("\\d+").match(m).captured();
 					if (id.isEmpty()){
 						id=m;
 					}
@@ -345,8 +358,7 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto avRegular=QRegularExpression("a(v(\\d+([#_])?(\\d+)?)?)?");
-	avRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	auto avRegular=getRegular(QRegularExpression("a(v(\\d+([#_])?(\\d+)?)?)?",QRegularExpression::CaseInsensitiveOption));
 	pool.append({avRegular,0,avProcess});
 	
 	auto acProcess=[this](QNetworkReply *reply){
@@ -423,7 +435,7 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto acRegular=QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?");
+	auto acRegular=getRegular(QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?",QRegularExpression::CaseInsensitiveOption));
 	pool.append({acRegular,0,acProcess});
 
 	auto ddProcess=[this](QNetworkReply *reply){
@@ -448,7 +460,7 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto ddRegular=QRegularExpression("d(d\\d*)?");
+	auto ddRegular=getRegular(QRegularExpression("d(d\\d*)?",QRegularExpression::CaseInsensitiveOption));
 	pool.append({ddRegular,0,ddProcess});
 
 	auto abProcess=[=](QNetworkReply *reply){
@@ -541,7 +553,7 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto abRegular=QRegularExpression("a(b(\\d+([#_])?(\\d+)?)?)?");
+	auto abRegular=getRegular(QRegularExpression("a(b(\\d+([#_])?(\\d+)?)?)?",QRegularExpression::CaseInsensitiveOption));
 	pool.append({abRegular,0,abProcess});
 
 	auto ccProcess=[this](QNetworkReply *reply){
@@ -604,7 +616,17 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto ccRegular=QRegularExpression("c(c(\\d+([#_])?(\\d+)?)?)?");
+	auto ccRegular=[](QString &code){
+		code.replace(QRegularExpression("[Hh](?=\\d)"),"cc");
+		QRegularExpression re("c(c(\\d+([#_])?(\\d+)?)?)?");
+		re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		auto iter=re.globalMatch(code);
+		code.clear();
+		while(iter.hasNext()){
+			code=iter.next().captured();
+		}
+		return code.length()>2;
+	};
 	pool.append({ccRegular,0,ccProcess});
 
 	auto directProcess=[this](QNetworkReply *reply){
@@ -612,18 +634,7 @@ Load::Load(QObject *parent):
 		switch(task.state){
 		case None:
 		{
-			QUrl url;
-			if (QFileInfo(task.code).exists()){
-				url=QUrl::fromLocalFile(task.code);
-			}
-			else if(QRegularExpression("^\\d+(\\.xml)?$").match(task.code).hasMatch()){
-				QString api("http://comment.%1/%2");
-				api=api.arg(Utils::customUrl(Utils::Bilibili));
-				url=QUrl(api.arg(task.code));
-			}
-			else{
-				url=QUrl(task.code);
-			}
+			QUrl url=QUrl::fromUserInput(task.code);
 			task.request.setUrl(url);
 			task.code=QFileInfo(task.code).fileName();
 			task.state=File;
@@ -635,25 +646,23 @@ Load::Load(QObject *parent):
 			load.source=reply->url().url();
 			load.string=task.code;
 			load.delay=task.delay;
-			if (load.source.endsWith("xml",Qt::CaseInsensitive)){
-				QByteArray data=reply->readAll(),head=data.left(512);
-				if(head.indexOf("<packet>")!=-1){
-					load.danmaku=parseComment(data,Utils::Niconico);
-				}
-				else if(head.indexOf("<i>")!=-1){
-					load.danmaku=parseComment(data,Utils::Bilibili);
-					QString i=QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
-					if(!i.isEmpty()){
-						QString u=("http://comment.%1/%2.xml");
-						load.source=u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
-					}
-				}
-				else if(head.indexOf("<c>")!=-1){
-					load.danmaku=parseComment(data,Utils::AcfunLocalizer);
+			QByteArray data=reply->readAll(),head=data.left(256);
+			if(!head.startsWith("<?xml")){
+				load.danmaku=parseComment(data,Utils::AcFun);
+			}
+			else if(head.indexOf("<packet>")!=-1){
+				load.danmaku=parseComment(data,Utils::Niconico);
+			}
+			else if(head.indexOf("<i>")!=-1){
+				load.danmaku=parseComment(data,Utils::Bilibili);
+				QString i=QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
+				if(!i.isEmpty()){
+					QString u=("http://comment.%1/%2.xml");
+					load.source=u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
 				}
 			}
-			else{
-				load.danmaku=parseComment(reply->readAll(),Utils::AcFun);
+			else if(head.indexOf("<c>")!=-1){
+				load.danmaku=parseComment(data,Utils::AcfunLocalizer);
 			}
 			if (load.delay!=0){
 				for(Comment &c:load.danmaku){
@@ -666,8 +675,25 @@ Load::Load(QObject *parent):
 			break;
 		}
 	};
-	auto directRegular=QRegularExpression("^(?!(full|hist)\\?).*\\.(xml|json)$");
-	directRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	auto directRegular=[this](QString &code){
+		if (code.startsWith("full?")||code.startsWith("hist?")){
+			code.clear();
+			return false;
+		}
+		if(!queue.isEmpty()&&!code.isEmpty()&&code==queue.head().code){
+			return true;
+		}
+		//TODO: 接受短文件名
+		QUrl u=QUrl::fromUserInput(code);
+		if(!u.host().isEmpty()&&!u.path().isEmpty()){
+			return true;
+		}
+		if (QFileInfo(code).exists()){
+			return true;
+		}
+		code.clear();
+		return false;
+	};
 	pool.append({directRegular,0,directProcess});
 
 	auto fullBiProcess=[this](QNetworkReply *reply){
@@ -759,7 +785,8 @@ Load::Load(QObject *parent):
 		}
 	};
 	auto fullBiRegular=QRegularExpression("^full\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml$");
-	pool.append({fullBiRegular,5,fullBiProcess});
+	fullBiRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	pool.append({getRegular(fullBiRegular),5,fullBiProcess});
 
 	auto histBiProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
@@ -802,7 +829,8 @@ Load::Load(QObject *parent):
 		}
 	};
 	auto histBiRegular=QRegularExpression("^hist\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml&date=\\d+$");
-	pool.append({histBiRegular,5,histBiProcess});
+	histBiRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	pool.append({getRegular(histBiRegular),5,histBiProcess});
 
 	connect(this,&Load::stateChanged,[this](int code){
 		switch(code){
@@ -820,14 +848,13 @@ Load::Load(QObject *parent):
 			QList<const Proc *> list;
 			int accept=0;
 			for(const Proc &i:pool){
-				QRegularExpressionMatchIterator g=i.regular.globalMatch(task.code);
-				while(g.hasNext()){
-					QRegularExpressionMatch m=g.next();
-					if (m.capturedLength()> accept){
-						accept= m.capturedLength();
+				QString code(task.code);
+				if (i.regular(code)){
+					if (code.length()> accept){
+						accept=code.length();
 						list.clear();
 					}
-					if (m.capturedLength()==accept){
+					if (code.length()==accept){
 						list.append(&i);
 					}
 				}
@@ -867,28 +894,33 @@ void Load::addProc(const Load::Proc *proc)
 	pool.append(*proc);
 }
 
-const Load::Proc *Load::getProc(QString &code)
+const Load::Proc *Load::getProc(QString code)
 {
 	const Proc *p=nullptr;
-	QString accept;
 	for(const Proc &i:pool){
-		QRegularExpressionMatchIterator g=i.regular.globalMatch(code);
-		while(g.hasNext()){
-			QRegularExpressionMatch m=g.next();
-			if (m.capturedLength()>accept.length()||(m.capturedLength()==accept.length()&&(!p||i.priority>p->priority))){
-				p=&i;
-				accept=m.captured();
-			}
+		if (i.regular(QString(code))&&(!p||i.priority>p->priority)){
+			p=&i;
 		}
 	}
-	code=accept;
 	return p;
+}
+
+void Load::fixCode(QString &code)
+{
+	QString fixed;
+	for(const Proc &i:pool){
+		QString temp(code);
+		i.regular(temp);
+		if (temp.length()>fixed.length()){
+			fixed=temp;
+		}
+	}
+	code=fixed;
 }
 
 bool Load::canLoad(QString code)
 {
-	QString t=code;
-	return getProc(t)&&t==code;
+	return getProc(code);
 }
 
 namespace
@@ -903,8 +935,7 @@ QString toFull(QString source)
 
 bool Load::canFull(QString code)
 {
-	QString t=code=toFull(code);
-	return getProc(t)&&t==code;
+	return getProc(toFull(code));
 }
 
 bool Load::canHist(QString code)
@@ -913,8 +944,7 @@ bool Load::canHist(QString code)
 	query.addQueryItem("source",code);
 	query.addQueryItem("date","0");
 	code="hist?"+query.toString();
-	QString t=code;
-	return getProc(t)&&t==code;
+	return getProc(code);
 }
 
 void Load::loadDanmaku(QString code)
@@ -970,7 +1000,17 @@ void Load::loadHistory(QString source,QDate date)
 	}
 }
 
-void Load::dumpDanmaku(QByteArray data,int site,bool full)
+void Load::dumpDanmaku(const QByteArray &data,int site,Record *r)
+{
+	r->danmaku=parseComment(data,(Utils::Site)site);
+	if (r->delay!=0){
+		for(Comment &c:r->danmaku){
+			c.time+=r->delay;
+		}
+	}
+}
+
+void Load::dumpDanmaku(const QByteArray &data,int site,bool full)
 {
 	Task &task=queue.head();
 	Record load;
@@ -978,12 +1018,7 @@ void Load::dumpDanmaku(QByteArray data,int site,bool full)
 	load.source=task.request.url().url();
 	load.string=task.code;
 	load.delay=task.delay;
-	load.danmaku=parseComment(data,(Utils::Site)site);
-	if (load.delay!=0){
-		for(Comment &c:load.danmaku){
-			c.time+=load.delay;
-		}
-	}
+	dumpDanmaku(data,site,&load);
 	Danmaku::instance()->appendToPool(&load);
 }
 
