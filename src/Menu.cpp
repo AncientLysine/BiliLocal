@@ -40,8 +40,8 @@ namespace{
 class LoadProxyModel:public QAbstractProxyModel
 {
 public:
-	explicit LoadProxyModel(QObject *parent=0,QString string=QString()):
-		QAbstractProxyModel(parent),string(string)
+	explicit LoadProxyModel(QObject *parent=0):
+		QAbstractProxyModel(parent)
 	{
 		setSourceModel(Load::instance()->getModel());
 		connect(sourceModel(),&QAbstractItemModel::rowsInserted,this,&LoadProxyModel::endInsertRows);
@@ -69,7 +69,7 @@ public:
 			}
 			case Qt::DisplayRole:
 			case Qt::EditRole:
-				return string;
+				return Menu::tr("Load All");
 			case Qt::BackgroundRole:
 				return QColor(0xA0A0A4);
 			case Qt::ForegroundRole:
@@ -128,9 +128,6 @@ public:
 	{
 		return i.isValid()?index(i.row()+1,i.column(),mapFromSource(i.parent())):QModelIndex();
 	}
-
-private:
-	QString string;
 };
 
 class ListProxyModel:public QSortFilterProxyModel
@@ -161,10 +158,10 @@ private:
 	}
 };
 
-class EditWithHistory:public QLineEdit
+class FileEdit:public QLineEdit
 {
 public:
-	EditWithHistory(QCompleter *completer,QWidget *parent=0):
+	explicit FileEdit(QCompleter *completer,QWidget *parent=0):
 		QLineEdit(parent),completer(completer)
 	{
 		historyFlag=0;
@@ -196,20 +193,36 @@ private:
 	QCompleter *completer;
 };
 
-class PartingListener:public QObject
+class DanmEdit:public QLineEdit
 {
 public:
-	PartingListener(QObject *parent):
-		QObject(parent)
+	explicit DanmEdit(QCompleter *completer,QWidget *parent=0):
+		QLineEdit(parent)
 	{
+		completer->popup()->installEventFilter(this);
+		connect(this,&DanmEdit::textEdited,this,&DanmEdit::setFixedText);
 	}
 
 	bool eventFilter(QObject *,QEvent *e) override
 	{
-		if(e->type()==QEvent::Hide){
+		if (e->type()==QEvent::Hide){
 			Load::instance()->dequeue();
 		}
 		return false;
+	}
+
+	void setFixedText(QString text)
+	{
+		Load::instance()->fixCode(text);
+		setText(text);
+	}
+
+	void focusInEvent(QFocusEvent *e)
+	{
+		if(!Config::getValue("/Danmaku/Local",false)){
+			setFixedText(text());
+		}
+		QLineEdit::focusInEvent(e);
 	}
 };
 }
@@ -222,8 +235,10 @@ Menu::Menu(QWidget *parent):
 	Utils::setGround(this,Qt::white);
 	ListProxyModel *fileM=new ListProxyModel(this);
 	fileC=new QCompleter(fileM,this);
-	fileL=new EditWithHistory(fileC,this);
-	danmL=new QLineEdit(this);
+	LoadProxyModel *danmM=new LoadProxyModel(this);
+	danmC=new QCompleter(danmM,this);
+	fileL=new FileEdit(fileC,this);
+	danmL=new DanmEdit(danmC,this);
 	sechL=new QLineEdit(this);
 	fileL->installEventFilter(this);
 	danmL->installEventFilter(this);
@@ -232,10 +247,6 @@ Menu::Menu(QWidget *parent):
 	fileL->setPlaceholderText(tr("choose a local media"));
 	danmL->setPlaceholderText(tr("input av/ac number"));
 	sechL->setPlaceholderText(tr("search danmaku online"));
-	connect(danmL,&QLineEdit::textEdited,[this](QString text){
-		Load::instance()->fixCode(text);
-		danmL->setText(text);
-	});
 	QAbstractItemView *popup;
 	fileC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	fileC->setWidget(fileL);
@@ -255,13 +266,10 @@ Menu::Menu(QWidget *parent):
 		setFocus();
 		List::instance()->jumpToIndex(fileM->mapToSource(dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
 	});
-	LoadProxyModel *danmM=new LoadProxyModel(this,tr("Load All"));
-	danmC=new QCompleter(danmM,this);
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setWidget(danmL);
 	popup=danmC->popup();
 	popup->setMouseTracking(true);
-	popup->installEventFilter(new PartingListener(popup));
 	connect(popup,SIGNAL(entered(QModelIndex)),popup,SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC,&QCompleter::activated,[=](const QModelIndex &index){
 		setFocus();
@@ -424,10 +432,6 @@ Menu::Menu(QWidget *parent):
 		case Load::File:
 			localC->setChecked(task->request.url().isLocalFile());
 			syncDanmL();
-		case Load::Code:
-		case Load::None:
-			isStay=0;
-			break;
 		default:
 			isStay=0;
 			break;

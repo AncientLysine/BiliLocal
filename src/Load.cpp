@@ -45,13 +45,14 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 	QList<Comment> list;
 	switch(site){
 	case Utils::Bilibili:
+	case Utils::TuCao:
 	{
 		QString xml(data);
-		QVector<QStringRef> l=xml.splitRef("<d p=\"");
+		QVector<QStringRef> l=xml.splitRef("<d p=");
 		l.removeFirst();
 		for(const QStringRef &item:l){
-			const QVector<QStringRef> &args=item.left(item.indexOf("\"")).split(',');
-			if (args.size()<=6){
+			const QVector<QStringRef> &args=item.mid(1,item.indexOf(item.at(0))-1).split(',');
+			if (args.size()<=4){
 				continue;
 			}
 			Comment comment;
@@ -60,7 +61,7 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 			comment.mode  =args[1].toInt();
 			comment.font  =args[2].toInt();
 			comment.color =args[3].toInt();
-			comment.sender=args[6].toString();
+			comment.sender=args.size()<=6?QString():args[6].toString();
 			int sta=item.indexOf(">")+1;
 			int len=item.indexOf("<",sta)-sta;
 			comment.string=Utils::decodeXml(item.mid(sta,len).toString(),true);
@@ -209,29 +210,6 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 				}
 			}
 			comment.sender=args["user_id"];
-			list.append(comment);
-		}
-		break;
-	}
-	case Utils::TuCao:
-	{
-		QString xml(data);
-		QVector<QStringRef> l=xml.splitRef("<d p='");
-		l.removeFirst();
-		for(const QStringRef &item:l){
-			const QVector<QStringRef> &args=item.left(item.indexOf("\'")).split(',');
-			if (args.size()<=4){
-				continue;
-			}
-			Comment comment;
-			comment.time  =args[0].toDouble()*1000+0.5;
-			comment.date  =args[4].toInt();
-			comment.mode  =args[1].toInt();
-			comment.font  =args[2].toInt();
-			comment.color =args[3].toInt();
-			int sta=item.indexOf(">")+1;
-			int len=item.indexOf("<",sta)-sta;
-			comment.string=Utils::decodeXml(item.mid(sta,len).toString(),true);
 			list.append(comment);
 		}
 		break;
@@ -908,11 +886,17 @@ const Load::Proc *Load::getProc(QString code)
 void Load::fixCode(QString &code)
 {
 	QString fixed;
+	const Proc *p=nullptr;
 	for(const Proc &i:pool){
-		QString temp(code);
-		i.regular(temp);
-		if (temp.length()>fixed.length()){
-			fixed=temp;
+		QString t(code);
+		if (i.regular(t)){
+			if (!p||i.priority>p->priority){
+				fixed=t;
+				p=&i;
+			}
+		}
+		else if(!p&&t.length()>fixed.length()){
+			fixed=t;
 		}
 	}
 	code=fixed;
@@ -950,11 +934,8 @@ bool Load::canHist(QString code)
 void Load::loadDanmaku(QString code)
 {
 	const Task &task=codeToTask(code);
-	if (task.processer){
-		enqueue(task);
-		if (Config::getValue("/Playing/Clear", true)){
-			Danmaku::instance()->clearPool();
-		}
+	if (enqueue(task)&&Config::getValue("/Playing/Clear", true)){
+		Danmaku::instance()->clearPool();
 	}
 }
 
@@ -984,9 +965,7 @@ void Load::loadDanmaku(const QModelIndex &index)
 void Load::fullDanmaku(QString source)
 {
 	const Task &task=codeToTask(toFull(source));
-	if (task.processer){
-		enqueue(task);
-	}
+	enqueue(task);
 }
 
 void Load::loadHistory(QString source,QDate date)
@@ -995,9 +974,7 @@ void Load::loadHistory(QString source,QDate date)
 	query.addQueryItem("source",source);
 	query.addQueryItem("date",QString::number(date.isValid()?QDateTime(date).toTime_t():0));
 	const Task &task=codeToTask("hist?"+query.toString());
-	if (task.processer){
-		enqueue(task);
-	}
+	enqueue(task);
 }
 
 void Load::dumpDanmaku(const QByteArray &data,int site,Record *r)
@@ -1061,11 +1038,17 @@ bool Load::enqueue(const Task &task)
 void Load::forward()
 {
 	Task &task=queue.head();
-	emit stateChanged(task.state);
+	if(!task.processer){
+		task.state=301;
+		emit stateChanged(task.state);
+		dequeue();
+		return;
+	}
 	if (task.state==None){
-		task.processer->process(0);
+		task.processer->process(nullptr);
 	}
 	else{
+		emit stateChanged(task.state);
 		remain.insert(manager->get(task.request));
 	}
 }
