@@ -381,11 +381,17 @@ Interface::Interface(QWidget *parent):
 void Interface::tryLocal(QString p)
 {
 	QFileInfo info(p);
+	QString suffix=info.suffix().toLower();
 	if(!info.exists()){
 		return;
 	}
-	QString suffix=info.suffix().toLower();
-	if(Utils::getSuffix(Utils::Video|Utils::Audio).contains(suffix)){
+	else if(Utils::getSuffix(Utils::Danmaku ).contains(suffix)){
+		load   ->loadDanmaku(p);
+	}
+	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
+		aplayer->addSubtitle(p);
+	}
+	else{
 		switch(Config::getValue("/Interface/Single",1)){
 		case 0:
 		case 1:
@@ -395,12 +401,6 @@ void Interface::tryLocal(QString p)
 			list->appendMedia(p);
 			break;
 		}
-	}
-	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
-		load->loadDanmaku(p);
-	}
-	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
-		aplayer->addSubtitle(p);
 	}
 }
 
@@ -424,15 +424,8 @@ void Interface::closeEvent(QCloseEvent *e)
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)
 {
-	if(e->mimeData()->hasFormat("text/uri-list")){
-		QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio|Utils::Subtitle|Utils::Danmaku);
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
-			QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
-			if(std::binary_search(accept.begin(),accept.end(),suffix)){
-				e->acceptProposedAction();
-				break;
-			}
-		}
+	if (e->mimeData()->hasFormat("text/uri-list")){
+		e->acceptProposedAction();
 	}
 	QWidget::dragEnterEvent(e);
 }

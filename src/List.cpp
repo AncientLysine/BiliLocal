@@ -85,6 +85,37 @@ int diffAtNum(QString f,QString s)
 	}
 	return 0;
 }
+
+QModelIndex getGroupHead(QModelIndex i)
+{
+	QModelIndex f;
+	for(int o=0;;++o){
+		f=i.sibling(i.row()-o,0);
+		if (f.data(List::CodeRole).toInt()==List::Records||f.row()==0){
+			return f;
+		}
+	}
+}
+
+QModelIndex getGroupTail(QModelIndex i)
+{
+	for(;;){
+		QModelIndex j=i.sibling(i.row()+1,0);
+		if (j.isValid()&&j.data(List::CodeRole).toInt()!=List::Records){
+			i=j;
+		}
+		else{
+			return i;
+		}
+	}
+}
+
+void clearItemGroup(int row)
+{
+	QStandardItem *i=List::instance()->item(row);
+	i->setIcon(QIcon());
+	i->setData(List::Records,List::CodeRole);
+}
 }
 
 List::List(QObject *parent):
@@ -97,14 +128,16 @@ List::List(QObject *parent):
 	for(int i=0;i<3;++i){
 		icons.append(QIcon(new IconEngine(i)));
 	}
-	QStandardItem *lastE=nullptr,*lastD=nullptr;
+	QStandardItem *lastE=nullptr;
+	QStandardItem *lastD=nullptr;
+	int lastC=0;
 	auto conbine=[&](){
 		if (lastE&&lastD){
 			QModelIndexList indexes;
 			for(int i=lastE->row();i<=lastD->row();++i){
 				indexes.append(index(i,0));
 			}
-			setRelated(indexes,lastD->data(CodeRole).toInt());
+			setRelated(indexes,lastC);
 		}
 	};
 	for(const QJsonValue &i:Config::getValue<QJsonArray>("/Playing/List")){
@@ -130,7 +163,7 @@ List::List(QObject *parent):
 			lastE=item;
 		}
 		else{
-			item->setData(data["Danm"].toString()=="Inherit"?Inherit:Surmise,CodeRole);
+			lastC=data["Danm"].toString()=="Inherit"?Inherit:Surmise;
 			lastD=item;
 		}
 		appendRow(item);
@@ -234,52 +267,89 @@ List::~List()
 	Config::setValue("/Playing/List",list);
 }
 
+QStringList List::mimeTypes() const
+{
+	return {"application/x-bililocallistdata"};
+}
+
+namespace
+{
+QList<QStandardItem *> getItems(const QModelIndexList &indexes)
+{
+	QList<QStandardItem *> items;
+	for(const QModelIndex&i:indexes){
+		items.append(List::instance()->itemFromIndex(i));
+	}
+	std::sort(items.begin(),items.end(),[](QStandardItem *f,QStandardItem *s){return f->row()<s->row();});
+	return items;
+}
+}
+
+QMimeData *List::mimeData(const QModelIndexList &indexes) const
+{
+	QByteArray byte;
+	QDataStream s(&byte,QIODevice::WriteOnly);
+	for(QStandardItem *item:getItems(indexes)){
+		s<<item->row();
+	}
+    QMimeData *data=new QMimeData;
+	data->setData("application/x-bililocallistdata",byte);
+	return data;
+}
+
 bool List::dropMimeData(const QMimeData *data,Qt::DropAction action,int row,int column,const QModelIndex &parent)
 {
-	if ((!item(row)||item(row)->data(CodeRole).toInt()==Records)&&
-		QStandardItemModel::dropMimeData(data,action,row,column,parent)){
-		QModelIndexList indexes;
-		indexes.append(index(row,0));
-		for(int o=row+1;;++o){
-			QModelIndex i=index(o,0);
-			if (i.data(CodeRole).toInt()==Records){
-				setRelated(indexes,indexes.last().data(CodeRole).toInt());
-				break;
-			}
-			else{
-				indexes.append(i);
-			}
+	if (action!=Qt::MoveAction||column!=0||parent.isValid()){
+		return false;
+	}
+	if (item(row)&&item(row)->data(CodeRole).toInt()!=Records){
+		return false;
+	}
+	QDataStream s(data->data("application/x-bililocallistdata"));
+	QList<QStandardItem *> items;
+	while(!s.atEnd()){
+		int source;
+		s>> source;
+		items.append(item(source));
+	}
+	if (items.isEmpty()){
+		return false;
+	}
+	std::sort(items.begin(),items.end(),[](QStandardItem *f,QStandardItem *s){return f->row()<s->row();});
+	for(QStandardItem *item:items){
+		split(item->index());
+		if (item->row()<row){
+			--row;
 		}
-		return 1;
+		insertRow(row,takeRow(item->row()));
+		++row;
 	}
-	else{
-		return 0;
-	}
+	return true;
 }
 
 void List::setRelated(const QModelIndexList &indexes,int reason)
 {
-	QList<int> rows;
-	for(const QModelIndex&i:indexes){
-		rows.append(i.row());
-	}
-	int s=rows.size()-1;
-	if (s<=0){
+	if (indexes.size()<2){
 		return;
 	}
-	std::sort(rows.begin(),rows.end());
-	int b=rows[0];
-	for(int r:rows){
-		insertRow(b++,takeRow(r));
+	int i=-1;
+	auto items=getItems(indexes);
+	split(indexes);
+	for(QStandardItem *item:items){
+		if (i<0){
+			i=item->row();
+			insertRow(i,takeRow(item->row()));
+			item->setIcon(icons[0]);
+		}
+		else{
+			++i;
+			insertRow(i,takeRow(item->row()));
+			item->setIcon(icons[1]);
+			item->setData(reason,CodeRole);
+			item->setRowCount(0);
+		}
 	}
-	int f=rows.first(),t=b-1;
-	item(f)->setIcon(icons[0]);
-	for(int i=f+1;i<=t;++i){
-		QStandardItem *item=this->item(i);
-		item->setIcon(icons[i==t?2:1]);
-		item->setData(reason,CodeRole);
-		item->setRowCount(0);
-	}
+	item(i)->setIcon(icons[2]);
 }
 
 QString List::defaultPath(int type)
@@ -333,7 +403,7 @@ QStandardItem *List::itemFromFile(QString file,bool create)
 		QStringList accept=Utils::getSuffix(Utils::Danmaku);
 		QModelIndexList indexes;
 		indexes.append(item->index());
-			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
+		for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
 			QString p=iter.absoluteFilePath();
 			if(!item->hasChildren()&&
 				accept.contains(iter.suffix().toLower())&&
@@ -390,6 +460,68 @@ void List::updateCurrent()
 	}
 }
 
+void List::waste(const QModelIndex &index)
+{
+	if (itemFromIndex(index)==cur){
+		return;
+	}
+	int self=index.row();
+	int head=getGroupHead(index).row();
+	int tail=getGroupTail(index).row();
+	removeRow(self);
+	switch(tail-head){
+	case 0:
+		return;
+	case 1:
+		clearItemGroup(head);
+		return;
+	default:
+		--tail;
+		item(tail)->setIcon(icons[2]);
+		item(head)->setIcon(icons[0]);
+		item(head)->setData(Records,CodeRole);
+		return;
+	}
+}
+
+void List::waste(const QModelIndexList &indexes)
+{
+	for(QStandardItem *item:getItems(indexes)){
+		waste(item->index());
+	}
+}
+
+void List::split(const QModelIndex &index)
+{
+	int self=index.row();
+	int head=getGroupHead(index).row();
+	int tail=getGroupTail(index).row();
+	switch(tail-head){
+	case 0:
+		return;
+	case 1:
+		clearItemGroup(head);
+		clearItemGroup(tail);
+		return;
+	default:
+		insertRow(tail,takeRow(self));
+		clearItemGroup(tail);
+		--tail;
+		item(tail)->setIcon(icons[2]);
+		item(head)->setIcon(icons[0]);
+		item(head)->setData(Records,CodeRole);
+		return;
+	}
+}
+
+void List::split(const QModelIndexList &indexes)
+{
+	QList<QStandardItem *> items=getItems(indexes);
+	while(!items.isEmpty()){
+		split(items.takeLast()->index());
+	}
+}
+
 void List::merge(const QModelIndexList &indexes)
 {
 	setRelated(indexes,Inherit);
@@ -400,18 +532,10 @@ void List::group(const QModelIndexList &indexes)
 	setRelated(indexes,Surmise);
 }
 
-void List::split(const QModelIndexList &indexes)
-{
-	for(const QModelIndex&i:indexes){
-		QStandardItem *item=itemFromIndex(i);
-		item->setIcon(QIcon());item->setData(0,CodeRole);
-	}
-}
-
 bool List::jumpToIndex(const QModelIndex &index,bool manually)
 {
 	QStandardItem *head=itemFromIndex(index);
-	if(!head){
+	if(!head||head->data(CodeRole).toInt()==Inherit){
 		return false;
 	}
 	APlayer::instance()->setMedia(head->data(FileRole).toString(),manually);

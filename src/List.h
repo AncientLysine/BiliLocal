@@ -51,8 +51,10 @@ public:
 
 	~List();
 	static List *instance();
-	bool dropMimeData(const QMimeData *data,Qt::DropAction action,int row,int column,const QModelIndex &parent);
-
+	QStringList mimeTypes() const;
+	QMimeData  *mimeData(const QModelIndexList &) const;
+	bool    dropMimeData(const QMimeData *,Qt::DropAction,int,int,const QModelIndex &p);
+	
 private:
 	QStandardItem *cur;
 	qint64 time;
@@ -68,9 +70,12 @@ public slots:
 	bool finished();
 	void appendMedia(QString file);
 	void updateCurrent();
+	void split(const QModelIndex &index);
+	void split(const QModelIndexList &indexes);
+	void waste(const QModelIndex &index);
+	void waste(const QModelIndexList &indexes);
 	void merge(const QModelIndexList &indexes);
 	void group(const QModelIndexList &indexes);
-	void split(const QModelIndexList &indexes);
 	bool jumpToIndex(const QModelIndex &index,bool manually=true);
 };
 

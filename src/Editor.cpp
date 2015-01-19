@@ -34,40 +34,6 @@
 #include <algorithm>
 
 namespace{
-class SelectionModel:public QItemSelectionModel
-{
-public:
-	SelectionModel(QAbstractItemModel *model,QObject *parent=nullptr):
-		QItemSelectionModel(model,parent)
-	{
-	}
-	
-	void select(const QItemSelection &selection,QItemSelectionModel::SelectionFlags command)
-	{
-		QItemSelection s;
-		for(auto i:selection.indexes()){
-			QModelIndex f=i,t=i;
-			for(;;){
-				QModelIndex j=t.sibling(t.row()+1,0);
-				if (j.isValid()&&j.data(List::CodeRole).toInt()!=List::Records){
-					t=j;
-				}
-				else{
-					break;
-				}
-			}
-			for(int o=0;;++o){
-				f=i.sibling(i.row()-o,0);
-				if (f.data(List::CodeRole).toInt()==List::Records){
-					break;
-				}
-			}
-			s.select(f,t);
-		}
-		QItemSelectionModel::select(s,command);
-	}
-};
-
 class ListEditor:public QListView
 {
 public:
@@ -76,69 +42,67 @@ public:
 	{
 		setModel(List::instance());
 		setMinimumWidth(200*logicalDpiX()/96);
-		setSelectionModel(new SelectionModel(model(),this));
 		setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-		setSelectionMode(ExtendedSelection);setDragDropMode(InternalMove);
-		setContextMenuPolicy(Qt::CustomContextMenu);
+		setSelectionMode(ExtendedSelection);
+		setDragDropMode(InternalMove);
+		setContextMenuPolicy(Qt::ActionsContextMenu);
 		setIconSize(QSize(15*logicalDpiX()/96,15*logicalDpiY()/96));
+		
+		megA=new QAction(Editor::tr("Merge"),this);
+		connect(megA,&QAction::triggered,[this](){
+			List::instance()->merge(selectionModel()->selectedRows());
+			setCurrentIndex(QModelIndex());
+		});
+		addAction(megA);
+
+		grpA=new QAction(Editor::tr("Group"),this);
+		connect(grpA,&QAction::triggered,[this](){
+			List::instance()->group(selectionModel()->selectedRows());
+			setCurrentIndex(QModelIndex());
+		});
+		addAction(grpA);
+
+		splA=new QAction(Editor::tr("Split"),this);
+		splA->setShortcut(QKeySequence("S"));
+		connect(splA,&QAction::triggered,[this](){
+			List::instance()->split(selectionModel()->selectedRows());
+			setCurrentIndex(QModelIndex());
+		});
+		addAction(splA);
 
 		delA=new QAction(Editor::tr("Delete"),this);
-		delA->setShortcut(QString("Del"));
+		delA->setShortcut(QKeySequence("Del"));
 		connect(delA,&QAction::triggered,[this](){
-			QList<int> rows;
-			List *l=List::instance();
-			for(const QModelIndex &i:selectionModel()->selectedRows()){
-				if(l->itemFromIndex(i)!=l->getCurrent()){
-					rows.append(i.row());
-				}
-			}
-			std::sort(rows.begin(),rows.end());
-			while(!rows.isEmpty()){
-				int r=rows.takeFirst();
-				model()->removeRow(r);
-				for(int &i:rows){
-					if(i>r){
-						--i;
-					}
-				}
-			}
+			List::instance()->waste(selectionModel()->selectedRows());
+			setCurrentIndex(QModelIndex());
 		});
 		addAction(delA);
-		
-		connect(this,SIGNAL(doubleClicked(QModelIndex)),List::instance(),SLOT(jumpToIndex(QModelIndex)));
 
-		connect(this,&QWidget::customContextMenuRequested,[this](QPoint p){
-			QMenu menu(this);
-			connect(menu.addAction(Editor::tr("Merge")),&QAction::triggered,[this](){
-				List::instance()->merge(selectionModel()->selectedRows());
-			});
-			connect(menu.addAction(Editor::tr("Group")),&QAction::triggered,[this](){
-				List::instance()->group(selectionModel()->selectedRows());
-			});
-			connect(menu.addAction(Editor::tr("Split")),&QAction::triggered,[this](){
-				List::instance()->split(selectionModel()->selectedRows());
-			});
-			menu.addAction(delA);
-			menu.exec(mapToGlobal(p));
-		});
+		connect(this,SIGNAL(doubleClicked(QModelIndex)),List::instance(),SLOT(jumpToIndex(QModelIndex)));
 	}
 
 private:
+	QAction *megA;
+	QAction *grpA;
+	QAction *splA;
 	QAction *delA;
 
 	void dragEnterEvent(QDragEnterEvent *e)
 	{
-		if(e->mimeData()->hasFormat("text/uri-list")){
-			QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio);
-			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
-				QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
-				if(std::binary_search(accept.begin(),accept.end(),suffix)){
-					e->acceptProposedAction();
-					break;
-				}
-			}
+		if (e->mimeData()->hasFormat("text/uri-list")){
+			e->acceptProposedAction();
 		}
 		QListView::dragEnterEvent(e);
+	}
+
+	void dropEvent(QDropEvent *e)
+	{
+		if (e->mimeData()->hasFormat("text/uri-list")){
+			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
+				List::instance()->appendMedia(QUrl(item).toLocalFile().trimmed());
+			}
+		}
+		QListView::dropEvent(e);
 	}
 	
 	void currentChanged(const QModelIndex &c,
@@ -153,15 +117,6 @@ private:
 		return QSize(150*logicalDpiX()/96,QListView::sizeHint().height());
 	}
 
-	void dropEvent(QDropEvent *e)
-	{
-		if(e->mimeData()->hasFormat("text/uri-list")){
-			for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
-				List::instance()->appendMedia(QUrl(item).toLocalFile().trimmed());
-			}
-		}
-		QListView::dropEvent(e);
-	}
 };
 
 class Calendar:public QDialog
