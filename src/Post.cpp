@@ -32,23 +32,11 @@
 #include "Graphic.h"
 #include "Local.h"
 
-Post *Post::ins=NULL;
-
-Post *Post::instance()
-{
-	return ins?ins:new Post(Local::mainWidget());
-}
-
 Post::Post(QWidget *parent):
-	QDialog(parent,Qt::FramelessWindowHint)
+	QWidget(parent)
 {
-	ins=this;
-	setFixedSize(480,25);
-	setAttribute(Qt::WA_TranslucentBackground);
+	setFixedSize(parent->minimumWidth(),25);
 	setObjectName("Post");
-	setWindowOpacity(Config::getValue("/Interface/Floating/Alpha",60)/100.0);
-	moveWithParent();
-	parent->installEventFilter(this);
 	manager=new QNetworkAccessManager(this);
 	Config::setManager(manager);
 	auto layout=new QHBoxLayout(this);
@@ -63,7 +51,7 @@ Post::Post(QWidget *parent):
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
 	connect(commentC,&QPushButton::clicked,[this](){
-		QColor color=QColorDialog::getColor(getColor(),Local::mainWidget());
+		QColor color=QColorDialog::getColor(getColor(),lApp->mainWidget());
 		if(color.isValid()){
 			setColor(color);
 		}
@@ -97,24 +85,10 @@ Post::Post(QWidget *parent):
 			commentS->addItem(r->string,(quintptr)r);
 			w=qMax(w,commentS->fontMetrics().width(r->string));
 		}
-		if(commentS->count()==0){
-			hide();
-		}
 		commentS->setVisible(commentS->count()>=2);
 		commentS->setFixedWidth(w+30);
 	});
-}
-
-bool Post::eventFilter(QObject *,QEvent *e)
-{
-	switch(e->type()){
-	case QEvent::Move:
-	case QEvent::Resize:
-		moveWithParent();
-		return false;
-	default:
-		return false;
-	}
+	hide();
 }
 
 QColor Post::getColor()
@@ -214,43 +188,36 @@ void Post::postComment()
 	default:
 		break;
 	}
-	if(Danmaku::instance()->appendToPool(r->source,c)){
-		QNetworkReply *reply=manager->post(request,data);
-		connect(reply,&QNetworkReply::finished,[=](){
-			int error=reply->error();
-			if(error==QNetworkReply::NoError){
-				switch(Utils::parseSite(reply->url().url()))
-				{
-				case Utils::Bilibili:
-				{
-					error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
-					break;
-				}
-				case Utils::AcPlay:
-				{
-					QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
-					error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
-					break;
-				}
-				default:
-					break;
-				}
+	Danmaku::instance()->appendToPool(r->source,&c);
+	QNetworkReply *reply=manager->post(request,data);
+	connect(reply,&QNetworkReply::finished,[=](){
+		int error=reply->error();
+		if (error==QNetworkReply::NoError){
+			switch(Utils::parseSite(reply->url().url()))
+			{
+			case Utils::Bilibili:
+			{
+				error=qMin<int>(QString(reply->readAll()).toInt(),QNetworkReply::NoError);
+				break;
 			}
-			if(error!=QNetworkReply::NoError){
-				QString info=tr("Network error occurred, error code: %1").arg(error);
-				QString sugg=Local::instance()->suggestion(error);
-				QMessageBox::warning(Local::mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+			case Utils::AcPlay:
+			{
+				QJsonObject o=QJsonDocument::fromJson(reply->readAll()).object();
+				error=o["Success"].toBool()?QNetworkReply::NoError:QNetworkReply::UnknownNetworkError;
+				break;
 			}
-			else{
-				emit posted((quintptr)&c);
+			default:
+				break;
 			}
-			reply->deleteLater();
-		});
-	}
-}
-
-void Post::moveWithParent()
-{
-	QRect p=parentWidget()->geometry(),c=geometry();
-	move(p.center().x()-c.width()/2,p.bottom()-c.height()-2);
+		}
+		if(error!=QNetworkReply::NoError){
+			QString info=tr("Network error occurred, error code: %1").arg(error);
+			QString sugg=Local::instance()->suggestion(error);
+			QMessageBox::warning(lApp->mainWidget(),tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+		}
+		else{
+			emit posted(&c);
+		}
+		reply->deleteLater();
+	});
 }

@@ -33,23 +33,22 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
+class Render;
 class Menu;
 class Info;
+class Jump;
 class Post;
-class Next;
+class List;
 class Load;
-class Render;
 class APlayer;
 class Danmaku;
-class History;
+class Message;
 
-class Interface:public QMdiSubWindow
+class Interface:public QWidget
 {
 	Q_OBJECT
 public:
 	explicit Interface(QWidget *parent=0);
-	bool event(QEvent *e);
-
 
 private:
 	QTimer *timer;
@@ -59,6 +58,7 @@ private:
 	QAction *fullA;
 	QAction *confA;
 	QAction *toggA;
+	QAction *listA;
 	QAction *postA;
 	QMenu *rat;
 	QMenu *sca;
@@ -66,17 +66,17 @@ private:
 	Render *render;
 	Menu *menu;
 	Info *info;
+	Jump *jump;
 	Post *post;
-	Next *next;
+	List *list;
 	Load *load;
 	APlayer *aplayer;
 	Danmaku *danmaku;
-	History *history;
+	Message *message;
 
 	QPoint sta;
 	QPoint wgd;
 	QByteArray geo;
-	QPointer<QNetworkReply> update;
 
 	bool showprg;
 	bool sliding;
@@ -93,13 +93,11 @@ private:
 public slots:
 	void tryLocal(QString p);
 	void tryLocal(QStringList p);
-	void setVisible(bool f);
 
 private slots:
 	void checkForUpdate();
 	void setCenter(QSize s,bool f);
 	void showContextMenu(QPoint p);
-
 };
 
 #endif // INTERFACE_H

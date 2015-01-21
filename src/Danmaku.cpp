@@ -33,11 +33,13 @@
 #include "Local.h"
 #include "Render.h"
 #include "Shield.h"
+#include <algorithm>
 #include <functional>
+#include <numeric>
 
 #define qThreadPool QThreadPool::globalInstance()
 
-Danmaku *Danmaku::ins=NULL;
+Danmaku *Danmaku::ins=nullptr;
 
 Danmaku *Danmaku::instance()
 {
@@ -47,12 +49,13 @@ Danmaku *Danmaku::instance()
 Danmaku::Danmaku(QObject *parent):
 	QAbstractItemModel(parent)
 {
-	cur=time=0;
 	ins=this;
 	setObjectName("Danmaku");
+	cur=time=0;
 	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
 	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
+	connect(this,SIGNAL(layoutChanged()),Render::instance(),SLOT(draw()));
 	QMetaObject::invokeMethod(this,"alphaChanged",Qt::QueuedConnection,Q_ARG(int,Config::getValue("/Danmaku/Alpha",100)));
 }
 
@@ -60,6 +63,7 @@ Danmaku::~Danmaku()
 {
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
+	qDeleteAll(current);
 }
 
 void Danmaku::draw(QPainter *painter,qint64 move)
@@ -117,7 +121,7 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 		case Qt::ForegroundRole:
 			if(index.column()==0){
-				if(comment.blocked){
+				if(comment.blocked||comment.time>=60000000){
 					return QColor(Qt::red);
 				}
 			}
@@ -199,7 +203,7 @@ const Comment *Danmaku::commentAt(QPoint point) const
 		}
 	}
 	lock.unlock();
-	return NULL;
+	return nullptr;
 }
 
 void Danmaku::setAlpha(int _alpha)
@@ -224,6 +228,118 @@ void Danmaku::clearPool()
 	}
 }
 
+namespace
+{
+class CommentPointer
+{
+public:
+	const Comment *comment;
+
+	CommentPointer(const Comment *comment):
+		comment(comment)
+	{
+	}
+
+	inline bool operator == (const CommentPointer &o) const
+	{
+		return *comment==*o.comment;
+	}
+};
+
+inline uint qHash(const CommentPointer &p, uint seed = 0)
+{
+	return ::qHash(*p.comment,seed);
+}
+}
+
+void Danmaku::appendToPool(const Record *record)
+{
+	Record *append=0;
+	for(Record &r:pool){
+		if (r.source==record->source){
+			append=&r;
+			break;
+		}
+	}
+	if(!append){
+		pool.append(*record);
+		QSet<CommentPointer> s;
+		auto &d=pool.last().danmaku;
+		for(auto iter=d.begin();iter!=d.end();){
+			CommentPointer p(&(*iter));
+			if(!s.contains(p)){
+				++iter;
+				s.insert(p);
+			}
+			else{
+				iter=d.erase(iter);
+			}
+		}
+	}
+	else{
+		auto &d=append->danmaku;
+		QSet<CommentPointer> s;
+		for(const Comment &c:d){
+			s.insert(&c);
+		}
+		for(Comment c:record->danmaku){
+			c.time+=append->delay-record->delay;
+			if(!s.contains(&c)){
+				d.append(c);
+				s.insert(&d.last());
+			}
+		}
+		if (record->full){
+			append->full=true;
+		}
+	}
+	parse(0x1|0x2);
+	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
+		Editor::exec(lApp->mainWidget());
+	}
+}
+
+namespace
+{
+class Compare
+{
+public:
+	inline bool operator ()(const Comment *c,qint64 time)
+	{
+		return c->time<time;
+	}
+	inline bool operator ()(qint64 time,const Comment *c)
+	{
+		return time<c->time;
+	}
+	inline bool operator ()(const Comment *f,const Comment *s)
+	{
+		return f->time<s->time;
+	}
+};
+}
+
+void Danmaku::appendToPool(QString source,const Comment *comment)
+{
+	Record *append=nullptr;
+	for(Record &r:pool){
+		if (r.source==source){
+			append=&r;
+			break;
+		}
+	}
+	if(!append){
+		Record r;
+		r.source=source;
+		pool.append(r);
+		append=&pool.last();
+	}
+	append->danmaku.append(*comment);
+	auto ptr=&append->danmaku.last();
+	danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),ptr,Compare()),ptr);
+	parse(0x2);
+}
+
 void Danmaku::clearCurrent(bool soft)
 {
 	qThreadPool->clear();
@@ -246,27 +362,27 @@ void Danmaku::clearCurrent(bool soft)
 		current.clear();
 	}
 	lock.unlock();
-	emit layoutChanged();
+	Render::instance()->draw();
 }
 
-namespace
+void Danmaku::insertToCurrent(Graphic *graphic,int index)
 {
-class Compare
-{
-public:
-	inline bool operator ()(const Comment *c,qint64 time)
-	{
-		return c->time<time;
+	lock.lockForWrite();
+	Graphic *g=(Graphic *)graphic;
+	g->setIndex();
+	int size=current.size(),next;
+	if (size==0||index==0){
+		next=0;
 	}
-	inline bool operator ()(qint64 time,const Comment *c)
-	{
-		return time<c->time;
+	else{
+		int ring=size+1;
+		next=index>0?(index%ring):(ring+index%ring);
+		if (next==0){
+			next=size;
+		}
 	}
-	inline bool operator ()(const Comment *f,const Comment *s)
-	{
-		return f->time<s->time;
-	}
-};
+	current.insert(next,g);
+	lock.unlock();
 }
 
 void Danmaku::parse(int flag)
@@ -347,7 +463,7 @@ class Process:public QRunnable
 {
 public:
 	Process(QReadWriteLock *l,QList<Graphic *> &c,const QList<const Comment *> &w):
-		lock(l),current(c),wait(w)
+		current(c),lock(l),wait(w)
 	{
 		createTime=QDateTime::currentMSecsSinceEpoch();
 	}
@@ -364,26 +480,22 @@ public:
 			Graphic *g=Graphic::create(*c);
 			if(g){
 				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
-					int b=0,e=0,s=0;
 					QRectF &r=g->currentRect();
+					int b=r.top(),e=0,s=10;
 					std::function<bool(int,int)> f;
 					switch(c->mode){
 					case 1:
 					case 5:
 					case 6:
-						b=r.top();
 						e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-r.height();
-						s=10;
-						f=std::less_equal<int>();
+						f=std::less_equal   <int>();
 						break;
 					case 4:
-						b=r.top();
-						e=0;
-						s=-10;
+						s=-s;
 						f=std::greater_equal<int>();
 						break;
 					}
-					QVector<uint> result(qMax((e-b)/s+1,0),0);
+					QVector<int> result(qMax((e-b)/s+1,0),0);
 					auto calculate=[&](const QList<Graphic *> &data){
 						QRectF t=r;
 						int i=0,h=b;
@@ -396,7 +508,7 @@ public:
 						r=t;
 					};
 					lock->lockForRead();
-					quint64 lastIndex=current.isEmpty()?0:current.last()->getIndex();
+					quint64 last=current.isEmpty()?0:current.last()->getIndex();
 					calculate(current);
 					lock->unlock();
 					g->setEnabled(false);
@@ -407,21 +519,17 @@ public:
 					iter.toBack();
 					while(iter.hasPrevious()){
 						Graphic *p=iter.previous();
-						if(p->getIndex()>lastIndex){
+						if(p->getIndex()>last){
 							addtion.prepend(p);
 						}
 						else break;
 					}
 					calculate(addtion);
-					uint m=UINT_MAX;
-					int i=0,h=b;
-					for(;f(h,e);h+=s,++i){
-						if(m>result[i]){
-							r.moveTop(h);
-							if(m==0){
-								break;
-							}
+					int h=b,m=std::numeric_limits<int>::max();
+					for(int i=0;f(h,e)&&m!=0;h+=s,++i){
+						if (m>result[i]){
 							m=result[i];
+							r.moveTop(h);
 						}
 					}
 				}
@@ -435,7 +543,7 @@ public:
 				lock->unlock();
 			}
 			else{
-				Danmaku::instance()->unrecognizedComment((quintptr)c);
+				Danmaku::instance()->unrecognizedComment(c);
 			}
 		}
 		lock->lockForWrite();
@@ -445,10 +553,12 @@ public:
 		lock->unlock();
 	}
 
+	Process &operator=(const Process &)=delete;
+
 private:
+	QList<Graphic *> &current;
 	qint64 createTime;
 	QReadWriteLock *lock;
-	QList<Graphic *> &current;
 	QList<const Comment *> wait;
 };
 }
@@ -557,17 +667,17 @@ void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 }
 }
 
-void Danmaku::saveToFile(QString _file)
+void Danmaku::saveToFile(QString file)
 {
 	QList<const Comment *> d;
 	if(Config::getValue("/Interface/Save/Single",true)){
 		for(const Comment *c:danmaku){
 			d.append(c);
 		}
-		saveToSingleFile(_file,d);
+		saveToSingleFile(file,d);
 	}
 	else{
-		QFileInfo info(_file);
+		QFileInfo info(file);
 		for(const Record &r:pool){
 			if(Utils::getSuffix(Utils::Danmaku).contains(QFileInfo(r.string).suffix().toLower())){
 				continue;
@@ -579,132 +689,4 @@ void Danmaku::saveToFile(QString _file)
 			saveToSingleFile(QFileInfo(info.dir(),"["+r.string+"]"+info.fileName()).absoluteFilePath(),d);
 		}
 	}
-}
-
-namespace
-{
-class CommentPointer
-{
-public:
-	const Comment *comment;
-
-	CommentPointer(const Comment *comment):
-		comment(comment)
-	{
-	}
-
-	inline bool operator == (const CommentPointer &o) const
-	{
-		return *comment==*o.comment;
-	}
-};
-
-inline uint qHash(const CommentPointer &p, uint seed = 0)
-{
-	return ::qHash(*p.comment,seed);
-}
-}
-
-void Danmaku::appendToPool(const Record &record)
-{
-	Record *append=0;
-	for(Record &r:pool){
-		if(r.source==record.source){
-			append=&r;
-			break;
-		}
-	}
-	if(!append){
-		pool.append(record);
-		QSet<CommentPointer> s;
-		auto &d=pool.last().danmaku;
-		for(auto iter=d.begin();iter!=d.end();){
-			CommentPointer p(&(*iter));
-			if(!s.contains(p)){
-				++iter;
-				s.insert(p);
-			}
-			else{
-				iter=d.erase(iter);
-			}
-		}
-	}
-	else{
-		auto &d=append->danmaku;
-		QSet<CommentPointer> s;
-		for(const Comment &c:d){
-			s.insert(&c);
-		}
-		for(Comment c:record.danmaku){
-			c.time+=append->delay-record.delay;
-			if(!s.contains(&c)){
-				d.append(c);
-				s.insert(&d.last());
-			}
-		}
-		if(record.full){
-			append->full=true;
-		}
-	}
-	parse(0x1|0x2);
-	if(!append&&Load::instance()->size()<2&&pool.size()>=2){
-		Editor::exec(Local::mainWidget());
-	}
-}
-
-bool Danmaku::appendToPool(QString source,const Comment &comment)
-{
-	for(Record &r:pool){
-		if(r.source==source){
-			r.danmaku.append(comment);
-			Comment *c=&r.danmaku.last();
-			danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
-			parse(0x2);
-			return true;
-		}
-	}
-	return false;
-}
-
-void Danmaku::appendByNetwork(quintptr comment,QString from)
-{
-	Record *append=nullptr;
-	for(Record &r:pool){
-		if(r.source==from){
-			append=&r;
-			break;
-		}
-	}
-	if(!append){
-		Record r;
-		r.source=from;
-		pool.append(r);
-		append=&pool.last();
-	}
-	Comment *c=(Comment *)comment;
-	append->danmaku.append(*c);
-	delete c;
-	c=&append->danmaku.last();
-	danmaku.insert(std::upper_bound(danmaku.begin(),danmaku.end(),c,Compare()),c);
-	parse(0x2);
-}
-
-void Danmaku::insertToCurrent(quintptr graphic,int index)
-{
-	lock.lockForWrite();
-	Graphic *g=(Graphic *)graphic;
-	g->setIndex();
-	int size=current.size(),next;
-	if (size==0||index==0){
-		next=0;
-	}
-	else{
-		int ring=size+1;
-		next=index>0?(index%ring):(ring+index%ring);
-		if (next==0){
-			next=size;
-		}
-	}
-	current.insert(next,g);
-	lock.unlock();
 }

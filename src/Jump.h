@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013 Lysine.
 *
-*   Filename:    History.h
-*   Time:        2014/10/05
+*   Filename:    Jump.h
+*   Time:        2013/04/22
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,38 +24,21 @@
 *
 =========================================================================*/
 
-#ifndef HISTORY_H
-#define HISTORY_H
+#ifndef JUMP_H
+#define JUMP_H
 
-#include <QtGui>
 #include <QtCore>
+#include <QtWidgets>
 
-class History:public QObject
+class Jump:public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 public:
-	enum
-	{
-		FileRole=Qt::UserRole,
-		TimeRole
-	};
-
-	~History();
-	QStandardItemModel *getModel(){return model;}
-	static History *instance();
+	Jump(QWidget *parent);
 
 private:
-	QStandardItem *last;
-	QStandardItemModel *model;
-	qint64 time;
-	static History *ins;
-
-    History(QObject *parent=0);
-	void updateRecord();
-
-public slots:
-	QString lastPath();
-	void rollback(const QModelIndex &index);
+	  QLineEdit * fileL;
+	QPushButton * jumpB;
 };
 
-#endif // HISTORY_H
+#endif // JUMP_H

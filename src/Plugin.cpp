@@ -44,12 +44,14 @@ bool Plugin::loaded()
 
 void Plugin::regist(const QHash<QString,QObject *> &objects)
 {
-	m_regist(objects);
+	if (m_regist)
+		m_regist(objects);
 }
 
 void Plugin::config(QWidget *parent)
 {
-	m_config(parent);
+	if (m_config)
+		m_config(parent);
 }
 
 QString Plugin::string(QString query)
@@ -66,6 +68,10 @@ void Plugin::loadPlugins()
 			if(lib.loaded()){
 				if(Config::getValue("/Plugin/"+lib.string("Name"),true)){
 					lib.regist(Local::objects);
+				}
+				else{
+					lib.m_config=nullptr;
+					lib.m_regist=nullptr;
 				}
 				plugins.append(lib);
 			}

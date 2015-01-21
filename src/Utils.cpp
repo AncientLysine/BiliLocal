@@ -26,7 +26,7 @@
 
 #include "Utils.h"
 #include "Config.h"
-#include "History.h"
+#include <algorithm>
 
 Utils::Site Utils::parseSite(QString url)
 {
@@ -45,6 +45,9 @@ Utils::Site Utils::parseSite(QString url)
 	}
 	if(-1!=url.indexOf("acplay")){
 		return AcPlay;
+	}
+	if(-1!=url.indexOf("tucao")){
+		return TuCao;
 	}
 	return Unknown;
 }
@@ -240,19 +243,6 @@ double Utils::evaluate(QString exp)
 	}
 }
 
-QString Utils::defaultPath()
-{
-	QString path=History::instance()->lastPath();
-	if(!path.isEmpty()){
-		return QFileInfo(path).absolutePath();
-	}
-	else{
-		QStringList paths=QStandardPaths::standardLocations(QStandardPaths::MoviesLocation);
-		paths.append(QDir::homePath());
-		return paths.front();
-	}
-}
-
 QString Utils::defaultFont(bool monospace)
 {
 	if(monospace){
@@ -298,13 +288,16 @@ QString Utils::customUrl(Site site)
 	case Niconico:
 		name="nico";
 		break;
+	case TuCao:
+		name="tucao";
+		break;
 	default:
 		return QString();
 	}
-	QStringList urls;
-	urls<<"acfun.tv"<<"bilibili.com"<<"acplay.net";
-	urls=Config::getValue("/Network/Url",urls.join(';')).split(';',QString::SkipEmptyParts);
-	for (QString iter:urls){
+	QStringList urls,defs;
+	defs<<"acfun.tv"<<"bilibili.com"<<"acplay.net"<<"tucao.cc";
+	urls=Config::getValue("/Network/Url",defs.join(';')).split(';',QString::SkipEmptyParts);
+	for (QString iter:urls+defs){
 		if (iter.toLower().indexOf(name)!=-1){
 			return iter;
 		}
@@ -461,175 +454,4 @@ QStringList Utils::getSuffix(int type,QString format)
 		}
 	}
 	return set;
-}
-
-QList<Comment> Utils::parseComment(QByteArray data,Site site)
-{
-	QList<Comment> list;
-	switch(site){
-	case Bilibili:
-	{
-		QStringList l=QString(data).split("<d p=\"");
-		l.removeFirst();
-		for(const QString &item:l){
-			Comment comment;
-			int sta=0;
-			int len=item.indexOf("\"");
-			QStringList args=item.mid(sta,len).split(',');
-			sta=item.indexOf(">")+1;
-			len=item.indexOf("<",sta)-sta;
-			comment.time=args[0].toDouble()*1000+0.5;
-			comment.date=args[4].toInt();
-			comment.mode=args[1].toInt();
-			comment.font=args[2].toInt();
-			comment.color=args[3].toInt();
-			comment.sender=args[6];
-			comment.string=decodeXml(item.mid(sta,len),true);
-			list.append(comment);
-		}
-		break;
-	}
-	case AcFun:
-	{
-		QQueue<QJsonArray> queue;
-		queue.append(QJsonDocument::fromJson(data).array());
-		while(!queue.isEmpty()){
-			for(const QJsonValue &i:queue.front()){
-				if(i.isArray()){
-					queue.append(i.toArray());
-				}
-				else{
-					Comment comment;
-					QJsonObject item=i.toObject();
-					QStringList args=item["c"].toString().split(',');
-					comment.time=args[0].toDouble()*1000+0.5;
-					comment.date=args[5].toInt();
-					comment.mode=args[2].toInt();
-					comment.font=args[3].toInt();
-					comment.color=args[1].toInt();
-					comment.sender=args[4];
-					comment.string=item["m"].toString();
-					list.append(comment);
-				}
-			}
-			queue.dequeue();
-		}
-		break;
-	}
-	case AcPlay:
-	{
-		QJsonArray a=QJsonDocument::fromJson(data).object()["Comments"].toArray();
-		for(const QJsonValue &i:a){
-			Comment comment;
-			QJsonObject item=i.toObject();
-			comment.time=item["Time"].toDouble()*1000+0.5;
-			comment.date=item["Timestamp"].toInt();
-			comment.mode=item["Mode"].toInt();
-			comment.font=25;
-			comment.color=item["Color"].toInt();
-			comment.sender=QString::number(item["UId"].toInt());
-			comment.string=item["Message"].toString();
-			list.append(comment);
-		}
-		break;
-	}
-	case AcfunLocalizer:
-	{
-		QStringList l=QString(data).split("<l i=\"");
-		l.removeFirst();
-		for(const QString &item:l){
-			Comment comment;
-			int sta=0;
-			int len=item.indexOf("\"");
-			QStringList args=item.mid(sta,len).split(',');
-			sta=item.indexOf("<![CDATA[")+9;
-			len=item.indexOf("]]>",sta)-sta;
-			comment.time=args[0].toDouble()*1000+0.5;
-			comment.date=args[5].toInt();
-			comment.mode=1;
-			comment.font=25;
-			comment.color=args[2].toInt();
-			comment.sender=args[4];
-			comment.string=decodeXml(item.mid(sta,len),true);
-			list.append(comment);
-		}
-		break;
-	}
-	case Niconico:
-	{
-		QStringList l=QString(data).split("<chat ");
-		l.removeFirst();
-		for(const QString &item:l){
-			Comment comment;
-			QString key,val;
-			/* 0 wait for key
-			 * 1 wait for left quot
-			 * 2 wait for value
-			 * 3 wait for comment
-			 * 4 finsihed */
-			int state=0;
-			QMap<QString,QString> args;
-			for(const QChar &c:item){
-				switch(state){
-				case 0:
-					if(c=='='){
-						state=1;
-					}
-					else if(c=='>'){
-						state=3;
-					}
-					else if(c!=' '){
-						key.append(c);
-					}
-					break;
-				case 1:
-					if(c=='\"'){
-						state=2;
-					}
-					break;
-				case 2:
-					if(c=='\"'){
-						state=0;
-						args.insert(key,val);
-						key=val=QString();
-					}
-					else{
-						val.append(c);
-					}
-					break;
-				case 3:
-					if(c=='<'){
-						state=4;
-					}
-					else{
-						comment.string.append(c);
-					}
-					break;
-				}
-			}
-			if(state!=4){
-				continue;
-			}
-			comment.time=args["vpos"].toLongLong()*10;
-			comment.date=args["date"].toLongLong();
-			QStringList ctrl=args["mail"].split(' ',QString::SkipEmptyParts);
-			comment.mode=ctrl.contains("shita")?4 :(ctrl.contains("ue") ?5 :1 );
-			comment.font=ctrl.contains("small")?15:(ctrl.contains("big")?36:25);
-			comment.color=0xFFFFFF;
-			for(const QString &name:ctrl){
-				QColor color(name);
-				if(color.isValid()){
-					comment.color=color.rgb();
-					break;
-				}
-			}
-			comment.sender=args["user_id"];
-			list.append(comment);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-	return list;
 }

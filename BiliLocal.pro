@@ -15,24 +15,40 @@ SOURCES += \
     src/Config.cpp \
     src/Danmaku.cpp \
     src/Graphic.cpp \
-    src/History.cpp \
+    src/List.cpp \
     src/Load.cpp \
     src/Local.cpp \
     src/Render.cpp \
     src/Shield.cpp \
-    src/Utils.cpp
+    src/Utils.cpp \
+    src/Interface.cpp \
+    src/Menu.cpp \
+    src/Info.cpp \
+    src/Editor.cpp \
+    src/Post.cpp \
+    src/Jump.cpp \
+    src/Search.cpp \
+    src/Plugin.cpp
 
 HEADERS  += \
     src/APlayer.h \
     src/Config.h \
     src/Danmaku.h \
     src/Graphic.h \
-    src/History.h \
+    src/List.h \
     src/Load.h \
     src/Local.h \
     src/Render.h \
     src/Shield.h \
-    src/Utils.h
+    src/Utils.h \
+    src/Interface.h \
+    src/Menu.h \
+    src/Info.h \
+    src/Editor.h \
+    src/Post.h \
+    src/Jump.h \
+    src/Search.h \
+    src/Plugin.h
 
 RESOURCES += \
     res/Res.qrc
@@ -41,52 +57,35 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-android{
-DEFINES += BACKEND_QMM
-DEFINES += RENDER_OPENGL
-DEFINES += EMBEDDED
-TARGET = LocalJNI
-}
-else{
-
 linux{
-DEFINES += BACKEND_VLC BACKEND_QMM
-DEFINES += RENDER_RASTER RENDER_OPENGL
+DEFINES += \
+    BACKEND_VLC
+
+DEFINES += \
+    RENDER_RASTER \
+    RENDER_OPENGL
 }
 
 win32{
 RC_ICONS = BiliLocal.ico
-DEFINES += BACKEND_VLC BACKEND_QMM
-DEFINES += RENDER_RASTER RENDER_OPENGL
+
+DEFINES += \
+    BACKEND_VLC \
+    BACKEND_QMM \
+    BACKEND_NIL
+
+DEFINES += \
+    RENDER_RASTER \
+    RENDER_OPENGL \
+    RENDER_DETACH
 }
 
 macx{
-DEFINES += BACKEND_VLC
-DEFINES += RENDER_OPENGL
-}
+DEFINES += \
+    BACKEND_VLC
 
-}
-
-!contains(DEFINES, EMBEDDED){
-SOURCES += \
-    src/Interface.cpp \
-    src/Menu.cpp \
-    src/Info.cpp \
-    src/Editor.cpp \
-    src/Post.cpp \
-    src/Next.cpp \
-    src/Search.cpp \
-    src/Plugin.cpp
-
-HEADERS += \
-    src/Interface.h \
-    src/Menu.h \
-    src/Info.h \
-    src/Editor.h \
-    src/Post.h \
-    src/Next.h \
-    src/Search.h \
-    src/Plugin.h
+DEFINES += \
+    RENDER_OPENGL
 }
 
 contains(DEFINES, BACKEND_QMM){

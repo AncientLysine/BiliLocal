@@ -30,6 +30,8 @@
 #include <QtCore>
 #include <QtWidgets>
 
+#define lApp (static_cast<Local *>(QCoreApplication::instance()))
+
 class Local:public QApplication
 {
 	Q_OBJECT
@@ -38,10 +40,10 @@ public:
 
 	static Local *instance()
 	{
-		return dynamic_cast<Local *>(qApp);
+		return lApp;
 	}
 
-	static QWidget *mainWidget()
+	QWidget *mainWidget()
 	{
 		return qobject_cast<QWidget *>(objects["Interface"]);
 	}
@@ -49,12 +51,13 @@ public:
 	static QHash<QString,QObject *> objects;
 
 public slots:
+	QString suggestion(int code);
+	void exit(int code=0);
+
 	void synchronize(quintptr func)
 	{
 		((void (*)())func)();
 	}
-
-	QString suggestion(int code);
 };
 
 #endif // LOCAL_H

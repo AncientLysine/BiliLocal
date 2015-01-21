@@ -29,45 +29,87 @@
 #include "APlayer.h"
 #include "Config.h"
 #include "Danmaku.h"
-#include "History.h"
+#include "Editor.h"
 #include "Info.h"
+#include "Jump.h"
+#include "List.h"
 #include "Load.h"
 #include "Local.h"
 #include "Menu.h"
-#include "Next.h"
 #include "Post.h"
 #include "Render.h"
 #include "Shield.h"
+#include <algorithm>
 #include <functional>
 
-Interface::Interface(QWidget *parent):
-	QMdiSubWindow(parent)
+class Message:public QMessageBox
 {
-	setAcceptDrops(true);
-	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
+public:
+	explicit Message(QWidget *parent):
+		QMessageBox(parent)
+	{
+		setIcon(Warning);
+	}
+
+	void warning(QString title,QString text)
+	{
+		if (p){
+			p->hide();
+		}
+		setWindowTitle(title);
+		setText(text);
+		show();
+	}
+
+	void setProgress(double progress)
+	{
+		QWidget *active=lApp->activeWindow();
+		if(!p||(p!=active&&p->parent()!=active&&active)){
+			if (p){
+				delete p;
+			}
+			p=new QProgressDialog(active);
+			p->setMaximum(1000);
+			p->setWindowTitle(Interface::tr("Loading"));
+			p->setFixedSize(p->sizeHint());
+			p->show();
+			connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
+		}
+		p->setValue(1000*progress);
+	}
+
+private:
+	QPointer<QProgressDialog> p;
+};
+
+Interface::Interface(QWidget *parent):
+	QWidget(parent)
+{
 	setObjectName("Interface");
+	setMouseTracking(true);
+	setAcceptDrops(true);
 	setWindowIcon(QIcon(":/Picture/icon.png"));
-	setCenter(QSize(),true);
+	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	Local::objects["Interface"]=this;
+	message=new Message(this);
 	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
-	history=History::instance();
 	Local::objects["Danmaku"]=danmaku;
 	Local::objects["APlayer"]=aplayer;
-	Local::objects["History"]=history;
 	
 	render=Render::instance();
 	Local::objects["Render"]=render;
 	
 	menu=new Menu(this);
 	info=new Info(this);
-	post=Post::instance();
-	next=Next::instance();
+	jump=new Jump(this);
+	post=new Post(this);
+	list=List::instance();
 	load=Load::instance();
 	Local::objects["Info"]=info;
 	Local::objects["Menu"]=menu;
-	Local::objects["Next"]=next;
+	Local::objects["Next"]=list;
 	Local::objects["Post"]=post;
 	Local::objects["Load"]=load;
 	
@@ -93,27 +135,29 @@ Interface::Interface(QWidget *parent):
 			render->setDisplayTime(0);
 		}
 	});
-	connect(danmaku,SIGNAL(layoutChanged()),render,SLOT(draw()));
-	connect(aplayer,&APlayer::begin,[this](){
-		if(!isFullScreen()&&geo.isEmpty()){
-			geo=saveGeometry();
-			sca->setEnabled(true);
-			setCenter(render->getPreferredSize(),false);
+
+	connect(aplayer,&APlayer::begin,this,[this](){
+		if(!isFullScreen()){
+			if (geo.isEmpty()){
+				geo=saveGeometry();
+				setCenter(render->getPreferredSize(),false);
+			}
 		}
+		sca->setEnabled(!isFullScreen());
 		rat->setEnabled(true);
 		rat->defaultAction()->setChecked(true);
 		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
 	});
-	connect(aplayer,&APlayer::reach,[this](){
+	connect(aplayer,&APlayer::reach,this,[this](bool m){
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->setEnabled(false);
 		sca->setEnabled(false);
 		render->setVideoAspectRatio(0);
-		if(!geo.isEmpty()&&next->getNext().isEmpty()){
-			if(isFullScreen()){
+		if(!geo.isEmpty()&&(list->finished()||m)){
+			if (isFullScreen()){
 				fullA->toggle();
 			}
 			restoreGeometry(geo);
@@ -122,7 +166,6 @@ Interface::Interface(QWidget *parent):
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
-	
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
 		switch(error){
@@ -147,9 +190,16 @@ Interface::Interface(QWidget *parent):
 			string=tr("An error occurred.");
 			break;
 		}
-		QMessageBox::warning(this,tr("Warning"),string);
+		message->warning(tr("Warning"),string);
 	});
 	
+	connect(load   ,&Load::errorOccured,[this](int error){
+			QString info=tr("Network error occurred, error code: %1").arg(error);
+			QString sugg=Local::instance()->suggestion(error);
+			message->warning(tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+	});
+	connect(load,&Load::progressChanged,message,&Message::setProgress);
+
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
 		if(!sliding&&aplayer->getState()!=APlayer::Stop){
@@ -190,7 +240,7 @@ Interface::Interface(QWidget *parent):
 	confA->setShortcut(Config::getValue("/Shortcut/Conf",QString("Ctrl+I")));
 	addAction(confA);
 	connect(confA,&QAction::triggered,[](){
-		Config::exec(Local::mainWidget());
+		Config::exec(lApp->mainWidget());
 	});
 	
 	toggA=new QAction(tr("Block All"),this);
@@ -206,6 +256,12 @@ Interface::Interface(QWidget *parent):
 	connect(danmaku,&Danmaku::layoutChanged,[this](){
 		toggA->setChecked(Shield::shieldG[7]);
 	});
+
+	listA=new QAction(tr("Playlist"),this);
+	listA->setObjectName("List");
+	listA->setShortcut(Config::getValue("/Shortcut/List",QString("Ctrl+L")));
+	addAction(listA);
+	connect(listA,&QAction::triggered,std::bind(&Editor::exec,this));
 	
 	postA=new QAction(tr("Post Danmaku"),this);
 	postA->setObjectName("Post");
@@ -319,28 +375,32 @@ Interface::Interface(QWidget *parent):
 	}
 	
 	checkForUpdate();
-}
-
-bool Interface::event(QEvent *e)
-{
-	return e->type()==QEvent::User?false:QWidget::event(e);
+	setCenter(QSize(),true);
 }
 
 void Interface::tryLocal(QString p)
 {
 	QFileInfo info(p);
+	QString suffix=info.suffix().toLower();
 	if(!info.exists()){
 		return;
 	}
-	QString suffix=info.suffix().toLower();
-	if(Utils::getSuffix(Utils::Video|Utils::Audio).contains(suffix)){
-		aplayer->setMedia(p);
-	}
-	else if(Utils::getSuffix(Utils::Danmaku).contains(suffix)){
-		load->loadDanmaku(p);
+	else if(Utils::getSuffix(Utils::Danmaku ).contains(suffix)){
+		load   ->loadDanmaku(p);
 	}
 	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
 		aplayer->addSubtitle(p);
+	}
+	else{
+		switch(Config::getValue("/Interface/Single",1)){
+		case 0:
+		case 1:
+			aplayer->setMedia(p);
+			break;
+		case 2:
+			list->appendMedia(p);
+			break;
+		}
 	}
 }
 
@@ -351,14 +411,6 @@ void Interface::tryLocal(QStringList p)
 	}
 }
 
-void Interface::setVisible(bool f)
-{
-	QEvent e(QEvent::User);
-	if(!qApp->sendEvent(this,&e)){
-		QWidget::setVisible(f);
-	}
-}
-
 void Interface::closeEvent(QCloseEvent *e)
 {
 	if(aplayer->getState()==APlayer::Stop&&!isFullScreen()&&!isMaximized()){
@@ -366,26 +418,14 @@ void Interface::closeEvent(QCloseEvent *e)
 		QString size=QString("%1,%2").arg(width()*72/logicalDpiX()).arg(height()*72/logicalDpiY());
 		Config::setValue("/Interface/Size",conf.endsWith(' ')?conf.trimmed():size);
 	}
-	delete history;
-	delete aplayer;
-	delete danmaku;
-	if(!update.isNull()){
-		update->abort();
-	}
 	QWidget::closeEvent(e);
+	lApp->exit();
 }
 
 void Interface::dragEnterEvent(QDragEnterEvent *e)
 {
-	if(e->mimeData()->hasFormat("text/uri-list")){
-		QStringList accept=Utils::getSuffix(Utils::Video|Utils::Audio|Utils::Subtitle|Utils::Danmaku);
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
-			QString suffix=QFileInfo(QUrl(item).toLocalFile().trimmed()).suffix().toLower();
-			if(std::binary_search(accept.begin(),accept.end(),suffix)){
-				e->acceptProposedAction();
-				break;
-			}
-		}
+	if (e->mimeData()->hasFormat("text/uri-list")){
+		e->acceptProposedAction();
 	}
 	QWidget::dragEnterEvent(e);
 }
@@ -393,7 +433,7 @@ void Interface::dragEnterEvent(QDragEnterEvent *e)
 void Interface::dropEvent(QDropEvent *e)
 {
 	if(e->mimeData()->hasFormat("text/uri-list")){
-		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n')){
+		for(const QString &item:QString(e->mimeData()->data("text/uri-list")).split('\n',QString::SkipEmptyParts)){
 			tryLocal(QUrl(item).toLocalFile().trimmed());
 		}
 	}
@@ -471,6 +511,7 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 		menu->push(true);
 		info->push(true);
 		post->hide();
+		jump->hide();
 	}
 	sta=wgd=QPoint();
 	if(sliding&&e->button()==Qt::LeftButton){
@@ -491,9 +532,11 @@ void Interface::resizeEvent(QResizeEvent *e)
 	int w=e->size().width(),h=e->size().height();
 	menu->terminate();
 	info->terminate();
-	int l=Config::getValue("/Interface/Popup/Width",150)*logicalDpiX()/72;
+	int l=Config::getValue("/Interface/Popup/Width",16*font().pointSizeF())*logicalDpiX()/72;
 	menu->setGeometry(menu->isShown()?0:0-l,0,l,h);
 	info->setGeometry(info->isShown()?w-l:w,0,l,h);
+	post->move(width()/2-post->width()/2,height()-post->height()-2);
+	jump->move(width()/2-post->width()/2,2);
 	QWidget::resizeEvent(e);
 }
 
@@ -501,11 +544,11 @@ void Interface::checkForUpdate()
 {
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 	QNetworkRequest request(QUrl("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO"));
-	update=manager->get(request);
+	manager->get(request);
 	connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *info){
 		QUrl redirect=info->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){
-			update=manager->get(QNetworkRequest(redirect));
+			manager->get(QNetworkRequest(redirect));
 			return;
 		}
 		if(info->error()==QNetworkReply::NoError){
@@ -529,7 +572,7 @@ void Interface::checkForUpdate()
 	});
 }
 
-void Interface::setCenter(QSize _s,bool f)
+void Interface::setCenter(QSize _s,bool _f)
 {
 	double x=logicalDpiX()/72.0,y=logicalDpiY()/72.0;
 	if(!_s.isValid()){
@@ -542,7 +585,7 @@ void Interface::setCenter(QSize _s,bool f)
 	QRect r;
 	r.setSize(QSize(qMax(m.width(),_s.width()),qMax(m.height(),_s.height())));
 	QRect s=QApplication::desktop()->screenGeometry(this);
-	QRect t=f?s:geometry();
+	QRect t=_f?s:geometry();
 	if((windowFlags()&Qt::CustomizeWindowHint)==0){
 		s.setTop(s.top()+style()->pixelMetric(QStyle::PM_TitleBarHeight));
 	}
@@ -603,6 +646,7 @@ void Interface::showContextMenu(QPoint p)
 		top.addActions(info->actions());
 		top.addAction(fullA);
 		top.addAction(toggA);
+		top.addAction(listA);
 		top.addActions(menu->actions());
 		top.addAction(postA);
 		QMenu sub(tr("Subtitle"),this);

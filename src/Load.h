@@ -30,6 +30,9 @@
 #include <QtGui>
 #include <QtCore>
 #include <QtNetwork>
+#include <functional>
+
+class Record;
 
 class Load:public QObject
 {
@@ -42,7 +45,6 @@ public:
 		Part=407,
 		Code=379,
 		File=384,
-		Pool=410
 	};
 
 	enum Role
@@ -52,48 +54,65 @@ public:
 		NxtRole
 	};
 
+	struct Proc
+	{
+		std::function<bool(QString &      )> regular;
+		int priority;
+		std::function<void(QNetworkReply *)> process;
+	};
+
 	struct Task
 	{
 		QString code;
 		QNetworkRequest request;
 		int state;
+		const Proc *processer;
 		qint64 delay;
-		Task():state(None),delay(0){}
+		Task():state(None),processer(nullptr),delay(0){}
 	};
 
-	bool event(QEvent *e);
-	int  size();
 	Task codeToTask(QString code);
 	QStandardItemModel *getModel();
+	int size(){return queue.size();}
 	static Load *instance();
 
 private:
-	bool automated;
 	QStandardItemModel *model;
+	QList <Proc> pool;
 	QNetworkAccessManager *manager;
 	QQueue<Task> queue;
+	QSet<QNetworkReply *> remain;
 	static Load *ins;
 
 	Load(QObject *parent=0);
 
 signals:
 	void stateChanged(int state);
+	void errorOccured(int state);
+	void progressChanged(double progress);
 
 public slots:
-	QString getStr();
-	QString getUrl();
+	void addProc(const Proc *proc);
+	const Proc *getProc(QString code);
 
-	void setAutoLoad(bool enabled);
-	bool autoLoad();
+	void fixCode(QString &);
+	bool canLoad(QString);
+	bool canFull(QString);
+	bool canHist(QString);
+
+	void loadDanmaku(QString);
+	void loadDanmaku(const QModelIndex &index=QModelIndex());
+	void fullDanmaku(QString);
+	void loadHistory(QString,QDate);
+	void dumpDanmaku(const QByteArray &data,int site,Record *r);
+	void dumpDanmaku(const QByteArray &data,int site,bool full);
 
 	void dequeue();
-	bool enqueue(const Task &task);
+	bool enqueue(const Task &);
+	Task*getHead();
 	void forward();
-	void forward(QNetworkRequest request);
-	void forward(QNetworkRequest request,int state);
-
-	void loadDanmaku(QString code);
-	void loadDanmaku(const QModelIndex &index=QModelIndex());
+	void forward(QNetworkRequest);
+	void forward(QNetworkRequest,int);
 };
 
 #endif // LOAD_H

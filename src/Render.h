@@ -29,6 +29,7 @@
 
 #include <QtGui>
 #include <QtCore>
+#include <QtWidgets>
 
 class RenderPrivate;
 
@@ -54,17 +55,17 @@ public slots:
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0);
 
-	void setMusic(bool);
-	void setRefreshRate(int rate,bool soft=false);
+	void setBackground(QString path);
+	void setMusic(bool music);
 	void setDisplayTime(double t);
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
+	virtual quintptr getHandle()=0;
 	virtual void resize(QSize size)=0;
+	virtual void setRefreshRate(int rate,bool soft=false);
 	virtual QSize getBufferSize()=0;
 	virtual QSize getActualSize()=0;
 	virtual	QSize getPreferredSize();
-	virtual quintptr getHandle()=0;
-
 	virtual void draw(QRect rect=QRect())=0;
 };
 

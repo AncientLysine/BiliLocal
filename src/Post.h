@@ -33,12 +33,12 @@
 #include <QtNetwork>
 #include "Utils.h"
 
-class Post:public QDialog
+class Post:public QWidget
 {
 	Q_OBJECT
 public:
+	Post(QWidget *parent);
 	bool isValid(){return !getRecords().isEmpty();}
-	static Post *instance();
 
 private:
 	QAction *commentA;
@@ -50,19 +50,16 @@ private:
 	QNetworkAccessManager *manager;
 	static Post *ins;
 
-	Post(QWidget *parent);
 	QColor getColor();
 	Comment getComment();
 	QList<const Record *> getRecords();
-	bool eventFilter(QObject *o,QEvent *e);
 
 signals:
-	void posted(quintptr comment);
+	void posted(const Comment *);
 
 private slots:
 	void setColor(QColor color);
 	void postComment();
-	void moveWithParent();
 };
 
 #endif // POST_H
