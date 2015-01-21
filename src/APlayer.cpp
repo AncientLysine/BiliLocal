@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -609,13 +609,27 @@ public:
 	QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
 	{
 		QList<QVideoFrame::PixelFormat> f;
-		if(handleType==QAbstractVideoBuffer::NoHandle){
+		if (QAbstractVideoBuffer::NoHandle==handleType){
 			f<<QVideoFrame::Format_NV12<<
 			   QVideoFrame::Format_NV21<<
 			   QVideoFrame::Format_YV12<<
 			   QVideoFrame::Format_YUV420P;
 		}
 		return f;
+	}
+	
+	bool ​isFormatSupported(const QVideoSurfaceFormat &format) const
+	{
+		if (QAbstractVideoBuffer::NoHandle==format.handleType()){
+			switch(format.pixelFormat()){
+			case QVideoFrame::Format_NV12:
+			case QVideoFrame::Format_NV21:
+			case QVideoFrame::Format_YV12:
+			case QVideoFrame::Format_YUV420P:
+				return true;
+			}
+		}
+		return false;
 	}
 };
 
@@ -674,6 +688,7 @@ private:
 	QMediaPlayer *mp;
 	bool manuallyStopped;
 	bool waitingForBegin;
+	bool skipTimeChanged;
 
 public slots:
 	void	play();
@@ -701,10 +716,12 @@ QPlayer::QPlayer(QObject *parent):
 {
 	ins=this;
 	setObjectName("QPlayer");
+	manuallyStopped=false;
+	waitingForBegin=false;
+	skipTimeChanged=false;
 
 	mp=(new QPlayerThread(this))->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Playing/Volume",50));
-	manuallyStopped=false;
 
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp,&QMediaPlayer::error,this,[this](int error){
 		if ((State)mp->state()==Play){
@@ -741,7 +758,12 @@ QPlayer::QPlayer(QObject *parent):
 			Render::instance()->setMusic(!mp->isVideoAvailable());
 			emit begin();
 		}
-		emit timeChanged(time);
+		if(!skipTimeChanged){
+			emit timeChanged(time);
+		}
+		else{
+			skipTimeChanged=false;
+		}
 	});
 
 	connect(mp,&QMediaPlayer::mediaChanged,this,[this](){
@@ -773,7 +795,7 @@ int QPlayer::getState()
 void QPlayer::setTime(qint64 _time)
 {
 	QMetaObject::invokeMethod(mp,"setPosition",Qt::BlockingQueuedConnection,Q_ARG(qint64,_time));
-	qApp->processEvents();
+	skipTimeChanged=true;
 	emit jumped(_time);
 }
 

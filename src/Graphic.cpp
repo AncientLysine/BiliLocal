@@ -104,7 +104,9 @@ private:
 	double time;
 };
 
-static QFont getFont(int pixelSize,QString family=Config::getValue("/Danmaku/Font",QFont().family()))
+namespace
+{
+QFont getFont(int pixelSize,QString family=Config::getValue("/Danmaku/Font",QFont().family()))
 {
 	QFont font;
 	font.setBold(Config::getValue("/Danmaku/Effect",5)%2);
@@ -113,7 +115,7 @@ static QFont getFont(int pixelSize,QString family=Config::getValue("/Danmaku/Fon
 	return font;
 }
 
-static QSize getSize(QString string,QFont font)
+QSize getSize(QString string,QFont font)
 {
 	QStringList lines=string.split('\n');
 	for(QString &line:lines){
@@ -125,12 +127,12 @@ static QSize getSize(QString string,QFont font)
 	return QFontMetrics(font).size(0,lines.join('\n'))+QSize(4,4);
 }
 
-static QSizeF getPlayer(qint64 date)
+QSizeF getPlayer(qint64 date)
 {
 	return date<=1384099200?QSizeF(545,388):QSizeF(862,568);
 }
 
-static double getScale(int mode,qint64 date,QSize size)
+double getScale(int mode,qint64 date,QSize size)
 {
 	int m=Config::getValue("/Danmaku/Scale/Fitted",0x1);
 	if(mode==7&&(m&0x1)==0){
@@ -142,17 +144,20 @@ static double getScale(int mode,qint64 date,QSize size)
 	QSizeF player=getPlayer(date);
 	return qMin(size.width()/player.width(),size.height()/player.height());
 }
+}
 
 void qt_blurImage(QPainter *p,QImage &blurImage,qreal radius,
 				  bool quality,bool alphaOnly,int transposed);
 
-static QImage getCache(QString string,
-					   int color,
-					   QFont font,
-					   QSize size,
-					   bool frame,
-					   int effect=Config::getValue("/Danmaku/Effect",5)/2,
-					   int opacity=Config::getValue("/Danmaku/Alpha",100))
+namespace
+{
+QImage getCache(QString string,
+				int color,
+				QFont font,
+				QSize size,
+				bool frame,
+				int effect=Config::getValue("/Danmaku/Effect",5)/2,
+				int opacity=Config::getValue("/Danmaku/Alpha",100))
 {
 	QPainter painter;
 	QColor base(color),edge=qGray(color)<30?Qt::white:Qt::black;
@@ -230,7 +235,7 @@ static QImage getCache(QString string,
 	return fst;
 }
 
-static double getOverlap(double ff,double fs,double sf,double ss)
+double getOverlap(double ff,double fs,double sf,double ss)
 {
 	if(sf<=ff&&ss>=fs){
 		return fs-ff;
@@ -243,10 +248,11 @@ static double getOverlap(double ff,double fs,double sf,double ss)
 	}
 	return 0;
 }
+}
 
 Graphic *Graphic::create(const Comment &comment)
 {
-	Graphic *graphic=NULL;
+	Graphic *graphic=nullptr;
 	switch(comment.mode){
 	case 1:
 		graphic=new Mode1(comment);
@@ -264,11 +270,13 @@ Graphic *Graphic::create(const Comment &comment)
 		graphic=new Mode7(comment);
 		break;
 	}
-	if(graphic!=NULL&&!graphic->isEnabled()){
+	if (graphic&&!graphic->isEnabled()){
 		delete graphic;
-		return NULL;
+		return nullptr;
 	}
-	return graphic;
+	else{
+		return graphic;
+	}
 }
 
 void Graphic::setIndex()

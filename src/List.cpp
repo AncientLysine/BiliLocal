@@ -75,17 +75,6 @@ private:
 	int state;
 };
 
-int diffAtNum(QString f,QString s)
-{
-	for(int i=0;i<f.size()&&i<s.size();++i){
-		int d=s[i].unicode()-f[i].unicode();
-		if (d!=0){
-			return f[i].isNumber()&&s[i].isNumber()?d:0;
-		}
-	}
-	return 0;
-}
-
 QModelIndex getGroupHead(QModelIndex i)
 {
 	QModelIndex f;
@@ -179,25 +168,31 @@ List::List(QObject *parent):
 		if (old){
 			old->setData(QColor(Qt::black),Qt::ForegroundRole);
 		}
+		cur->setData(QColor(90,115,210),Qt::ForegroundRole);
+		cur->setData(QDateTime::currentDateTime(),DateRole);
+		bool success=false;
 		switch(cur->data(CodeRole).toInt()){
 		case Inherit:
 			Danmaku::instance()->delayAll(-time);
-			break;
+			success=true;
+			break;;
 		case Surmise:
 			for(int i=1;;i++){
 				QStandardItem *head=item(cur->row()-i);
-				if (head->data(CodeRole).toInt()==Records){
-					for(int j=0;j<head->rowCount();++j){
-						QString code=head->child(j)->data(CodeRole).toString();
-						int sharp=code.indexOf("#");
-						if (sharp!=-1&&!QFile::exists(code)){
-							QString id=code.mid(0,sharp);
-							QString pt=code.mid(sharp+1);
-							Load::instance()->loadDanmaku((id+"#%1").arg(pt.toInt()+i));
-						}
-					}
-					break;
+				if (head->data(CodeRole).toInt()!=Records){
+					continue;
 				}
+				for(int j=0;j<head->rowCount();++j){
+					QString code=head->child(j)->data(CodeRole).toString();
+					int sharp=code.indexOf(QRegularExpression("[#_]"));
+					if (sharp!=-1&&!QFile::exists(code)){
+						QString id=code.mid(0,sharp);
+						QString pt=code.mid(sharp+1);
+						Load::instance()->loadDanmaku((id+"#%1").arg(pt.toInt()+i));
+						success=true;
+					}
+				}
+				break;
 			}
 			Danmaku::instance()->clearPool();
 			break;
@@ -208,14 +203,26 @@ List::List(QObject *parent):
 				Load::Task task=load->codeToTask(d->data(CodeRole).toString());
 				task.delay=d->data(List::TimeRole).value<qint64>();
 				load->enqueue(task);
+				success=true;
 			}
 			if (old){
 				Danmaku::instance()->clearPool();
 			}
 			break;
 		}
-		cur->setData(QColor(90,115,210),Qt::ForegroundRole);
-		cur->setData(QDateTime::currentDateTime(),DateRole);
+		if(!success&&Config::getValue("/Danmaku/Local",false)){
+			QFileInfo info(cur->data(FileRole).toString());
+			QStringList accept=Utils::getSuffix(Utils::Danmaku);
+			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
+				QString file=iter.absoluteFilePath();
+				if(!accept.contains(iter.suffix().toLower())||
+					info.baseName()!=iter.baseName()){
+					continue;
+				}
+				Load::instance()->loadDanmaku(file);
+				break;
+			}
+		}
 	});
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
 		updateCurrent();
@@ -380,6 +387,20 @@ QString List::defaultPath(int type)
 	return paths.front();
 }
 
+namespace
+{
+int diffAtNum(QString f,QString s)
+{
+	for(int i=0;i<f.size()&&i<s.size();++i){
+		int d=s[i].unicode()-f[i].unicode();
+		if (d!=0){
+			return f[i].isNumber()&&s[i].isNumber()?d:0;
+		}
+	}
+	return 0;
+}
+}
+
 QStandardItem *List::itemFromFile(QString file,bool create)
 {
 	int c=rowCount(),i;
@@ -400,19 +421,12 @@ QStandardItem *List::itemFromFile(QString file,bool create)
 		item->setData(path,FileRole);
 		item->setEditable(false);item->setDropEnabled(false);
 		appendRow(item);
-		QStringList accept=Utils::getSuffix(Utils::Danmaku);
 		QModelIndexList indexes;
 		indexes.append(item->index());
 		for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
 			QString p=iter.absoluteFilePath();
-			if(!item->hasChildren()&&
-				accept.contains(iter.suffix().toLower())&&
-				info.baseName()==iter.baseName()){
-				QStandardItem *d=new QStandardItem;
-				d->setData(p,CodeRole);
-				item->appendRow(d);
-			}
-			QString c=info.completeBaseName(),o=iter.completeBaseName();
+			QString c=info.completeBaseName();
+			QString o=iter.completeBaseName();
 			if(!itemFromFile(p)&&info.suffix()==iter.suffix()&&diffAtNum(c,o)>0){
 				QStandardItem *i=new QStandardItem;
 				i->setText(o);
