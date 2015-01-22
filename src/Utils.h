@@ -80,6 +80,7 @@ public:
 	qint64 limit;
 	QString source;
 	QString string;
+	QString access;
 	QList<Comment> danmaku;
 	Record()
 	{

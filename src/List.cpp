@@ -210,7 +210,7 @@ List::List(QObject *parent):
 			}
 			break;
 		}
-		if(!success&&Config::getValue("/Danmaku/Local",false)){
+		if(!success){
 			QFileInfo info(cur->data(FileRole).toString());
 			QStringList accept=Utils::getSuffix(Utils::Danmaku);
 			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
@@ -462,14 +462,9 @@ void List::updateCurrent()
 		return;
 	}
 	for(const Record &r:Danmaku::instance()->getPool()){
-		QString code=r.string;
-		if(!Load::instance()->canLoad(code)){
-			QUrl u(r.source);
-			code=u.isLocalFile()?u.toLocalFile():r.source;
-		}
 		QStandardItem *d=new QStandardItem;
-		d->setData(code   ,CodeRole);
-		d->setData(r.delay,TimeRole);
+		d->setData(r.access,CodeRole);
+		d->setData(r.delay ,TimeRole);
 		cur->appendRow(d);
 	}
 }

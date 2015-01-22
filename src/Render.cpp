@@ -424,7 +424,7 @@ public slots:
 		Q_D(RasterRender);
 		if (rate){
 			rate =qBound(30,rate,200);
-			int r=qRound(1000.0/rate);
+			int r=1000/rate;
 			if(soft&&d->power->interval()<r){
 				return;
 			}

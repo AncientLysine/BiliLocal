@@ -621,7 +621,8 @@ Load::Load(QObject *parent):
 		}
 		case File:
 			Record load;
-			load.source=reply->url().url();
+			QUrl url=reply->url();
+			load.access=url.isLocalFile()?url.toLocalFile():url.url();
 			load.string=task.code;
 			load.delay=task.delay;
 			QByteArray data=reply->readAll(),head=data.left(256);
@@ -635,8 +636,8 @@ Load::Load(QObject *parent):
 				load.danmaku=parseComment(data,Utils::Bilibili);
 				QString i=QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
 				if(!i.isEmpty()){
-					QString u=("http://comment.%1/%2.xml");
-					load.source=u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
+					load.source="http://comment.%1/%2.xml";
+					load.source=load.source.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
 				}
 			}
 			else if(head.indexOf("<c>")!=-1){
@@ -646,6 +647,9 @@ Load::Load(QObject *parent):
 				for(Comment &c:load.danmaku){
 					c.time+=load.delay;
 				}
+			}
+			if (load.source.isEmpty()){
+				load.source=load.access;
 			}
 			Danmaku::instance()->appendToPool(&load);
 			emit stateChanged(task.state=None);
@@ -661,7 +665,6 @@ Load::Load(QObject *parent):
 		if(!queue.isEmpty()&&!code.isEmpty()&&code==queue.head().code){
 			return true;
 		}
-		//TODO: 接受短文件名
 		QUrl u=QUrl::fromUserInput(code);
 		if(!u.host().isEmpty()&&!u.path().isEmpty()){
 			return true;
@@ -917,18 +920,17 @@ QString toFull(QString source)
 }
 }
 
-bool Load::canFull(QString code)
+bool Load::canFull(const Record *record)
 {
-	return getProc(toFull(code));
+	return record->full?false:getProc(toFull(record->source));
 }
 
-bool Load::canHist(QString code)
+bool Load::canHist(const Record *record)
 {
 	QUrlQuery query;
-	query.addQueryItem("source",code);
+	query.addQueryItem("source",record->source);
 	query.addQueryItem("date","0");
-	code="hist?"+query.toString();
-	return getProc(code);
+	return getProc("hist?"+query.toString());
 }
 
 void Load::loadDanmaku(QString code)
@@ -962,16 +964,16 @@ void Load::loadDanmaku(const QModelIndex &index)
 	}
 }
 
-void Load::fullDanmaku(QString source)
+void Load::fullDanmaku(const Record *record)
 {
-	const Task &task=codeToTask(toFull(source));
+	const Task &task=codeToTask(toFull(record->source));
 	enqueue(task);
 }
 
-void Load::loadHistory(QString source,QDate date)
+void Load::loadHistory(const Record *record,QDate date)
 {
 	QUrlQuery query;
-	query.addQueryItem("source",source);
+	query.addQueryItem("source",record->source);
 	query.addQueryItem("date",QString::number(date.isValid()?QDateTime(date).toTime_t():0));
 	const Task &task=codeToTask("hist?"+query.toString());
 	enqueue(task);
@@ -994,6 +996,7 @@ void Load::dumpDanmaku(const QByteArray &data,int site,bool full)
 	load.full=full;
 	load.source=task.request.url().url();
 	load.string=task.code;
+	load.access=task.code;
 	load.delay=task.delay;
 	dumpDanmaku(data,site,&load);
 	Danmaku::instance()->appendToPool(&load);

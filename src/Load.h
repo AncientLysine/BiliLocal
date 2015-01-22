@@ -97,13 +97,13 @@ public slots:
 
 	void fixCode(QString &);
 	bool canLoad(QString);
-	bool canFull(QString);
-	bool canHist(QString);
+	bool canFull(const Record *);
+	bool canHist(const Record *);
 
 	void loadDanmaku(QString);
 	void loadDanmaku(const QModelIndex &index=QModelIndex());
-	void fullDanmaku(QString);
-	void loadHistory(QString,QDate);
+	void fullDanmaku(const Record *);
+	void loadHistory(const Record *,QDate);
 	void dumpDanmaku(const QByteArray &data,int site,Record *r);
 	void dumpDanmaku(const QByteArray &data,int site,bool full);
 

@@ -184,15 +184,15 @@ Info::Info(QWidget *parent):
 		fullA->setEnabled(false);
 		Load *load=Load::instance();
 		for(const Record &r:Danmaku::instance()->getPool()){
-			if(!r.full&&load->canFull(r.source)){
+			if (load->canFull(&r)){
 				fullA->setEnabled(true);
 				break;
 			}
 		}
 		connect(fullA,&QAction::triggered,[=](){
 			for(const Record &r:Danmaku::instance()->getPool()){
-				if(!r.full&&load->canFull(r.source)){
-					load->fullDanmaku(r.source);
+				if (load->canFull(&r)){
+					load->fullDanmaku(&r);
 				}
 			}
 		});
