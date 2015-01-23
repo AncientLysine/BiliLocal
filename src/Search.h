@@ -67,6 +67,7 @@ private:
 	void getData(int pageNum);
 	QList<const char *> AcOrder();
 	QList<const char *> BiOrder();
+	QList<const char *> DdOrder();
 
 public slots:
 	void setKey(QString _key);

@@ -31,7 +31,9 @@
 #include "Local.h"
 #include "Utils.h"
 
-static QHash<int,QString> getChannel(QString name)
+namespace
+{
+QHash<int,QString> getChannel(QString name)
 {
 	static QHash<QString,QHash<int,QString>> m;
 	if(!m.contains(name)){
@@ -44,12 +46,13 @@ static QHash<int,QString> getChannel(QString name)
 	}
 	return m[name];
 }
+}
 
 #define tr
 QList<const char *> Search::AcOrder()
 {
 	static QList<const char *> l;
-	if(l.isEmpty()){
+	if (l.isEmpty()){
 		l<<tr("rankLevel")
 		<<tr("releaseDate")
 		<<tr("views")
@@ -62,7 +65,7 @@ QList<const char *> Search::AcOrder()
 QList<const char *> Search::BiOrder()
 {
 	static QList<const char *> l;
-	if(l.isEmpty()){
+	if (l.isEmpty()){
 		l<<tr("default")
 		<<tr("pubdate")
 		<<tr("senddate")
@@ -71,6 +74,18 @@ QList<const char *> Search::BiOrder()
 		<<tr("scores")
 		<<tr("dm")
 		<<tr("stow");
+	}
+	return l;
+}
+
+QList<const char *> Search::DdOrder()
+{
+	static QList<const char *> l;
+	if (l.isEmpty()){
+		l<<tr("default")
+		<<tr("TVAnime")
+		<<tr("Other")
+		<<tr("FileMatch");
 	}
 	return l;
 }
@@ -254,7 +269,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 					pageNum=m.hasMatch()?m.captured().toInt():1;
 					pageNuL->setText(QString("/%1").arg(pageNum));
 				}
-				QStringList ary=data.split("<li class=\"l\">",QString::SkipEmptyParts);
+				QStringList ary=data.split("<li class=\"l ",QString::SkipEmptyParts);
 				if(ary.size()>=2){
 					QString &last=ary.last();
 					last.truncate(last.lastIndexOf("</li>")+5);
@@ -265,7 +280,7 @@ Search::Search(QWidget *parent):QDialog(parent)
 						m=r.match(item);
 						row->setData(0,Qt::UserRole,m.captured());
 						row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
-						r.setPattern("(?<=img src=\")[^\"']+");
+						r.setPattern("(?<=src=\")[^\"']+");
 						m=r.match(item,m.capturedEnd());
 						QNetworkRequest request(QUrl(m.captured()));
 						request.setAttribute(QNetworkRequest::User,resultW->invisibleRootItem()->childCount()-1);
@@ -288,9 +303,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 						row->setText(1,i.next().captured().simplified());
 						i.next();
 						row->setText(2,i.next().captured().simplified());
-						r.setPattern("(?<=class=\"intro\">)[^<]+");
+						r.setPattern("(?<=class=\"intro\">).+(?=</div>)");
 						m=r.match(item,i.next().capturedEnd());
-						row->setToolTip(3,m.captured());
+						row->setToolTip(3,Utils::decodeXml(m.captured()));
 						if(m.capturedEnd()==-1){
 							delete row;
 						}
@@ -349,6 +364,23 @@ Search::Search(QWidget *parent):QDialog(parent)
 					row->setData(0,Qt::UserRole,QString("dd%1").arg(item["EpisodeId"].toInt()));
 					row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
 				}
+				for(QJsonValue iter:json["Animes"].toArray()){
+					QJsonObject item=iter.toObject();
+					QString title=item["Title"].toString(),type=getChannel("AcPlay")[item["Type"].toInt()];
+					for(QJsonValue epsd:item["Episodes"].toArray()){
+						item=epsd.toObject();
+						QStringList content;
+						content+=title;
+						content+="";
+						content+="";
+						content+=item["Title"].toString();
+						content+=type;
+						content+="";
+						QTreeWidgetItem *row=new QTreeWidgetItem(resultW,content);
+						row->setData(0,Qt::UserRole,QString("dd%1").arg(item["Id"].toInt()));
+						row->setSizeHint(0,QSize(0,resultW->iconSize().height()+3));
+					}
+				}
 				pageNum=1;
 				pageNuL->setText("/1");
 				statusL->setText(tr("Finished"));
@@ -390,7 +422,9 @@ void Search::setSite()
 		break;
 	case 2:
 		header<<tr("Title")<<""<<""<<tr("Episode")<<tr("Typename")<<"";
-		options<<tr("TVAnime")<<tr("Other")<<tr("FileMatch");
+		for(const char *i:DdOrder()){
+			options.append(tr(i));
+		}
 		break;
 	}
 	isWaiting=true;
@@ -443,7 +477,41 @@ void Search::getData(int pageNum)
 	}
 	case 2:
 	{
-		if(orderC->currentIndex()==2){
+		QUrlQuery query;
+		switch(orderC->currentIndex()){
+		case 0:
+		{
+			url=QUrl("http://api."+
+					 Utils::customUrl(Utils::AcPlay)+
+					 "/api/v1/searchall/"+key);
+			break;
+		}
+		case 1:
+		{
+			if (QRegularExpression("^[^#]*#\\d+$").match(key).hasMatch()){
+				QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
+				return;
+			}
+			QStringList args=key.split("#");
+			url=QUrl("http://api."+
+					 Utils::customUrl(Utils::AcPlay)+
+					 "/api/v1/search/TVAnime");
+			query.addQueryItem("anime"  ,args[0]);
+			query.addQueryItem("episode",args[1]);
+			break;
+		}
+		case 2:
+		{
+			QStringList args=key.split("#");
+			url=QUrl("http://api."+
+						Utils::customUrl(Utils::AcPlay)+
+						"/api/v1/search/Other");
+			query.addQueryItem("anime"  ,args.size()==2?args[0]:key);
+			query.addQueryItem("episode",args.size()==2?args[1]:QString(""));
+			break;
+		}
+		case 3:
+		{
 			QFile file(key);
 			if(!file.exists()){
 				file.setFileName(APlayer::instance()->getMedia());
@@ -453,46 +521,17 @@ void Search::getData(int pageNum)
 				url=QUrl("http://api."+
 						 Utils::customUrl(Utils::AcPlay)+
 						 "/api/v1/match");
-				QUrlQuery query;
 				query.addQueryItem("fileName",QFileInfo(file).baseName());
 				query.addQueryItem("hash",QCryptographicHash::hash(file.read(0x1000000),QCryptographicHash::Md5).toHex());
 				query.addQueryItem("length",QString::number(file.size()));
-				url.setQuery(query);
 			}
 			else{
 				QMessageBox::warning(this,tr("Match Error"),tr("Please open a video or type in the file path."));
 				return;
 			}
 		}
-		else{
-			QUrlQuery query;
-			QStringList args=key.split("#");
-			switch(orderC->currentIndex()){
-			case 0:
-				url=QUrl("http://api."+
-						 Utils::customUrl(Utils::AcPlay)+
-						 "/api/v1/search/TVAnime");
-				if(args.size()!=2){
-					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
-					return;
-				}
-				query.addQueryItem("anime",args[0]);
-				query.addQueryItem("episode",args[1]);
-				break;
-			case 1:
-				url=QUrl("http://api."+
-						 Utils::customUrl(Utils::AcPlay)+
-						 "/api/v1/search/Other");
-				if(args.size()==0||args.size()>2){
-					QMessageBox::warning(this,tr("Match Error"),tr("Format {anime}#{episode} needed."));
-					return;
-				}
-				query.addQueryItem("anime",args[0]);
-				query.addQueryItem("episode",args.size()==2?args[1]:QString(""));
-				break;
-			}
-			url.setQuery(query);
 		}
+		url.setQuery(query);
 	}
 	}
 	resultW->clear();
