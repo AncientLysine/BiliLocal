@@ -91,12 +91,6 @@ Post::Post(QWidget *parent):
 	hide();
 }
 
-QColor Post::getColor()
-{
-	QString sheet=commentC->styleSheet();
-	return QColor(sheet.mid(sheet.indexOf('#')));
-}
-
 static int mode(int i)
 {
 	switch(i){
@@ -132,6 +126,12 @@ QList<const Record *> Post::getRecords()
 		}
 	}
 	return list;
+}
+
+QColor Post::getColor()
+{
+	QString sheet=commentC->styleSheet();
+	return QColor(sheet.mid(sheet.indexOf('#')));
 }
 
 void Post::setColor(QColor color)
@@ -220,4 +220,16 @@ void Post::postComment()
 		}
 		reply->deleteLater();
 	});
+}
+
+bool Post::isValid()
+{
+	return !getRecords().isEmpty();
+}
+
+void Post::setVisible(bool visible)
+{
+	QWidget::setVisible(visible);
+	QWidget *fw=visible?commentL:lApp->mainWidget();
+	fw->setFocus();
 }

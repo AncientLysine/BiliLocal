@@ -38,28 +38,29 @@ class Post:public QWidget
 	Q_OBJECT
 public:
 	Post(QWidget *parent);
-	bool isValid(){return !getRecords().isEmpty();}
 
 private:
-	QAction *commentA;
-	QLineEdit *commentL;
-	QComboBox *commentS;
-	QComboBox *commentM;
-	QPushButton *commentC;
-	QPushButton *commentB;
+	    QAction * commentA;
+	  QLineEdit * commentL;
+	  QComboBox * commentS;
+	  QComboBox * commentM;
+	QPushButton * commentC;
+	QPushButton * commentB;
 	QNetworkAccessManager *manager;
 	static Post *ins;
 
-	QColor getColor();
 	Comment getComment();
 	QList<const Record *> getRecords();
 
 signals:
 	void posted(const Comment *);
 
-private slots:
-	void setColor(QColor color);
+public slots:
+	QColor getColor();
+	void setColor(QColor);
 	void postComment();
+	bool isValid();
+	void setVisible(bool);
 };
 
 #endif // POST_H
