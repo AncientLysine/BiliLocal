@@ -336,7 +336,12 @@ Load::Load(QObject *parent):
 		}
 		}
 	};
-	auto avRegular=getRegular(QRegularExpression("a(v(\\d+([#_])?(\\d+)?)?)?",QRegularExpression::CaseInsensitiveOption));
+	auto avRegular=[](QString &code){
+		code.remove(QRegularExpression("/index(?=_\\d+\\.html)"));
+		QRegularExpression r("a(v(\\d+([#_])?(\\d+)?)?)?");
+		r.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		return getRegular(r)(code);
+	};
 	pool.append({avRegular,0,avProcess});
 	
 	auto acProcess=[this](QNetworkReply *reply){
@@ -596,14 +601,9 @@ Load::Load(QObject *parent):
 	};
 	auto ccRegular=[](QString &code){
 		code.replace(QRegularExpression("[Hh](?=\\d)"),"cc");
-		QRegularExpression re("c(c(\\d+([#_])?(\\d+)?)?)?");
-		re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-		auto iter=re.globalMatch(code);
-		code.clear();
-		while(iter.hasNext()){
-			code=iter.next().captured();
-		}
-		return code.length()>2;
+		QRegularExpression r("c(c(\\d+([#_])?(\\d+)?)?)?");
+		r.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		return getRegular(r)(code);
 	};
 	pool.append({ccRegular,0,ccProcess});
 
@@ -622,7 +622,8 @@ Load::Load(QObject *parent):
 		case File:
 			Record load;
 			QUrl url=reply->url();
-			load.access=url.isLocalFile()?url.toLocalFile():url.url();
+			load.source=url.url();
+			load.access=url.isLocalFile()?url.toLocalFile():load.source;
 			load.string=task.code;
 			load.delay=task.delay;
 			QByteArray data=reply->readAll(),head=data.left(256);
@@ -647,9 +648,6 @@ Load::Load(QObject *parent):
 				for(Comment &c:load.danmaku){
 					c.time+=load.delay;
 				}
-			}
-			if (load.source.isEmpty()){
-				load.source=load.access;
 			}
 			Danmaku::instance()->appendToPool(&load);
 			emit stateChanged(task.state=None);
@@ -879,7 +877,8 @@ const Load::Proc *Load::getProc(QString code)
 {
 	const Proc *p=nullptr;
 	for(const Proc &i:pool){
-		if (i.regular(QString(code))&&(!p||i.priority>p->priority)){
+		QString t(code);
+		if (i.regular(t)&&t==code&&(!p||i.priority>p->priority)){
 			p=&i;
 		}
 	}
