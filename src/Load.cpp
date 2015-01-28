@@ -755,6 +755,8 @@ Load::Load(QObject *parent):
 								emit stateChanged(task.state=None);
 								dequeue();
 							}
+						default:
+							break;
 						}
 					});
 				}
@@ -921,7 +923,7 @@ QString toFull(QString source)
 
 bool Load::canFull(const Record *record)
 {
-	return record->full?false:getProc(toFull(record->source));
+	return !record->full&&getProc(toFull(record->source));
 }
 
 bool Load::canHist(const Record *record)

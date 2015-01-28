@@ -414,9 +414,10 @@ Menu::Menu(QWidget *parent):
 	connect(Load::instance(),&Load::stateChanged,[this](int state){
 		Load::Task *task=Load::instance()->getHead();
 		auto syncDanmL=[&](){
-			if(!task->code.isEmpty()&&task->processer->regular(QString(task->code))){
-				danmL->setText(task->code);
-				danmL->setCursorPosition(0);
+			QString fix(task->code);
+			if(!task->code.isEmpty()&&task->processer->regular(fix)){
+				danmL->setText(fix);
+				danmL->clearFocus();
 			}
 		};
 		switch(state){
