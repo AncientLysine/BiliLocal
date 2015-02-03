@@ -93,47 +93,41 @@ namespace
 class Buffer
 {
 public:
-	explicit Buffer(const QList<int> &size):
-		size(size)
+	explicit Buffer(const QList<QSize> &planeSize)
 	{
-		int n=0;
-		for(int s:size){
-			n +=s;
+		size=0;
+		QList<int> planeLength;
+		for(const QSize &s:planeSize){
+			int length=s.width()*s.height();
+			planeLength.append(length);
+			size+=length;
 		}
-		data=new quint8[n];
+		quint8 *alloc=new quint8[size];
+		for(int length:planeLength){
+			data.append(alloc);
+			alloc+=length;
+		}
 	}
 
 	~Buffer()
 	{
-		delete []data;
+		delete []data[0];
 	}
 
 	void flush()
 	{
-		const QList<quint8 *> &buffer=Render::instance()->getBuffer();
-		quint8 *d=data;
-		for(int i=0;i<buffer.size();++i){
-			int s=size[i];
-			memcpy(buffer[i],d,s);
-			d+=s;
-		}
+		memcpy(Render::instance()->getBuffer()[0],data[0],size);
 		Render::instance()->releaseBuffer();
 	}
 
 	QList<quint8 *> getBuffer()
 	{
-		quint8 *d=data;
-		QList<quint8 *> b;
-		for(int s:size){
-			b+=d;
-			d+=s;
-		}
-		return b;
+		return data;
 	}
 
 private:
-	quint8 *data;
-	QList<int> size;
+	QList<quint8 *> data;
+	int size;
 };
 
 unsigned fmt(void **opaque,char *chroma,
@@ -147,13 +141,11 @@ unsigned fmt(void **opaque,char *chroma,
 		return 0;
 	}
 	memcpy(chroma,c.toUtf8(),4);
-	int i=0;
-	QList<int> size;
-	for(const QSize &s:b){
-		size.append((p[i]=s.width())*(l[i]=s.height()));
-		++i;
+	for(int i=0;i<b.size();++i){
+		const QSize &s=b[i];
+		p[i]=s.width();l[i]=s.height();
 	}
-	*opaque=(void *)new Buffer(size);
+	*opaque=(void *)new Buffer(b);
 	return 1;
 }
 
@@ -562,48 +554,33 @@ public:
 	bool start(const QVideoSurfaceFormat &format)
 	{
 		QString chroma=getFormat(format.pixelFormat());
-		if(!chroma.isEmpty()){
-			QString buffer=chroma;
-			Render::instance()->setBuffer(buffer,format.frameSize());
-			if(buffer==chroma){
-				QSize p=format.pixelAspectRatio();
-				Render::instance()->setPixelAspectRatio(p.width()/(double)p.height());
-				return true;
-			}
-		}
-		return false;
+		if (chroma.isEmpty())
+			return false;
+		QString buffer(chroma);
+		Render::instance()->setBuffer(buffer,format.frameSize());
+		if (buffer!=chroma)
+			return false;
+		QSize p(format.pixelAspectRatio());
+		Render::instance()->setPixelAspectRatio(p.width()/(double)p.height());
+		return true;
 	}
 
 	bool present(const QVideoFrame &frame)
 	{
-		bool flag=false;
 		QVideoFrame f(frame);
-		if(f.map(QAbstractVideoBuffer::ReadOnly)){
+		if (f.map(QAbstractVideoBuffer::ReadOnly)){
 			int len=f.mappedBytes();
 			const quint8 *dat=f.bits();
 			QList<quint8 *> buffer=Render::instance()->getBuffer();
-			switch(frame.pixelFormat()){
-			case QVideoFrame::Format_NV12:
-			case QVideoFrame::Format_NV21:
-				memcpy(buffer[0],dat,len*2/3);
-				memcpy(buffer[1],dat+len*2/3,len*1/3);
-				flag=true;
-				break;
-			case QVideoFrame::Format_YV12:
-			case QVideoFrame::Format_YUV420P:
-				memcpy(buffer[0],dat,len*2/3);
-				memcpy(buffer[1],dat+len*2/3,len/6);
-				memcpy(buffer[2],dat+len*5/6,len/6);
-				flag=true;
-				break;
-			default:
-				break;
-			}
+			memcpy(buffer[0],dat,len);
 			Render::instance()->releaseBuffer();
 			f.unmap();
 		}
+		else{
+			return false;
+		}
 		emit APlayer::instance()->decode();
-		return flag;
+		return true;
 	}
 
 	QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
@@ -626,10 +603,12 @@ public:
 			case QVideoFrame::Format_NV21:
 			case QVideoFrame::Format_YV12:
 			case QVideoFrame::Format_YUV420P:
-				return true;
+				return 1;
+			default:
+				return 0;
 			}
 		}
-		return false;
+		return 0;
 	}
 };
 

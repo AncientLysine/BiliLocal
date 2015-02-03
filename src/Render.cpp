@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -204,9 +204,18 @@ public:
 		static QHash<QString,AVPixelFormat> f;
 		if(f.isEmpty()){
 			f.insert("RV32",AV_PIX_FMT_RGB32);
+			f.insert("RV24",AV_PIX_FMT_RGB24);
+			f.insert("RGB8",AV_PIX_FMT_RGB8);
+			f.insert("RV12",AV_PIX_FMT_RGB444);
+			f.insert("RV15",AV_PIX_FMT_RGB555);
+			f.insert("RV16",AV_PIX_FMT_RGB565);
+			f.insert("RGBA",AV_PIX_FMT_RGBA);
+			f.insert("ARGB",AV_PIX_FMT_ARGB);
+			f.insert("BGRA",AV_PIX_FMT_BGRA);
 			f.insert("I410",AV_PIX_FMT_YUV410P);
 			f.insert("I411",AV_PIX_FMT_YUV411P);
 			f.insert("I420",AV_PIX_FMT_YUV420P);
+			f.insert("IYUV",AV_PIX_FMT_YUV420P);
 			f.insert("I422",AV_PIX_FMT_YUV422P);
 			f.insert("I440",AV_PIX_FMT_YUV440P);
 			f.insert("I444",AV_PIX_FMT_YUV444P);
@@ -217,6 +226,8 @@ public:
 			f.insert("I40A",AV_PIX_FMT_YUVA420P);
 			f.insert("I42A",AV_PIX_FMT_YUVA422P);
 			f.insert("YUVA",AV_PIX_FMT_YUVA444P);
+			f.insert("YA0L",AV_PIX_FMT_YUVA444P10LE);
+			f.insert("YA0B",AV_PIX_FMT_YUVA444P10BE);
 			f.insert("NV12",AV_PIX_FMT_NV12);
 			f.insert("NV21",AV_PIX_FMT_NV21);
 			f.insert("I09L",AV_PIX_FMT_YUV420P9LE);
@@ -232,32 +243,32 @@ public:
 			f.insert("I4AL",AV_PIX_FMT_YUV444P10LE);
 			f.insert("I4AB",AV_PIX_FMT_YUV444P10BE);
 			f.insert("UYVY",AV_PIX_FMT_UYVY422);
+			f.insert("YUYV",AV_PIX_FMT_YUYV422);
+			f.insert("YUY2",AV_PIX_FMT_YUYV422);
 		}
 		chroma=chroma.toUpper();
 		if(f.contains(chroma)){
-			//Recognized
 		}
-		else if(chroma=="YV12"||
-				chroma=="IYUV"){
+		else if(chroma=="YV12"){
 			chroma="I420";
 		}
+		else if(chroma=="NV16"){
+			chroma="NV12";
+		}
+		else if(chroma=="NV61"){
+			chroma="NV21";
+		}
 		else if(chroma=="VYUY"||
-				chroma=="YUYV"||
-				chroma=="YUY2"||
 				chroma=="YVYU"||
 				chroma=="V422"||
-				chroma=="YVYU"||
-				chroma=="Y211"||
 				chroma=="CYUV"){
 			chroma="UYVY";
 		}
-		else if(chroma=="V210"||
-				chroma=="NV16"||
-				chroma=="NV61"){
-			chroma="NV12";
+		else if(chroma=="V210"){
+			chroma="I0AL";
 		}
 		else{
-			chroma="RV32";
+			chroma="I420";
 		}
 		return f[chroma];
 	}
@@ -468,7 +479,7 @@ const char *vShaderCode=
 	"  TexCoordOut = TexCoord;\n"
 	"}\n";
 
-const char *fShaderCode=
+const char *fShaderI420=
 	"varying highp vec2 TexCoordOut;\n"
 	"uniform sampler2D SamplerY;\n"
 	"uniform sampler2D SamplerU;\n"
@@ -485,14 +496,48 @@ const char *fShaderCode=
 	"               1.596, -0.813, 0) * yuv;\n"
 	"    gl_FragColor = vec4(rgb, 1);\n"
 	"}";
+
+const char *fShaderNV12=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerY;\n"
+	"uniform sampler2D SamplerA;\n"
+	"void main(void)\n"
+	"{\n"
+	"    mediump vec3 yuv;\n"
+	"    mediump vec3 rgb;\n"
+	"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+	"    yuv.y = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
+	"    yuv.z = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
+	"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+	"               0,     -0.391, 2.018,   \n"
+	"               1.596, -0.813, 0) * yuv;\n"
+	"    gl_FragColor = vec4(rgb, 1);\n"
+	"}";
+
+const char *fShaderNV21=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerY;\n"
+	"uniform sampler2D SamplerA;\n"
+	"void main(void)\n"
+	"{\n"
+	"    mediump vec3 yuv;\n"
+	"    mediump vec3 rgb;\n"
+	"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+	"    yuv.y = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
+	"    yuv.z = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
+	"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+	"               0,     -0.391, 2.018,   \n"
+	"               1.596, -0.813, 0) * yuv;\n"
+	"    gl_FragColor = vec4(rgb, 1);\n"
+	"}";
 }
 
 class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
 {
 public:
 	QSize inner;
-	bool UVReverted;
-	QOpenGLShaderProgram program;
+	int format;
+	QOpenGLShaderProgram program[4];
 	GLuint frame[3];
 	static QMutex dataLock;
 	QList<quint8 *> buffer;
@@ -501,21 +546,72 @@ public:
 	{
 		initializeOpenGLFunctions();
 		glGenTextures(3,frame);
-		program.addShaderFromSourceCode(QOpenGLShader::Vertex  ,vShaderCode);
-		program.addShaderFromSourceCode(QOpenGLShader::Fragment,fShaderCode);
-		program.bindAttributeLocation("VtxCoord",0);
-		program.bindAttributeLocation("TexCoord",1);
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+		for(int i=0;i<4;++i){
+			const char *fShaderCode=nullptr;
+			switch(i){
+			case 0:
+			case 1:
+				fShaderCode=fShaderI420;
+				break;
+			case 2:
+				fShaderCode=fShaderNV12;
+				break;
+			case 3:
+				fShaderCode=fShaderNV21;
+				break;
+			}
+			QOpenGLShaderProgram &p=program[i];
+			p.addShaderFromSourceCode(QOpenGLShader::Vertex  ,vShaderCode);
+			p.addShaderFromSourceCode(QOpenGLShader::Fragment,fShaderCode);
+			p.bindAttributeLocation("VtxCoord",0);
+			p.bindAttributeLocation("TexCoord",1);
+			p.bind();
+			switch(i){
+			case 0:
+				p.setUniformValue("SamplerY",0);
+				p.setUniformValue("SamplerU",1);
+				p.setUniformValue("SamplerV",2);
+				break;
+			case 1:
+				p.setUniformValue("SamplerY",0);
+				p.setUniformValue("SamplerV",1);
+				p.setUniformValue("SamplerU",2);
+				break;
+			case 2:
+			case 3:
+				p.setUniformValue("SamplerY",0);
+				p.setUniformValue("SamplerA",1);
+				break;
+			}
+		}
 	}
 
-	void uploadTexture(int i,int w,int h)
+	void uploadTexture(int i,int c,int w,int h)
 	{
+		int f;
+		switch(c){
+		case 1:
+			f=GL_LUMINANCE;
+			break;
+		case 2:
+			f=GL_LUMINANCE_ALPHA;
+			break;
+		case 3:
+			f=GL_RGB;
+			break;
+		case 4:
+			f=GL_RGBA;
+			break;
+		default:
+			return;
+		}
 		glBindTexture(GL_TEXTURE_2D,frame[i]);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D,0,GL_LUMINANCE,w,h,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,buffer[i]);
+		glTexImage2D(GL_TEXTURE_2D,0,f,w,h,0,f,GL_UNSIGNED_BYTE,buffer[i]);
 	}
 
 	void drawData(QPainter *painter,QRect rect)
@@ -528,13 +624,24 @@ public:
 		if (dirty){
 			int w=inner.width(),h=inner.height();
 			dataLock.lock();
-			uploadTexture(0,w,h);
-			uploadTexture(1,w/2,h/2);
-			uploadTexture(2,w/2,h/2);
+			switch(format){
+			case 0:
+			case 1:
+				uploadTexture(0,1,w,h);
+				uploadTexture(1,1,w/2,h/2);
+				uploadTexture(2,1,w/2,h/2);
+				break;
+			case 2:
+			case 3:
+				uploadTexture(0,1,w,h);
+				uploadTexture(1,2,w/2,h/2);
+				break;
+			}
 			dirty=false;
 			dataLock.unlock();
 		}
-		program.bind();
+		QOpenGLShaderProgram &p=program[format];
+		p.bind();
 		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
 		GLfloat vtx[8]={
 			-h,-v,
@@ -548,19 +655,23 @@ public:
 			0,0,
 			1,0
 		};
-		program.setAttributeArray(0,vtx,2);
-		program.setAttributeArray(1,tex,2);
-		program.enableAttributeArray(0);
-		program.enableAttributeArray(1);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D,frame[0]);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D,frame[1]);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D,frame[2]);
-		program.setUniformValue("SamplerY",0);
-		program.setUniformValue("SamplerU",UVReverted?2:1);
-		program.setUniformValue("SamplerV",UVReverted?1:2);
+		p.setAttributeArray(0,vtx,2);
+		p.setAttributeArray(1,tex,2);
+		p.enableAttributeArray(0);
+		p.enableAttributeArray(1);
+		switch(format){
+		case 0:
+		case 1:
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D,frame[2]);
+		case 2:
+		case 3:
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D,frame[0]);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D,frame[1]);
+			break;
+		}
 		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 		painter->endNativePainting();
 	}
@@ -579,36 +690,49 @@ public:
 
 	void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize)
 	{
-		if(chroma=="YV12"){
-			UVReverted=1;
+		if     (chroma=="YV12"){
+			format=1;
+		}
+		else if(chroma=="NV12"){
+			format=2;
+		}
+		else if(chroma=="NV21"){
+			format=3;
 		}
 		else{
-			UVReverted=0;
+			format=0;
 			chroma="I420";
 		}
 		inner=size;
 		int s=size.width()*size.height();
-		for(quint8 *iter:buffer){
-			delete[]iter;
+		quint8 *alloc=new quint8[s*3/2];
+		QList<QSize> plane;
+		plane.append(size);
+		if (format&2){
+			size.rheight()/=2;
+			plane.append(size);
+		}
+		else{
+			size/=2;
+			plane.append(size);
+			plane.append(size);
+		}
+		if(!buffer.isEmpty()){
+			delete []buffer[0];
 		}
 		buffer.clear();
-		buffer.append(new quint8[s]);
-		s/=4;
-		buffer.append(new quint8[s]);
-		buffer.append(new quint8[s]);
-		if (bufferSize){
-			bufferSize->clear();
-			bufferSize->append(size);
-			size/=2;
-			bufferSize->append(size);
-			bufferSize->append(size);
+		for(const QSize &s:plane){
+			buffer.append(alloc);
+			alloc+=s.width()*s.height();
 		}
+		if (bufferSize)
+			bufferSize->swap(plane);
 	}
 
 	~OpenGLRenderPrivate()
 	{
-		for(quint8 *iter:buffer){
-			delete[]iter;
+		if(!buffer.isEmpty()){
+			delete []buffer[0];
 		}
 	}
 };
@@ -875,6 +999,7 @@ Render::Render(RenderPrivate *data,QObject *parent):
 	d->time=0;
 	if(Config::getValue("/Interface/Version",true)){
 		d->tv.setFileName(":/Picture/tv.gif");
+		d->tv.setCacheMode(QMovie::CacheAll);
 		d->tv.start();
 		d->me=QImage(":/Picture/version.png");
 		connect(APlayer::instance(),&APlayer::begin,&d->tv,&QMovie::stop );

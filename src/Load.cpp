@@ -696,6 +696,7 @@ Load::Load(QObject *parent):
 				count[QDateTime::fromTime_t(time.toVariant().toUInt()).date()]+=size.toVariant().toInt();
 			}
 			if (count.isEmpty()){
+				emit stateChanged(203);
 				dequeue();
 				return;
 			}

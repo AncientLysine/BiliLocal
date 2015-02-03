@@ -417,6 +417,7 @@ Menu::Menu(QWidget *parent):
 			QString fix(task->code);
 			if(!task->code.isEmpty()&&task->processer->regular(fix)){
 				danmL->setText(fix);
+				danmL->setCursorPosition(0);
 				danmL->clearFocus();
 			}
 		};

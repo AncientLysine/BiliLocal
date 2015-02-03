@@ -34,153 +34,18 @@
 #include "Utils.h"
 #include <algorithm>
 
-class ConfigPrivate
+Config *Config::ins=nullptr;
+
+Config *Config::instance()
 {
-public:
-	QTabWidget *tab;
-	QWidget *widget[9];
+	return ins?ins:new Config(qApp);
+}
 
-	//Playing
-	QGroupBox *box[7];
-	QCheckBox *load[4];
-	QCheckBox *fitted[2];
-	QLineEdit *factor;
-	QCheckBox *bold;
-	QComboBox *dmfont;
-	QComboBox *effect;
-	QLineEdit *play[2];
-
-	//Interface
-	QGroupBox *ui[7];
-	QComboBox *font;
-	QComboBox *reop;
-	QCheckBox *vers;
-	QCheckBox *sens;
-	QCheckBox *stay;
-	QCheckBox *less;
-	QCheckBox *skip;
-	QCheckBox *sing;
-	QLineEdit *jump;
-	QLineEdit *size;
-	QLineEdit *back;
-	QPushButton *open;
-
-	//Performance
-	QGroupBox *opt[2];
-	QComboBox *render;
-	QComboBox *decode;
-	QLabel *retext;
-	QLabel *detext;
-	QList<QLabel *> relogo;
-	QList<QLabel *> delogo;
-
-	//Shiled
-	QLineEdit *edit;
-	QCheckBox *check[8];
-	QComboBox *type;
-	QListView *regexp;
-	QListView *sender;
-	QStringListModel *rm;
-	QStringListModel *sm;
-	QAction *action[4];
-	QPushButton *button[2];
-	QSlider *same;
-	QLineEdit *limit;
-	QGroupBox *label[2];
-
-	//Network
-	QLineEdit *sheet[3];
-	QPushButton *click;
-	QLabel *info;
-	QGroupBox *login;
-	QLabel *text;
-	QPushButton *clear;
-	QGroupBox *cache;
-	QComboBox *arg;
-	QLineEdit *input[4];
-	QGroupBox *proxy;
-
-	//Shortcut
-	QTreeWidget *hotkey;
-
-	//Plugin
-	QTreeWidget *plugin;
-
-	//Thanks
-	QTextEdit *thanks;
-
-	//License
-	QTextEdit *license;
-
-	QNetworkAccessManager *manager;
-
-	QHash<QString,QVariant> restart;
-
-	QHash<QString,QVariant> getRestart()
-	{
-		QStringList path;
-		path<<"/Performance"<<
-			  "/Interface/Font"<<
-			  "/Interface/Frameless"<<
-			  "/Interface/Single"<<
-			  "/Interface/Top"<<
-			  "/Interface/Version"<<
-			  "/Plugin";
-		QHash<QString,QVariant> data;
-		for(QString iter:path){
-			data[iter]=Config::getValue<QVariant>(iter);
-		}
-		return data;
-	}
-
-	QHash<QString,QVariant> reparse;
-
-	QHash<QString,QVariant> getReparse()
-	{
-		QHash<QString,QVariant> data;
-		int g=0;
-		for(int i=0;i<8;++i){
-			g=(g<<1)+Shield::shieldG[i];
-		}
-		data["/Shield/Group"]=g;
-		data["/Shield/Regexp"]=rm->stringList();
-		data["/Shield/Sender"]=sm->stringList();
-		data["/Shield/Limit"]=Config::getValue("/Shield/Limit",5);
-		return data;
-	}
-
-	void fillPicture(QLabel *label,QString url,QString error,QSize limit)
-	{
-		QNetworkReply *reply=manager->get(QNetworkRequest(url));
-		QObject::connect(reply,&QNetworkReply::finished,label,[=](){
-			if (reply->error()==QNetworkReply::NoError){
-				QPixmap pixmap;
-				pixmap.loadFromData(reply->readAll());
-				if(!pixmap.isNull()){
-					label->setPixmap(pixmap.scaled(limit,Qt::KeepAspectRatio,Qt::SmoothTransformation));
-				}
-				else{
-					label->setText(error);
-				}
-			}
-			reply->deleteLater();
-		});
-	}
-
-	QString getLogo(QString name)
-	{
-		static QHash<QString,QString> l;
-		if(l.isEmpty()){
-			QFile file(":/Text/DATA");
-			file.open(QIODevice::ReadOnly|QIODevice::Text);
-			QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()["Logo"].toObject();
-			for(auto iter=data.begin();iter!=data.end();++iter){
-				l[iter.key()]=iter.value().toString();
-			}
-		}
-		return l[name];
-	}
-};
+Config::Config(QObject *parent):
+	QObject(parent)
+{
+	ins=this;
+}
 
 namespace
 {
@@ -277,6 +142,156 @@ public:
 	}
 };
 
+class ConfigDialog:public QDialog
+{
+public:
+	explicit ConfigDialog(QWidget *parent=0,int index=0);
+
+private:
+	QTabWidget *tab;
+	QWidget *widget[9];
+
+	//Playing
+	QGroupBox *box[7];
+	QCheckBox *load[4];
+	QCheckBox *fitted[2];
+	QLineEdit *factor;
+	QCheckBox *bold;
+	QComboBox *dmfont;
+	QComboBox *effect;
+	QLineEdit *play[2];
+
+	//Interface
+	QGroupBox *ui[8];
+	QComboBox *font;
+	QComboBox *reop;
+	QCheckBox *vers;
+	QCheckBox *sens;
+	QCheckBox *less;
+	QComboBox *loca;
+	QComboBox *stay;
+	QLineEdit *jump;
+	QLineEdit *size;
+	QLineEdit *back;
+	QPushButton *open;
+
+	//Performance
+	QGroupBox *opt[2];
+	QComboBox *render;
+	QComboBox *decode;
+	QLabel *retext;
+	QLabel *detext;
+	QList<QLabel *> relogo;
+	QList<QLabel *> delogo;
+
+	//Shiled
+	QLineEdit *edit;
+	QCheckBox *check[8];
+	QComboBox *type;
+	QListView *regexp;
+	QListView *sender;
+	QStringListModel *rm;
+	QStringListModel *sm;
+	QAction *action[4];
+	QPushButton *button[2];
+	QSlider *same;
+	QLineEdit *limit;
+	QGroupBox *label[2];
+
+	//Network
+	QLineEdit *sheet[3];
+	QPushButton *click;
+	QLabel *info;
+	QGroupBox *login;
+	QLabel *text;
+	QPushButton *clear;
+	QGroupBox *cache;
+	QComboBox *arg;
+	QLineEdit *input[4];
+	QGroupBox *proxy;
+
+	//Shortcut
+	QTreeWidget *hotkey;
+
+	//Plugin
+	QTreeWidget *plugin;
+
+	//Thanks
+	QTextEdit *thanks;
+
+	//License
+	QTextEdit *license;
+
+	QNetworkAccessManager *manager;
+
+	QHash<QString,QVariant> restart;
+
+	QHash<QString,QVariant> getRestart()
+	{
+		QStringList path;
+		path<<"/Performance"<<
+			  "/Interface/Font"<<
+			  "/Interface/Frameless"<<
+			  "/Interface/Single"<<
+			  "/Interface/Version"<<
+			  "/Interface/Locale"<<
+			  "/Plugin";
+		QHash<QString,QVariant> data;
+		for(QString iter:path){
+			data[iter]=Config::getValue<QVariant>(iter);
+		}
+		return data;
+	}
+
+	QHash<QString,QVariant> reparse;
+
+	QHash<QString,QVariant> getReparse()
+	{
+		QHash<QString,QVariant> data;
+		int g=0;
+		for(int i=0;i<8;++i){
+			g=(g<<1)+Shield::shieldG[i];
+		}
+		data["/Shield/Group"]=g;
+		data["/Shield/Regexp"]=rm->stringList();
+		data["/Shield/Sender"]=sm->stringList();
+		data["/Shield/Limit"]=Config::getValue("/Shield/Limit",5);
+		return data;
+	}
+
+	void fillPicture(QLabel *label,QString url,QString error,QSize limit)
+	{
+		QNetworkReply *reply=manager->get(QNetworkRequest(url));
+		QObject::connect(reply,&QNetworkReply::finished,label,[=](){
+			if (reply->error()==QNetworkReply::NoError){
+				QPixmap pixmap;
+				pixmap.loadFromData(reply->readAll());
+				if(!pixmap.isNull()){
+					label->setPixmap(pixmap.scaled(limit,Qt::KeepAspectRatio,Qt::SmoothTransformation));
+				}
+				else{
+					label->setText(error);
+				}
+			}
+			reply->deleteLater();
+		});
+	}
+
+	QString getLogo(QString name)
+	{
+		static QHash<QString,QString> l;
+		if(l.isEmpty()){
+			QFile file(":/Text/DATA");
+			file.open(QIODevice::ReadOnly|QIODevice::Text);
+			QJsonObject data=QJsonDocument::fromJson(file.readAll()).object()["Logo"].toObject();
+			for(auto iter=data.begin();iter!=data.end();++iter){
+				l[iter.key()]=iter.value().toString();
+			}
+		}
+		return l[name];
+	}
+};
+
 class List:public QListView
 {
 public:
@@ -292,463 +307,458 @@ public:
 		selectionModel()->setCurrentIndex(QModelIndex(),QItemSelectionModel::NoUpdate);
 	}
 };
-}
 
-QJsonObject Config::config;
-
-void Config::exec(QWidget *parent,int index)
+ConfigDialog::ConfigDialog(QWidget *parent,int index):
+	QDialog(parent)
 {
-	static Config *executing;
-	if(!executing){
-		Config config(parent,index);
-		executing=&config;
-		config.QDialog::exec();
-		executing=nullptr;
-	}
-	else{
-		executing->activateWindow();
-	}
-}
-
-Config::Config(QWidget *parent,int index):
-	QDialog(parent),d_ptr(new ConfigPrivate)
-{
-	Q_D(Config);
-	setWindowTitle(tr("Config"));
+	setWindowTitle(Config::tr("Config"));
 	auto outer=new QGridLayout(this);
-	d->tab=new QTabWidget(this);
-	connect(d->tab,&QTabWidget::currentChanged,[d](int index){
-		d->tab->widget(index)->setFocus();
+	tab=new QTabWidget(this);
+	connect(tab,&QTabWidget::currentChanged,[this](int index){
+		tab->widget(index)->setFocus();
 	});
-	outer->addWidget(d->tab);
-	d->manager=new QNetworkAccessManager(this);
-	setManager(d->manager);
+	outer->addWidget(tab);
+	manager=new QNetworkAccessManager(this);
+	Config::setManager(manager);
 	//Playing
 	{
-		d->widget[0]=new QWidget(this);
-		auto list=new QVBoxLayout(d->widget[0]);
+		widget[0]=new QWidget(this);
+		auto list=new QVBoxLayout(widget[0]);
 		auto c=new QGridLayout;
-		d->load[0]=new QCheckBox(tr("clear when reloading"),d->widget[0]);
-		d->load[0]->setChecked(Config::getValue("/Playing/Clear",true));
-		connect(d->load[0],&QCheckBox::stateChanged,[this](int state){
+		load[0]=new QCheckBox(Config::tr("clear when reloading"),widget[0]);
+		load[0]->setChecked(Config::getValue("/Playing/Clear",true));
+		connect(load[0],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Clear",state==Qt::Checked);
 		});
-		c->addWidget(d->load[0],0,0);
-		d->load[1]=new QCheckBox(tr("auto delay after loaded"),d->widget[0]);
-		d->load[1]->setChecked(Config::getValue("/Playing/Delay",false));
-		connect(d->load[1],&QCheckBox::stateChanged,[this](int state){
+		c->addWidget(load[0],0,0);
+		load[1]=new QCheckBox(Config::tr("auto delay after loaded"),widget[0]);
+		load[1]->setChecked(Config::getValue("/Playing/Delay",false));
+		connect(load[1],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Delay",state==Qt::Checked);
 		});
-		c->addWidget(d->load[1],0,1);
-		d->load[2]=new QCheckBox(tr("load local subtitles"),d->widget[0]);
-		d->load[2]->setChecked(Config::getValue("/Playing/Subtitle",true));
-		connect(d->load[2],&QCheckBox::stateChanged,[this](int state){
+		c->addWidget(load[1],0,1);
+		load[2]=new QCheckBox(Config::tr("load local subtitles"),widget[0]);
+		load[2]->setChecked(Config::getValue("/Playing/Subtitle",true));
+		connect(load[2],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Subtitle",state==Qt::Checked);
 		});
-		c->addWidget(d->load[2],1,0);
-		d->load[3]=new QCheckBox(tr("auto play after loaded"),d->widget[0]);
-		d->load[3]->setChecked(Config::getValue("/Playing/Immediate",false));
-		connect(d->load[3],&QCheckBox::stateChanged,[this](int state){
+		c->addWidget(load[2],1,0);
+		load[3]=new QCheckBox(Config::tr("auto play after loaded"),widget[0]);
+		load[3]->setChecked(Config::getValue("/Playing/Immediate",false));
+		connect(load[3],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Immediate",state==Qt::Checked);
 		});
-		c->addWidget(d->load[3],1,1);
-		d->box[0]=new QGroupBox(tr("loading"),d->widget[0]);
-		d->box[0]->setLayout(c);
-		list->addWidget(d->box[0]);
+		c->addWidget(load[3],1,1);
+		box[0]=new QGroupBox(Config::tr("loading"),widget[0]);
+		box[0]->setLayout(c);
+		list->addWidget(box[0]);
 
 		auto s=new QHBoxLayout;
-		d->play[0]=new QLineEdit(d->widget[0]);
-		d->play[0]->setText(Config::getValue("/Danmaku/Speed",QString("125+%{width}/5")));
-		connect(d->play[0],&QLineEdit::editingFinished,[=](){
-			Config::setValue("/Danmaku/Speed",d->play[0]->text());
+		play[0]=new QLineEdit(widget[0]);
+		play[0]->setText(Config::getValue("/Danmaku/Speed",QString("125+%{width}/5")));
+		connect(play[0],&QLineEdit::editingFinished,[=](){
+			Config::setValue("/Danmaku/Speed",play[0]->text());
 		});
-		s->addWidget(d->play[0]);
-		d->box[1]=new QGroupBox(tr("slide speed"),d->widget[0]);
-		d->box[1]->setToolTip(tr("%{width} means the width of an danmaku"));
-		d->box[1]->setLayout(s);
-		list->addWidget(d->box[1]);
+		s->addWidget(play[0]);
+		box[1]=new QGroupBox(Config::tr("slide speed"),widget[0]);
+		box[1]->setToolTip(Config::tr("%{width} means the width of an danmaku"));
+		box[1]->setLayout(s);
+		list->addWidget(box[1]);
 
 		auto l=new QHBoxLayout;
-		d->play[1]=new QLineEdit(d->widget[0]);
-		d->play[1]->setText(Config::getValue("/Danmaku/Life",QString("5")));
-		connect(d->play[1],&QLineEdit::editingFinished,[=](){
-			Config::setValue("/Danmaku/Life",d->play[1]->text());
+		play[1]=new QLineEdit(widget[0]);
+		play[1]->setText(Config::getValue("/Danmaku/Life",QString("5")));
+		connect(play[1],&QLineEdit::editingFinished,[=](){
+			Config::setValue("/Danmaku/Life",play[1]->text());
 		});
-		l->addWidget(d->play[1]);
-		d->box[2]=new QGroupBox(tr("life time"),d->widget[0]);
-		d->box[2]->setToolTip(tr("%{width} means the width of an danmaku"));
-		d->box[2]->setLayout(l);
-		list->addWidget(d->box[2]);
+		l->addWidget(play[1]);
+		box[2]=new QGroupBox(Config::tr("life time"),widget[0]);
+		box[2]->setToolTip(Config::tr("%{width} means the width of an danmaku"));
+		box[2]->setLayout(l);
+		list->addWidget(box[2]);
 
 		auto e=new QHBoxLayout;
 		int state=Config::getValue("/Danmaku/Scale/Fitted",0x1);
-		d->fitted[0]=new QCheckBox(tr("ordinary"),d->widget[0]);
-		d->fitted[0]->setChecked((state&0x2)>0);
-		d->fitted[1]=new QCheckBox(tr("advanced"),d->widget[0]);
-		d->fitted[1]->setChecked((state&0x1)>0);
+		fitted[0]=new QCheckBox(Config::tr("ordinary"),widget[0]);
+		fitted[0]->setChecked((state&0x2)>0);
+		fitted[1]=new QCheckBox(Config::tr("advanced"),widget[0]);
+		fitted[1]->setChecked((state&0x1)>0);
 		auto slot=[=](){
-			int n=d->fitted[0]->checkState()==Qt::Checked;
-			int a=d->fitted[1]->checkState()==Qt::Checked;
+			int n=fitted[0]->checkState()==Qt::Checked;
+			int a=fitted[1]->checkState()==Qt::Checked;
 			Config::setValue("/Danmaku/Scale/Fitted",(n<<1)+a);
 		};
-		connect(d->fitted[0],&QCheckBox::stateChanged,slot);
-		connect(d->fitted[1],&QCheckBox::stateChanged,slot);
-		e->addWidget(d->fitted[0],1);
-		e->addWidget(d->fitted[1],1);
-		d->box[3]=new QGroupBox(tr("scale to fitted"),d->widget[0]);
-		d->box[3]->setLayout(e);
+		connect(fitted[0],&QCheckBox::stateChanged,slot);
+		connect(fitted[1],&QCheckBox::stateChanged,slot);
+		e->addWidget(fitted[0],1);
+		e->addWidget(fitted[1],1);
+		box[3]=new QGroupBox(Config::tr("scale to fitted"),widget[0]);
+		box[3]->setLayout(e);
 
 		auto a=new QHBoxLayout;
-		d->factor=new QLineEdit(d->widget[0]);
-		d->factor->setText(QString::number(Config::getValue("/Danmaku/Scale/Factor",1.0),'f',2));
-		connect(d->factor,&QLineEdit::editingFinished,[=](){
-			Config::setValue("/Danmaku/Scale/Factor",d->factor->text().toDouble());
+		factor=new QLineEdit(widget[0]);
+		factor->setText(QString::number(Config::getValue("/Danmaku/Scale/Factor",1.0),'f',2));
+		connect(factor,&QLineEdit::editingFinished,[=](){
+			Config::setValue("/Danmaku/Scale/Factor",factor->text().toDouble());
 		});
-		a->addWidget(d->factor);
-		d->box[4]=new QGroupBox(tr("scale by factor"),d->widget[0]);
-		d->box[4]->setLayout(a);
+		a->addWidget(factor);
+		box[4]=new QGroupBox(Config::tr("scale by factor"),widget[0]);
+		box[4]->setLayout(a);
 
 		auto o=new QHBoxLayout;
-		o->addWidget(d->box[3],1);
-		o->addWidget(d->box[4],1);
+		o->addWidget(box[3],1);
+		o->addWidget(box[4],1);
 		list->addLayout(o);
 
 		auto g=new QHBoxLayout;
 		int ef=Config::getValue("/Danmaku/Effect",5);
-		d->bold=new QCheckBox(tr("Bold"),d->widget[0]);
-		d->bold->setChecked(ef&1);
-		connect(d->bold,&QCheckBox::stateChanged,[=](int s){
-			Config::setValue("/Danmaku/Effect",(d->effect->currentIndex()<<1)|(int)(s==Qt::Checked));
+		bold=new QCheckBox(Config::tr("Bold"),widget[0]);
+		bold->setChecked(ef&1);
+		connect(bold,&QCheckBox::stateChanged,[=](int s){
+			Config::setValue("/Danmaku/Effect",(effect->currentIndex()<<1)|(int)(s==Qt::Checked));
 		});
-		g->addWidget(d->bold);
-		d->effect=new QComboBox(d->widget[0]);
-		d->effect->addItem(tr("Stroke"));
-		d->effect->addItem(tr("Projection"));
-		d->effect->addItem(tr("Shadow"));
-		d->effect->setCurrentIndex(ef>>1);
-		connect<void (QComboBox::*)(int)>(d->effect,&QComboBox::currentIndexChanged,[=](int i){
-			Config::setValue("/Danmaku/Effect",(i<<1)|(int)(d->bold->checkState()==Qt::Checked));
+		g->addWidget(bold);
+		effect=new QComboBox(widget[0]);
+		effect->addItem(Config::tr("Stroke"));
+		effect->addItem(Config::tr("Projection"));
+		effect->addItem(Config::tr("Shadow"));
+		effect->setCurrentIndex(ef>>1);
+		connect<void (QComboBox::*)(int)>(effect,&QComboBox::currentIndexChanged,[=](int i){
+			Config::setValue("/Danmaku/Effect",(i<<1)|(int)(bold->checkState()==Qt::Checked));
 		});
-		g->addWidget(d->effect);
-		d->box[5]=new QGroupBox(tr("style"),d->widget[0]);
-		d->box[5]->setLayout(g);
+		g->addWidget(effect);
+		box[5]=new QGroupBox(Config::tr("style"),widget[0]);
+		box[5]->setLayout(g);
 
 		auto f=new QHBoxLayout;
-		d->dmfont=new QComboBox(d->widget[0]);
-		d->dmfont->addItems(QFontDatabase().families());
-		d->dmfont->setCurrentText(Config::getValue("/Danmaku/Font",QFont().family()));
-		connect(d->dmfont,&QComboBox::currentTextChanged,[this](QString _font){
+		dmfont=new QComboBox(widget[0]);
+		dmfont->addItems(QFontDatabase().families());
+		dmfont->setCurrentText(Config::getValue("/Danmaku/Font",QFont().family()));
+		connect(dmfont,&QComboBox::currentTextChanged,[this](QString _font){
 			Config::setValue("/Danmaku/Font",_font);
 		});
-		f->addWidget(d->dmfont);
-		d->box[6]=new QGroupBox(tr("font"),d->widget[0]);
-		d->box[6]->setLayout(f);
+		f->addWidget(dmfont);
+		box[6]=new QGroupBox(Config::tr("font"),widget[0]);
+		box[6]->setLayout(f);
 
 		auto v=new QHBoxLayout;
-		v->addWidget(d->box[5],1);
-		v->addWidget(d->box[6],1);
+		v->addWidget(box[5],1);
+		v->addWidget(box[6],1);
 		list->addLayout(v);
 
 		list->addStretch(10);
-		d->tab->addTab(d->widget[0],tr("Playing"));
+		tab->addTab(widget[0],Config::tr("Playing"));
 	}
 	//Interface
 	{
-		d->widget[1]=new QWidget(this);
-		auto list=new QVBoxLayout(d->widget[1]);
+		widget[1]=new QWidget(this);
+		auto list=new QVBoxLayout(widget[1]);
 
 		auto s=new QHBoxLayout;
-		d->size=new QLineEdit(d->widget[1]);
-		d->size->setText(Config::getValue("/Interface/Size",QString("720,405")).trimmed());
-		connect(d->size,&QLineEdit::editingFinished,[=](){
+		size=new QLineEdit(widget[1]);
+		size->setText(Config::getValue("/Interface/Size",QString("720,405")).trimmed());
+		connect(size,&QLineEdit::editingFinished,[=](){
 			QRegularExpression r("\\D");
 			r.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
-			QString s=d->size->text().trimmed();
+			QString s=size->text().trimmed();
 			s.replace(r,",");
-			d->size->setText(s);
+			size->setText(s);
 			Config::setValue("/Interface/Size",s+" ");
 		});
-		s->addWidget(d->size);
-		d->ui[0]=new QGroupBox(tr("initialize size"),d->widget[1]);
-		d->ui[0]->setLayout(s);
+		s->addWidget(size);
+		ui[0]=new QGroupBox(Config::tr("initialize size"),widget[1]);
+		ui[0]->setLayout(s);
 
 		auto j=new QHBoxLayout;
-		d->jump=new QLineEdit(d->widget[0]);
-		d->jump->setText(QString::number(Config::getValue("/Interface/Interval",10),'f',2));
-		connect(d->jump,&QLineEdit::editingFinished,[=](){
-			Config::setValue("/Interface/Interval",d->jump->text().toDouble());
+		jump=new QLineEdit(widget[0]);
+		jump->setText(QString::number(Config::getValue("/Interface/Interval",10),'f',2));
+		connect(jump,&QLineEdit::editingFinished,[=](){
+			Config::setValue("/Interface/Interval",jump->text().toDouble());
 		});
-		j->addWidget(d->jump);
-		d->ui[1]=new QGroupBox(tr("skip time"),d->widget[1]);
-		d->ui[1]->setLayout(j);
+		j->addWidget(jump);
+		ui[1]=new QGroupBox(Config::tr("skip time"),widget[1]);
+		ui[1]->setLayout(j);
 
 		auto q=new QHBoxLayout;
-		q->addWidget(d->ui[0]);
-		q->addWidget(d->ui[1]);
+		q->addWidget(ui[0]);
+		q->addWidget(ui[1]);
 		list->addLayout(q);
 
 		auto t=new QGridLayout;
-		d->stay=new QCheckBox(tr("stay on top"),d->widget[1]);
-		d->stay->setChecked(Config::getValue("/Interface/Top",false));
-		connect(d->stay,&QCheckBox::stateChanged,[=](int state){
-			Config::setValue("/Interface/Top",state==Qt::Checked);
-		});
-		t->addWidget(d->stay,0,1);
-		d->less=new QCheckBox(tr("frameless"),d->widget[1]);
-		d->less->setChecked(Config::getValue("/Interface/Frameless",false));
-		connect(d->less,&QCheckBox::stateChanged,[=](int state){
+		less=new QCheckBox(Config::tr("frameless"),widget[1]);
+		less->setChecked(Config::getValue("/Interface/Frameless",false));
+		connect(less,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Frameless",state==Qt::Checked);
 		});
-		t->addWidget(d->less,1,1);
-		d->vers=new QCheckBox(tr("version information"),d->widget[1]);
-		d->vers->setChecked(Config::getValue("/Interface/Version",true));
-		connect(d->vers,&QCheckBox::stateChanged,[=](int state){
+		t->addWidget(less,0,1);
+		vers=new QCheckBox(Config::tr("version information"),widget[1]);
+		vers->setChecked(Config::getValue("/Interface/Version",true));
+		connect(vers,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Version",state==Qt::Checked);
 		});
-		t->addWidget(d->vers,0,0);
-		d->sens=new QCheckBox(tr("sensitive pausing"),d->widget[1]);
-		d->sens->setChecked(Config::getValue("/Interface/Sensitive",false));
-		connect(d->sens,&QCheckBox::stateChanged,[=](int state){
+		t->addWidget(vers,0,0);
+		sens=new QCheckBox(Config::tr("sensitive pausing"),widget[1]);
+		sens->setChecked(Config::getValue("/Interface/Sensitive",false));
+		connect(sens,&QCheckBox::stateChanged,[=](int state){
 			Config::setValue("/Interface/Sensitive",state==Qt::Checked);
 		});
-		t->addWidget(d->sens,1,0);
-		d->ui[2]=new QGroupBox(tr("window flag"),d->widget[1]);
-		d->ui[2]->setLayout(t);
-		list->addWidget(d->ui[2]);
+		t->addWidget(sens,1,0);
+		ui[2]=new QGroupBox(Config::tr("window flag"),widget[1]);
+		ui[2]->setLayout(t);
+		list->addWidget(ui[2]);
 
 		auto f=new QHBoxLayout;
-		d->font=new QComboBox(d->widget[1]);
-		d->font->addItems(QFontDatabase().families());
-		d->font->setCurrentText(Config::getValue("/Interface/Font/Family",QFont().family()));
-		connect(d->font,&QComboBox::currentTextChanged,[=](QString _font){
+		font=new QComboBox(widget[1]);
+		font->addItems(QFontDatabase().families());
+		font->setCurrentText(Config::getValue("/Interface/Font/Family",QFont().family()));
+		connect(font,&QComboBox::currentTextChanged,[=](QString _font){
 			Config::setValue("/Interface/Font/Family",_font);
 		});
-		f->addWidget(d->font);
-		d->ui[3]=new QGroupBox(tr("interface font"),d->widget[1]);
-		d->ui[3]->setLayout(f);
+		f->addWidget(font);
+		ui[3]=new QGroupBox(Config::tr("interface font"),widget[1]);
+		ui[3]->setLayout(f);
 
 		auto r=new QHBoxLayout;
-		d->reop=new QComboBox(d->widget[1]);
-		d->reop->addItems(QStringList()<<tr("open in new window")<<tr("open in current window")<<tr("append to playlist"));
-		d->reop->setCurrentIndex(Config::getValue("/Interface/Single",1));
-		connect<void (QComboBox::*)(int)>(d->reop,&QComboBox::currentIndexChanged,[=](int i){
+		reop=new QComboBox(widget[1]);
+		reop->addItems({Config::tr("open in new window"),Config::tr("open in current window"),Config::tr("append to playlist")});
+		reop->setCurrentIndex(Config::getValue("/Interface/Single",1));
+		connect<void (QComboBox::*)(int)>(reop,&QComboBox::currentIndexChanged,[=](int i){
 			Config::setValue("/Interface/Single",i);
 		});
-		r->addWidget(d->reop);
-		d->ui[4]=new QGroupBox(tr("reopen action"),d->widget[1]);
-		d->ui[4]->setLayout(r);
+		r->addWidget(reop);
+		ui[4]=new QGroupBox(Config::tr("reopen action"),widget[1]);
+		ui[4]->setLayout(r);
 
 		auto v=new QHBoxLayout;
-		v->addWidget(d->ui[3],1);
-		v->addWidget(d->ui[4],1);
+		v->addWidget(ui[3],1);
+		v->addWidget(ui[4],1);
 		list->addLayout(v);
 
-		auto a=new QHBoxLayout;
-		d->skip=new QCheckBox(tr("skip blocked ones"),d->widget[1]);
-		d->skip->setChecked(Config::getValue("/Interface/Save/Skip",false));
-		connect(d->skip,&QCheckBox::stateChanged,[=](int state){
-			Config::setValue("/Interface/Save/Skip",state==Qt::Checked);
+		auto l=new QHBoxLayout;
+		loca=new QComboBox(widget[1]);
+		loca->addItem("English",QString());
+		for(const QFileInfo &info:QDir("./locale/").entryInfoList(QDir::Dirs|QDir::Files|QDir::NoDotAndDotDot)){
+			QLocale l(info.baseName());
+			QString name=l.name();
+			QString text=l.nativeLanguageName();
+			loca->addItem(text,name);
+			if (name==Config::getValue("/Interface/Locale",QVariant())){
+				loca->setCurrentIndex(loca->count()-1);
+			}
+		}
+		connect<void(QComboBox::*)(int)>(loca,&QComboBox::currentIndexChanged,[this](int i){
+			Config::setValue("/Interface/Locale",loca->itemData(i).toString());
 		});
-		a->addWidget(d->skip);
-		d->sing=new QCheckBox(tr("as a single file"),d->widget[1]);
-		d->sing->setChecked(Config::getValue("/Interface/Save/Single",true));
-		connect(d->sing,&QCheckBox::stateChanged,[=](int state){
-			Config::setValue("/Interface/Save/Single",state==Qt::Checked);
+		l->addWidget(loca);
+		ui[5]=new QGroupBox(Config::tr("locale"));
+		ui[5]->setLayout(l);
+
+		auto m=new QHBoxLayout;
+		stay=new QComboBox(widget[1]);
+		stay->addItems({Config::tr("never"),Config::tr("playing"),Config::tr("always")});
+		stay->setCurrentIndex(Config::getValue("/Interface/Top",0));
+		connect<void(QComboBox::*)(int)>(stay,&QComboBox::currentIndexChanged,[this](int i){
+			Config::setValue("/Interface/Top",i);
+			QMetaObject::invokeMethod(lApp->mainWidget(),"setWindowFlags");
 		});
-		a->addWidget(d->sing);
-		d->ui[5]=new QGroupBox(tr("saving option"));
-		d->ui[5]->setLayout(a);
-		list->addWidget(d->ui[5]);
+		m->addWidget(stay);
+		ui[6]=new QGroupBox(Config::tr("stay on top"));
+		ui[6]->setLayout(m);
+
+		auto n=new QHBoxLayout;
+		n->addWidget(ui[5]);
+		n->addWidget(ui[6]);
+		list->addLayout(n);
 
 		auto b=new QHBoxLayout;
-		d->back=new QLineEdit(d->widget[1]);
-		d->back->setText(Config::getValue("/Interface/Background",QString()));
-		connect(d->back,&QLineEdit::textChanged,[=](){
-			Render::instance()->setBackground(d->back->text());
+		back=new QLineEdit(widget[1]);
+		back->setText(Config::getValue("/Interface/Background",QString()));
+		connect(back,&QLineEdit::textChanged,[=](){
+			Render::instance()->setBackground(back->text());
 		});
-		b->addWidget(d->back);
-		d->open=new QPushButton(tr("choose"),d->widget[1]);
-		d->open->setFixedWidth(50*logicalDpiX()/96);
-		d->open->setFocusPolicy(Qt::NoFocus);
-		connect(d->open,&QPushButton::clicked,[d,this](){
-			QString path=d->back->text().isEmpty()?QDir::currentPath():QFileInfo(d->back->text()).absolutePath();
-			QString file=QFileDialog::getOpenFileName(this,tr("Open File"),path);
+		b->addWidget(back);
+		open=new QPushButton(Config::tr("choose"),widget[1]);
+		open->setFixedWidth(50*logicalDpiX()/96);
+		open->setFocusPolicy(Qt::NoFocus);
+		connect(open,&QPushButton::clicked,[this](){
+			QString path=back->text().isEmpty()?QDir::currentPath():QFileInfo(back->text()).absolutePath();
+			QString file=QFileDialog::getOpenFileName(this,Config::tr("Open File"),path);
 			if(!file.isEmpty()){
-				d->back->setText(file.startsWith(QDir::currentPath())?QDir::current().relativeFilePath(file):file);
+				back->setText(file.startsWith(QDir::currentPath())?QDir::current().relativeFilePath(file):file);
 			}
 		});
-		b->addWidget(d->open);
-		d->ui[6]=new QGroupBox(tr("background"),d->widget[1]);
-		d->ui[6]->setLayout(b);
-		list->addWidget(d->ui[6]);
+		b->addWidget(open);
+		ui[7]=new QGroupBox(Config::tr("background"),widget[1]);
+		ui[7]->setLayout(b);
+		list->addWidget(ui[7]);
 
 
 		list->addStretch(10);
-		d->tab->addTab(d->widget[1],tr("Interface"));
+		tab->addTab(widget[1],Config::tr("Interface"));
 	}
 	//Performance
 	{
-		d->widget[2]=new QWidget(this);
-		auto out=new QHBoxLayout(d->widget[2]);
-		d->opt[0]=new QGroupBox(tr("Render"),d->widget[2]);
-		d->opt[1]=new QGroupBox(tr("Decode"),d->widget[2]);
+		widget[2]=new QWidget(this);
+		auto out=new QHBoxLayout(widget[2]);
+		opt[0]=new QGroupBox(Config::tr("Render"),widget[2]);
+		opt[1]=new QGroupBox(Config::tr("Decode"),widget[2]);
 		auto r=new QVBoxLayout;
 		auto e=new QVBoxLayout;
-		d->opt[0]->setLayout(r);
-		d->opt[1]->setLayout(e);
-		d->render=new QComboBox(d->widget[2]);
-		d->decode=new QComboBox(d->widget[2]);
+		opt[0]->setLayout(r);
+		opt[1]->setLayout(e);
+		render=new QComboBox(widget[2]);
+		decode=new QComboBox(widget[2]);
 
 		QStringList relist=Utils::getRenderModules();
 		QStringList delist=Utils::getDecodeModules();
-		d->render->addItems(relist);
-		d->decode->addItems(delist);
+		render->addItems(relist);
+		decode->addItems(delist);
 
 		if(relist.size()>=2){
-			QString r=getValue("/Performance/Render",QString("OpenGL"));
-			d->render->setCurrentText(r);
+			QString r=Config::getValue("/Performance/Render",QString("OpenGL"));
+			render->setCurrentText(r);
 		}
 		else{
-			d->render->setEnabled(false);
+			render->setEnabled(false);
 		}
 		if(delist.size()>=2){
-			QString r=getValue("/Performance/Decode",QString("VLC"));
-			d->decode->setCurrentText(r);
+			QString r=Config::getValue("/Performance/Decode",QString("VLC"));
+			decode->setCurrentText(r);
 		}
 		else{
-			d->decode->setEnabled(false);
+			decode->setEnabled(false);
 		}
 
-		auto updateLogo=[d](QVBoxLayout *layout,QList<QLabel *> &pool,QStringList urls){
+		auto updateLogo=[this](QVBoxLayout *layout,QList<QLabel *> &pool,QStringList urls){
 			qDeleteAll(pool);
 			pool.clear();
 			for(QString url:urls){
-				QLabel *l=new QLabel(d->widget[2]);
+				QLabel *l=new QLabel(widget[2]);
 				l->setFixedHeight(100);
 				l->setAlignment(Qt::AlignCenter);
-				d->fillPicture(l,url,QString(),QSize(200,80));
+				fillPicture(l,url,QString(),QSize(200,80));
 				layout->insertWidget(1,l);
 				pool.append(l);
 			}
 		};
 		
-		connect(d->render,&QComboBox::currentTextChanged,[=](QString text){
+		connect(render,&QComboBox::currentTextChanged,[=](QString text){
 			QString desc;
 			if(text=="Raster"){
-				desc=tr("software render\n"
+				desc=Config::tr("software render\n"
 						"libswscale for size and chroma transform\n"
 						"libqtgui for alpha blending and output\n"
 						"high compatibility but a little bit slower");
-				updateLogo(r,d->relogo,QStringList()
-						   <<d->getLogo("Qt")
-						   <<d->getLogo("FFmpeg"));
+				updateLogo(r,relogo,QStringList()
+						   <<getLogo("Qt")
+						   <<getLogo("FFmpeg"));
 			}
 			if(text=="OpenGL"){
-				desc=tr("opengl es2 render\n"
+				desc=Config::tr("opengl es2 render\n"
 						"texture unit for size transform\n"
 						"glsl code for chroma transform\n"
-						"only accept YV12/I420 but significantly faster");
-				updateLogo(r,d->relogo,QStringList()
+						"only accept YUV420 but significantly faster");
+				updateLogo(r,relogo,QStringList()
 						   <<""
-						   <<d->getLogo("OpenGL"));
+						   <<getLogo("OpenGL"));
 			}
 			if(text=="Detach"){
-				desc=tr("detach window render\n"
+				desc=Config::tr("detach window render\n"
 						"transparent opengl window on top\n"
 						"video frames won't be displayed\n"
 						"for danmaku only playback");
-				updateLogo(r,d->relogo,QStringList()
+				updateLogo(r,relogo,QStringList()
 						   <<""
 						   <<"");
 			}
-			d->retext->setText(desc);
+			retext->setText(desc);
 			if(relist.size()>=2){
-				setValue("/Performance/Render",text);
+				Config::setValue("/Performance/Render",text);
 			}
 		});
-		connect(d->decode,&QComboBox::currentTextChanged,[=](QString text){
+		connect(decode,&QComboBox::currentTextChanged,[=](QString text){
 			QString desc;
 			if(text=="VLC"){
-				desc=tr("libvlc backend\n"
+				desc=Config::tr("libvlc backend\n"
 						"all platform supported\n"
 						"no additional codecs required");
-				updateLogo(e,d->delogo,QStringList()
+				updateLogo(e,delogo,QStringList()
 						   <<""
-						   <<d->getLogo("VLC"));
+						   <<getLogo("VLC"));
 			}
 			if(text=="QMM"){
-				desc=tr("libqtmultimedia backend\n"
+				desc=Config::tr("libqtmultimedia backend\n"
 						"support directshow on windows\n"
 						"k-lite/win7codecs recommended");
-				updateLogo(e,d->delogo,QStringList()
-						   <<d->getLogo("DirectX")
-						   <<d->getLogo("Qt"));
+				updateLogo(e,delogo,QStringList()
+						   <<getLogo("DirectX")
+						   <<getLogo("Qt"));
 			}
 			if(text=="NIL"){
-				desc=tr("dummy backend\n"
+				desc=Config::tr("dummy backend\n"
 						"no need for actual media file\n"
 						"for danmaku only playback");
-				updateLogo(e,d->delogo,QStringList()
+				updateLogo(e,delogo,QStringList()
 						   <<""
 						   <<"");
 			}
-			d->detext->setText(desc);
+			detext->setText(desc);
 			if(delist.size()>=2){
-				setValue("/Performance/Decode",text);
+				Config::setValue("/Performance/Decode",text);
 			}
 		});
 
-		r->addWidget(d->render);
-		e->addWidget(d->decode);
+		r->addWidget(render);
+		e->addWidget(decode);
 
 		r->addSpacing(10);
 		e->addSpacing(10);
 
-		d->retext=new QLabel(d->widget[2]);
-		d->detext=new QLabel(d->widget[2]);
-		d->retext->setWordWrap(true);
-		d->detext->setWordWrap(true);
-		d->retext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
-		d->detext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
-		r->addWidget(d->retext);
-		e->addWidget(d->detext);
-		out->addWidget(d->opt[0],5);
-		out->addWidget(d->opt[1],5);
+		retext=new QLabel(widget[2]);
+		detext=new QLabel(widget[2]);
+		retext->setWordWrap(true);
+		detext->setWordWrap(true);
+		retext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
+		detext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
+		r->addWidget(retext);
+		e->addWidget(detext);
+		out->addWidget(opt[0],5);
+		out->addWidget(opt[1],5);
 
-		d->render->currentTextChanged(d->render->currentText());
-		d->decode->currentTextChanged(d->decode->currentText());
+		render->currentTextChanged(render->currentText());
+		decode->currentTextChanged(decode->currentText());
 
-		d->tab->addTab(d->widget[2],tr("Performance"));
+		tab->addTab(widget[2],Config::tr("Performance"));
 	}
 	//Shield
 	{
-		d->widget[3]=new QWidget(this);
+		widget[3]=new QWidget(this);
 		QStringList list;
-		list<<tr("Top")<<tr("Bottom")<<tr("Slide")<<tr("Reverse")<<tr("Guest")<<tr("Advanced")<<tr("Color")<<tr("Whole");
-		auto grid=new QGridLayout(d->widget[3]);
+		list<<Config::tr("Top")<<Config::tr("Bottom")<<Config::tr("Slide")<<Config::tr("Reverse")<<Config::tr("Guest")<<Config::tr("Advanced")<<Config::tr("Color")<<Config::tr("Whole");
+		auto grid=new QGridLayout(widget[3]);
 
 		auto g=new QHBoxLayout;
 		for(int i=0;i<8;++i){
-			d->check[i]=new QCheckBox(list[i],d->widget[3]);
-			d->check[i]->setFixedHeight(40);
-			d->check[i]->setChecked(Shield::shieldG[i]);
-			connect(d->check[i],&QCheckBox::stateChanged,[=](int state){
+			check[i]=new QCheckBox(list[i],widget[3]);
+			check[i]->setFixedHeight(40);
+			check[i]->setChecked(Shield::shieldG[i]);
+			connect(check[i],&QCheckBox::stateChanged,[=](int state){
 				Shield::shieldG[i]=state==Qt::Checked;
 			});
-			g->addWidget(d->check[i]);
+			g->addWidget(check[i]);
 		}
 		grid->addLayout(g,0,0,1,4);
 
-		d->type=new QComboBox(d->widget[3]);
-		d->type->addItem(tr("Text"));
-		d->type->addItem(tr("User"));
-		d->edit=new QLineEdit(d->widget[3]);
-		d->regexp=new List(d->widget[3]);
-		d->sender=new List(d->widget[3]);
-		d->regexp->setSelectionMode(QListView::ExtendedSelection);
-		d->sender->setSelectionMode(QListView::ExtendedSelection);
-		d->regexp->setModel(d->rm=new QStringListModel(d->regexp));
-		d->sender->setModel(d->sm=new QStringListModel(d->sender));
+		type=new QComboBox(widget[3]);
+		type->addItem(Config::tr("Text"));
+		type->addItem(Config::tr("User"));
+		edit=new QLineEdit(widget[3]);
+		regexp=new List(widget[3]);
+		sender=new List(widget[3]);
+		regexp->setSelectionMode(QListView::ExtendedSelection);
+		sender->setSelectionMode(QListView::ExtendedSelection);
+		regexp->setModel(rm=new QStringListModel(regexp));
+		sender->setModel(sm=new QStringListModel(sender));
 		QStringList r,s;
 		for(const auto &i:Shield::shieldR){
 			r.append(i.pattern());
@@ -757,28 +767,28 @@ Config::Config(QWidget *parent,int index):
 			s.append(i);
 		}
 		std::sort(s.begin(),s.end());
-		d->rm->setStringList(r);
-		d->sm->setStringList(s);
-		d->action[0]=new QAction(tr("Add"),d->widget[3]);
-		d->action[1]=new QAction(tr("Del"),d->widget[3]);
-		d->action[2]=new QAction(tr("Import"),d->widget[3]);
-		d->action[3]=new QAction(tr("Export"),d->widget[3]);
-		d->action[1]->setShortcut(QKeySequence("Del"));
-		d->action[2]->setShortcut(QKeySequence("Ctrl+I"));
-		d->action[3]->setShortcut(QKeySequence("Ctrl+E"));
-		connect(d->action[0],&QAction::triggered,[d](){
-			if(!d->edit->text().isEmpty()){
-				QStringListModel *m=d->type->currentIndex()==0?d->rm:d->sm;
+		rm->setStringList(r);
+		sm->setStringList(s);
+		action[0]=new QAction(Config::tr("Add"),widget[3]);
+		action[1]=new QAction(Config::tr("Del"),widget[3]);
+		action[2]=new QAction(Config::tr("Import"),widget[3]);
+		action[3]=new QAction(Config::tr("Export"),widget[3]);
+		action[1]->setShortcut(QKeySequence("Del"));
+		action[2]->setShortcut(QKeySequence("Ctrl+I"));
+		action[3]->setShortcut(QKeySequence("Ctrl+E"));
+		connect(action[0],&QAction::triggered,[this](){
+			if(!edit->text().isEmpty()){
+				QStringListModel *m=type->currentIndex()==0?rm:sm;
 				m->insertRow(m->rowCount());
-				m->setData(m->index(m->rowCount()-1),d->edit->text());
-				d->edit->clear();
+				m->setData(m->index(m->rowCount()-1),edit->text());
+				edit->clear();
 			}
 			else{
-				d->edit->setFocus();
+				edit->setFocus();
 			}
 		});
-		connect(d->action[1],&QAction::triggered,[d](){
-			auto remove=[d](QListView *v){
+		connect(action[1],&QAction::triggered,[this](){
+			auto remove=[this](QListView *v){
 				QList<int> rows;
 				for(const QModelIndex &i:v->selectionModel()->selectedRows()){
 					rows.append(i.row());
@@ -794,18 +804,18 @@ Config::Config(QWidget *parent,int index):
 					}
 				}
 			};
-			if(d->regexp->hasFocus()){
-				remove(d->regexp);
+			if(regexp->hasFocus()){
+				remove(regexp);
 			}
-			if(d->sender->hasFocus()){
-				remove(d->sender);
+			if(sender->hasFocus()){
+				remove(sender);
 			}
 		});
-		connect(d->action[2],&QAction::triggered,[d,this](){
-			QFile file(QFileDialog::getOpenFileName(this,tr("Import File"),QDir::homePath(),tr("Shield files (*.xml *.sol)")));
+		connect(action[2],&QAction::triggered,[this](){
+			QFile file(QFileDialog::getOpenFileName(this,Config::tr("Import File"),QDir::homePath(),Config::tr("Shield files (*.xml *.sol)")));
 			if(file.open(QIODevice::ReadOnly|QIODevice::Text)){
-				QStringList rl=d->rm->stringList();
-				QStringList sl=d->sm->stringList();
+				QStringList rl=rm->stringList();
+				QStringList sl=sm->stringList();
 				{
 					QTextStream read(&file);
 					read.setCodec("UTF-8");
@@ -833,15 +843,15 @@ Config::Config(QWidget *parent,int index):
 				}
 				rl.removeDuplicates();
 				sl.removeDuplicates();
-				d->rm->setStringList(rl);
-				d->sm->setStringList(sl);
-				d->regexp->setCurrentIndex(QModelIndex());
-				d->sender->setCurrentIndex(QModelIndex());
+				rm->setStringList(rl);
+				sm->setStringList(sl);
+				regexp->setCurrentIndex(QModelIndex());
+				sender->setCurrentIndex(QModelIndex());
 			}
 			file.close();
 		});
-		connect(d->action[3],&QAction::triggered,[d,this](){
-			QString path=QFileDialog::getSaveFileName(this,tr("Export File"),QDir::homePath()+"/shield.bililocal.xml",tr("Shield files (*.xml *.sol)"));
+		connect(action[3],&QAction::triggered,[this](){
+			QString path=QFileDialog::getSaveFileName(this,Config::tr("Export File"),QDir::homePath()+"/shield.bililocal.xml",Config::tr("Shield files (*.xml *.sol)"));
 			if(!path.isEmpty()){
 				QFile file(path);
 				if(!path.endsWith(".sol")){
@@ -849,10 +859,10 @@ Config::Config(QWidget *parent,int index):
 					QTextStream stream(&file);
 					stream.setCodec("UTF-8");
 					stream<<"<filters>"<<endl;
-					for(const QString &iter:d->rm->stringList()){
+					for(const QString &iter:rm->stringList()){
 						stream<<"  <item enabled=\"true\">t="<<iter<<"</item>"<<endl;
 					}
-					for(const QString &iter:d->sm->stringList()){
+					for(const QString &iter:sm->stringList()){
 						stream<<"  <item enabled=\"true\">u="<<iter<<"</item>"<<endl;
 					}
 					stream<<"</filters>";
@@ -865,10 +875,10 @@ Config::Config(QWidget *parent,int index):
 					QFile::rename(path,back);
 					file.open(QIODevice::WriteOnly);
 					QStringList list;
-					for(const QString &iter:d->rm->stringList()){
+					for(const QString &iter:rm->stringList()){
 						list.append("t="+iter);
 					}
-					for(const QString &iter:d->sm->stringList()){
+					for(const QString &iter:sm->stringList()){
 						list.append("u="+iter);
 					}
 					auto encode=[](quint64 n){
@@ -900,134 +910,134 @@ Config::Config(QWidget *parent,int index):
 					file.write(data);
 				}
 				else{
-					QMessageBox::warning(this,tr("Warning"),tr("Please select an existing sol file."));
+					QMessageBox::warning(this,Config::tr("Warning"),Config::tr("Please select an existing sol file."));
 				}
 			}
 		});
-		for(QAction *action:d->action){
-			d->widget[3]->addAction(action);
+		for(QAction *action:action){
+			widget[3]->addAction(action);
 		}
-		d->button[0]=new QPushButton(tr("Add"),d->widget[3]);
-		d->button[1]=new QPushButton(tr("Del"),d->widget[3]);
-		d->button[0]->setFixedWidth(60*logicalDpiX()/96);
-		d->button[1]->setFixedWidth(60*logicalDpiX()/96);
-		d->button[0]->setFocusPolicy(Qt::NoFocus);
-		d->button[1]->setFocusPolicy(Qt::NoFocus);
-		connect(d->button[0],&QPushButton::clicked,d->action[0],&QAction::trigger);
-		connect(d->button[1],&QPushButton::clicked,d->action[1],&QAction::trigger);
-		d->regexp->addActions(d->widget[3]->actions());
-		d->sender->addActions(d->widget[3]->actions());
-		d->regexp->setContextMenuPolicy(Qt::ActionsContextMenu);
-		d->sender->setContextMenuPolicy(Qt::ActionsContextMenu);
+		button[0]=new QPushButton(Config::tr("Add"),widget[3]);
+		button[1]=new QPushButton(Config::tr("Del"),widget[3]);
+		button[0]->setFixedWidth(60*logicalDpiX()/96);
+		button[1]->setFixedWidth(60*logicalDpiX()/96);
+		button[0]->setFocusPolicy(Qt::NoFocus);
+		button[1]->setFocusPolicy(Qt::NoFocus);
+		connect(button[0],&QPushButton::clicked,action[0],&QAction::trigger);
+		connect(button[1],&QPushButton::clicked,action[1],&QAction::trigger);
+		regexp->addActions(widget[3]->actions());
+		sender->addActions(widget[3]->actions());
+		regexp->setContextMenuPolicy(Qt::ActionsContextMenu);
+		sender->setContextMenuPolicy(Qt::ActionsContextMenu);
 
-		grid->addWidget(d->type,1,0);
-		grid->addWidget(d->edit,1,1);
-		grid->addWidget(d->button[0],1,2);
-		grid->addWidget(d->button[1],1,3);
-		grid->addWidget(d->regexp,2,0,1,2);
-		grid->addWidget(d->sender,2,2,1,2);
+		grid->addWidget(type,1,0);
+		grid->addWidget(edit,1,1);
+		grid->addWidget(button[0],1,2);
+		grid->addWidget(button[1],1,3);
+		grid->addWidget(regexp,2,0,1,2);
+		grid->addWidget(sender,2,2,1,2);
 
-		d->same=new QSlider(Qt::Horizontal,d->widget[3]);
-		d->same->setRange(0,40);
-		d->same->setValue(Config::getValue("/Shield/Limit",5));
-		connect(d->same,&QSlider::valueChanged,[=](int value){
+		same=new QSlider(Qt::Horizontal,widget[3]);
+		same->setRange(0,40);
+		same->setValue(Config::getValue("/Shield/Limit",5));
+		connect(same,&QSlider::valueChanged,[=](int value){
 			Config::setValue("/Shield/Limit",value);
 			QPoint p;
 			p.setX(QCursor::pos().x());
-			p.setY(d->same->mapToGlobal(d->same->rect().center()).y());
+			p.setY(same->mapToGlobal(same->rect().center()).y());
 			QToolTip::showText(p,QString::number(value));
 		});
 		auto a=new QHBoxLayout;
-		a->addWidget(d->same);
-		d->label[0]=new QGroupBox(tr("limit of the same"),d->widget[3]);
-		d->label[0]->setToolTip(tr("0 means disabled"));
-		d->label[0]->setLayout(a);
-		grid->addWidget(d->label[0],3,0,1,2);
+		a->addWidget(same);
+		label[0]=new QGroupBox(Config::tr("limit of the same"),widget[3]);
+		label[0]->setToolTip(Config::tr("0 means disabled"));
+		label[0]->setLayout(a);
+		grid->addWidget(label[0],3,0,1,2);
 
-		d->limit=new QLineEdit(d->widget[3]);
-		d->limit->setText(QString::number(Config::getValue("/Shield/Density",100)));
-		connect(d->limit,&QLineEdit::editingFinished,[=](){
-			Config::setValue("/Shield/Density",d->limit->text().toInt());
+		limit=new QLineEdit(widget[3]);
+		limit->setText(QString::number(Config::getValue("/Shield/Density",100)));
+		connect(limit,&QLineEdit::editingFinished,[=](){
+			Config::setValue("/Shield/Density",limit->text().toInt());
 		});
 		auto m=new QHBoxLayout;
-		m->addWidget(d->limit);
-		d->label[1]=new QGroupBox(tr("limit of density"),d->widget[3]);
-		d->label[1]->setToolTip(tr("0 means disabled"));
-		d->label[1]->setLayout(m);
-		grid->addWidget(d->label[1],3,2,1,2);
+		m->addWidget(limit);
+		label[1]=new QGroupBox(Config::tr("limit of density"),widget[3]);
+		label[1]->setToolTip(Config::tr("0 means disabled"));
+		label[1]->setLayout(m);
+		grid->addWidget(label[1],3,2,1,2);
 
-		d->tab->addTab(d->widget[3],tr("Shield"));
+		tab->addTab(widget[3],Config::tr("Shield"));
 	}
 	//Network
 	{
-		d->widget[4]=new QWidget(this);
-		auto list=new QVBoxLayout(d->widget[4]);
+		widget[4]=new QWidget(this);
+		auto list=new QVBoxLayout(widget[4]);
 
 		auto l=new QGridLayout;
 		l->setColumnStretch(0,1);
 		l->setColumnStretch(1,1);
 		l->setColumnStretch(2,1);
 		l->setColumnStretch(3,1);
-		d->sheet[0]=new QLineEdit(d->widget[4]);
-		d->sheet[0]->setPlaceholderText(tr("Username"));
-		d->sheet[1]=new QLineEdit(d->widget[4]);
-		d->sheet[1]->setPlaceholderText(tr("Password"));
-		d->sheet[1]->setEchoMode(QLineEdit::Password);
-		d->sheet[2]=new QLineEdit(d->widget[4]);
-		d->sheet[2]->setPlaceholderText(tr("Identifier"));
-		auto checkout=[d](){
+		sheet[0]=new QLineEdit(widget[4]);
+		sheet[0]->setPlaceholderText(Config::tr("Username"));
+		sheet[1]=new QLineEdit(widget[4]);
+		sheet[1]->setPlaceholderText(Config::tr("Password"));
+		sheet[1]->setEchoMode(QLineEdit::Password);
+		sheet[2]=new QLineEdit(widget[4]);
+		sheet[2]->setPlaceholderText(Config::tr("Identifier"));
+		auto checkout=[this](){
 			bool flag=true;
-			for(QLineEdit *iter:d->sheet){
+			for(QLineEdit *iter:sheet){
 				if(iter->text().isEmpty()){
 					flag=false;
 					break;
 				}
 			}
 			if(flag){
-				d->click->click();
+				click->click();
 			}
 		};
-		for(QLineEdit *iter:d->sheet){
+		for(QLineEdit *iter:sheet){
 			connect(iter,&QLineEdit::editingFinished,checkout);
 		}
-		connect(d->sheet[2],&QLineEdit::textEdited,[d](QString text){
-			d->sheet[2]->setText(text.toUpper());
+		connect(sheet[2],&QLineEdit::textEdited,[this](QString text){
+			sheet[2]->setText(text.toUpper());
 		});
-		l->addWidget(d->sheet[0],0,0);
-		l->addWidget(d->sheet[1],0,1);
-		l->addWidget(d->sheet[2],0,2);
-		d->info=new QLabel(d->widget[4]);
-		d->info->setAlignment(Qt::AlignCenter);
-		d->info->setText(tr("waiting"));
-		l->addWidget(d->info,0,3);
+		l->addWidget(sheet[0],0,0);
+		l->addWidget(sheet[1],0,1);
+		l->addWidget(sheet[2],0,2);
+		info=new QLabel(widget[4]);
+		info->setAlignment(Qt::AlignCenter);
+		info->setText(Config::tr("waiting"));
+		l->addWidget(info,0,3);
 		auto loadValid=[=](){
 			QString url("https://secure.%1/captcha?r=%2");
 			url=url.arg(Utils::customUrl(Utils::Bilibili));
 			url=url.arg(qrand()/(double)RAND_MAX);
-			d->fillPicture(d->info,url,tr("error"),QSize(200,25));
+			fillPicture(info,url,Config::tr("error"),QSize(200,25));
 		};
-		auto setLogged=[d,this,loadValid](bool logged){
+		auto setLogged=[this,loadValid](bool logged){
 			if(logged){
-				d->info->setText(tr("logged"));
-				d->sheet[1]->clear();
-				d->sheet[2]->clear();
-				d->click->setText(tr("logout"));
+				info->setText(Config::tr("logged"));
+				sheet[1]->clear();
+				sheet[2]->clear();
+				click->setText(Config::tr("logout"));
 			}
 			else{
 				loadValid();
-				d->click->setText(tr("login"));
+				click->setText(Config::tr("login"));
 			}
-			for(QLineEdit *iter:d->sheet){
+			for(QLineEdit *iter:sheet){
 				iter->setEnabled(!logged);
 			}
 		};
-		auto sendLogin=[d,this,setLogged](){
-			d->click->setEnabled(false);
+		auto sendLogin=[this,setLogged](){
+			click->setEnabled(false);
 			QUrlQuery query;
 			query.addQueryItem("act","login");
-			query.addQueryItem("userid",d->sheet[0]->text());
-			query.addQueryItem("pwd",d->sheet[1]->text());
-			query.addQueryItem("vdcode",d->sheet[2]->text());
+			query.addQueryItem("userid",sheet[0]->text());
+			query.addQueryItem("pwd",sheet[1]->text());
+			query.addQueryItem("vdcode",sheet[2]->text());
 			query.addQueryItem("keeptime","2592000");
 			QByteArray data=query.query().toUtf8();
 			QString url("https://secure.%1/login");
@@ -1035,7 +1045,7 @@ Config::Config(QWidget *parent,int index):
 			QNetworkRequest request(url);
 			request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 			request.setHeader(QNetworkRequest::ContentLengthHeader,data.length());
-			QNetworkReply *reply=d->manager->post(request,data);
+			QNetworkReply *reply=manager->post(request,data);
 			connect(reply,&QNetworkReply::finished,[=](){
 				bool flag=false;
 				if(reply->error()==QNetworkReply::NoError){
@@ -1045,29 +1055,29 @@ Config::Config(QWidget *parent,int index):
 					}
 					else{
 						int sta=page.indexOf("document.write(\"")+16;
-						QMessageBox::warning(this,tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
+						QMessageBox::warning(this,Config::tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
 					}
 				}
-				d->click->setEnabled(true);
+				click->setEnabled(true);
 				setLogged(flag);
 				reply->deleteLater();
 			});
 		};
 		auto setLogout=[=](){
-			d->click->setEnabled(false);
+			click->setEnabled(false);
 			QString url="https://secure.%1/login?act=exit";
 			url=url.arg(Utils::customUrl(Utils::Bilibili));
-			QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
+			QNetworkReply *reply=manager->get(QNetworkRequest(url));
 			connect(reply,&QNetworkReply::finished,[=](){
-				d->click->setEnabled(true);
+				click->setEnabled(true);
 				setLogged(reply->error()!=QNetworkReply::NoError);
 			});
 		};
-		d->click=new QPushButton(tr("login"),d->widget[1]);
-		d->click->setFocusPolicy(Qt::NoFocus);
-		connect(d->click,&QPushButton::clicked,[=](){
-			if(d->click->text()==tr("login")){
-				for(QLineEdit *iter:d->sheet){
+		click=new QPushButton(Config::tr("login"),widget[1]);
+		click->setFocusPolicy(Qt::NoFocus);
+		connect(click,&QPushButton::clicked,[=](){
+			if(click->text()==Config::tr("login")){
+				for(QLineEdit *iter:sheet){
 					if(iter->text().isEmpty()){
 						return;
 					}
@@ -1080,48 +1090,48 @@ Config::Config(QWidget *parent,int index):
 		});
 		QString url("http://member.%1/main.html");
 		url=url.arg(Utils::customUrl(Utils::Bilibili));
-		QNetworkReply *reply=d->manager->get(QNetworkRequest(url));
+		QNetworkReply *reply=manager->get(QNetworkRequest(url));
 		connect(reply,&QNetworkReply::finished,[=](){
 			bool flag=false;
 			if(reply->error()==QNetworkReply::NoError){
 				QString user=QRegularExpression("(?<=\\>).*(?=\\<\\/h3\\>)").match(reply->readAll()).captured();
 				if(!user.isEmpty()){
-					d->sheet[0]->setText(user);
+					sheet[0]->setText(user);
 					flag=true;
 				}
 			}
 			setLogged(flag);
 		});
-		l->addWidget(d->click);
-		d->login=new QGroupBox(tr("login"),d->widget[4]);
-		d->login->setLayout(l);
-		list->addWidget(d->login);
+		l->addWidget(click);
+		login=new QGroupBox(Config::tr("login"),widget[4]);
+		login->setLayout(l);
+		list->addWidget(login);
 
 		auto c=new QHBoxLayout;
-		d->text=new QLabel(d->widget[4]);
+		text=new QLabel(widget[4]);
 		auto m=[=](){
-			QString s=tr("current size is %.2fMB");
+			QString s=Config::tr("current size is %.2fMB");
 			s.sprintf(s.toUtf8(),DCache::data->cacheSize()/(1024.0*1024));
-			d->text->setText(s);
+			text->setText(s);
 		};
 		m();
-		c->addWidget(d->text,2);
+		c->addWidget(text,2);
 		c->addStretch(1);
-		d->clear=new QPushButton(tr("clear"),d->widget[4]);
-		d->clear->setFocusPolicy(Qt::NoFocus);
-		connect(d->clear,&QPushButton::clicked,[d,m](){
+		clear=new QPushButton(Config::tr("clear"),widget[4]);
+		clear->setFocusPolicy(Qt::NoFocus);
+		connect(clear,&QPushButton::clicked,[m](){
 			DCache::data->clear();
 			m();
 		});
-		c->addWidget(d->clear,1);
-		d->cache=new QGroupBox(tr("cache"),d->widget[4]);
-		d->cache->setLayout(c);
-		list->addWidget(d->cache);
+		c->addWidget(clear,1);
+		cache=new QGroupBox(Config::tr("cache"),widget[4]);
+		cache->setLayout(c);
+		list->addWidget(cache);
 
 		auto p=new QGridLayout;
-		d->arg=new QComboBox(d->widget[4]);
-		d->arg->addItems(QStringList()<<tr("No Proxy")<<tr("Http Proxy")<<tr("Socks5 Proxy"));
-		connect<void (QComboBox::*)(int)>(d->arg,&QComboBox::currentIndexChanged,[=](int index){
+		arg=new QComboBox(widget[4]);
+		arg->addItems({Config::tr("No Proxy"),Config::tr("Http Proxy"),Config::tr("Socks5 Proxy")});
+		connect<void (QComboBox::*)(int)>(arg,&QComboBox::currentIndexChanged,[=](int index){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
 			switch(index){
 			case 0:
@@ -1135,91 +1145,91 @@ Config::Config(QWidget *parent,int index):
 				break;
 			}
 			QNetworkProxy::setApplicationProxy(proxy);
-			for(QLineEdit *iter:d->input){
+			for(QLineEdit *iter:input){
 				iter->setEnabled(index!=0);
 			}
 		});
-		p->addWidget(d->arg,0,0);
-		d->input[0]=new QLineEdit(d->widget[4]);
-		d->input[0]->setText(QNetworkProxy::applicationProxy().hostName());
-		d->input[0]->setPlaceholderText(tr("HostName"));
-		connect(d->input[0],&QLineEdit::editingFinished,[d](){
+		p->addWidget(arg,0,0);
+		input[0]=new QLineEdit(widget[4]);
+		input[0]->setText(QNetworkProxy::applicationProxy().hostName());
+		input[0]->setPlaceholderText(Config::tr("HostName"));
+		connect(input[0],&QLineEdit::editingFinished,[this](){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setHostName(d->input[0]->text());
+			proxy.setHostName(input[0]->text());
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
-		p->addWidget(d->input[0],1,0);
-		d->input[1]=new QLineEdit(d->widget[4]);
-		d->input[1]->setPlaceholderText(tr("Port"));
+		p->addWidget(input[0],1,0);
+		input[1]=new QLineEdit(widget[4]);
+		input[1]->setPlaceholderText(Config::tr("Port"));
 		int port=QNetworkProxy::applicationProxy().port();
-		d->input[1]->setText(port?QString::number(port):QString());
-		connect(d->input[1],&QLineEdit::editingFinished,[d](){
+		input[1]->setText(port?QString::number(port):QString());
+		connect(input[1],&QLineEdit::editingFinished,[this](){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setPort(d->input[1]->text().toInt());
+			proxy.setPort(input[1]->text().toInt());
 			if(proxy.port()==0){
-				d->input[1]->clear();
+				input[1]->clear();
 			}
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
-		p->addWidget(d->input[1],1,1);
-		d->input[2]=new QLineEdit(d->widget[4]);
-		d->input[2]->setPlaceholderText(tr("User"));
-		d->input[2]->setText(QNetworkProxy::applicationProxy().user());
-		connect(d->input[2],&QLineEdit::editingFinished,[d](){
+		p->addWidget(input[1],1,1);
+		input[2]=new QLineEdit(widget[4]);
+		input[2]->setPlaceholderText(Config::tr("User"));
+		input[2]->setText(QNetworkProxy::applicationProxy().user());
+		connect(input[2],&QLineEdit::editingFinished,[this](){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setUser(d->input[2]->text());
+			proxy.setUser(input[2]->text());
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
-		p->addWidget(d->input[2],1,2);
-		d->input[3]=new QLineEdit(d->widget[4]);
-		d->input[3]->setPlaceholderText(tr("Password"));
-		d->input[3]->setText(QNetworkProxy::applicationProxy().password());
-		connect(d->input[3],&QLineEdit::editingFinished,[d](){
+		p->addWidget(input[2],1,2);
+		input[3]=new QLineEdit(widget[4]);
+		input[3]->setPlaceholderText(Config::tr("Password"));
+		input[3]->setText(QNetworkProxy::applicationProxy().password());
+		connect(input[3],&QLineEdit::editingFinished,[this](){
 			QNetworkProxy proxy=QNetworkProxy::applicationProxy();
-			proxy.setPassword(d->input[3]->text());
+			proxy.setPassword(input[3]->text());
 			QNetworkProxy::setApplicationProxy(proxy);
 		});
-		p->addWidget(d->input[3],1,3);
-		for(QLineEdit *iter:d->input){
+		p->addWidget(input[3],1,3);
+		for(QLineEdit *iter:input){
 			iter->setEnabled(false);
 		}
 		switch(QNetworkProxy::applicationProxy().type()){
 		case QNetworkProxy::HttpProxy:
-			d->arg->setCurrentIndex(1);
+			arg->setCurrentIndex(1);
 			break;
 		case QNetworkProxy::Socks5Proxy:
-			d->arg->setCurrentIndex(2);
+			arg->setCurrentIndex(2);
 			break;
 		default:
-			d->arg->setCurrentIndex(0);
+			arg->setCurrentIndex(0);
 			break;
 		}
-		d->proxy=new QGroupBox(tr("proxy"),d->widget[4]);
-		d->proxy->setLayout(p);
-		list->addWidget(d->proxy);
+		proxy=new QGroupBox(Config::tr("proxy"),widget[4]);
+		proxy->setLayout(p);
+		list->addWidget(proxy);
 
 		list->addStretch(10);
-		d->tab->addTab(d->widget[4],tr("Network"));
+		tab->addTab(widget[4],Config::tr("Network"));
 	}
 	//Plugin
 	{
-		d->widget[5]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[5]);
-		d->plugin=new QTreeWidget(d->widget[5]);
-		d->plugin->setSelectionMode(QAbstractItemView::NoSelection);
+		widget[5]=new QWidget(this);
+		auto w=new QGridLayout(widget[5]);
+		plugin=new QTreeWidget(widget[5]);
+		plugin->setSelectionMode(QAbstractItemView::NoSelection);
 		QStringList header;
-		header<<tr("Enable")<<tr("Name")<<tr("Version")<<tr("Description")<<tr("Author")<<"";
-		d->plugin->setHeaderLabels(header);
+		header<<Config::tr("Enable")<<Config::tr("Name")<<Config::tr("Version")<<Config::tr("Description")<<Config::tr("Author")<<"";
+		plugin->setHeaderLabels(header);
 		double s=logicalDpiX()/72.0;
-		d->plugin->header()->setStretchLastSection(false);
-		d->plugin->header()->setSectionResizeMode(3,QHeaderView::Stretch);
-		d->plugin->setColumnWidth(0,50);
-		d->plugin->setColumnWidth(1,55*s);
-		d->plugin->setColumnWidth(2,35*s);
-		d->plugin->setColumnWidth(4,50*s);
-		d->plugin->setColumnWidth(5,30*s);
-		d->plugin->setIndentation(15);
-		w->addWidget(d->plugin);
+		plugin->header()->setStretchLastSection(false);
+		plugin->header()->setSectionResizeMode(3,QHeaderView::Stretch);
+		plugin->setColumnWidth(0,50);
+		plugin->setColumnWidth(1,55*s);
+		plugin->setColumnWidth(2,35*s);
+		plugin->setColumnWidth(4,50*s);
+		plugin->setColumnWidth(5,30*s);
+		plugin->setIndentation(15);
+		w->addWidget(plugin);
 		for(Plugin &iter:Plugin::plugins){
 			QStringList content;
 			content+="";
@@ -1227,8 +1237,8 @@ Config::Config(QWidget *parent,int index):
 			content+=iter.string("Version");
 			content+=iter.string("Description");
 			content+=iter.string("Author");
-			content+=tr("options");
-			QTreeWidgetItem *row=new QTreeWidgetItem(d->plugin,content);
+			content+=Config::tr("options");
+			QTreeWidgetItem *row=new QTreeWidgetItem(plugin,content);
 			row->setCheckState(0,Config::getValue("/Plugin/"+iter.string("Name"),true)?Qt::Checked:Qt::Unchecked);
 			row->setData(0,Qt::UserRole,(quintptr)&iter);
 			QFont f;
@@ -1238,32 +1248,32 @@ Config::Config(QWidget *parent,int index):
 			row->setTextAlignment(5,Qt::AlignCenter);
 			row->setSizeHint(0,QSize(60,30*logicalDpiY()/72));
 		}
-		connect(d->plugin,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item){
+		connect(plugin,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item){
 			Plugin *p=(Plugin *)item->data(0,Qt::UserRole).value<quintptr>();
 			Config::setValue("/Plugin/"+p->string("Name"),item->checkState(0)==Qt::Checked);
 		});
-		connect(d->plugin,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
+		connect(plugin,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
 			if(column==5){
 				((Plugin *)item->data(0,Qt::UserRole).value<quintptr>())->config(this);
 			}
 		});
-		connect(d->plugin,&QTreeWidget::currentItemChanged,[d](){
-			d->plugin->setCurrentItem(NULL);
+		connect(plugin,&QTreeWidget::currentItemChanged,[this](){
+			plugin->setCurrentItem(NULL);
 		});
-		d->tab->addTab(d->widget[5],tr("Plugin"));
+		tab->addTab(widget[5],Config::tr("Plugin"));
 	}
 	//Shortcut
 	{
-		d->widget[6]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[6]);
-		d->hotkey=new QTreeWidget(d->widget[6]);
-		d->hotkey->setSelectionMode(QAbstractItemView::NoSelection);
-		d->hotkey->setColumnCount(2);
-		d->hotkey->header()->hide();
-		d->hotkey->header()->setStretchLastSection(false);
-		d->hotkey->header()->setSectionResizeMode(0,QHeaderView::Stretch);
-		d->hotkey->setColumnWidth(1,1.2*logicalDpiX());
-		d->hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
+		widget[6]=new QWidget(this);
+		auto w=new QGridLayout(widget[6]);
+		hotkey=new QTreeWidget(widget[6]);
+		hotkey->setSelectionMode(QAbstractItemView::NoSelection);
+		hotkey->setColumnCount(2);
+		hotkey->header()->hide();
+		hotkey->header()->setStretchLastSection(false);
+		hotkey->header()->setSectionResizeMode(0,QHeaderView::Stretch);
+		hotkey->setColumnWidth(1,1.2*logicalDpiX());
+		hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
 		for(QAction *iter:lApp->mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 			QTreeWidgetItem *item=new QTreeWidgetItem;
 			item->setData(0,Qt::DisplayRole,iter->text());
@@ -1271,18 +1281,18 @@ Config::Config(QWidget *parent,int index):
 			item->setData(1,Qt::UserRole,iter->objectName());
 			item->setFlags(Qt::ItemIsEditable|Qt::ItemIsEnabled);
 			item->setSizeHint(0,QSize(60,25*logicalDpiY()/72));
-			d->hotkey->addTopLevelItem(item);
+			hotkey->addTopLevelItem(item);
 		}
-		w->addWidget(d->hotkey);
-		connect(d->hotkey,&QTreeWidget::currentItemChanged,[d](){
-			d->hotkey->setCurrentItem(NULL);
+		w->addWidget(hotkey);
+		connect(hotkey,&QTreeWidget::currentItemChanged,[this](){
+			hotkey->setCurrentItem(NULL);
 		});
-		connect(d->hotkey,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
+		connect(hotkey,&QTreeWidget::itemClicked,[=](QTreeWidgetItem *item,int column){
 			if(column==1){
-				d->hotkey->editItem(item,1);
+				hotkey->editItem(item,1);
 			}
 		});
-		connect(d->hotkey,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item,int column){
+		connect(hotkey,&QTreeWidget::itemChanged,[=](QTreeWidgetItem *item,int column){
 			if(column==1){
 				QVariant v=item->data(1,Qt::UserRole);
 				if(v.isValid()){
@@ -1293,48 +1303,48 @@ Config::Config(QWidget *parent,int index):
 				}
 			}
 		});
-		d->tab->addTab(d->widget[6],tr("Shortcut"));
+		tab->addTab(widget[6],Config::tr("Shortcut"));
 	}
 	//Thanks
 	{
-		d->widget[7]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[7]);
+		widget[7]=new QWidget(this);
+		auto w=new QGridLayout(widget[7]);
 		QFile t(":/Text/THANKS");
 		t.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->thanks=new QTextEdit(d->widget[7]);
-		d->thanks->setReadOnly(true);
-		d->thanks->setText(t.readAll());
-		w->addWidget(d->thanks);
-		d->tab->addTab(d->widget[7],tr("Thanks"));
+		thanks=new QTextEdit(widget[7]);
+		thanks->setReadOnly(true);
+		thanks->setText(t.readAll());
+		w->addWidget(thanks);
+		tab->addTab(widget[7],Config::tr("Thanks"));
 	}
 	//License
 	{
-		d->widget[8]=new QWidget(this);
-		auto w=new QGridLayout(d->widget[8]);
+		widget[8]=new QWidget(this);
+		auto w=new QGridLayout(widget[8]);
 		QFile l(":/Text/COPYING");
 		l.open(QIODevice::ReadOnly|QIODevice::Text);
-		d->license=new QTextEdit(d->widget[8]);
-		d->license->setReadOnly(true);
-		d->license->setText(l.readAll());
-		w->addWidget(d->license);
-		d->tab->addTab(d->widget[8],tr("License"));
+		license=new QTextEdit(widget[8]);
+		license->setReadOnly(true);
+		license->setText(l.readAll());
+		w->addWidget(license);
+		tab->addTab(widget[8],Config::tr("License"));
 	}
-	d->tab->setCurrentIndex(index);
-	connect(this,&QDialog::finished,[d,this](){
-		if(d->reparse!=d->getReparse()){
+	tab->setCurrentIndex(index);
+	connect(this,&QDialog::finished,[this](){
+		if(reparse!=getReparse()){
 			Shield::shieldR.clear();
-			for(QString item:d->rm->stringList()){
+			for(QString item:rm->stringList()){
 				Shield::shieldR.append(QRegularExpression(item));
 			}
-			Shield::shieldS=d->sm->stringList().toSet();
+			Shield::shieldS=sm->stringList().toSet();
 			Danmaku::instance()->parse(0x2);
 		}
-		if(d->restart!=d->getRestart()){
+		if(restart!=getRestart()){
 			if((APlayer::instance()->getState()==APlayer::Stop&&
 				Danmaku::instance()->rowCount()==0)||
 					QMessageBox::warning(this,
-										 tr("Warning"),
-										 tr("Restart to apply changes?"),
+										 Config::tr("Warning"),
+										 Config::tr("Restart to apply changes?"),
 										 QMessageBox::Yes,QMessageBox::No)==QMessageBox::Yes){
 				lApp->exit(12450);
 			}
@@ -1344,13 +1354,25 @@ Config::Config(QWidget *parent,int index):
 	setMinimumSize(w,h);
 	Utils::setCenter(this);
 
-	d->restart=d->getRestart();
-	d->reparse=d->getReparse();
+	restart=getRestart();
+	reparse=getReparse();
+}
 }
 
-Config::~Config()
+QJsonObject Config::config;
+
+void Config::exec(QWidget *parent,int index)
 {
-	delete d_ptr;
+	static ConfigDialog *executing;
+	if(!executing){
+		ConfigDialog config(parent,index);
+		executing=&config;
+		config.exec();
+		executing=nullptr;
+	}
+	else{
+		executing->activateWindow();
+	}
 }
 
 void Config::load()
@@ -1381,4 +1403,14 @@ void Config::setManager(QNetworkAccessManager *manager)
 	DCache::data->setParent(NULL);
 	manager->setCookieJar(Cookie::data);
 	Cookie::data->setParent(NULL);
+}
+
+void     Config::setVariant(QString key,QVariant val)
+{
+	       setValue(key,val);
+}
+
+QVariant Config::getVariant(QString key,QVariant val)
+{
+	return getValue(key,val);
 }

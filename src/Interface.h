@@ -90,9 +90,13 @@ private:
 	void mouseReleaseEvent(QMouseEvent *e);
 	void resizeEvent(QResizeEvent *e);
 
+signals:
+	void windowFlagsChanged(QFlags<Qt::WindowType>);
+
 public slots:
 	void tryLocal(QString p);
 	void tryLocal(QStringList p);
+	void setWindowFlags();
 
 private slots:
 	void checkForUpdate();

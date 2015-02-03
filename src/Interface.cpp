@@ -100,6 +100,7 @@ Interface::Interface(QWidget *parent):
 	
 	render=Render::instance();
 	Local::objects["Render"]=render;
+	Local::objects["Config"]=Config::instance();
 	
 	menu=new Menu(this);
 	info=new Info(this);
@@ -149,6 +150,7 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
+		setWindowFlags();
 	});
 	connect(aplayer,&APlayer::reach,this,[this](bool m){
 		danmaku->resetTime();
@@ -165,6 +167,7 @@ Interface::Interface(QWidget *parent):
 		}
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
+		setWindowFlags();
 	});
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
@@ -367,13 +370,7 @@ Interface::Interface(QWidget *parent):
 		g->addAction(a)->setCheckable(true);
 	}
 	
-	if(Config::getValue("/Interface/Frameless",false)){
-		setWindowFlags(Qt::CustomizeWindowHint);
-	}
-	if(Config::getValue("/Interface/Top",false)){
-		setWindowFlags(windowFlags()|Qt::WindowStaysOnTopHint);
-	}
-	
+	setWindowFlags();
 	checkForUpdate();
 	setCenter(QSize(),true);
 }
@@ -538,6 +535,26 @@ void Interface::resizeEvent(QResizeEvent *e)
 	post->move(width()/2-post->width()/2,height()-post->height()-2);
 	jump->move(width()/2-post->width()/2,2);
 	QWidget::resizeEvent(e);
+}
+
+void Interface::setWindowFlags()
+{
+	QFlags<Qt::WindowType> flags=windowFlags();
+	if (Config::getValue("/Interface/Frameless",false)){
+		flags = Qt::CustomizeWindowHint;
+	}
+	if((Config::getValue("/Interface/Top",0)+(aplayer->getState()!=APlayer::Stop))>=2){
+		flags|= Qt::WindowStaysOnTopHint;
+	}
+	else{
+		flags&=~Qt::WindowStaysOnTopHint;
+	}
+	if(!testAttribute(Qt::WA_WState_Created)){
+		QWidget::setWindowFlags(flags);
+	}
+	else{
+		emit windowFlagsChanged(flags);
+	}
 }
 
 void Interface::checkForUpdate()

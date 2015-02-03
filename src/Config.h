@@ -79,13 +79,11 @@ QJsonValue toJsonValue(QVariant v)
 }
 }
 
-class ConfigPrivate;
-
-class Config:public QDialog
+class Config:public QObject
 {
 	Q_OBJECT
 public:
-	~Config();
+	explicit Config(QObject *parent=0);
 
 	template<class T>
 	static T getValue(QString key,T def=T())
@@ -137,17 +135,19 @@ public:
 		config=cur;
 	}
 
+	static Config *instance();
+
+private:
+	static Config *ins;
+	static QJsonObject config;
+
+public slots:
 	static void exec(QWidget *parent=0,int index=0);
 	static void load();
 	static void save();
 	static void setManager(QNetworkAccessManager *manager);
-
-private:
-	static QJsonObject config;
-	ConfigPrivate *const d_ptr;
-	Q_DECLARE_PRIVATE(Config)
-	
-	explicit Config(QWidget *parent=0,int index=0);
+	void     setVariant(QString key,QVariant val);
+	QVariant getVariant(QString key,QVariant val=QVariant());
 };
 
 #endif // CONFIG_H

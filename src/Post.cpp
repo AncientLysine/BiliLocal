@@ -43,7 +43,7 @@ Post::Post(QWidget *parent):
 	layout->setMargin(0);
 	layout->setSpacing(0);
 	commentM=new QComboBox(this);
-	commentM->addItems(QStringList()<<tr("Top")<<tr("Slide")<<tr("Bottom"));
+	commentM->addItems({tr("Top"),tr("Slide"),tr("Bottom")});
 	commentM->setCurrentIndex(1);
 	commentM->setFixedWidth(commentM->sizeHint().width());
 	layout->addWidget(commentM);
