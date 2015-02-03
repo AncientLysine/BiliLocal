@@ -68,7 +68,7 @@ Danmaku::~Danmaku()
 
 void Danmaku::draw(QPainter *painter,qint64 move)
 {
-	QVector<Graphic *> dirty;
+	QVarLengthArray<Graphic *> dirty;
 	lock.lockForWrite();
 	dirty.reserve(current.size());
 	for(auto iter=current.begin();iter!=current.end();){
@@ -495,7 +495,8 @@ public:
 						f=std::greater_equal<int>();
 						break;
 					}
-					QVector<int> result(qMax((e-b)/s+1,0),0);
+					QVarLengthArray<int> result(qMax((e-b)/s+1,0));
+					memset(result.data(),0,sizeof(int)*result.size());
 					auto calculate=[&](const QList<Graphic *> &data){
 						QRectF t=r;
 						int i=0,h=b;
@@ -601,14 +602,12 @@ void Danmaku::jumpToTime(qint64 _time)
 	cur=std::lower_bound(danmaku.begin(),danmaku.end(),time,Compare())-danmaku.begin();
 }
 
-namespace
+void Danmaku::saveToFile(QString file)
 {
-void saveToSingleFile(QString _file,const QList<const Comment *> &data)
-{
-	QFile f(_file);
+	QFile f(file);
 	f.open(QIODevice::WriteOnly|QIODevice::Text);
 	bool skip=Config::getValue("/Interface/Save/Skip",false);
-	if(_file.endsWith("xml",Qt::CaseInsensitive)){
+	if (file.endsWith("xml",Qt::CaseInsensitive)){
 		QXmlStreamWriter w(&f);
 		w.setAutoFormatting(true);
 		w.writeStartDocument();
@@ -622,7 +621,7 @@ void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 		w.writeStartElement("source");
 		w.writeCharacters("k-v");
 		w.writeEndElement();
-		for(const Comment *c:data){
+		for(const Comment *c:danmaku){
 			if(c->blocked&&skip){
 				continue;
 			}
@@ -645,7 +644,7 @@ void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 	}
 	else{
 		QJsonArray a;
-		for(const Comment *c:data){
+		for(const Comment *c:danmaku){
 			if(c->blocked&&skip){
 				continue;
 			}
@@ -664,29 +663,4 @@ void saveToSingleFile(QString _file,const QList<const Comment *> &data)
 		f.write(QJsonDocument(a).toJson(QJsonDocument::Compact));
 	}
 	f.close();
-}
-}
-
-void Danmaku::saveToFile(QString file)
-{
-	QList<const Comment *> d;
-	if(Config::getValue("/Interface/Save/Single",true)){
-		for(const Comment *c:danmaku){
-			d.append(c);
-		}
-		saveToSingleFile(file,d);
-	}
-	else{
-		QFileInfo info(file);
-		for(const Record &r:pool){
-			if(Utils::getSuffix(Utils::Danmaku).contains(QFileInfo(r.string).suffix().toLower())){
-				continue;
-			}
-			d.clear();
-			for(const Comment &c:r.danmaku){
-				d.append(&c);
-			}
-			saveToSingleFile(QFileInfo(info.dir(),"["+r.string+"]"+info.fileName()).absoluteFilePath(),d);
-		}
-	}
 }

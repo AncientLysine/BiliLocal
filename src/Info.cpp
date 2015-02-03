@@ -140,7 +140,65 @@ Info::Info(QWidget *parent):
 	connect(danmV,&QTableView::doubleClicked,[this](QModelIndex index){
 		APlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
-	connect(danmV,&QTableView::customContextMenuRequested,[this](QPoint p){
+	
+	QAction *saveA=new QAction(tr("Save Danmaku to File"),this);
+	saveA->setObjectName("Save");
+	saveA->setShortcut(Config::getValue("/Shortcut/Save",QString()));
+	saveA->setEnabled(false);
+	connect(saveA,&QAction::triggered,[](){
+		QFileDialog save(lApp->mainWidget(),tr("Save File"));
+		save.setAcceptMode(QFileDialog::AcceptSave);
+		QFileInfo info(APlayer::instance()->getMedia());
+		if(info.isFile()){
+			save.setDirectory(info.absolutePath());
+			save.selectFile(info.completeBaseName());
+		}
+		else{
+			save.setDirectory(List::instance()->defaultPath(Utils::Danmaku));
+		}
+		save.setDefaultSuffix("json");
+		QStringList type;
+		type<<tr("AcFun Danmaku Format (*.json)")<<tr("Bilibili Danmaku Format (*.xml)");
+		save.setNameFilters(type);
+		save.connect(&save,&QFileDialog::filterSelected,[&](QString filter){
+			save.setDefaultSuffix(filter.indexOf("xml")==-1?"json":"xml");
+		});
+		if(save.exec()==QDialog::Accepted){
+			QStringList file=save.selectedFiles();
+			if(file.size()==1){
+				Danmaku::instance()->saveToFile(file.first());
+			}
+		}
+	});
+	danmV->addAction(saveA);
+
+	QAction *fullA=new QAction(tr("Full Danmaku"),this);
+	fullA->setObjectName("Char");
+	fullA->setShortcut(Config::getValue("/Shortcut/Char",QString()));
+	fullA->setEnabled(false);
+	connect(fullA,&QAction::triggered,[](){
+		Load *load=Load::instance();
+		for(const Record &r:Danmaku::instance()->getPool()){
+			if (load->canFull(&r)){
+				load->fullDanmaku(&r);
+			}
+		}
+	});
+	danmV->addAction(fullA);
+
+	connect(Danmaku::instance(),&Danmaku::modelReset,[=](){
+		const QList<Record> &pool=Danmaku::instance()->getPool();
+		fullA->setEnabled(false);
+		for(const Record &r:pool){
+			if (Load::instance()->canFull(&r)){
+				fullA->setEnabled(true);
+				break;
+			}
+		}
+		saveA->setEnabled(!pool.isEmpty());
+	});
+
+	connect(danmV,&QTableView::customContextMenuRequested,[=](QPoint p){
 		QMenu menu(this);
 		QList<const Comment *>selected;
 		for(const QModelIndex &index:danmV->selectionModel()->selectedRows()){
@@ -180,22 +238,7 @@ Info::Info(QWidget *parent):
 			}
 			menu.addSeparator();
 		}
-		QAction *fullA=menu.addAction(tr("Full Danmaku"));
-		fullA->setEnabled(false);
-		Load *load=Load::instance();
-		for(const Record &r:Danmaku::instance()->getPool()){
-			if (load->canFull(&r)){
-				fullA->setEnabled(true);
-				break;
-			}
-		}
-		connect(fullA,&QAction::triggered,[=](){
-			for(const Record &r:Danmaku::instance()->getPool()){
-				if (load->canFull(&r)){
-					load->fullDanmaku(&r);
-				}
-			}
-		});
+		menu.addAction(fullA);
 		connect(menu.addAction(tr("Edit Blocking List")),&QAction::triggered,[this](){
 			Config::exec(lApp->mainWidget(),3);
 		});
@@ -203,31 +246,7 @@ Info::Info(QWidget *parent):
 			Editor::exec(lApp->mainWidget());
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")),&QAction::triggered,Danmaku::instance(),&Danmaku::clearPool);
-		connect(menu.addAction(tr("Save Danmaku to File")),&QAction::triggered,[this](){
-			QFileDialog save(lApp->mainWidget(),tr("Save File"));
-			save.setAcceptMode(QFileDialog::AcceptSave);
-			QFileInfo info(APlayer::instance()->getMedia());
-			if(info.isFile()){
-				save.setDirectory(info.absolutePath());
-				save.selectFile(info.baseName());
-			}
-			else{
-				save.setDirectory(List::instance()->defaultPath(Utils::Danmaku));
-			}
-			save.setDefaultSuffix("json");
-			QStringList type;
-			type<<tr("AcFun Danmaku Format (*.json)")<<tr("Bilibili Danmaku Format (*.xml)");
-			save.setNameFilters(type);
-			connect(&save,&QFileDialog::filterSelected,[&](QString filter){
-				save.setDefaultSuffix(filter.indexOf("xml")==-1?"json":"xml");
-			});
-			if(save.exec()==QDialog::Accepted){
-				QStringList file=save.selectedFiles();
-				if(file.size()==1){
-					Danmaku::instance()->saveToFile(file.first());
-				}
-			}
-		});
+		menu.addAction(saveA);
 		isStay=1;
 		menu.exec(danmV->viewport()->mapToGlobal(p));
 		isStay=0;
