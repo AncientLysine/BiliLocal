@@ -52,7 +52,8 @@ Danmaku::Danmaku(QObject *parent):
 	ins=this;
 	setObjectName("Danmaku");
 	cur=time=0;
-	QThreadPool::globalInstance()->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
+	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
+	qThreadPool->setExpiryTimeout(-1);
 	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
 	connect(this,SIGNAL(layoutChanged()),Render::instance(),SLOT(draw()));

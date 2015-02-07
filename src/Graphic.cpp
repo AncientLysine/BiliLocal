@@ -34,8 +34,9 @@ public:
 	virtual void draw(QPainter *painter);
 
 protected:
-	Plain(const Comment &comment);
-	QImage cache;
+	explicit Plain(const Comment &comment);
+	~Plain(){delete cache;}
+	Render::ICache *cache;
 };
 
 class Mode1:public Plain
@@ -292,13 +293,13 @@ Plain::Plain(const Comment &comment)
 	QFont font=getFont(comment.font*getScale(comment.mode,comment.date,size));
 	QSize need=getSize(comment.string,font);
 	rect.setSize(need);
-	cache=getCache(comment.string,comment.color,font,need,comment.isLocal());
+	cache=Render::instance()->getCache(getCache(comment.string,comment.color,font,need,comment.isLocal()));
 }
 
 void Plain::draw(QPainter *painter)
 {
 	if(enabled){
-		painter->drawImage(rect.topLeft(),cache);
+		cache->draw(painter,rect);
 	}
 }
 

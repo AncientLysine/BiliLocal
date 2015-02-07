@@ -37,6 +37,13 @@ class Render:public QObject
 {
 	Q_OBJECT
 public:
+	class ICache
+	{
+	public:
+		virtual void draw(QPainter *,QRectF)=0;
+		virtual ~ICache()=default;
+	};
+
 	virtual ~Render();
 	static Render *instance();
 
@@ -54,6 +61,7 @@ public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma,QSize size,QList<QSize> *bufferSize=0);
+	virtual ICache *getCache(const QImage &)=0;
 
 	void setBackground(QString path);
 	void setMusic(bool music);

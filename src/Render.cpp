@@ -190,7 +190,7 @@ public:
 	Buffer *srcFrame;
 	Buffer *dstFrame;
 	QImage frame;
-	static QMutex dataLock;
+	QMutex dataLock;
 
 	RasterRenderPrivate()
 	{
@@ -357,8 +357,6 @@ public:
 	}
 };
 
-QMutex RasterRenderPrivate::dataLock;
-
 namespace
 {
 class RWidget:public QWidget
@@ -387,6 +385,19 @@ private:
 			render->drawTime(&painter,rect);
 		}
 		QWidget::paintEvent(e);
+	}
+};
+
+class ARCache:public Render::ICache
+{
+public:
+	QImage i;
+
+	ARCache(const QImage &i):i(i){}
+
+	void draw(QPainter *p,QRectF r)
+	{
+		p->drawImage(r,i);
 	}
 };
 }
@@ -420,6 +431,11 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender)
 
 public slots:
+	ICache *getCache(const QImage &i)
+	{
+		return new ARCache(i);
+	}
+
 	quintptr getHandle()
 	{
 		return (quintptr)widget;
@@ -530,24 +546,49 @@ const char *fShaderNV21=
 	"               1.596, -0.813, 0) * yuv;\n"
 	"    gl_FragColor = vec4(rgb, 1);\n"
 	"}";
+
+const char *fShaderRV32=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerP;\n"
+	"void main(void)\n"
+	"{\n"
+	"    mediump vec4 p;\n"
+	"    p = texture2D(SamplerP, TexCoordOut);\n"
+	"    gl_FragColor = vec4(p.b, p.g, p.r, 1);\n"
+	"}";
+
+const char *fShaderRGBA=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerP;\n"
+	"void main(void)\n"
+	"{\n"
+	"    gl_FragColor = texture2D(SamplerP, TexCoordOut);\n"
+	"}";
+
+const char *fShaderPRGB=
+	"varying highp vec2 TexCoordOut;\n"
+	"uniform sampler2D SamplerP;\n"
+	"void main(void)\n"
+	"{\n"
+	"    mediump vec4 p;\n"
+	"    p = texture2D(SamplerP, TexCoordOut);\n"
+	"    p.r /= p.a;\n"
+	"    p.g /= p.a;\n"
+	"    p.b /= p.a;\n"
+	"    gl_FragColor = p;\n"
+	"}";
 }
 
-class OpenGLRenderPrivate:public RenderPrivate,protected QOpenGLFunctions
+class OpenGLRenderPrivateBase:public RenderPrivate,public QOpenGLFunctions
 {
 public:
-	QSize inner;
-	int format;
-	QOpenGLShaderProgram program[4];
-	GLuint frame[3];
-	static QMutex dataLock;
-	QList<quint8 *> buffer;
+	QOpenGLShaderProgram program[8];
 
 	void initialize()
 	{
 		initializeOpenGLFunctions();
-		glGenTextures(3,frame);
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-		for(int i=0;i<4;++i){
+		for(int i=0;i<8;++i){
 			const char *fShaderCode=nullptr;
 			switch(i){
 			case 0:
@@ -559,6 +600,16 @@ public:
 				break;
 			case 3:
 				fShaderCode=fShaderNV21;
+				break;
+			case 4:
+			case 5:
+				fShaderCode=fShaderRV32;
+				break;
+			case 6:
+				fShaderCode=fShaderRGBA;
+				break;
+			case 7:
+				fShaderCode=fShaderPRGB;
 				break;
 			}
 			QOpenGLShaderProgram &p=program[i];
@@ -583,11 +634,17 @@ public:
 				p.setUniformValue("SamplerY",0);
 				p.setUniformValue("SamplerA",1);
 				break;
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+				p.setUniformValue("SamplerP",0);
+				break;
 			}
 		}
 	}
-
-	void uploadTexture(int i,int c,int w,int h)
+	
+	void uploadTexture(GLuint t,int c,int w,int h,quint8 *d)
 	{
 		int f;
 		switch(c){
@@ -606,12 +663,75 @@ public:
 		default:
 			return;
 		}
-		glBindTexture(GL_TEXTURE_2D,frame[i]);
+		glBindTexture(GL_TEXTURE_2D,t);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D,0,f,w,h,0,f,GL_UNSIGNED_BYTE,buffer[i]);
+		glTexImage2D(GL_TEXTURE_2D,0,f,w,h,0,f,GL_UNSIGNED_BYTE,d);
+	}
+
+	void drawTexture(GLuint *texture,int format,QRectF dest,QRectF rect)
+	{
+		QOpenGLShaderProgram &p=program[format];
+		p.bind();
+		GLfloat h=2/rect.width(),v=2/rect.height();
+		GLfloat l=dest.left()*h-1,r=dest.right()*h-1,t=1-dest.top()*v,b=1-dest.bottom()*v;
+		GLfloat vtx[8]={
+			l,t,
+			r,t,
+			l,b,
+			r,b
+		};
+		GLfloat tex[8]={
+			0,0,
+			1,0,
+			0,1,
+			1,1
+		};
+		p.setAttributeArray(0,vtx,2);
+		p.setAttributeArray(1,tex,2);
+		p.enableAttributeArray(0);
+		p.enableAttributeArray(1);
+		switch(format){
+		case 0:
+		case 1:
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D,texture[2]);
+		case 2:
+		case 3:
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D,texture[1]);
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D,texture[0]);
+			break;
+		}
+		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+	}
+};
+
+class OpenGLRenderPrivate:public OpenGLRenderPrivateBase
+{
+public:
+	QSize inner;
+	int format;
+	GLuint frame[3];
+	QMutex dataLock;
+	QList<quint8 *> buffer;
+	
+	void initialize()
+	{
+		OpenGLRenderPrivateBase::initialize();
+		glGenTextures(3,frame);
+	}
+
+	void uploadTexture(int i,int c,int w,int h)
+	{
+		OpenGLRenderPrivateBase::uploadTexture(frame[i],c,w,h,buffer[i]);
 	}
 
 	void drawData(QPainter *painter,QRect rect)
@@ -619,7 +739,6 @@ public:
 		if (inner.isEmpty()){
 			return;
 		}
-		QRect dest=fitRect(inner,rect);
 		painter->beginNativePainting();
 		if (dirty){
 			int w=inner.width(),h=inner.height();
@@ -636,43 +755,20 @@ public:
 				uploadTexture(0,1,w,h);
 				uploadTexture(1,2,w/2,h/2);
 				break;
+			case 4:
+				uploadTexture(0,3,w,h);
+				break;
+			case 5:
+			case 6:
+			case 7:
+				uploadTexture(0,4,w,h);
+				break;
 			}
 			dirty=false;
 			dataLock.unlock();
 		}
-		QOpenGLShaderProgram &p=program[format];
-		p.bind();
-		GLfloat h=dest.width()/(GLfloat)rect.width(),v=dest.height()/(GLfloat)rect.height();
-		GLfloat vtx[8]={
-			-h,-v,
-			+h,-v,
-			-h,+v,
-			+h,+v
-		};
-		GLfloat tex[8]={
-			0,1,
-			1,1,
-			0,0,
-			1,0
-		};
-		p.setAttributeArray(0,vtx,2);
-		p.setAttributeArray(1,tex,2);
-		p.enableAttributeArray(0);
-		p.enableAttributeArray(1);
-		switch(format){
-		case 0:
-		case 1:
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D,frame[2]);
-		case 2:
-		case 3:
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D,frame[0]);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D,frame[1]);
-			break;
-		}
-		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+		QRect dest=fitRect(inner,rect);
+		drawTexture(frame,format,dest,rect);
 		painter->endNativePainting();
 	}
 
@@ -699,23 +795,54 @@ public:
 		else if(chroma=="NV21"){
 			format=3;
 		}
+		else if(chroma=="RV24"){
+			format=4;
+		}
+		else if(chroma=="RV32"){
+			format=5;
+		}
+		else if(chroma=="RGBA"){
+			format=6;
+		}
+		else if(chroma=="PRGB"){
+			format=7;
+		}
 		else{
 			format=0;
 			chroma="I420";
 		}
 		inner=size;
 		int s=size.width()*size.height();
-		quint8 *alloc=new quint8[s*3/2];
+		quint8 *alloc=nullptr;
 		QList<QSize> plane;
-		plane.append(size);
-		if (format&2){
-			size.rheight()/=2;
+		switch(format){
+		case 0:
+		case 1:
+			alloc=new quint8[s*3/2];
 			plane.append(size);
-		}
-		else{
 			size/=2;
 			plane.append(size);
 			plane.append(size);
+			break;
+		case 2:
+		case 3:
+			alloc=new quint8[s*3/2];
+			plane.append(size);
+			size.rheight()/=2;
+			plane.append(size);
+			break;
+		case 4:
+			alloc=new quint8[s*3];
+			size.rwidth()*=3;
+			plane.append(size);
+			break;
+		case 5:
+		case 6:
+		case 7:
+			alloc=new quint8[s*4];
+			size.rwidth()*=4;
+			plane.append(size);
+			break;
 		}
 		if(!buffer.isEmpty()){
 			delete []buffer[0];
@@ -736,8 +863,6 @@ public:
 		}
 	}
 };
-
-QMutex OpenGLRenderPrivate::dataLock;
 
 namespace
 {
@@ -774,6 +899,109 @@ private:
 		}
 	}
 };
+
+/*TODO: ansync texture upload
+ *
+class ATCache:public Render::ICache
+{
+public:
+	GLuint texture;
+	OpenGLRenderPrivateBase *render;
+	static QMutex lock;
+
+	ATCache(const QImage &image,OpenGLRenderPrivateBase *render,QOpenGLContext *context):
+		render(render)
+	{
+		static QThreadStorage<QOpenGLContext *> storage;
+		QOpenGLContext *&current=storage.localData();
+		if(!current){
+			current=new QOpenGLContext;
+			current->setShareContext(context);
+			QOffscreenSurface *surface;
+			QMutex gain;
+			QMutex free;
+			QWaitCondition waitGain;
+			QWaitCondition waitFree;
+			gain.lock();
+			QTimer::singleShot(0,lApp,[&](){
+				surface=new QOffscreenSurface;
+				surface->create();
+				QObject::connect(current,SIGNAL(aboutToBeDestroyed()),surface,SLOT(deleteLater()));
+				free.lock();
+				gain.lock();
+				waitGain.wakeAll();
+				gain.unlock();
+				waitFree.wait(&free);
+				free.unlock();
+			});
+			waitGain.wait(&gain);
+			gain.unlock();
+			current->create();
+			free.lock();
+			waitFree.wakeAll();
+			free.unlock();
+			current->makeCurrent(surface);
+		}
+		QMutexLocker locker(&lock);
+		render->glGenTextures(1,&texture);
+		locker.unlock();
+		render->uploadTexture(texture,4,image.width(),image.height(),(quint8 *)image.bits());
+	}
+
+	~ATCache()
+	{
+		QMutexLocker locker(&lock);
+		render->glDeleteTextures(1,&texture);
+	}
+
+	void draw(QPainter *painter,QRectF dest)
+	{
+		painter->beginNativePainting();
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
+		render->glEnable(GL_BLEND);
+		render->glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		QMutexLocker locker(&lock);
+		render->drawTexture(&texture,7,dest,rect);
+		locker.unlock();
+		painter->endNativePainting();
+	}
+};
+QMutex ATCache::lock;
+*/
+
+class STCache:public Render::ICache
+{
+public:
+	GLuint texture;
+	QImage source;
+	OpenGLRenderPrivateBase *render;
+
+	STCache(const QImage &image,OpenGLRenderPrivateBase *render):
+		texture(0),source(image),render(render)
+	{
+	}
+
+	~STCache()
+	{
+		if (texture)
+			render->glDeleteTextures(1,&texture);
+	}
+
+	void draw(QPainter *painter,QRectF dest)
+	{
+		if(!texture){
+			render->glGenTextures(1,&texture);
+			render->uploadTexture(texture,4,source.width(),source.height(),(quint8 *)source.bits());
+			source=QImage();
+		}
+		painter->beginNativePainting();
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
+		render->glEnable(GL_BLEND);
+		render->glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		render->drawTexture(&texture,7,dest,rect);
+		painter->endNativePainting();
+	}
+};
 }
 
 class OpenGLRender:public Render
@@ -793,6 +1021,12 @@ private:
 	Q_DECLARE_PRIVATE(OpenGLRender)
 
 public slots:
+	ICache *getCache(const QImage &i)
+	{
+		Q_D(OpenGLRender);
+		return new STCache(i,d);
+	}
+
 	quintptr getHandle()
 	{
 		return (quintptr)widget;
@@ -830,7 +1064,7 @@ public slots:
 #endif
 
 #ifdef RENDER_DETACH
-class DetachRenderPrivate:public RenderPrivate
+class DetachRenderPrivate:public OpenGLRenderPrivateBase
 {
 public:
 	void drawData(QPainter *,QRect)
@@ -884,6 +1118,11 @@ public:
 
 private:
 	DetachRenderPrivate  *render;
+	
+	void initializeGL()
+	{
+		render->initialize();
+	}
 
 	void paintGL()
 	{
@@ -909,6 +1148,7 @@ public:
 		Q_D(DetachRender);
 		d->tv.disconnect();
 		window=new OWindow(d);
+		window->create();
 		connect(APlayer::instance(),&APlayer::begin,window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,window,&QWindow::hide);
 	}
@@ -925,6 +1165,11 @@ private:
 	Q_DECLARE_PRIVATE(DetachRender)
 
 public slots:
+	ICache *getCache(const QImage &i)
+	{
+		return new ARCache(i);
+	}
+
 	quintptr getHandle()
 	{
 		return (quintptr)window;

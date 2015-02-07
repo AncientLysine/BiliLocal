@@ -530,14 +530,22 @@ namespace
 QString getFormat(QVideoFrame::PixelFormat format)
 {
 	switch(format){
+	case QVideoFrame::Format_YUV420P:
+		return "I420";
+	case QVideoFrame::Format_YV12:
+		return "YV12";
 	case QVideoFrame::Format_NV12:
 		return "NV12";
 	case QVideoFrame::Format_NV21:
 		return "NV21";
-	case QVideoFrame::Format_YV12:
-		return "YV12";
-	case QVideoFrame::Format_YUV420P:
-		return "I420";
+	case QVideoFrame::Format_RGB24:
+		return "RV24";
+	case QVideoFrame::Format_RGB32:
+		return "RV32";
+	case QVideoFrame::Format_ARGB32:
+		return "RGBA";
+	case QVideoFrame::Format_ARGB32_Premultiplied:
+		return "PRGB";
 	default:
 		return QString();
 	}
@@ -590,7 +598,11 @@ public:
 			f<<QVideoFrame::Format_NV12<<
 			   QVideoFrame::Format_NV21<<
 			   QVideoFrame::Format_YV12<<
-			   QVideoFrame::Format_YUV420P;
+			   QVideoFrame::Format_YUV420P<<
+			   QVideoFrame::Format_RGB24<<
+			   QVideoFrame::Format_RGB32<<
+			   QVideoFrame::Format_ARGB32<<
+			   QVideoFrame::Format_ARGB32_Premultiplied;
 		}
 		return f;
 	}
@@ -603,6 +615,10 @@ public:
 			case QVideoFrame::Format_NV21:
 			case QVideoFrame::Format_YV12:
 			case QVideoFrame::Format_YUV420P:
+			case QVideoFrame::Format_RGB24:
+			case QVideoFrame::Format_RGB32:
+			case QVideoFrame::Format_ARGB32:
+			case QVideoFrame::Format_ARGB32_Premultiplied:
 				return 1;
 			default:
 				return 0;
