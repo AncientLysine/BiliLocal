@@ -68,16 +68,7 @@ public:
 		else{
 			drawData(painter,rect);
 		}
-		APlayer *aplayer=APlayer::instance();
-		Danmaku *danmaku=Danmaku::instance();
-		qint64 time=0;
-		if(!last.isNull()){
-			time=last.elapsed();
-		}
-		if(aplayer->getState()==APlayer::Play){
-			last.start();
-		}
-		danmaku->draw(painter,time);
+		drawDanm(painter,rect);
 	}
 
 	void drawStop(QPainter *painter,QRect rect)
@@ -95,6 +86,14 @@ public:
 		QImage cf=tv.currentImage();
 		painter->drawImage((w-cf.width())/2,(h-cf.height())/2-40,cf);
 		painter->drawImage((w-me.width())/2,(h-me.height())/2+40,me);
+	}
+
+	void drawDanm(QPainter *painter,QRect)
+	{
+		qint64 time=last.isNull()?0:last.elapsed();
+		if (APlayer::instance()->getState()==APlayer::Play)
+			last.start();
+		Danmaku::instance()->draw(painter,time);
 	}
 
 	void drawTime(QPainter *painter,QRect rect)
@@ -491,8 +490,8 @@ const char *vShaderCode=
 	"varying vec2 TexCoordOut;\n"
 	"void main(void)\n"
 	"{\n"
-	"  gl_Position = VtxCoord;\n"
-	"  TexCoordOut = TexCoord;\n"
+	"    gl_Position = VtxCoord;\n"
+	"    TexCoordOut = TexCoord;\n"
 	"}\n";
 
 const char *fShaderI420=
@@ -547,25 +546,7 @@ const char *fShaderNV21=
 	"    gl_FragColor = vec4(rgb, 1);\n"
 	"}";
 
-const char *fShaderRV32=
-	"varying highp vec2 TexCoordOut;\n"
-	"uniform sampler2D SamplerP;\n"
-	"void main(void)\n"
-	"{\n"
-	"    mediump vec4 p;\n"
-	"    p = texture2D(SamplerP, TexCoordOut);\n"
-	"    gl_FragColor = vec4(p.b, p.g, p.r, 1);\n"
-	"}";
-
-const char *fShaderRGBA=
-	"varying highp vec2 TexCoordOut;\n"
-	"uniform sampler2D SamplerP;\n"
-	"void main(void)\n"
-	"{\n"
-	"    gl_FragColor = texture2D(SamplerP, TexCoordOut);\n"
-	"}";
-
-const char *fShaderPRGB=
+const char *fShaderBGRP=
 	"varying highp vec2 TexCoordOut;\n"
 	"uniform sampler2D SamplerP;\n"
 	"void main(void)\n"
@@ -575,20 +556,20 @@ const char *fShaderPRGB=
 	"    p.r /= p.a;\n"
 	"    p.g /= p.a;\n"
 	"    p.b /= p.a;\n"
-	"    gl_FragColor = p;\n"
+	"    gl_FragColor = vec4(p.b, p.g, p.r, p.a);\n"
 	"}";
 }
 
 class OpenGLRenderPrivateBase:public RenderPrivate,public QOpenGLFunctions
 {
 public:
-	QOpenGLShaderProgram program[8];
+	QOpenGLShaderProgram program[5];
 
 	void initialize()
 	{
 		initializeOpenGLFunctions();
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-		for(int i=0;i<8;++i){
+		for(int i=0;i<5;++i){
 			const char *fShaderCode=nullptr;
 			switch(i){
 			case 0:
@@ -602,14 +583,7 @@ public:
 				fShaderCode=fShaderNV21;
 				break;
 			case 4:
-			case 5:
-				fShaderCode=fShaderRV32;
-				break;
-			case 6:
-				fShaderCode=fShaderRGBA;
-				break;
-			case 7:
-				fShaderCode=fShaderPRGB;
+				fShaderCode=fShaderBGRP;
 				break;
 			}
 			QOpenGLShaderProgram &p=program[i];
@@ -635,9 +609,6 @@ public:
 				p.setUniformValue("SamplerA",1);
 				break;
 			case 4:
-			case 5:
-			case 6:
-			case 7:
 				p.setUniformValue("SamplerP",0);
 				break;
 			}
@@ -703,9 +674,6 @@ public:
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D,texture[1]);
 		case 4:
-		case 5:
-		case 6:
-		case 7:
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D,texture[0]);
 			break;
@@ -756,11 +724,6 @@ public:
 				uploadTexture(1,2,w/2,h/2);
 				break;
 			case 4:
-				uploadTexture(0,3,w,h);
-				break;
-			case 5:
-			case 6:
-			case 7:
 				uploadTexture(0,4,w,h);
 				break;
 			}
@@ -795,18 +758,6 @@ public:
 		else if(chroma=="NV21"){
 			format=3;
 		}
-		else if(chroma=="RV24"){
-			format=4;
-		}
-		else if(chroma=="RV32"){
-			format=5;
-		}
-		else if(chroma=="RGBA"){
-			format=6;
-		}
-		else if(chroma=="PRGB"){
-			format=7;
-		}
 		else{
 			format=0;
 			chroma="I420";
@@ -829,18 +780,6 @@ public:
 			alloc=new quint8[s*3/2];
 			plane.append(size);
 			size.rheight()/=2;
-			plane.append(size);
-			break;
-		case 4:
-			alloc=new quint8[s*3];
-			size.rwidth()*=3;
-			plane.append(size);
-			break;
-		case 5:
-		case 6:
-		case 7:
-			alloc=new quint8[s*4];
-			size.rwidth()*=4;
 			plane.append(size);
 			break;
 		}
@@ -874,7 +813,11 @@ public:
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		lower();
-		connect(this,&OWidget::frameSwapped,[this](){QTimer::singleShot(2,this,SLOT(update()));});
+		connect(this,&OWidget::frameSwapped,[this](){
+			if (isVisible()){
+				QTimer::singleShot(2,this,SLOT(update()));
+			}
+		});
 	}
 	
 private:
@@ -899,75 +842,6 @@ private:
 		}
 	}
 };
-
-/*TODO: ansync texture upload
- *
-class ATCache:public Render::ICache
-{
-public:
-	GLuint texture;
-	OpenGLRenderPrivateBase *render;
-	static QMutex lock;
-
-	ATCache(const QImage &image,OpenGLRenderPrivateBase *render,QOpenGLContext *context):
-		render(render)
-	{
-		static QThreadStorage<QOpenGLContext *> storage;
-		QOpenGLContext *&current=storage.localData();
-		if(!current){
-			current=new QOpenGLContext;
-			current->setShareContext(context);
-			QOffscreenSurface *surface;
-			QMutex gain;
-			QMutex free;
-			QWaitCondition waitGain;
-			QWaitCondition waitFree;
-			gain.lock();
-			QTimer::singleShot(0,lApp,[&](){
-				surface=new QOffscreenSurface;
-				surface->create();
-				QObject::connect(current,SIGNAL(aboutToBeDestroyed()),surface,SLOT(deleteLater()));
-				free.lock();
-				gain.lock();
-				waitGain.wakeAll();
-				gain.unlock();
-				waitFree.wait(&free);
-				free.unlock();
-			});
-			waitGain.wait(&gain);
-			gain.unlock();
-			current->create();
-			free.lock();
-			waitFree.wakeAll();
-			free.unlock();
-			current->makeCurrent(surface);
-		}
-		QMutexLocker locker(&lock);
-		render->glGenTextures(1,&texture);
-		locker.unlock();
-		render->uploadTexture(texture,4,image.width(),image.height(),(quint8 *)image.bits());
-	}
-
-	~ATCache()
-	{
-		QMutexLocker locker(&lock);
-		render->glDeleteTextures(1,&texture);
-	}
-
-	void draw(QPainter *painter,QRectF dest)
-	{
-		painter->beginNativePainting();
-		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
-		render->glEnable(GL_BLEND);
-		render->glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		QMutexLocker locker(&lock);
-		render->drawTexture(&texture,7,dest,rect);
-		locker.unlock();
-		painter->endNativePainting();
-	}
-};
-QMutex ATCache::lock;
-*/
 
 class STCache:public Render::ICache
 {
@@ -997,8 +871,8 @@ public:
 		painter->beginNativePainting();
 		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
 		render->glEnable(GL_BLEND);
-		render->glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		render->drawTexture(&texture,7,dest,rect);
+		render->glBlendFuncSeparate(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+		render->drawTexture(&texture,4,dest,rect);
 		painter->endNativePainting();
 	}
 };
@@ -1070,20 +944,6 @@ public:
 	void drawData(QPainter *,QRect)
 	{
 	}
-	
-	void drawDanm(QPainter *painter,QRect)
-	{
-		APlayer *aplayer=APlayer::instance();
-		Danmaku *danmaku=Danmaku::instance();
-		qint64 time=0;
-		if(!last.isNull()){
-			time=last.elapsed();
-		}
-		if(aplayer->getState()==APlayer::Play){
-			last.start();
-		}
-		danmaku->draw(painter,time);
-	}
 
 	QList<quint8 *> getBuffer()
 	{
@@ -1113,7 +973,11 @@ public:
 		setFormat(f);
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
-		connect(this,&OWindow::frameSwapped,[this](){QTimer::singleShot(2,this,SLOT(update()));});
+		connect(this,&OWindow::frameSwapped,[this](){
+			if (isVisible()){
+				QTimer::singleShot(2,this,SLOT(update()));
+			}
+		});
 	}
 
 private:
@@ -1126,12 +990,11 @@ private:
 
 	void paintGL()
 	{
+		render->glClearColor(0,0,0,0);
+		render->glClear(GL_COLOR_BUFFER_BIT);
 		QPainter painter(this);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
 		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
-		painter.setCompositionMode(QPainter::CompositionMode_Source    );
-		painter.fillRect(rect,Qt::transparent);
-		painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 		render->drawDanm(&painter,rect);
 	}
 };
@@ -1167,7 +1030,8 @@ private:
 public slots:
 	ICache *getCache(const QImage &i)
 	{
-		return new ARCache(i);
+		Q_D(DetachRender);
+		return new STCache(i,d);
 	}
 
 	quintptr getHandle()

@@ -198,53 +198,53 @@
         <translation>背景图片</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="982"/>
+        <location filename="../src/Config.cpp" line="985"/>
         <source>Username</source>
         <translation>帐号</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="984"/>
-        <location filename="../src/Config.cpp" line="1185"/>
+        <location filename="../src/Config.cpp" line="987"/>
+        <location filename="../src/Config.cpp" line="1188"/>
         <source>Password</source>
         <translation>密码</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="987"/>
+        <location filename="../src/Config.cpp" line="990"/>
         <source>Identifier</source>
         <translation>验证码</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1011"/>
+        <location filename="../src/Config.cpp" line="1014"/>
         <source>waiting</source>
         <translation>等待</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1017"/>
+        <location filename="../src/Config.cpp" line="1020"/>
         <source>error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1021"/>
+        <location filename="../src/Config.cpp" line="1024"/>
         <source>logged</source>
         <translation>已登录</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1024"/>
+        <location filename="../src/Config.cpp" line="1027"/>
         <source>logout</source>
         <translation>注销</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1028"/>
-        <location filename="../src/Config.cpp" line="1076"/>
+        <location filename="../src/Config.cpp" line="1031"/>
         <location filename="../src/Config.cpp" line="1079"/>
-        <location filename="../src/Config.cpp" line="1106"/>
+        <location filename="../src/Config.cpp" line="1082"/>
+        <location filename="../src/Config.cpp" line="1109"/>
         <source>login</source>
         <translation>登录</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="913"/>
-        <location filename="../src/Config.cpp" line="1058"/>
-        <location filename="../src/Config.cpp" line="1346"/>
+        <location filename="../src/Config.cpp" line="916"/>
+        <location filename="../src/Config.cpp" line="1061"/>
+        <location filename="../src/Config.cpp" line="1349"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
@@ -289,11 +289,11 @@ high compatibility but a little bit slower</source>
         <source>opengl es2 render
 texture unit for size transform
 glsl code for chroma transform
-only accept YUV420 but significantly faster</source>
+accept few pixfmt but significantly faster</source>
         <translation>OpenGL ES2渲染
 使用显卡的纹理单元进行尺寸缩放
 使用自定义GLSL代码进行色彩变换
-只接受YUV420但是速度很快</translation>
+只接受部分像素格式但是速度很快</translation>
     </message>
     <message>
         <location filename="../src/Config.cpp" line="666"/>
@@ -350,212 +350,212 @@ for danmaku only playback</source>
         <translation>底端</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="738"/>
         <source>Slide</source>
         <translation>滑动</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="739"/>
         <source>Guest</source>
         <translation>游客</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="740"/>
         <source>Whole</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="739"/>
         <source>Advanced</source>
         <translation>高级</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="738"/>
         <source>Reverse</source>
         <translation>逆向</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="737"/>
+        <location filename="../src/Config.cpp" line="740"/>
         <source>Color</source>
         <translation>彩色</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="753"/>
+        <location filename="../src/Config.cpp" line="756"/>
         <source>Text</source>
         <translation>文字</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="754"/>
-        <location filename="../src/Config.cpp" line="1176"/>
+        <location filename="../src/Config.cpp" line="757"/>
+        <location filename="../src/Config.cpp" line="1179"/>
         <source>User</source>
         <translation>用户</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="772"/>
-        <location filename="../src/Config.cpp" line="920"/>
+        <location filename="../src/Config.cpp" line="775"/>
+        <location filename="../src/Config.cpp" line="923"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="773"/>
-        <location filename="../src/Config.cpp" line="921"/>
+        <location filename="../src/Config.cpp" line="776"/>
+        <location filename="../src/Config.cpp" line="924"/>
         <source>Del</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="774"/>
+        <location filename="../src/Config.cpp" line="777"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="775"/>
+        <location filename="../src/Config.cpp" line="778"/>
         <source>Export</source>
         <translation>导出</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="815"/>
+        <location filename="../src/Config.cpp" line="818"/>
         <source>Import File</source>
         <translation>导入文件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="815"/>
-        <location filename="../src/Config.cpp" line="854"/>
+        <location filename="../src/Config.cpp" line="818"/>
+        <location filename="../src/Config.cpp" line="857"/>
         <source>Shield files (*.xml *.sol)</source>
         <translation>屏蔽文件 (*.xml *.sol)</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="854"/>
+        <location filename="../src/Config.cpp" line="857"/>
         <source>Export File</source>
         <translation>导出文件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="913"/>
+        <location filename="../src/Config.cpp" line="916"/>
         <source>Please select an existing sol file.</source>
         <translation>请选择已经存在的sol文件进行扩展。</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="952"/>
+        <location filename="../src/Config.cpp" line="955"/>
         <source>limit of the same</source>
         <translation>允许重复数量</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="953"/>
-        <location filename="../src/Config.cpp" line="965"/>
+        <location filename="../src/Config.cpp" line="956"/>
+        <location filename="../src/Config.cpp" line="968"/>
         <source>0 means disabled</source>
         <translation>0表示禁用</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="964"/>
+        <location filename="../src/Config.cpp" line="967"/>
         <source>limit of density</source>
         <translation>同屏密度限制</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="969"/>
+        <location filename="../src/Config.cpp" line="972"/>
         <source>Shield</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1133"/>
+        <location filename="../src/Config.cpp" line="1136"/>
         <source>No Proxy</source>
         <translation>不使用代理</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1133"/>
+        <location filename="../src/Config.cpp" line="1136"/>
         <source>Http Proxy</source>
         <translation>Http代理</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1133"/>
+        <location filename="../src/Config.cpp" line="1136"/>
         <source>Socks5 Proxy</source>
         <translation>Socks5代理</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1155"/>
+        <location filename="../src/Config.cpp" line="1158"/>
         <source>HostName</source>
         <translation>服务器</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1163"/>
+        <location filename="../src/Config.cpp" line="1166"/>
         <source>Port</source>
         <translation>端口</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1207"/>
+        <location filename="../src/Config.cpp" line="1210"/>
         <source>proxy</source>
         <translation>代理</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1113"/>
+        <location filename="../src/Config.cpp" line="1116"/>
         <source>current size is %.2fMB</source>
         <translation>当前大小为%.2fMB</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1120"/>
+        <location filename="../src/Config.cpp" line="1123"/>
         <source>clear</source>
         <translation>清空</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1127"/>
+        <location filename="../src/Config.cpp" line="1130"/>
         <source>cache</source>
         <translation>缓存</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1212"/>
+        <location filename="../src/Config.cpp" line="1215"/>
         <source>Network</source>
         <translation>网络</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1221"/>
+        <location filename="../src/Config.cpp" line="1224"/>
         <source>Enable</source>
         <translation>启用</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1221"/>
+        <location filename="../src/Config.cpp" line="1224"/>
         <source>Name</source>
         <translation>名称</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1221"/>
+        <location filename="../src/Config.cpp" line="1224"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1221"/>
+        <location filename="../src/Config.cpp" line="1224"/>
         <source>Description</source>
         <translation>描述</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1221"/>
+        <location filename="../src/Config.cpp" line="1224"/>
         <source>Author</source>
         <translation>作者</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1240"/>
+        <location filename="../src/Config.cpp" line="1243"/>
         <source>options</source>
         <translation>选项</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1263"/>
+        <location filename="../src/Config.cpp" line="1266"/>
         <source>Plugin</source>
         <translation>插件</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1306"/>
+        <location filename="../src/Config.cpp" line="1309"/>
         <source>Shortcut</source>
         <translation>快捷</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1318"/>
+        <location filename="../src/Config.cpp" line="1321"/>
         <source>Thanks</source>
         <translation>感谢</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1330"/>
+        <location filename="../src/Config.cpp" line="1333"/>
         <source>License</source>
         <translation>许可</translation>
     </message>
     <message>
-        <location filename="../src/Config.cpp" line="1347"/>
+        <location filename="../src/Config.cpp" line="1350"/>
         <source>Restart to apply changes?</source>
         <translation>重启应用更改？</translation>
     </message>
@@ -563,17 +563,17 @@ for danmaku only playback</source>
 <context>
     <name>Danmaku</name>
     <message>
-        <location filename="../src/Danmaku.cpp" line="99"/>
+        <location filename="../src/Danmaku.cpp" line="100"/>
         <source>Blocked</source>
         <translation>屏蔽</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="187"/>
+        <location filename="../src/Danmaku.cpp" line="188"/>
         <source>Time</source>
         <translation>时间</translation>
     </message>
     <message>
-        <location filename="../src/Danmaku.cpp" line="190"/>
+        <location filename="../src/Danmaku.cpp" line="191"/>
         <source>Comment</source>
         <translation>评论</translation>
     </message>

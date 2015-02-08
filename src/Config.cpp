@@ -95,7 +95,7 @@ public:
 	static Cookie *data;
 };
 
-Cookie *Cookie::data=NULL;
+Cookie *Cookie::data=nullptr;
 
 class DCache:public QNetworkDiskCache
 {
@@ -115,7 +115,7 @@ public:
 	static DCache *data;
 };
 
-DCache *DCache::data=NULL;
+DCache *DCache::data=nullptr;
 
 class APorxy
 {
@@ -262,7 +262,7 @@ private:
 	void fillPicture(QLabel *label,QString url,QString error,QSize limit)
 	{
 		QNetworkReply *reply=manager->get(QNetworkRequest(url));
-		QObject::connect(reply,&QNetworkReply::finished,label,[=](){
+		connect(reply,&QNetworkReply::finished,label,[=](){
 			if (reply->error()==QNetworkReply::NoError){
 				QPixmap pixmap;
 				pixmap.loadFromData(reply->readAll());
@@ -657,7 +657,7 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 				desc=Config::tr("opengl es2 render\n"
 						"texture unit for size transform\n"
 						"glsl code for chroma transform\n"
-						"only accept YUV420 but significantly faster");
+						"accept few pixfmt but significantly faster");
 				updateLogo(r,relogo,QStringList()
 						   <<""
 						   <<getLogo("OpenGL"));
@@ -734,7 +734,10 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 	{
 		widget[3]=new QWidget(this);
 		QStringList list;
-		list<<Config::tr("Top")<<Config::tr("Bottom")<<Config::tr("Slide")<<Config::tr("Reverse")<<Config::tr("Guest")<<Config::tr("Advanced")<<Config::tr("Color")<<Config::tr("Whole");
+		list<<Config::tr("Top")<<Config::tr("Bottom")<<
+			Config::tr("Slide")<<Config::tr("Reverse")<<
+			Config::tr("Guest")<<Config::tr("Advanced")<<
+			Config::tr("Color")<<Config::tr("Whole");
 		auto grid=new QGridLayout(widget[3]);
 
 		auto g=new QHBoxLayout;
