@@ -553,10 +553,14 @@ const char *fShaderBGRP=
 	"{\n"
 	"    mediump vec4 p;\n"
 	"    p = texture2D(SamplerP, TexCoordOut);\n"
-	"    p.r /= p.a;\n"
-	"    p.g /= p.a;\n"
-	"    p.b /= p.a;\n"
-	"    gl_FragColor = vec4(p.b, p.g, p.r, p.a);\n"
+	"    if (p.a != 0.0) {\n"
+	"        p.r /= p.a;\n"
+	"        p.g /= p.a;\n"
+	"        p.b /= p.a;\n"
+	"        gl_FragColor = vec4(p.b, p.g, p.r, p.a);\n"
+	"    } else {\n"
+	"        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);\n"
+	"    }\n"
 	"}";
 }
 
