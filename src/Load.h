@@ -72,8 +72,6 @@ public:
 	};
 
 	Task codeToTask(QString code);
-	QStandardItemModel *getModel();
-	int size(){return queue.size();}
 	static Load *instance();
 
 private:
@@ -83,7 +81,6 @@ private:
 	QQueue<Task> queue;
 	QSet<QNetworkReply *> remain;
 	static Load *ins;
-
 	Load(QObject *parent=0);
 
 signals:
@@ -107,6 +104,8 @@ public slots:
 	void dumpDanmaku(const QByteArray &data,int site,Record *r);
 	void dumpDanmaku(const QByteArray &data,int site,bool full);
 
+	QStandardItemModel *getModel();
+	int size(){return queue.size();}
 	void dequeue();
 	bool enqueue(const Task &);
 	Task*getHead();

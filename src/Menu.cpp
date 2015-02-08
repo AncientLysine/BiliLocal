@@ -448,9 +448,8 @@ Menu::Menu(QWidget *parent):
 
 void Menu::resizeEvent(QResizeEvent *e)
 {
-	int w=e->size().width(),h=e->size().height();
 	double f=font().pointSizeF();
-	int x=logicalDpiX()*f/72,y=logicalDpiY()*f/72;
+	int x=logicalDpiX()*f/72,y=logicalDpiY()*f/72,w=e->size().width();
 	fileL->setGeometry(QRect(0.83*x,2.08*y,w-6.67*x,2.08*y));
 	danmL->setGeometry(QRect(0.83*x,5.42*y,w-6.67*x,2.08*y));
 	sechL->setGeometry(QRect(0.83*x,8.75*y,w-6.67*x,2.08*y));
@@ -462,12 +461,12 @@ void Menu::resizeEvent(QResizeEvent *e)
 	powerT->setGeometry(QRect(0.83*x,17.08*y,w-1.67*x,1.67*y));
 	powerL->setGeometry(QRect(w-3.33*x,17.08*y,2.50*x,1.67*y));
 	localT->setGeometry(QRect(0.83*x,20.00*y,w-1.67*x,2.08*y));
-	localC->setGeometry(QRect(w-7-2.08*x,20.00*y,15,2.08*y));
-	subT->setGeometry(QRect(0.83*x,22.92*y,w-1.67*x,2.08*y));
-	subC->setGeometry(QRect(w-7-2.08*x,22.92*y,15,2.08*y));
-	loopT->setGeometry(QRect(0.83*x,25.83*y,w-1.67*x,2.08*y));
-	loopC->setGeometry(QRect(w-7-2.08*x,25.83*y,15,2.08*y));
-	Q_UNUSED(h);
+	subT  ->setGeometry(QRect(0.83*x,22.92*y,w-1.67*x,2.08*y));
+	loopT ->setGeometry(QRect(0.83*x,25.83*y,w-1.67*x,2.08*y));
+	int l=15*logicalDpiX()/96;
+	localC->setGeometry(QRect(w-l/2-2.08*x,20.00*y,l,2.08*y));
+	subC  ->setGeometry(QRect(w-l/2-2.08*x,22.92*y,l,2.08*y));
+	loopC ->setGeometry(QRect(w-l/2-2.08*x,25.83*y,l,2.08*y));
 	QWidget::resizeEvent(e);
 }
 

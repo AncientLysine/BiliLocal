@@ -917,8 +917,8 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 				}
 			}
 		});
-		for(QAction *action:action){
-			widget[3]->addAction(action);
+		for(QAction *iter:action){
+			widget[3]->addAction(iter);
 		}
 		button[0]=new QPushButton(Config::tr("Add"),widget[3]);
 		button[1]=new QPushButton(Config::tr("Del"),widget[3]);
