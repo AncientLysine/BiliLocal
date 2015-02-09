@@ -451,12 +451,12 @@ void VPlayer::setMedia(QString _file,bool manually)
 QString VPlayer::getMedia()
 {
 	if(mp){
-		char *s=libvlc_media_get_mrl(libvlc_media_player_get_media(mp));
+		libvlc_media_t *m=libvlc_media_player_get_media(mp);
+		char *s=libvlc_media_get_mrl(m);
 		QUrl u(s);
 		libvlc_free(s);
-		if(u.isLocalFile()){
-			return u.toLocalFile();
-		}
+		libvlc_media_release(m);
+		return u.isLocalFile()?u.toLocalFile():u.url();
 	}
 	return QString();
 }

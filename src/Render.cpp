@@ -29,7 +29,6 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 #include "Local.h"
-#include <functional>
 
 Render *Render::ins=nullptr;
 
@@ -818,8 +817,8 @@ public:
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		lower();
 		connect(this,&OWidget::frameSwapped,[this](){
-			if (isVisible()){
-				QTimer::singleShot(2,this,SLOT(update()));
+			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
 			}
 		});
 	}
@@ -933,10 +932,10 @@ public slots:
 		Q_D(OpenGLRender);
 		return d->inner;
 	}
-
-	void draw(QRect rect)
+	
+	void draw(QRect rect=QRect())
 	{
-		Q_UNUSED(rect);
+		widget->update(rect.isValid()?rect:QRect(QPoint(0,0),getActualSize()));
 	}
 };
 #endif
@@ -978,8 +977,8 @@ public:
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
 		connect(this,&OWindow::frameSwapped,[this](){
-			if (isVisible()){
-				QTimer::singleShot(2,this,SLOT(update()));
+			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
 			}
 		});
 	}
@@ -1063,9 +1062,9 @@ public slots:
 		return QSize();
 	}
 	
-	void draw(QRect rect)
+	void draw(QRect rect=QRect())
 	{
-		Q_UNUSED(rect);
+		window->update(rect.isValid()?rect:QRect(QPoint(0,0),getActualSize()));
 	}
 };
 #endif

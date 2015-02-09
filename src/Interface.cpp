@@ -39,7 +39,6 @@
 #include "Post.h"
 #include "Render.h"
 #include "Shield.h"
-#include <algorithm>
 #include <functional>
 
 class Message:public QMessageBox

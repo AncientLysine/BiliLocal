@@ -31,7 +31,6 @@
 #include "List.h"
 #include "Load.h"
 #include "Utils.h"
-#include <algorithm>
 
 namespace{
 class ListEditor:public QListView

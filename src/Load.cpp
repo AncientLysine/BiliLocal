@@ -29,7 +29,6 @@
 #include "Config.h"
 #include "Danmaku.h"
 #include "Utils.h"
-#include <functional>
 
 Load *Load::ins=nullptr;
 
