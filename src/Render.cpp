@@ -816,11 +816,6 @@ public:
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		lower();
-		connect(this,&OWidget::frameSwapped,[this](){
-			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
-				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
-			}
-		});
 	}
 	
 private:
@@ -891,6 +886,12 @@ public:
 		ins=this;
 		setObjectName("ORender");
 		widget=new OWidget(d);
+		connect(widget,&OWidget::frameSwapped,[this](){
+			if (widget->isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,this,SLOT(draw()));
+			}
+		});
+		connect(APlayer::instance(),SIGNAL(stateChanged(int)),this,SLOT(draw()));
 	}
 
 private:
@@ -976,11 +977,6 @@ public:
 		setFormat(f);
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
-		connect(this,&OWindow::frameSwapped,[this](){
-			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
-				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
-			}
-		});
 	}
 
 private:
@@ -1015,6 +1011,11 @@ public:
 		d->tv.disconnect();
 		window=new OWindow(d);
 		window->create();
+		connect(window,&OWindow::frameSwapped,[this](){
+			if (window->isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,this,SLOT(draw()));
+			}
+		});
 		connect(APlayer::instance(),&APlayer::begin,window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,window,&QWindow::hide);
 	}

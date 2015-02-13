@@ -648,6 +648,7 @@ private:
 	{
 		m.lock();
 		mp=new QMediaPlayer;
+		mp->setNotifyInterval(300);
 		mp->setVideoOutput(new RenderAdapter(mp));
 		m.unlock();
 		w.wakeAll();

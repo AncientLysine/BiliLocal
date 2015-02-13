@@ -50,7 +50,7 @@ QList<Comment> parseComment(QByteArray data,Utils::Site site)
 		QVector<QStringRef> l=xml.splitRef("<d p=");
 		l.removeFirst();
 		for(const QStringRef &item:l){
-			const QVector<QStringRef> &args=item.mid(1,item.indexOf(item.at(0))-1).split(',');
+			const QVector<QStringRef> &args=item.mid(1,item.indexOf(item.at(0),1)-1).split(',');
 			if (args.size()<=4){
 				continue;
 			}
@@ -606,7 +606,9 @@ Load::Load(QObject *parent):
 	};
 	pool.append({ccRegular,0,ccProcess});
 
-	auto directProcess=[this](QNetworkReply *reply){
+	pool.append(Proc());
+	Proc *directProc=&pool.last();
+	directProc->process=[this](QNetworkReply *reply){
 		Task &task=queue.head();
 		switch(task.state){
 		case None:
@@ -654,12 +656,13 @@ Load::Load(QObject *parent):
 			break;
 		}
 	};
-	auto directRegular=[this](QString &code){
+	directProc->priority=-100;
+	directProc->regular=[this,directProc](QString &code){
 		if (code.startsWith("full?")||code.startsWith("hist?")){
 			code.clear();
 			return false;
 		}
-		if(!queue.isEmpty()&&!code.isEmpty()&&code==queue.head().code){
+		if(!queue.isEmpty()&&!code.isEmpty()&&code==queue.head().code&&queue.head().processer==directProc){
 			return true;
 		}
 		QUrl u=QUrl::fromUserInput(code);
@@ -672,7 +675,6 @@ Load::Load(QObject *parent):
 		code.clear();
 		return false;
 	};
-	pool.append({directRegular,0,directProcess});
 
 	auto fullBiProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
@@ -767,7 +769,7 @@ Load::Load(QObject *parent):
 	};
 	auto fullBiRegular=QRegularExpression("^full\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml$");
 	fullBiRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-	pool.append({getRegular(fullBiRegular),5,fullBiProcess});
+	pool.append({getRegular(fullBiRegular),100,fullBiProcess});
 
 	auto histBiProcess=[this](QNetworkReply *reply){
 		Task &task=queue.head();
@@ -811,7 +813,7 @@ Load::Load(QObject *parent):
 	};
 	auto histBiRegular=QRegularExpression("^hist\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml&date=\\d+$");
 	histBiRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-	pool.append({getRegular(histBiRegular),5,histBiProcess});
+	pool.append({getRegular(histBiRegular),100,histBiProcess});
 
 	connect(this,&Load::stateChanged,[this](int code){
 		switch(code){

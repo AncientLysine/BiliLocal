@@ -163,6 +163,7 @@ List::List(QObject *parent):
 		time=_time;
 	});
 	connect(APlayer::instance(),&APlayer::mediaChanged,[this](QString file){
+		updateCurrent();
 		QStandardItem *old=cur;
 		cur=itemFromFile(file,true);
 		if (old){
@@ -205,7 +206,7 @@ List::List(QObject *parent):
 				load->enqueue(task);
 				success=true;
 			}
-			if (old){
+			if (old||success){
 				Danmaku::instance()->clearPool();
 			}
 			break;
@@ -225,16 +226,15 @@ List::List(QObject *parent):
 		}
 	});
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
-		updateCurrent();
 		if(!m){
-			QTimer::singleShot(0,[this]{
-				QModelIndex i=indexFromItem(cur);
-				if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
-					APlayer::instance()->getState()!=APlayer::Play){
-					APlayer::instance()->play();
-				}
-			});
+			QModelIndex i=indexFromItem(cur);
+			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
+				APlayer::instance()->getState()!=APlayer::Play){
+				APlayer::instance()->play();
+				return;
+			}
 		}
+		updateCurrent();
 	});
 }
 

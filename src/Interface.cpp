@@ -115,7 +115,6 @@ Interface::Interface(QWidget *parent):
 	
 	timer=new QTimer(this);
 	delay=new QTimer(this);
-	timer->start(1000);
 	connect(timer,&QTimer::timeout,[this](){
 		QPoint cur=mapFromGlobal(QCursor::pos());
 		int x=cur.x(),y=cur.y(),w=width(),h=height();
@@ -126,6 +125,7 @@ Interface::Interface(QWidget *parent):
 			}
 		}
 	});
+	delay->setSingleShot(true);
 	connect(delay,&QTimer::timeout,APlayer::instance(),[this](){
 		if(aplayer->getState()==APlayer::Play&&!menu->isVisible()&&!info->isVisible()){
 			setCursor(QCursor(Qt::BlankCursor));

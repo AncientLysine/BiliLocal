@@ -48,6 +48,8 @@ public:
 		connect(sourceModel(),&QAbstractItemModel::rowsAboutToBeInserted,[this](const QModelIndex &parent,int sta,int end){
 			beginInsertRows(mapFromSource(parent),sta,end);
 		});
+		connect(sourceModel(),&QAbstractItemModel::layoutAboutToBeChanged,this,&LoadProxyModel::layoutAboutToBeChanged);
+		connect(sourceModel(),&QAbstractItemModel::layoutChanged,this,&LoadProxyModel::layoutChanged);
 	}
 
 	int columnCount(const QModelIndex &) const
@@ -434,6 +436,22 @@ Menu::Menu(QWidget *parent):
 		case Load::File:
 			localC->setChecked(task->request.url().isLocalFile());
 			syncDanmL();
+		case Load::Code:
+			isStay=1;
+			break;
+		case Load::None:
+			isStay=0;
+		default:
+			break;
+		}
+	});
+	connect(Load::instance(),&Load::errorOccured,[this](int state){
+		switch(state){
+		case 301:
+			pop();
+			isStay=1;
+			danmL->setFocus();
+			break;
 		default:
 			isStay=0;
 			break;
