@@ -198,13 +198,12 @@ private:
 class DanmEdit:public QLineEdit
 {
 public:
-	QString code;
 
 	explicit DanmEdit(QCompleter *completer,QWidget *parent=0):
 		QLineEdit(parent)
 	{
 		completer->popup()->installEventFilter(this);
-		connect(this,&DanmEdit::textEdited,this,&DanmEdit::setCode);
+		connect(this,&DanmEdit::textEdited,this,&DanmEdit::fixCode);
 	}
 
 	bool eventFilter(QObject *,QEvent *e) override
@@ -218,19 +217,25 @@ public:
 	void setCode(QString text)
 	{
 		code=text;
-		Load::instance()->fixCode(text);
+		text=QFileInfo(text).fileName();
 		if (text!=this->text()){
 			setText(text);
 		}
 	}
 
-	void focusInEvent(QFocusEvent *e)
+	void fixCode(QString text)
 	{
-		if(!Config::getValue("/Danmaku/Local",false)){
-			setCode(text());
-		}
-		QLineEdit::focusInEvent(e);
+		Load::instance()->fixCode(text);
+		setCode(text);
 	}
+
+	QString getCode()
+	{
+		return code.isEmpty()?text():code;
+	}
+
+private:
+	QString code;
 };
 }
 
@@ -323,7 +328,7 @@ Menu::Menu(QWidget *parent):
 				danmL->setFocus();
 			}
 			else{
-				Load::instance()->loadDanmaku(dynamic_cast<DanmEdit *>(danmL)->code);
+				Load::instance()->loadDanmaku(dynamic_cast<DanmEdit *>(danmL)->getCode());
 			}
 		}
 	});
@@ -423,9 +428,10 @@ Menu::Menu(QWidget *parent):
 		auto syncDanmL=[&](){
 			QString fix(task->code);
 			if(!task->code.isEmpty()&&task->processer->regular(fix)){
-				danmL->setText(QFileInfo(fix).fileName());
-				danmL->setCursorPosition(0);
-				danmL->clearFocus();
+				DanmEdit *danmE=dynamic_cast<DanmEdit *>(danmL);
+				danmE->setCode(fix);
+				danmE->setCursorPosition(0);
+				danmE->clearFocus();
 			}
 		};
 		switch(state){
