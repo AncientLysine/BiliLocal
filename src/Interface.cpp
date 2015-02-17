@@ -149,7 +149,6 @@ Interface::Interface(QWidget *parent):
 		sca->defaultAction()->setChecked(true);
 		render->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
-		setWindowFlags();
 	});
 	connect(aplayer,&APlayer::reach,this,[this](bool m){
 		danmaku->resetTime();
@@ -166,7 +165,6 @@ Interface::Interface(QWidget *parent):
 		}
 		render->setDisplayTime(0);
 		setWindowFilePath(QString());
-		setWindowFlags();
 	});
 	connect(aplayer,&APlayer::errorOccurred,[this](int error){
 		QString string;
@@ -194,6 +192,7 @@ Interface::Interface(QWidget *parent):
 		}
 		message->warning(tr("Warning"),string);
 	});
+	connect(aplayer,&APlayer::stateChanged,this,&Interface::setWindowFlags);
 	
 	connect(load   ,&Load::errorOccured,[this](int error){
 			QString info=tr("Network error occurred, error code: %1").arg(error);
@@ -542,7 +541,7 @@ void Interface::setWindowFlags()
 	if (Config::getValue("/Interface/Frameless",false)){
 		flags = Qt::CustomizeWindowHint;
 	}
-	if((Config::getValue("/Interface/Top",0)+(aplayer->getState()!=APlayer::Stop))>=2){
+	if((Config::getValue("/Interface/Top",0)+(aplayer->getState()==APlayer::Play))>=2){
 		flags|= Qt::WindowStaysOnTopHint;
 	}
 	else{

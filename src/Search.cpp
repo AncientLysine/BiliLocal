@@ -481,9 +481,11 @@ void Search::getData(int pageNum)
 		switch(orderC->currentIndex()){
 		case 0:
 		{
+			QStringList args=key.split("#");
 			url=QUrl("http://api."+
 					 Utils::customUrl(Utils::AcPlay)+
-					 "/api/v1/searchall/"+key);
+					 "/api/v1/searchall/"+
+					 (args.size()==2?args.join("/"):key));
 			break;
 		}
 		case 1:

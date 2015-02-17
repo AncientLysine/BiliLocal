@@ -615,7 +615,6 @@ Load::Load(QObject *parent):
 		{
 			QUrl url=QUrl::fromUserInput(task.code);
 			task.request.setUrl(url);
-			task.code=QFileInfo(task.code).fileName();
 			task.state=File;
 			forward();
 			break;
@@ -625,7 +624,7 @@ Load::Load(QObject *parent):
 			QUrl url=reply->url();
 			load.source=url.url();
 			load.access=url.isLocalFile()?url.toLocalFile():load.source;
-			load.string=task.code;
+			load.string=QFileInfo(task.code).fileName();
 			load.delay=task.delay;
 			QByteArray data=reply->readAll(),head=data.left(256);
 			if(!head.startsWith("<?xml")){
@@ -661,9 +660,6 @@ Load::Load(QObject *parent):
 		if (code.startsWith("full?")||code.startsWith("hist?")){
 			code.clear();
 			return false;
-		}
-		if(!queue.isEmpty()&&!code.isEmpty()&&code==queue.head().code&&queue.head().processer==directProc){
-			return true;
 		}
 		QUrl u=QUrl::fromUserInput(code);
 		if(!u.host().isEmpty()&&!u.path().isEmpty()){
@@ -939,14 +935,14 @@ bool Load::canHist(const Record *record)
 void Load::loadDanmaku(QString code)
 {
 	const Task &task=codeToTask(code);
-	if (enqueue(task)&&Config::getValue("/Playing/Clear", true)){
+	if (enqueue(task)&&Config::getValue("/Playing/Clear", false)){
 		Danmaku::instance()->clearPool();
 	}
 }
 
 void Load::loadDanmaku(const QModelIndex &index)
 {
-	if(index.isValid()){
+	if (index.isValid()){
 		QVariant u=index.data(UrlRole),s=index.data(StrRole);
 		if (u.isValid()&&s.isValid()){
 			Task task;

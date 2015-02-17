@@ -326,7 +326,7 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		auto list=new QVBoxLayout(widget[0]);
 		auto c=new QGridLayout;
 		load[0]=new QCheckBox(Config::tr("clear when reloading"),widget[0]);
-		load[0]->setChecked(Config::getValue("/Playing/Clear",true));
+		load[0]->setChecked(Config::getValue("/Playing/Clear",false));
 		connect(load[0],&QCheckBox::stateChanged,[this](int state){
 			Config::setValue("/Playing/Clear",state==Qt::Checked);
 		});

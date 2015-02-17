@@ -63,7 +63,6 @@ private:
 	void	init();
 	void	wait();
 	void	free();
-	void	setState(int _state);
 
 public slots:
 	void	play();
@@ -270,7 +269,7 @@ void VPlayer::init()
 		auto *connection=new QMetaObject::Connection;
 		*connection=connect(this,&VPlayer::timeChanged,this,[=](){
 			int last=state;
-			setState(Play);
+			emit stateChanged(state=Play);
 			disconnect(*connection);
 			delete connection;
 			switch(last){
@@ -336,26 +335,20 @@ void VPlayer::init()
 
 void VPlayer::wait()
 {
-	setState(Pause);
+	emit stateChanged(state=Pause);
 }
 
 void VPlayer::free()
 {
 	if(state==Play&&Config::getValue("/Playing/Loop",false)){
 		libvlc_media_player_stop(mp);
-		setState(Loop);
+		emit stateChanged(state=Loop);
 		libvlc_media_player_play(mp);
 		emit jumped(0);
 	}
 	else{
 		stop(false);
 	}
-}
-
-void VPlayer::setState(int _state)
-{
-	state=_state;
-	emit stateChanged(state);
 }
 
 void VPlayer::play()
@@ -368,7 +361,6 @@ void VPlayer::play()
 		}
 		else{
 			libvlc_media_player_pause(mp);
-			setState(state==Play?Pause:Play);
 		}
 	}
 }
@@ -377,7 +369,7 @@ void VPlayer::stop(bool manually)
 {
 	if(mp&&state!=Stop){
 		libvlc_media_player_stop(mp);
-		setState(Stop);
+		emit stateChanged(state=Stop);
 		for(auto g:tracks){
 			qDeleteAll(g->actions());
 		}
@@ -560,8 +552,8 @@ public:
 		Render::instance()->setBuffer(buffer,format.frameSize());
 		if (buffer!=chroma)
 			return false;
-		QSize p(format.pixelAspectRatio());
-		Render::instance()->setPixelAspectRatio(p.width()/(double)p.height());
+		QSize pixel(format.pixelAspectRatio());
+		Render::instance()->setPixelAspectRatio(pixel.width()/(double)pixel.height());
 		return true;
 	}
 
@@ -593,22 +585,6 @@ public:
 			   QVideoFrame::Format_YUV420P;
 		}
 		return f;
-	}
-	
-	bool ​isFormatSupported(const QVideoSurfaceFormat &format) const
-	{
-		if (QAbstractVideoBuffer::NoHandle==format.handleType()){
-			switch(format.pixelFormat()){
-			case QVideoFrame::Format_NV12:
-			case QVideoFrame::Format_NV21:
-			case QVideoFrame::Format_YV12:
-			case QVideoFrame::Format_YUV420P:
-				return 1;
-			default:
-				return 0;
-			}
-		}
-		return 0;
 	}
 };
 
@@ -666,6 +642,7 @@ public:
 
 private:
 	QMediaPlayer *mp;
+	int state;
 	bool manuallyStopped;
 	bool waitingForBegin;
 	bool skipTimeChanged;
@@ -673,7 +650,7 @@ private:
 public slots:
 	void	play();
 	void	stop(bool manually=true);
-	int 	getState();
+	int 	getState(){return state;}
 
 	void	setTime(qint64 _time);
 	qint64	getTime();
@@ -696,6 +673,7 @@ QPlayer::QPlayer(QObject *parent):
 {
 	ins=this;
 	setObjectName("QPlayer");
+	state=Stop;
 	manuallyStopped=false;
 	waitingForBegin=false;
 	skipTimeChanged=false;
@@ -712,30 +690,35 @@ QPlayer::QPlayer(QObject *parent):
 	
 	connect(mp,&QMediaPlayer::volumeChanged,this,&QPlayer::volumeChanged);
 
-	connect(mp,&QMediaPlayer::stateChanged,this,[this](int state){
-		static int lastState;
-		if(state==Stop){
+	connect(mp,&QMediaPlayer::stateChanged,this,[this](int _state){
+		if(_state==Stop){
 			if(!manuallyStopped&&Config::getValue("/Playing/Loop",false)){
-				lastState=Loop;
+				stateChanged(state=Loop);
 				play();
 				emit jumped(0);
 			}
 			else{
+				stateChanged(state=Stop);
 				emit reach(manuallyStopped);
 			}
+			manuallyStopped=false;
 		}
-		manuallyStopped=false;
-		if(state==Play&&lastState==Stop){
-			waitingForBegin=true;
+		else{
+			manuallyStopped=false;
+			if(_state==Play&&state==Stop){
+				waitingForBegin=true;
+			}
+			else{
+				emit stateChanged(state=_state);
+			}
 		}
-		lastState=state;
-		emit stateChanged(state);
 	});
 
 	connect(mp,&QMediaPlayer::positionChanged,this,[this](qint64 time){
 		if (waitingForBegin&&time>0){
 			waitingForBegin=false;
 			Render::instance()->setMusic(!mp->isVideoAvailable());
+			emit stateChanged(state=Play);
 			emit begin();
 		}
 		if(!skipTimeChanged){
@@ -765,11 +748,6 @@ void QPlayer::stop(bool manually)
 {
 	manuallyStopped=manually;
 	QMetaObject::invokeMethod(mp,"stop",Qt::BlockingQueuedConnection);
-}
-
-int QPlayer::getState()
-{
-	return waitingForBegin?(int)Stop:(int)mp->state();
 }
 
 void QPlayer::setTime(qint64 _time)
@@ -841,7 +819,7 @@ private:
 public slots:
 	void	play();
 	void	stop(bool manually=true);
-	int 	getState();
+	int 	getState(){return state;}
 
 	void	setTime(qint64 _time);
 	qint64	getTime();
@@ -896,11 +874,6 @@ void NPlayer::stop(bool)
 {
 	emit reach(true);
 	emit stateChanged(state=Stop);
-}
-
-int NPlayer::getState()
-{
-	return state;
 }
 
 void NPlayer::setTime(qint64)

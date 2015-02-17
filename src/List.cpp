@@ -198,10 +198,14 @@ List::List(QObject *parent):
 			Danmaku::instance()->clearPool();
 			break;
 		case Records:
+		{
+			QFileInfo info(cur->data(FileRole).toString());
 			for(int i=0;i<cur->rowCount();++i){
 				Load *load=Load::instance();
 				QStandardItem *d=cur->child(i);
-				Load::Task task=load->codeToTask(d->data(CodeRole).toString());
+				QString danmaku=d->data(CodeRole).toString();
+				danmaku.replace("%{File}",info.completeBaseName()).replace("%{Path}",info.absolutePath());
+				Load::Task task=load->codeToTask(danmaku);
 				task.delay=d->data(List::TimeRole).value<qint64>();
 				load->enqueue(task);
 				success=true;
@@ -211,7 +215,8 @@ List::List(QObject *parent):
 			}
 			break;
 		}
-		if(!success){
+		}
+		if(!success&&Danmaku::instance()->getPool().isEmpty()){
 			QFileInfo info(cur->data(FileRole).toString());
 			QStringList accept=Utils::getSuffix(Utils::Danmaku);
 			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
@@ -461,10 +466,13 @@ void List::updateCurrent()
 	if (cur->data(CodeRole).toInt()!=Records){
 		return;
 	}
+	QFileInfo info(cur->data(FileRole).toString());
 	for(const Record &r:Danmaku::instance()->getPool()){
 		QStandardItem *d=new QStandardItem;
-		d->setData(r.access,CodeRole);
-		d->setData(r.delay ,TimeRole);
+		QString danmaku=r.access;
+		danmaku.replace(info.completeBaseName(),"%{File}").replace(info.absolutePath(),"%{Path}");
+		d->setData(danmaku,CodeRole);
+		d->setData(r.delay,TimeRole);
 		cur->appendRow(d);
 	}
 }
