@@ -336,7 +336,7 @@ Menu::Menu(QWidget *parent):
 		Search searchBox(lApp->mainWidget());
 		sechL->setText(sechL->text().simplified());
 		if(!sechL->text().isEmpty()){
-			searchBox.setKey(sechL->text());
+			searchBox.setText(sechL->text());
 		}
 		if(searchBox.exec()) {
 			Load::instance()->loadDanmaku(searchBox.getAid());

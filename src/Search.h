@@ -42,8 +42,8 @@ public:
 
 private:
 	QLabel *statusL;
-	QLabel *pageTxL;
-	QLabel *pageNuL;
+	QLabel *pageT;
+	QLabel *pageL;
 	QLineEdit *keywE;
 	QLineEdit *pageE;
 	QComboBox *orderC;
@@ -56,6 +56,7 @@ private:
 	QPushButton *pageGoB;
 	QTreeWidget *resultW;
 	QNetworkAccessManager *manager;
+	QSet<QNetworkReply *> remain;
 
 	QString key;
 	QString aid;
@@ -65,15 +66,14 @@ private:
 	bool isWaiting;
 
 	void getData(int pageNum);
-	QList<const char *> AcOrder();
-	QList<const char *> BiOrder();
-	QList<const char *> DdOrder();
+	QList<const char *> getOrder(int site);
 
 public slots:
-	void setKey(QString _key);
+	void setText(QString text);
 	void setSite();
 	void startSearch();
 	void clearSearch();
+	void accept();
 
 };
 
