@@ -368,7 +368,7 @@ public:
 	}
 
 private:
-	RasterRenderPrivate *render;
+	RasterRenderPrivate *const render;
 
 	void paintEvent(QPaintEvent *e)
 	{
@@ -426,7 +426,7 @@ public:
 
 private:
 	RWidget *widget;
-	Q_DECLARE_PRIVATE(RasterRender)
+	Q_DECLARE_PRIVATE(RasterRender);
 
 public slots:
 	ICache *getCache(const QImage &i)
@@ -567,6 +567,8 @@ class OpenGLRenderPrivateBase:public RenderPrivate,public QOpenGLFunctions
 {
 public:
 	QOpenGLShaderProgram program[5];
+	GLfloat vtx[8];
+	GLfloat tex[8];
 
 	void initialize()
 	{
@@ -616,6 +618,10 @@ public:
 				break;
 			}
 		}
+		tex[0]=0;tex[1]=0;
+		tex[2]=1;tex[3]=0;
+		tex[4]=0;tex[5]=1;
+		tex[6]=1;tex[7]=1;
 	}
 	
 	void uploadTexture(GLuint t,int c,int w,int h,quint8 *d)
@@ -651,18 +657,10 @@ public:
 		p.bind();
 		GLfloat h=2/rect.width(),v=2/rect.height();
 		GLfloat l=dest.left()*h-1,r=dest.right()*h-1,t=1-dest.top()*v,b=1-dest.bottom()*v;
-		GLfloat vtx[8]={
-			l,t,
-			r,t,
-			l,b,
-			r,b
-		};
-		GLfloat tex[8]={
-			0,0,
-			1,0,
-			0,1,
-			1,1
-		};
+		vtx[0]=l;vtx[1]=t;
+		vtx[2]=r;vtx[3]=t;
+		vtx[4]=l;vtx[5]=b;
+		vtx[6]=r;vtx[7]=b;
 		p.setAttributeArray(0,vtx,2);
 		p.setAttributeArray(1,tex,2);
 		p.enableAttributeArray(0);
@@ -738,6 +736,20 @@ public:
 		painter->endNativePainting();
 	}
 
+	void paint(QPaintDevice *device)
+	{
+		QPainter painter(device);
+		painter.setRenderHints(QPainter::SmoothPixmapTransform);
+		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
+		if(APlayer::instance()->getState()==APlayer::Stop){
+			drawStop(&painter,rect);
+		}
+		else{
+			drawPlay(&painter,rect);
+			drawTime(&painter,rect);
+		}
+	}
+
 	QList<quint8 *> getBuffer()
 	{
 		dataLock.lock();
@@ -798,6 +810,12 @@ public:
 			bufferSize->swap(plane);
 	}
 
+	virtual quintptr getHandle()=0;
+	virtual void resize(QSize)=0;
+	virtual void setRefreshRate(int,bool)=0;
+	virtual QSize getActualSize()=0;
+	virtual void draw(QRect)=0;
+
 	~OpenGLRenderPrivate()
 	{
 		if(!buffer.isEmpty()){
@@ -816,10 +834,15 @@ public:
 	{
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		lower();
+		connect(this,&OWidget::frameSwapped,[this](){
+			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
+			}
+		});
 	}
 	
 private:
-	OpenGLRenderPrivate  *render;
+	OpenGLRenderPrivate *const render;
 
 	void initializeGL()
 	{
@@ -828,17 +851,166 @@ private:
 
 	void paintGL()
 	{
-		QPainter painter(this);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0,0),Render::instance()->getActualSize());
-		if(APlayer::instance()->getState()==APlayer::Stop){
-			render->drawStop(&painter,rect);
-		}
-		else{
-			render->drawPlay(&painter,rect);
-			render->drawTime(&painter,rect);
+		render->paint(this);
+	}
+};
+
+class OpenGLWidgetRenderPrivate:public OpenGLRenderPrivate
+{
+public:
+	OpenGLWidgetRenderPrivate()
+	{
+		widget=new OWidget(this);
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)widget;
+	}
+
+	void resize(QSize size)
+	{
+		widget->resize(size);
+	}
+
+	void setRefreshRate(int rate,bool soft)
+	{
+		QScreen *screen=widget->context()->screen();
+		rate=screen->refreshRate();
+		Render::instance()->Render::setRefreshRate(rate,soft);
+	}
+
+	QSize getActualSize()
+	{
+		return widget->size();
+	}
+	
+	void draw(QRect rect)
+	{
+		widget->update(rect);
+	}
+
+private:
+	OWidget *widget;
+};
+
+namespace
+{
+class OWindow:public QOpenGLWindow
+{
+public:
+	explicit OWindow(OpenGLRenderPrivate *render):
+		render(render)
+	{
+		window=nullptr;
+		QTimer::singleShot(0,[this](){
+			window=lApp->mainWidget()->backingStore()->window();
+		});
+		connect(this,&OWindow::frameSwapped,[this](){
+			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
+			}
+		});
+	}
+	
+private:
+	QWindow *window;
+	OpenGLRenderPrivate *const render;
+
+	void initializeGL()
+	{
+		render->initialize();
+	}
+
+	void paintGL()
+	{
+		render->paint(this);
+	}
+
+	bool event(QEvent *e)
+	{
+		switch(e->type()){
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+		case QEvent::Enter:
+		case QEvent::Leave:
+		case QEvent::MouseMove:
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::Wheel:
+		case QEvent::DragEnter:
+		case QEvent::DragMove:
+		case QEvent::DragLeave:
+		case QEvent::Drop:
+		case QEvent::ContextMenu:
+			return window?qApp->sendEvent(window,e):false;
+		default:
+			return QOpenGLWindow::event(e);
 		}
 	}
+
+};
+
+/*	only QMdiSubWindow & QAbstractScrollArea
+	will make windowcontainer to create native widgets.
+*/
+class FParent:public QAbstractScrollArea
+{
+public:
+	explicit FParent(QWidget *parent):
+		QAbstractScrollArea(parent)
+	{
+	}
+};
+}
+
+class OpenGLWindowRenderPrivate:public OpenGLRenderPrivate
+{
+public:
+	OpenGLWindowRenderPrivate()
+	{
+		widget=lApp->mainWidget();
+		middle=new FParent(widget);
+		middle->lower();
+		window=new OWindow(this);
+		widget=QWidget::createWindowContainer(window,middle);
+		middle->setAcceptDrops(false);
+		widget->setAcceptDrops(false);
+	}
+
+	quintptr getHandle()
+	{
+		return (quintptr)window;
+	}
+
+	void resize(QSize size)
+	{
+		middle->resize(size);
+		widget->resize(size);
+	}
+
+	void setRefreshRate(int rate,bool soft)
+	{
+		QScreen *screen=window->screen();
+		rate=screen->refreshRate();
+		Render::instance()->Render::setRefreshRate(rate,soft);
+	}
+
+	QSize getActualSize()
+	{
+		return widget->size();
+	}
+
+	void draw(QRect rect)
+	{
+		window->update(rect);
+	}
+
+private:
+	QWidget *widget;
+	FParent *middle;
+	OWindow *window;
 };
 
 class STCache:public Render::ICache
@@ -879,24 +1051,28 @@ public:
 class OpenGLRender:public Render
 {
 public:
-	OpenGLRender(QObject *parent=0):
-		Render(new OpenGLRenderPrivate,parent)
+	explicit OpenGLRender(QObject *parent=0):
+		Render(choose(),parent)
 	{
-		Q_D(OpenGLRender);
 		ins=this;
 		setObjectName("ORender");
-		widget=new OWidget(d);
-		connect(widget,&OWidget::frameSwapped,[this](){
-			if (widget->isVisible()&&APlayer::instance()->getState()==APlayer::Play){
-				QTimer::singleShot(2,this,SLOT(draw()));
-			}
-		});
 		connect(APlayer::instance(),SIGNAL(stateChanged(int)),this,SLOT(draw()));
 	}
 
 private:
-	OWidget *widget;
-	Q_DECLARE_PRIVATE(OpenGLRender)
+	Q_DECLARE_PRIVATE(OpenGLRender);
+
+	static OpenGLRenderPrivate *choose()
+	{
+		if (Config::getValue("/Performance/Option/OpenGL/FBO",true))
+		{
+			return new OpenGLWidgetRenderPrivate;
+		}
+		else
+		{
+			return new OpenGLWindowRenderPrivate;
+		}
+	}
 
 public slots:
 	ICache *getCache(const QImage &i)
@@ -907,25 +1083,26 @@ public slots:
 
 	quintptr getHandle()
 	{
-		return (quintptr)widget;
+		Q_D(OpenGLRender);
+		return d->getHandle();
 	}
 
 	void resize(QSize size)
 	{
-		widget->resize(size);
+		Q_D(OpenGLRender);
+		d->resize(size);
 	}
 
 	void setRefreshRate(int rate,bool soft)
 	{
-		QWindow *window=widget->window()->windowHandle();
-		QScreen *screen=window?window->screen():lApp->primaryScreen();
-		rate=screen->refreshRate()/widget->format().swapInterval();
-		Render::setRefreshRate(rate,soft);
+		Q_D(OpenGLRender);
+		d->setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
 	{
-		return widget->size();
+		Q_D(OpenGLRender);
+		return d->getActualSize();
 	}
 
 	QSize getBufferSize()
@@ -936,9 +1113,11 @@ public slots:
 	
 	void draw(QRect rect=QRect())
 	{
-		widget->update(rect.isValid()?rect:QRect(QPoint(0,0),getActualSize()));
+		Q_D(OpenGLRender);
+		d->draw(rect.isValid()?rect:QRect(QPoint(0,0),getActualSize()));
 	}
 };
+
 #endif
 
 #ifdef RENDER_DETACH
@@ -966,10 +1145,10 @@ public:
 
 namespace
 {
-class OWindow:public QOpenGLWindow
+class DWindow:public QOpenGLWindow
 {
 public:
-	explicit OWindow(DetachRenderPrivate *render):
+	explicit DWindow(DetachRenderPrivate *render):
 		render(render)
 	{
 		QSurfaceFormat f=format();
@@ -977,10 +1156,15 @@ public:
 		setFormat(f);
 		setFlags(flags()|Qt::Tool|Qt::FramelessWindowHint|Qt::WindowTransparentForInput|Qt::WindowStaysOnTopHint);
 		setGeometry(qApp->desktop()->screenGeometry());
+		connect(this,&DWindow::frameSwapped,[this](){
+			if (isVisible()&&APlayer::instance()->getState()==APlayer::Play){
+				QTimer::singleShot(2,Render::instance(),SLOT(draw()));
+			}
+		});
 	}
 
 private:
-	DetachRenderPrivate  *render;
+	DetachRenderPrivate *const render;
 	
 	void initializeGL()
 	{
@@ -1009,13 +1193,8 @@ public:
 		setObjectName("DRender");
 		Q_D(DetachRender);
 		d->tv.disconnect();
-		window=new OWindow(d);
+		window=new DWindow(d);
 		window->create();
-		connect(window,&OWindow::frameSwapped,[this](){
-			if (window->isVisible()&&APlayer::instance()->getState()==APlayer::Play){
-				QTimer::singleShot(2,this,SLOT(draw()));
-			}
-		});
 		connect(APlayer::instance(),&APlayer::begin,window,&QWindow::show);
 		connect(APlayer::instance(),&APlayer::reach,window,&QWindow::hide);
 	}
@@ -1028,8 +1207,8 @@ public:
 	}
 	
 private:
-	OWindow *window;
-	Q_DECLARE_PRIVATE(DetachRender)
+	DWindow *window;
+	Q_DECLARE_PRIVATE(DetachRender);
 
 public slots:
 	ICache *getCache(const QImage &i)
@@ -1049,7 +1228,7 @@ public slots:
 	
 	void setRefreshRate(int rate,bool soft)
 	{
-		rate=window->screen()->refreshRate()/window->format().swapInterval();
+		rate=window->screen()->refreshRate();
 		Render::setRefreshRate(rate,soft);
 	}
 
