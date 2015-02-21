@@ -76,6 +76,8 @@ public slots:
 	void waste(const QModelIndexList &indexes);
 	void merge(const QModelIndexList &indexes);
 	void group(const QModelIndexList &indexes);
+	void jumpToLast();
+	void jumpToNext();
 	bool jumpToIndex(const QModelIndex &index,bool manually=true);
 };
 

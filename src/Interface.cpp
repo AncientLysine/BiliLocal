@@ -324,6 +324,17 @@ Interface::Interface(QWidget *parent):
 	addAction(vouA);
 	addAction(vodA);
 	
+	QAction *pguA=new QAction(tr("Last Media"),this);
+	pguA->setObjectName("PgUp");
+	pguA->setShortcut(Config::getValue("/Shortcut/PgUp",QString("PgUp")));
+	connect(pguA,&QAction::triggered,[this](){list->jumpToLast();});
+	QAction *pgdA=new QAction(tr("Next Media"),this);
+	pgdA->setObjectName("PgDn");
+	pgdA->setShortcut(Config::getValue("/Shortcut/PgDn",QString("PgDown")));
+	connect(pgdA,&QAction::triggered,[this](){list->jumpToNext();});
+	addAction(pguA);
+	addAction(pgdA);
+
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
 	rat->setDefaultAction(rat->addAction(tr("Default")));

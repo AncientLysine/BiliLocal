@@ -549,10 +549,24 @@ void List::group(const QModelIndexList &indexes)
 	setRelated(indexes,Surmise);
 }
 
+void List::jumpToLast()
+{
+	int rc=rowCount();
+	int i=cur?cur->row():rc;
+	jumpToIndex(index((i+rc-1)%rc,0));
+}
+
+void List::jumpToNext()
+{
+	int rc=rowCount();
+	int i=cur?cur->row():-1;
+	jumpToIndex(index((i+rc+1)%rc,0));
+}
+
 bool List::jumpToIndex(const QModelIndex &index,bool manually)
 {
 	QStandardItem *head=itemFromIndex(index);
-	if(!head||head->data(CodeRole).toInt()==Inherit){
+	if(!head||(manually&&head->data(CodeRole).toInt()==Inherit)){
 		return false;
 	}
 	APlayer::instance()->setMedia(head->data(FileRole).toString(),manually);

@@ -257,12 +257,9 @@ Search::Search(QWidget *parent):QDialog(parent)
 					row->setText(1,i.next().captured().simplified());
 					i.next();
 					row->setText(2,i.next().captured().simplified());
-					r.setPattern("(?<=class=\"intro\">).+(?=</div>)");
+					r.setPattern("(?<=class=\"intro\">).*(?=</div>)");
 					m=r.match(item,i.next().capturedEnd());
 					row->setToolTip(3,Utils::decodeXml(m.captured()));
-					if(m.capturedEnd()==-1){
-						delete row;
-					}
 				}
 			}
 			statusL->setText(tr("Finished"));
