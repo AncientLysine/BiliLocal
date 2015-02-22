@@ -53,7 +53,6 @@ Danmaku::Danmaku(QObject *parent):
 	setObjectName("Danmaku");
 	cur=time=0;
 	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread",QThread::idealThreadCount()));
-	qThreadPool->setExpiryTimeout(-1);
 	connect(APlayer::instance(),&APlayer::jumped,     this,&Danmaku::jumpToTime);
 	connect(APlayer::instance(),&APlayer::timeChanged,this,&Danmaku::setTime   );
 	connect(this,SIGNAL(layoutChanged()),Render::instance(),SLOT(draw()));
@@ -474,6 +473,7 @@ public:
 		if(wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
 			return;
 		}
+		QThread::currentThread()->setPriority(QThread::NormalPriority);
 		QSize size=Render::instance()->getActualSize();
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){

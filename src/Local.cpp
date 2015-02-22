@@ -44,6 +44,7 @@ Local::Local(int &argc,char **argv):
 	QDir::setCurrent(applicationDirPath());
 	setPalette(setStyle("Fusion")->standardPalette());
 	setAttribute(Qt::AA_UseOpenGLES);
+	thread()->setPriority(QThread::TimeCriticalPriority);
 	Config::load();
 	Shield::load();
 	qsrand(QTime::currentTime().msec());
@@ -160,7 +161,6 @@ int main(int argc,char *argv[])
 			w.tryLocal(args);
 		});
 	}
-	QThread::currentThread()->setPriority(QThread::TimeCriticalPriority);
 	int r;
 	if((r=a.exec())==12450){
 		if(server){
