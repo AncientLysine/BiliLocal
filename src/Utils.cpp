@@ -388,11 +388,11 @@ QString Utils::decodeXml(QString string,bool fast)
 QStringList Utils::getRenderModules()
 {
 	QStringList modules;
-#ifdef RENDER_RASTER
-	modules<<"Raster";
-#endif
 #ifdef RENDER_OPENGL
 	modules<<"OpenGL";
+#endif
+#ifdef RENDER_RASTER
+	modules<<"Raster";
 #endif
 #ifdef RENDER_DETACH
 	modules<<"Detach";

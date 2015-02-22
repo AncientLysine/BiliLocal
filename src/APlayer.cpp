@@ -919,7 +919,7 @@ void NPlayer::event(int)
 
 APlayer *APlayer::instance()
 {
-	if(ins){
+	if (ins){
 		return ins;
 	}
 	QString d;
@@ -931,21 +931,22 @@ APlayer *APlayer::instance()
 		d=l[0];
 		break;
 	default:
-		d=Config::getValue("/Performance/Decode",QString("VLC"));
+		d=Config::getValue("/Performance/Decode",l[0]);
+		d=l.contains(d)?d:l[0];
 		break;
 	}
 #ifdef BACKEND_VLC
-	if(d=="VLC"){
+	if (d=="VLC"){
 		return new VPlayer(qApp);
 	}
 #endif
 #ifdef BACKEND_QMM
-	if(d=="QMM"){
+	if (d=="QMM"){
 		return new QPlayer(qApp);
 	}
 #endif
 #ifdef BACKEND_NIL
-	if(d=="NIL"){
+	if (d=="NIL"){
 		return new NPlayer(qApp);
 	}
 #endif

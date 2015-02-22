@@ -1251,7 +1251,7 @@ public slots:
 
 Render *Render::instance()
 {
-	if(ins){
+	if (ins){
 		return ins;
 	}
 	QString r;
@@ -1263,25 +1263,26 @@ Render *Render::instance()
 		r=l[0];
 		break;
 	default:
-		r=Config::getValue("/Performance/Render",QString("OpenGL"));
+		r=Config::getValue("/Performance/Render",l[0]);
+		r=l.contains(r)?r:l[0];
 		break;
 	}
 #ifdef RENDER_OPENGL
-	if(r=="OpenGL"){
+	if (r=="OpenGL"){
 		return new OpenGLRender(qApp);
 	}
 #endif
 #ifdef RENDER_RASTER
-	if(r=="Raster"){
+	if (r=="Raster"){
 		return new RasterRender(qApp);
 	}
 #endif
 #ifdef RENDER_DETACH
-	if(r=="Detach"){
+	if (r=="Detach"){
 		return new DetachRender(qApp);
 	}
 #endif
-	return 0;
+	return nullptr;
 }
 
 Render::Render(RenderPrivate *data,QObject *parent):

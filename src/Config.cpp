@@ -168,6 +168,7 @@ private:
 	QCheckBox *vers;
 	QCheckBox *sens;
 	QCheckBox *less;
+	QCheckBox *upda;
 	QComboBox *loca;
 	QComboBox *stay;
 	QLineEdit *jump;
@@ -179,6 +180,7 @@ private:
 	QGroupBox *opt[2];
 	QComboBox *render;
 	QComboBox *decode;
+	QMultiMap<QString,QWidget *> option;
 	QLabel *retext;
 	QLabel *detext;
 	QList<QLabel *> relogo;
@@ -327,25 +329,25 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		auto c=new QGridLayout;
 		load[0]=new QCheckBox(Config::tr("clear when reloading"),widget[0]);
 		load[0]->setChecked(Config::getValue("/Playing/Clear",false));
-		connect(load[0],&QCheckBox::stateChanged,[this](int state){
+		connect(load[0],&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Playing/Clear",state==Qt::Checked);
 		});
 		c->addWidget(load[0],0,0);
 		load[1]=new QCheckBox(Config::tr("auto delay after loaded"),widget[0]);
 		load[1]->setChecked(Config::getValue("/Playing/Delay",false));
-		connect(load[1],&QCheckBox::stateChanged,[this](int state){
+		connect(load[1],&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Playing/Delay",state==Qt::Checked);
 		});
 		c->addWidget(load[1],0,1);
 		load[2]=new QCheckBox(Config::tr("load local subtitles"),widget[0]);
 		load[2]->setChecked(Config::getValue("/Playing/Subtitle",true));
-		connect(load[2],&QCheckBox::stateChanged,[this](int state){
+		connect(load[2],&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Playing/Subtitle",state==Qt::Checked);
 		});
 		c->addWidget(load[2],1,0);
 		load[3]=new QCheckBox(Config::tr("auto play after loaded"),widget[0]);
 		load[3]->setChecked(Config::getValue("/Playing/Immediate",false));
-		connect(load[3],&QCheckBox::stateChanged,[this](int state){
+		connect(load[3],&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Playing/Immediate",state==Qt::Checked);
 		});
 		c->addWidget(load[3],1,1);
@@ -487,22 +489,28 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		auto t=new QGridLayout;
 		less=new QCheckBox(Config::tr("frameless"),widget[1]);
 		less->setChecked(Config::getValue("/Interface/Frameless",false));
-		connect(less,&QCheckBox::stateChanged,[=](int state){
+		connect(less,&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Interface/Frameless",state==Qt::Checked);
 		});
 		t->addWidget(less,0,1);
 		vers=new QCheckBox(Config::tr("version information"),widget[1]);
 		vers->setChecked(Config::getValue("/Interface/Version",true));
-		connect(vers,&QCheckBox::stateChanged,[=](int state){
+		connect(vers,&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Interface/Version",state==Qt::Checked);
 		});
 		t->addWidget(vers,0,0);
 		sens=new QCheckBox(Config::tr("sensitive pausing"),widget[1]);
 		sens->setChecked(Config::getValue("/Interface/Sensitive",false));
-		connect(sens,&QCheckBox::stateChanged,[=](int state){
+		connect(sens,&QCheckBox::stateChanged,[](int state){
 			Config::setValue("/Interface/Sensitive",state==Qt::Checked);
 		});
 		t->addWidget(sens,1,0);
+		upda=new QCheckBox(Config::tr("check for update"),widget[1]);
+		upda->setChecked(Config::getValue("/Interface/Update",true));
+		connect(upda,&QCheckBox::stateChanged,[](int state){
+			Config::setValue("/Interface/Update",state==Qt::Checked);
+		});
+		t->addWidget(upda,1,1);
 		ui[2]=new QGroupBox(Config::tr("window flag"),widget[1]);
 		ui[2]->setLayout(t);
 		list->addWidget(ui[2]);
@@ -608,27 +616,28 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		opt[1]->setLayout(e);
 		render=new QComboBox(widget[2]);
 		decode=new QComboBox(widget[2]);
+		auto reopti=new QGridLayout(widget[2]);
+		auto deopti=new QGridLayout(widget[2]);
 
 		QStringList relist=Utils::getRenderModules();
 		QStringList delist=Utils::getDecodeModules();
 		render->addItems(relist);
 		decode->addItems(delist);
-
 		if(relist.size()>=2){
-			QString r=Config::getValue("/Performance/Render",QString("OpenGL"));
+			QString r=Config::getValue("/Performance/Render",relist[0]);
 			render->setCurrentText(r);
 		}
 		else{
 			render->setEnabled(false);
 		}
 		if(delist.size()>=2){
-			QString r=Config::getValue("/Performance/Decode",QString("VLC"));
+			QString r=Config::getValue("/Performance/Decode",delist[0]);
 			decode->setCurrentText(r);
 		}
 		else{
 			decode->setEnabled(false);
 		}
-
+		
 		auto updateLogo=[this](QVBoxLayout *layout,QList<QLabel *> &pool,QStringList urls){
 			qDeleteAll(pool);
 			pool.clear();
@@ -641,7 +650,13 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 				pool.append(l);
 			}
 		};
-		
+		auto lineNumFix=[this](QString text)
+		{
+			int c=text.count('\n');
+			c=qMax(0,4-c);
+			text.append(QString(c,'\n'));
+			return text;
+		};
 		connect(render,&QComboBox::currentTextChanged,[=](QString text){
 			QString desc;
 			if(text=="Raster"){
@@ -649,29 +664,28 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 						"libswscale for size and chroma transform\n"
 						"libqtgui for alpha blending and output\n"
 						"high compatibility but a little bit slower");
-				updateLogo(r,relogo,QStringList()
-						   <<getLogo("Qt")
-						   <<getLogo("FFmpeg"));
+				updateLogo(r,relogo,{getLogo("FFmpeg")});
 			}
 			if(text=="OpenGL"){
 				desc=Config::tr("opengl es2 render\n"
 						"texture unit for size transform\n"
 						"glsl code for chroma transform\n"
 						"accept few pixfmt but significantly faster");
-				updateLogo(r,relogo,QStringList()
-						   <<""
-						   <<getLogo("OpenGL"));
+				updateLogo(r,relogo,{getLogo("OpenGL")});
 			}
 			if(text=="Detach"){
 				desc=Config::tr("detach window render\n"
 						"transparent opengl window on top\n"
 						"video frames won't be displayed\n"
 						"for danmaku only playback");
-				updateLogo(r,relogo,QStringList()
-						   <<""
-						   <<"");
+				updateLogo(r,relogo,{QString()});
 			}
-			retext->setText(desc);
+			for(QString r:relist){
+				for(QWidget *w:option.values(r)){
+					w->setVisible(text==r);
+				}
+			}
+			retext->setText(lineNumFix(desc));
 			if(relist.size()>=2){
 				Config::setValue("/Performance/Render",text);
 			}
@@ -682,37 +696,55 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 				desc=Config::tr("libvlc backend\n"
 						"all platform supported\n"
 						"no additional codecs required");
-				updateLogo(e,delogo,QStringList()
-						   <<""
-						   <<getLogo("VLC"));
+				updateLogo(e,delogo,{getLogo("VLC")});
 			}
 			if(text=="QMM"){
 				desc=Config::tr("libqtmultimedia backend\n"
 						"support directshow on windows\n"
 						"k-lite/win7codecs recommended");
-				updateLogo(e,delogo,QStringList()
-						   <<getLogo("DirectX")
-						   <<getLogo("Qt"));
+				updateLogo(e,delogo,{getLogo("DirectX")});
 			}
 			if(text=="NIL"){
 				desc=Config::tr("dummy backend\n"
 						"no need for actual media file\n"
 						"for danmaku only playback");
-				updateLogo(e,delogo,QStringList()
-						   <<""
-						   <<"");
+				updateLogo(e,delogo,{QString()});
 			}
-			detext->setText(desc);
+			for(QString d:delist){
+				for(QWidget *w:option.values(d)){
+					w->setVisible(text==d);
+				}
+			}
+			detext->setText(lineNumFix(desc));
 			if(delist.size()>=2){
 				Config::setValue("/Performance/Decode",text);
 			}
 		});
-
 		r->addWidget(render);
 		e->addWidget(decode);
 
-		r->addSpacing(10);
-		e->addSpacing(10);
+		QCheckBox *usefbo=new QCheckBox(Config::tr("render to fbo"),widget[2]);
+		usefbo->setChecked(Config::getValue("/Performance/Option/OpenGL/FBO",true));
+		connect(usefbo,&QCheckBox::stateChanged,[](int state){
+			Config::setValue("/Performance/Option/OpenGL/FBO",state==Qt::Checked);
+		});
+		option.insert("OpenGL",usefbo);
+
+		for(QString r:relist){
+			for(QWidget *w:option.values(r)){
+				reopti->addWidget(w);
+			}
+		}
+		for(QString d:delist){
+			for(QWidget *w:option.values(d)){
+				deopti->addWidget(w);
+			}
+		}
+		r->addLayout(reopti);
+		r->addLayout(deopti);
+
+		r->addStretch(5);
+		e->addStretch(5);
 
 		retext=new QLabel(widget[2]);
 		detext=new QLabel(widget[2]);
@@ -722,6 +754,7 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		detext->setAlignment(Qt::AlignLeft|Qt::AlignTop);
 		r->addWidget(retext);
 		e->addWidget(detext);
+
 		out->addWidget(opt[0],5);
 		out->addWidget(opt[1],5);
 
@@ -745,7 +778,7 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 			check[i]=new QCheckBox(list[i],widget[3]);
 			check[i]->setFixedHeight(40);
 			check[i]->setChecked(Shield::shieldG[i]);
-			connect(check[i],&QCheckBox::stateChanged,[=](int state){
+			connect(check[i],&QCheckBox::stateChanged,[i](int state){
 				Shield::shieldG[i]=state==Qt::Checked;
 			});
 			g->addWidget(check[i]);

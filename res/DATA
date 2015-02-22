@@ -65,7 +65,6 @@
 		"DirectX": "http://upload.wikimedia.org/wikipedia/commons/1/11/DirectX_logo.png",
 		"FFmpeg": "http://www.ffmpeg.org/ffmpeg-logo.png",
 	    "OpenGL": "https://www.khronos.org/assets/uploads/ceimg/made/assets/uploads/apis/OpenGL-ES_300_199_75.png",
-		"Qt": "https://qt.gitorious.org/images/sites/qt/logo.png",
 		"VLC": "http://images.videolan.org/images/logoOrange.png"
 	},
     "Version": "0.4.2"

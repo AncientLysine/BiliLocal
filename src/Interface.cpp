@@ -568,6 +568,9 @@ void Interface::setWindowFlags()
 
 void Interface::checkForUpdate()
 {
+	if(!Config::getValue("/Interface/Update",true)){
+		return;
+	}
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
 	QNetworkRequest request(QUrl("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO"));
 	manager->get(request);
