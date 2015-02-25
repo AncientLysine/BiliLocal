@@ -620,13 +620,15 @@ Load::Load(QObject *parent):
 			break;
 		}
 		case File:
+		{
 			Record load;
 			QUrl url=reply->url();
+			QByteArray data(reply->readAll());
 			load.source=url.url();
 			load.access=url.isLocalFile()?url.toLocalFile():load.source;
 			load.string=QFileInfo(task.code).fileName();
 			load.delay=task.delay;
-			QByteArray data=reply->readAll(),head=data.left(256);
+			QString head(data.left(256));
 			if(!head.startsWith("<?xml")){
 				load.danmaku=parseComment(data,Utils::AcFun);
 			}
@@ -653,6 +655,7 @@ Load::Load(QObject *parent):
 			emit stateChanged(task.state=None);
 			dequeue();
 			break;
+		}
 		}
 	};
 	directProc->priority=-100;

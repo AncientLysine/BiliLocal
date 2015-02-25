@@ -854,6 +854,7 @@ private:
 		render->paint(this);
 	}
 };
+}
 
 class OpenGLWidgetRenderPrivate:public OpenGLRenderPrivate
 {
@@ -1013,6 +1014,8 @@ private:
 	OWindow *window;
 };
 
+namespace
+{
 class STCache:public Render::ICache
 {
 public:

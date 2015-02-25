@@ -469,17 +469,17 @@ void Search::getData(int pageNum)
 #define tr
 QList<const char *> Search::getOrder(int site)
 {
-	QList<const char *> or;
+	QList<const char *> od;
 	switch(site){
 	case Utils::AcFun:
-		or<<tr("rankLevel")<<
+		od<<tr("rankLevel")<<
 			tr("releaseDate")<<
 			tr("views")<<
 			tr("comments")<<
 			tr("stows");
 		break;
 	case Utils::Bilibili:
-		or<<tr("default")<<
+		od<<tr("default")<<
 		    tr("pubdate")<<
 			tr("senddate")<<
 			tr("ranklevel")<<
@@ -489,13 +489,13 @@ QList<const char *> Search::getOrder(int site)
 			tr("stow");
 		break;
 	case Utils::AcPlay:
-		or<<tr("default")<<
+		od<<tr("default")<<
 			tr("TVAnime")<<
 			tr("Other")<<
 			tr("FileMatch");
 		break;
 	}
-	return or;
+	return od;
 }
 #undef tr
 
