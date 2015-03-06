@@ -81,6 +81,11 @@ public slots:
 	void	setVolume(int _volume);
 	int 	getVolume();
 
+	QSize   getSize();
+
+	void    setRate(double _rate);
+	double  getRate();
+
 	void	event(int type);
 
 };
@@ -213,7 +218,7 @@ VPlayer::VPlayer(QObject *parent):
 		argv[i]=args[i];
 	}
 	vlc=libvlc_new(args.size(),argv);
-#if (defined Q_OS_WIN)&&(defined QT_NO_DEBUG)
+#ifdef Q_OS_WIN
 	libvlc_add_intf(vlc,"bililocal");
 #endif
 	mp=nullptr;
@@ -495,6 +500,27 @@ int VPlayer::getVolume()
 	return mp?libvlc_audio_get_volume(mp):0;
 }
 
+QSize VPlayer::getSize()
+{
+	unsigned w=0,h=0;
+	if (mp){
+		libvlc_video_get_size(mp,0,&w,&h);
+	}
+	return QSize(w,h);
+}
+
+void VPlayer::setRate(double _rate)
+{
+	if (mp){
+		libvlc_media_player_set_rate(mp,_rate);
+	}
+}
+
+double VPlayer::getRate()
+{
+	return mp?libvlc_media_player_get_rate(mp):0;
+}
+
 void VPlayer::event(int type)
 {
 	switch(type){
@@ -664,6 +690,11 @@ public slots:
 	void	setVolume(int _volume);
 	int 	getVolume();
 
+	QSize   getSize();
+
+	void    setRate(double _rate);
+	double  getRate();
+
 	void	event(int type);
 
 };
@@ -741,18 +772,22 @@ QList<QAction *> QPlayer::getTracks(int)
 
 void QPlayer::play()
 {
-	QMetaObject::invokeMethod(mp,getState()==Play?"pause":"play",Qt::BlockingQueuedConnection);
+	QMetaObject::invokeMethod(mp,getState()==Play?"pause":"play",
+							  Qt::BlockingQueuedConnection);
 }
 
 void QPlayer::stop(bool manually)
 {
 	manuallyStopped=manually;
-	QMetaObject::invokeMethod(mp,"stop",Qt::BlockingQueuedConnection);
+	QMetaObject::invokeMethod(mp,"stop",
+							  Qt::BlockingQueuedConnection);
 }
 
 void QPlayer::setTime(qint64 _time)
 {
-	QMetaObject::invokeMethod(mp,"setPosition",Qt::BlockingQueuedConnection,Q_ARG(qint64,_time));
+	QMetaObject::invokeMethod(mp,"setPosition",
+							  Qt::BlockingQueuedConnection,
+							  Q_ARG(qint64,_time));
 	skipTimeChanged=true;
 	emit jumped(_time);
 }
@@ -765,7 +800,12 @@ qint64 QPlayer::getTime()
 void QPlayer::setMedia(QString _file,bool manually)
 {
 	stop(manually);
-	QMetaObject::invokeMethod(mp,"setMedia",Qt::BlockingQueuedConnection,Q_ARG(QMediaContent,QUrl::fromLocalFile(_file)));
+	QMetaObject::invokeMethod(mp,"setMedia",
+							  Qt::BlockingQueuedConnection,
+							  Q_ARG(QMediaContent,QUrl::fromLocalFile(_file)));
+	QMetaObject::invokeMethod(mp,"setPlaybackRate",
+							  Qt::BlockingQueuedConnection,
+							  Q_ARG(qreal,1.0));
 	if(Config::getValue("/Playing/Immediate",false)){
 		play();
 	}
@@ -797,6 +837,23 @@ int QPlayer::getVolume()
 {
 	return mp->volume();
 }
+
+QSize QPlayer::getSize()
+{
+	//TODO
+	return QSize();
+}
+
+void QPlayer::setRate(double _rate)
+{
+	mp->setPlaybackRate(_rate);
+}
+
+double QPlayer::getRate()
+{
+	return mp->playbackRate();
+}
+
 
 void QPlayer::event(int)
 {
@@ -832,6 +889,11 @@ public slots:
 
 	void	setVolume(int _volume);
 	int 	getVolume();
+
+	QSize   getSize();
+
+	void    setRate(double _rate);
+	double  getRate();
 
 	void	event(int type);
 
@@ -908,6 +970,20 @@ void NPlayer::setVolume(int)
 }
 
 int NPlayer::getVolume()
+{
+	return 0;
+}
+
+QSize NPlayer::getSize()
+{
+	return QSize();
+}
+
+void NPlayer::setRate(double)
+{
+}
+
+double NPlayer::getRate()
 {
 	return 0;
 }

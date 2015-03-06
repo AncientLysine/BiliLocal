@@ -52,7 +52,6 @@ public:
 	{
 		QRect dest;
 		QSizeF s=videoAspectRatio>0?QSizeF(videoAspectRatio,1):QSizeF(size);
-		pixelAspectRatio>1?(s.rwidth()*=pixelAspectRatio):(s.rheight()/=pixelAspectRatio);
 		dest.setSize(s.scaled(rect.size(),Qt::KeepAspectRatio).toSize()/4*4);
 		dest.moveCenter(rect.center());
 		return dest;
@@ -276,7 +275,7 @@ public:
 		if(!srcFrame->isValid()){
 			return;
 		}
-		QRect dest=fitRect(srcFrame->size,rect);
+		QRect dest=fitRect(Render::instance()->getPreferSize(),rect);
 		QSize dstSize=dest.size()*painter->device()->devicePixelRatio();
 		if(!dstFrame||dstFrame->size!=dstSize){
 			if(dstFrame){
@@ -731,7 +730,7 @@ public:
 			dirty=false;
 			dataLock.unlock();
 		}
-		QRect dest=fitRect(inner,rect);
+		QRect dest=fitRect(Render::instance()->getPreferSize(),rect);
 		drawTexture(frame,format,dest,rect);
 		painter->endNativePainting();
 	}
@@ -1393,13 +1392,14 @@ void Render::setRefreshRate(int rate,bool soft)
 	emit refreshRateChanged(rate);
 }
 
-QSize Render::getPreferredSize()
+QSize Render::getPreferSize()
 {
 	Q_D(Render);
 	if(d->music){
 		return QSize();
 	}
-	QSize s=getBufferSize();
+	QSize s=APlayer::instance()->getSize();
+	s=s.isValid()?s:getBufferSize();
 	d->pixelAspectRatio>1?(s.rwidth()*=d->pixelAspectRatio):(s.rheight()/=d->pixelAspectRatio);
 	return s;
 }
