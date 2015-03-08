@@ -368,8 +368,7 @@ void Danmaku::clearCurrent(bool soft)
 void Danmaku::insertToCurrent(Graphic *graphic,int index)
 {
 	lock.lockForWrite();
-	Graphic *g=(Graphic *)graphic;
-	g->setIndex();
+	graphic->setIndex();
 	int size=current.size(),next;
 	if (size==0||index==0){
 		next=0;
@@ -381,7 +380,7 @@ void Danmaku::insertToCurrent(Graphic *graphic,int index)
 			next=size;
 		}
 	}
-	current.insert(next,g);
+	current.insert(next,graphic);
 	lock.unlock();
 }
 
@@ -568,7 +567,7 @@ private:
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
-	int l=Config::getValue("/Shield/Density",100),n=0;
+	int l=Config::getValue("/Shield/Density",0),n=0;
 	QMap<qint64,QMap<QString,QList<const Comment *>>> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];

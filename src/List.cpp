@@ -231,7 +231,7 @@ List::List(QObject *parent):
 		}
 	});
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
-		if(!m){
+		if(!m&&!finished()){
 			QModelIndex i=indexFromItem(cur);
 			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
 				APlayer::instance()->getState()!=APlayer::Play){
@@ -448,7 +448,8 @@ QStandardItem *List::itemFromFile(QString file,bool create)
 
 bool List::finished()
 {
-	return !hasChildren()||cur==item(rowCount()-1);
+	QStandardItem *n=item(cur?cur->row()+1:0);
+	return !n||(n->data(CodeRole).toInt()==Records&&!Config::getValue("/Playing/Continue",true));
 }
 
 void List::appendMedia(QString file)
@@ -569,6 +570,11 @@ bool List::jumpToIndex(const QModelIndex &index,bool manually)
 	if(!head||(manually&&head->data(CodeRole).toInt()==Inherit)){
 		return false;
 	}
-	APlayer::instance()->setMedia(head->data(FileRole).toString(),manually);
+	APlayer *p=APlayer::instance();
+	int state =p->getState();
+	p->setMedia(head->data(FileRole).toString(),manually);
+	if (state!=APlayer::Stop){
+		p->play();
+	}
 	return true;
 }

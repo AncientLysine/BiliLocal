@@ -332,7 +332,7 @@ uint Mode1::intersects(Graphic *other)
 	if(other->getMode()!=1){
 		return 0;
 	}
-	const Mode1 &f=*dynamic_cast<Mode1 *>(other);
+	const Mode1 &f=*static_cast<Mode1 *>(other);
 	const Mode1 &s=*this;
 	int h;
 	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
@@ -385,7 +385,7 @@ uint Mode4::intersects(Graphic *other)
 		return 0;
 	}
 	const Mode4 &f=*this;
-	const Mode4 &s=*dynamic_cast<Mode4 *>(other);
+	const Mode4 &s=*static_cast<Mode4 *>(other);
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
@@ -421,7 +421,7 @@ uint Mode5::intersects(Graphic *other)
 		return 0;
 	}
 	const Mode5 &f=*this;
-	const Mode5 &s=*dynamic_cast<Mode5 *>(other);
+	const Mode5 &s=*static_cast<Mode5 *>(other);
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
@@ -454,7 +454,7 @@ uint Mode6::intersects(Graphic *other)
 	if(other->getMode()!=6){
 		return 0;
 	}
-	const Mode6 &f=*dynamic_cast<Mode6 *>(other);
+	const Mode6 &f=*static_cast<Mode6 *>(other);
 	const Mode6 &s=*this;
 	int h;
 	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
