@@ -34,7 +34,6 @@
 #include "Render.h"
 #include "Shield.h"
 #include <algorithm>
-#include <functional>
 #include <numeric>
 
 #define qThreadPool QThreadPool::globalInstance()
@@ -469,87 +468,98 @@ public:
 
 	void run()
 	{
-		if(wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
+		if (wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
 			return;
 		}
 		QThread::currentThread()->setPriority(QThread::NormalPriority);
 		QSize size=Render::instance()->getActualSize();
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){
-			const Comment *c=wait.takeFirst();
-			Graphic *g=Graphic::create(*c);
-			if(g){
-				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
-					QRectF &r=g->currentRect();
-					int b=r.top(),e=0,s=10;
-					std::function<bool(int,int)> f;
-					switch(c->mode){
-					case 1:
-					case 5:
-					case 6:
-						e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-r.height();
-						f=std::less_equal   <int>();
-						break;
-					case 4:
-						s=-s;
-						f=std::greater_equal<int>();
-						break;
-					}
-					QVarLengthArray<int> result(qMax((e-b)/s+1,0));
-					memset(result.data(),0,sizeof(int)*result.size());
-					auto calculate=[&](const QList<Graphic *> &data){
-						QRectF t=r;
-						int i=0,h=b;
-						for(;f(h,e);h+=s,++i){
-							r.moveTop(h);
-							for(Graphic *iter:data){
-								result[i]+=g->intersects(iter);
-							}
-						}
-						r=t;
-					};
-					lock->lockForRead();
-					quint64 last=current.isEmpty()?0:current.last()->getIndex();
-					calculate(current);
-					lock->unlock();
-					g->setEnabled(false);
-					ready.append(g);
-					lock->lockForWrite();
-					QList<Graphic *> addtion;
-					QListIterator<Graphic *> iter(current);
-					iter.toBack();
-					while(iter.hasPrevious()){
-						Graphic *p=iter.previous();
-						if(p->getIndex()>last){
-							addtion.prepend(p);
-						}
-						else break;
-					}
-					calculate(addtion);
-					int h=b,m=std::numeric_limits<int>::max();
-					for(int i=0;f(h,e)&&m!=0;h+=s,++i){
-						if (m>result[i]){
-							m=result[i];
-							r.moveTop(h);
-						}
-					}
+			const Comment *comment=wait.takeFirst();
+			Graphic *graphic=Graphic::create(*comment);
+			if(!graphic){
+				Danmaku::instance()->unrecognizedComment(comment);
+				continue;
+			}
+			if (comment->mode<=6&&comment->font*(comment->string.count("\n")+1)<360){
+				QRectF &rect=graphic->currentRect();
+				int b=rect.top(),e=0,step=10,slot=40;
+				switch(comment->mode){
+				case 1:
+				case 5:
+				case 6:
+					e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-rect.height();
+					break;
+				case 4:
+					step=-step;
+					break;
 				}
-				else{
-					g->setEnabled(false);
-					ready.append(g);
-					lock->lockForWrite();
-				}
-				g->setIndex();
-				current.append(g);
+				QVarLengthArray<int> result((qAbs(e-b+step)-1)/qAbs(step));
+				memset(result.data(),0,sizeof(int)*result.size());
+				auto calculate=[&](const QList<Graphic *> &data){
+					QMap<int,QList<Graphic *>> parse;
+					for(Graphic *iter:data){
+						const QRectF &rect=iter->currentRect();
+						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
+						for(;m<n;++m){
+							parse[m].append(iter);
+						}
+					}
+					QRectF t=rect;
+					int i=0,h=b;
+					for(;step>0?(h<=e):(h>=e);h+=step,++i){
+						rect.moveTop(h);
+						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
+						QList<Graphic *> close;
+						for(auto it=parse.lowerBound(m);it!=parse.end()&&it.key()<=n;++it){
+							close.append(*it);
+						}
+						std::sort(close.begin(),close.end());
+						auto tail=std::unique(close.begin(),close.end());
+						for(auto iter=close.begin();iter!=tail;++iter){
+							result[i]+=graphic->intersects(*iter);
+						}
+					}
+					rect=t;
+				};
+				lock->lockForRead();
+				quint64 last=current.isEmpty()?0:current.last()->getIndex();
+				calculate(current);
 				lock->unlock();
+				graphic->setEnabled(false);
+				ready.append(graphic);
+				lock->lockForWrite();
+				QList<Graphic *> addtion;
+				QListIterator<Graphic *> iter(current);
+				iter.toBack();
+				while(iter.hasPrevious()){
+					Graphic *p=iter.previous();
+					if(p->getIndex()>last){
+						addtion.prepend(p);
+					}
+					else break;
+				}
+				calculate(addtion);
+				int h=b,m=std::numeric_limits<int>::max();
+				for(int i=0;(step>0?(h<=e):(h>=e))&&m!=0;h+=step,++i){
+					if (m>result[i]){
+						m=result[i];
+						rect.moveTop(h);
+					}
+				}
 			}
 			else{
-				Danmaku::instance()->unrecognizedComment(c);
+				graphic->setEnabled(false);
+				ready.append(graphic);
+				lock->lockForWrite();
 			}
+			graphic->setIndex();
+			current.append(graphic);
+			lock->unlock();
 		}
 		lock->lockForWrite();
-		for(Graphic *g:ready){
-			g->setEnabled(true);
+		for(Graphic *iter:ready){
+			iter->setEnabled(true);
 		}
 		lock->unlock();
 	}
