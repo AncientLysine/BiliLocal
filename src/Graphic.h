@@ -34,11 +34,12 @@
 class Graphic
 {
 public:
+	virtual QList<QRectF> locate()=0;
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
 	virtual uint intersects(Graphic *other)=0;
 	virtual QRectF &currentRect(){return rect;}
-	virtual ~Graphic(){}
+	virtual ~Graphic()=default;
 
 	inline int getMode(){return source?source->mode:0;}
 
@@ -58,7 +59,7 @@ protected:
 	QRectF rect;
 	quint64 index;
 	const Comment *source;
-	Graphic():enabled(false),source(NULL){}
+	Graphic():enabled(false),source(nullptr){}
 };
 
 #endif // GRAPHIC_H
