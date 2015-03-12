@@ -222,7 +222,7 @@ List::List(QObject *parent):
 			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
 				QString file=iter.absoluteFilePath();
 				if(!accept.contains(iter.suffix().toLower())||
-					info.baseName()!=iter.baseName()){
+					info.completeBaseName()!=iter.completeBaseName()){
 					continue;
 				}
 				Load::instance()->loadDanmaku(file);
@@ -570,11 +570,6 @@ bool List::jumpToIndex(const QModelIndex &index,bool manually)
 	if(!head||(manually&&head->data(CodeRole).toInt()==Inherit)){
 		return false;
 	}
-	APlayer *p=APlayer::instance();
-	int state =p->getState();
-	p->setMedia(head->data(FileRole).toString(),manually);
-	if (state!=APlayer::Stop){
-		p->play();
-	}
+	APlayer::instance()->setMedia(head->data(FileRole).toString(),manually);
 	return true;
 }
