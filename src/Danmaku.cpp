@@ -110,8 +110,14 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 			else{
 				if(comment.mode==7){
-					QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
-					return data.size()>=5?data.at(4).toString():QString();
+					QJsonDocument doc=QJsonDocument::fromJson(comment.string.toUtf8());
+					if(doc.isArray()){
+						QJsonArray data=doc.array();
+						return data.size()>=5?data.at(4).toString():QString();
+					}
+					else{
+						return doc.object()["n"].toString();
+					}
 				}
 				else{
 					return comment.string.left(50).remove('\n');
@@ -343,21 +349,15 @@ void Danmaku::clearCurrent(bool soft)
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
 	lock.lockForWrite();
-	if(soft){
-		for(auto iter=current.begin();iter!=current.end();){
-			Graphic *g=*iter;
-			if(g->getMode()==8){
-				++iter;
-			}
-			else{
-				delete g;
-				iter=current.erase(iter);
-			}
+	for(auto iter=current.begin();iter!=current.end();){
+		Graphic *g=*iter;
+		if(soft&&g->stay()){
+			++iter;
 		}
-	}
-	else{
-		qDeleteAll(current);
-		current.clear();
+		else{
+			delete g;
+			iter=current.erase(iter);
+		}
 	}
 	lock.unlock();
 	Render::instance()->draw();

@@ -854,7 +854,6 @@ double QPlayer::getRate()
 	return mp->playbackRate();
 }
 
-
 void QPlayer::event(int)
 {
 }

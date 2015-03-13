@@ -38,6 +38,7 @@ public:
 	virtual bool move(qint64 time)=0;
 	virtual void draw(QPainter *painter)=0;
 	virtual uint intersects(Graphic *other)=0;
+	virtual bool stay(){return false;}
 	virtual QRectF &currentRect(){return rect;}
 	virtual ~Graphic()=default;
 
