@@ -140,7 +140,7 @@ Interface::Interface(QWidget *parent):
 		if(!isFullScreen()){
 			if (geo.isEmpty()){
 				geo=saveGeometry();
-				setCenter(render->getPreferredSize(),false);
+				setCenter(render->getPreferSize(),false);
 			}
 		}
 		sca->setEnabled(!isFullScreen());
@@ -334,6 +334,27 @@ Interface::Interface(QWidget *parent):
 	connect(pgdA,&QAction::triggered,[this](){list->jumpToNext();});
 	addAction(pguA);
 	addAction(pgdA);
+	
+	QAction *spuA=new QAction(tr("SpeedUp"),this);
+	spuA->setObjectName("SpUp");
+	spuA->setShortcut(Config::getValue("/Shortcut/SpUp",QString("Ctrl+Up")));
+	connect(spuA,&QAction::triggered,[this](){aplayer->setRate(aplayer->getRate()+0.1);});
+	QAction *spdA=new QAction(tr("SpeedDn"),this);
+	spdA->setObjectName("SpDn");
+	spdA->setShortcut(Config::getValue("/Shortcut/SpDn",QString("Ctrl+Down")));
+	connect(spdA,&QAction::triggered,[this](){aplayer->setRate(aplayer->getRate()-0.1);});
+	addAction(spuA);
+	addAction(spdA);
+
+	QAction *rstA=new QAction(tr("Reset"),this);
+	rstA->setObjectName("Rest");
+	rstA->setShortcut(Config::getValue("/Shortcut/Rest",QString("Home")));
+	connect(rstA,&QAction::triggered,[this](){
+		aplayer->setRate(1.0);
+		rat->defaultAction()->trigger();
+		sca->defaultAction()->trigger();
+	});
+	addAction(rstA);
 
 	rat=new QMenu(tr("Ratio"),this);
 	rat->setEnabled(false);
@@ -365,11 +386,11 @@ Interface::Interface(QWidget *parent):
 	sca->setDefaultAction(sca->addAction("1:1"));
 	sca->addAction("2:1");
 	connect(sca,&QMenu::triggered,[this](QAction *action){
-		if(render->getPreferredSize().isValid()){
+		if(render->getPreferSize().isValid()){
 			QSize s=action->data().toSize();
 			if(s.isEmpty()){
 				QStringList l=action->text().split(':');
-				s=render->getPreferredSize()*l[0].toInt()/l[1].toInt();
+				s=render->getPreferSize()*l[0].toInt()/l[1].toInt();
 			}
 			setCenter(s,false);
 		}

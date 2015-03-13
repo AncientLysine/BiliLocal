@@ -616,8 +616,8 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		opt[1]->setLayout(e);
 		render=new QComboBox(widget[2]);
 		decode=new QComboBox(widget[2]);
-		auto reopti=new QGridLayout(widget[2]);
-		auto deopti=new QGridLayout(widget[2]);
+		auto reopti=new QGridLayout;
+		auto deopti=new QGridLayout;
 
 		QStringList relist=Utils::getRenderModules();
 		QStringList delist=Utils::getDecodeModules();
@@ -991,7 +991,7 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 		grid->addWidget(label[0],3,0,1,2);
 
 		limit=new QLineEdit(widget[3]);
-		limit->setText(QString::number(Config::getValue("/Shield/Density",100)));
+		limit->setText(QString::number(Config::getValue("/Shield/Density",0)));
 		connect(limit,&QLineEdit::editingFinished,[=](){
 			Config::setValue("/Shield/Density",limit->text().toInt());
 		});

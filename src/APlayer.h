@@ -87,6 +87,11 @@ public slots:
 	virtual void	setVolume(int _volume)=0;
 	virtual int 	getVolume()=0;
 
+	virtual QSize   getSize()=0;
+
+	virtual void    setRate(double _rate)=0;
+	virtual double  getRate()=0;
+
 	virtual void	event(int type)=0;
 };
 

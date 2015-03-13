@@ -43,6 +43,7 @@ class Mode1:public Plain
 {
 public:
 	Mode1(const Comment &comment);
+	QList<QRectF> locate();
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -54,6 +55,7 @@ class Mode4:public Plain
 {
 public:
 	Mode4(const Comment &comment);
+	QList<QRectF> locate();
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -65,6 +67,7 @@ class Mode5:public Plain
 {
 public:
 	Mode5(const Comment &comment);
+	QList<QRectF> locate();
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -76,6 +79,7 @@ class Mode6:public Plain
 {
 public:
 	Mode6(const Comment &comment);
+	QList<QRectF> locate();
 	bool move(qint64 time);
 	uint intersects(Graphic *other);
 
@@ -87,6 +91,7 @@ class Mode7:public Graphic
 {
 public:
 	Mode7(const Comment &comment);
+	QList<QRectF> locate(){return QList<QRectF>();}
 	bool move(qint64 time);
 	void draw(QPainter *painter);
 	uint intersects(Graphic *){return 0;}
@@ -306,17 +311,31 @@ void Plain::draw(QPainter *painter)
 Mode1::Mode1(const Comment &comment):
 	Plain(comment)
 {
-	if(comment.mode!=1){
-		return;
-	}
-	QSize size=Render::instance()->getActualSize();
+	Q_ASSERT(comment.mode==1);
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
 		return;
 	}
-	rect.moveTopLeft(QPointF(size.width(),0));
 	enabled=true;
+}
+
+QList<QRectF> Mode1::locate()
+{
+	QList<QRectF> results;
+	if (rect.height()>360){
+		return results;
+	}
+	QSize size=Render::instance()->getActualSize();
+	QRectF init=rect;
+	init.moveLeft(size.width());
+	int end=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-rect.height();
+	int stp=Config::getValue("/Danmaku/Grating",10);
+	for(int height=0;height<=end;height+=stp){
+		init.moveTop(height);
+		results.append(init);
+	}
+	return results;
 }
 
 bool Mode1::move(qint64 time)
@@ -329,10 +348,8 @@ bool Mode1::move(qint64 time)
 
 uint Mode1::intersects(Graphic *other)
 {
-	if(other->getMode()!=1){
-		return 0;
-	}
-	const Mode1 &f=*dynamic_cast<Mode1 *>(other);
+	Q_ASSERT(other->getMode()==1);
+	const Mode1 &f=*static_cast<Mode1 *>(other);
 	const Mode1 &s=*this;
 	int h;
 	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
@@ -357,18 +374,31 @@ uint Mode1::intersects(Graphic *other)
 Mode4::Mode4(const Comment &comment):
 	Plain(comment)
 {
-	if(comment.mode!=4){
-		return;
-	}
-	QSize size=Render::instance()->getActualSize();
+	Q_ASSERT(comment.mode==4);
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
 		return;
 	}
-	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveBottom(size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1));
 	enabled=true;
+}
+
+QList<QRectF> Mode4::locate()
+{
+	QList<QRectF> results;
+	if (rect.height()>360){
+		return results;
+	}
+	QSize size=Render::instance()->getActualSize();
+	QRectF init=rect;
+	init.moveCenter(QPointF(size.width()/2.0,0));
+	init.moveBottom(size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1));
+	int stp=Config::getValue("/Danmaku/Grating",10);
+	for(int height=init.top();height>=0;height-=stp){
+		init.moveTop(height);
+		results.append(init);
+	}
+	return results;
 }
 
 bool Mode4::move(qint64 time)
@@ -381,30 +411,40 @@ bool Mode4::move(qint64 time)
 
 uint Mode4::intersects(Graphic *other)
 {
-	if(other->getMode()!=4){
-		return 0;
-	}
+	Q_ASSERT(other->getMode()==4);
 	const Mode4 &f=*this;
-	const Mode4 &s=*dynamic_cast<Mode4 *>(other);
+	const Mode4 &s=*static_cast<Mode4 *>(other);
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
 Mode5::Mode5(const Comment &comment):
 	Plain(comment)
 {
-	if(comment.mode!=5){
-		return;
-	}
-	QSize size=Render::instance()->getActualSize();
-	QSizeF bound=rect.size();
+	Q_ASSERT(comment.mode==5);
 	QString expression=Config::getValue<QString>("/Danmaku/Life","5");
-	expression.replace("%{width}",QString::number(bound.width()),Qt::CaseInsensitive);
+	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((life=Utils::evaluate(expression))==0){
 		return;
 	}
-	rect.moveCenter(QPointF(size.width()/2.0,0));
-	rect.moveTop(0);
 	enabled=true;
+}
+
+QList<QRectF> Mode5::locate()
+{
+	QList<QRectF> results;
+	if (rect.height()>360){
+		return results;
+	}
+	QSize size=Render::instance()->getActualSize();
+	QRectF init=rect;
+	init.moveCenter(QPointF(size.width()/2.0,0));
+	int end=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-rect.height();
+	int stp=Config::getValue("/Danmaku/Grating",10);
+	for(int height=0;height<=end;height+=stp){
+		init.moveTop(height);
+		results.append(init);
+	}
+	return results;
 }
 
 bool Mode5::move(qint64 time)
@@ -417,27 +457,40 @@ bool Mode5::move(qint64 time)
 
 uint Mode5::intersects(Graphic *other)
 {
-	if(other->getMode()!=5){
-		return 0;
-	}
+	Q_ASSERT(other->getMode()==5);
 	const Mode5 &f=*this;
-	const Mode5 &s=*dynamic_cast<Mode5 *>(other);
+	const Mode5 &s=*static_cast<Mode5 *>(other);
 	return getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom())*qMin(f.rect.width(),s.rect.width());
 }
 
 Mode6::Mode6(const Comment &comment):
 	Plain(comment)
 {
-	if(comment.mode!=6){
-		return;
-	}
+	Q_ASSERT(comment.mode==6);
 	QString expression=Config::getValue<QString>("/Danmaku/Speed","125+%{width}/5");
 	expression.replace("%{width}",QString::number(rect.width()),Qt::CaseInsensitive);
 	if((speed=Utils::evaluate(expression))==0){
 		return;
 	}
-	rect.moveTopLeft(QPointF(-rect.width(),0));
 	enabled=true;
+}
+
+QList<QRectF> Mode6::locate()
+{
+	QList<QRectF> results;
+	if (rect.height()>360){
+		return results;
+	}
+	QSize size=Render::instance()->getActualSize();
+	QRectF init=rect;
+	init.moveRight(0);
+	int end=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-rect.height();
+	int stp=Config::getValue("/Danmaku/Grating",10);
+	for(int height=0;height<=end;height+=stp){
+		init.moveTop(height);
+		results.append(init);
+	}
+	return results;
 }
 
 bool Mode6::move(qint64 time)
@@ -451,10 +504,8 @@ bool Mode6::move(qint64 time)
 
 uint Mode6::intersects(Graphic *other)
 {
-	if(other->getMode()!=6){
-		return 0;
-	}
-	const Mode6 &f=*dynamic_cast<Mode6 *>(other);
+	Q_ASSERT(other->getMode()==6);
+	const Mode6 &f=*static_cast<Mode6 *>(other);
 	const Mode6 &s=*this;
 	int h;
 	if((h=getOverlap(f.rect.top(),f.rect.bottom(),s.rect.top(),s.rect.bottom()))==0){
@@ -478,9 +529,7 @@ uint Mode6::intersects(Graphic *other)
 
 Mode7::Mode7(const Comment &comment)
 {
-	if(comment.mode!=7){
-		return;
-	}
+	Q_ASSERT(comment.mode==7);
 	QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
 	int l;
 	if((l=data.size())<5){

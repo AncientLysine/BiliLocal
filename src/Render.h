@@ -73,7 +73,7 @@ public slots:
 	virtual void setRefreshRate(int rate,bool soft=false);
 	virtual QSize getBufferSize()=0;
 	virtual QSize getActualSize()=0;
-	virtual	QSize getPreferredSize();
+	virtual	QSize getPreferSize();
 	virtual void draw(QRect rect=QRect())=0;
 };
 

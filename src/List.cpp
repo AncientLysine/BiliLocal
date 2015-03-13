@@ -222,7 +222,7 @@ List::List(QObject *parent):
 			for(const QFileInfo &iter:info.dir().entryInfoList(QDir::Files,QDir::Name)){
 				QString file=iter.absoluteFilePath();
 				if(!accept.contains(iter.suffix().toLower())||
-					info.baseName()!=iter.baseName()){
+					info.completeBaseName()!=iter.completeBaseName()){
 					continue;
 				}
 				Load::instance()->loadDanmaku(file);
@@ -231,7 +231,7 @@ List::List(QObject *parent):
 		}
 	});
 	connect(APlayer::instance(),&APlayer::reach,this,[this](bool m){
-		if(!m){
+		if(!m&&!finished()){
 			QModelIndex i=indexFromItem(cur);
 			if (jumpToIndex(index(i.row()+1,0,i.parent()),false)&&
 				APlayer::instance()->getState()!=APlayer::Play){
@@ -448,7 +448,8 @@ QStandardItem *List::itemFromFile(QString file,bool create)
 
 bool List::finished()
 {
-	return !hasChildren()||cur==item(rowCount()-1);
+	QStandardItem *n=item(cur?cur->row()+1:0);
+	return !n||(n->data(CodeRole).toInt()==Records&&!Config::getValue("/Playing/Continue",true));
 }
 
 void List::appendMedia(QString file)

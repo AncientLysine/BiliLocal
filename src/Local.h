@@ -43,20 +43,26 @@ public:
 		return lApp;
 	}
 
+	static QHash<QString,QObject *> objects;
+
+public slots:
+	void exit(int code=0);
+
 	QWidget *mainWidget()
 	{
 		return qobject_cast<QWidget *>(objects["Interface"]);
 	}
 
-	static QHash<QString,QObject *> objects;
-
-public slots:
-	QString suggestion(int code);
-	void exit(int code=0);
-
-	void synchronize(quintptr func)
+	QString suggestion(int);
+	
+	void synchronize(void *func)
 	{
-		((void (*)())func)();
+		((void(*)())func)();
+	}
+
+	void synchronize(void *func,void *args)
+	{
+		((void(*)(void *))func)(args);
 	}
 };
 

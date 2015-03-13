@@ -1,4 +1,4 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013 Lysine.
 *
@@ -34,8 +34,6 @@
 #include "Render.h"
 #include "Shield.h"
 #include <algorithm>
-#include <functional>
-#include <numeric>
 
 #define qThreadPool QThreadPool::globalInstance()
 
@@ -112,8 +110,14 @@ QVariant Danmaku::data(const QModelIndex &index,int role) const
 			}
 			else{
 				if(comment.mode==7){
-					QJsonArray data=QJsonDocument::fromJson(comment.string.toUtf8()).array();
-					return data.size()>=5?data.at(4).toString():QString();
+					QJsonDocument doc=QJsonDocument::fromJson(comment.string.toUtf8());
+					if(doc.isArray()){
+						QJsonArray data=doc.array();
+						return data.size()>=5?data.at(4).toString():QString();
+					}
+					else{
+						return doc.object()["n"].toString();
+					}
 				}
 				else{
 					return comment.string.left(50).remove('\n');
@@ -345,21 +349,15 @@ void Danmaku::clearCurrent(bool soft)
 	qThreadPool->clear();
 	qThreadPool->waitForDone();
 	lock.lockForWrite();
-	if(soft){
-		for(auto iter=current.begin();iter!=current.end();){
-			Graphic *g=*iter;
-			if(g->getMode()==8){
-				++iter;
-			}
-			else{
-				delete g;
-				iter=current.erase(iter);
-			}
+	for(auto iter=current.begin();iter!=current.end();){
+		Graphic *g=*iter;
+		if(soft&&g->stay()){
+			++iter;
 		}
-	}
-	else{
-		qDeleteAll(current);
-		current.clear();
+		else{
+			delete g;
+			iter=current.erase(iter);
+		}
 	}
 	lock.unlock();
 	Render::instance()->draw();
@@ -368,8 +366,7 @@ void Danmaku::clearCurrent(bool soft)
 void Danmaku::insertToCurrent(Graphic *graphic,int index)
 {
 	lock.lockForWrite();
-	Graphic *g=(Graphic *)graphic;
-	g->setIndex();
+	graphic->setIndex();
 	int size=current.size(),next;
 	if (size==0||index==0){
 		next=0;
@@ -381,7 +378,7 @@ void Danmaku::insertToCurrent(Graphic *graphic,int index)
 			next=size;
 		}
 	}
-	current.insert(next,g);
+	current.insert(next,graphic);
 	lock.unlock();
 }
 
@@ -470,87 +467,111 @@ public:
 
 	void run()
 	{
-		if(wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
+		//跳过500毫秒以上未处理的弹幕
+		if (wait.isEmpty()||createTime<QDateTime::currentMSecsSinceEpoch()-500){
 			return;
 		}
+		//子线程默认优先级和主线程相同，会导致卡顿
 		QThread::currentThread()->setPriority(QThread::NormalPriority);
-		QSize size=Render::instance()->getActualSize();
 		QList<Graphic *> ready;
 		while(!wait.isEmpty()){
-			const Comment *c=wait.takeFirst();
-			Graphic *g=Graphic::create(*c);
-			if(g){
-				if(c->mode<=6&&c->font*(c->string.count("\n")+1)<360){
-					QRectF &r=g->currentRect();
-					int b=r.top(),e=0,s=10;
-					std::function<bool(int,int)> f;
-					switch(c->mode){
-					case 1:
-					case 5:
-					case 6:
-						e=size.height()*(Config::getValue("/Danmaku/Protect",false)?0.85:1)-r.height();
-						f=std::less_equal   <int>();
-						break;
-					case 4:
-						s=-s;
-						f=std::greater_equal<int>();
-						break;
-					}
-					QVarLengthArray<int> result(qMax((e-b)/s+1,0));
-					memset(result.data(),0,sizeof(int)*result.size());
-					auto calculate=[&](const QList<Graphic *> &data){
-						QRectF t=r;
-						int i=0,h=b;
-						for(;f(h,e);h+=s,++i){
-							r.moveTop(h);
-							for(Graphic *iter:data){
-								result[i]+=g->intersects(iter);
+			const Comment *comment=wait.takeFirst();
+			Graphic *graphic=Graphic::create(*comment);
+			if(!graphic){
+				//自带弹幕系统未识别，通知插件处理
+				emit Danmaku::instance()->unrecognizedComment(comment);
+				continue;
+			}
+			QRectF &rect=graphic->currentRect();
+			const auto &locate=graphic->locate();
+			switch(locate.size()){
+			case 1:
+				//图元指定位置
+				rect=locate.first();
+			case 0:
+				//弹幕自行定位
+				ready.append(graphic);
+				lock->lockForWrite();
+				break;
+			default:
+			{
+				//弹幕自动定位
+				QVarLengthArray<int> result(locate.size());
+				memset(result.data(),0,sizeof(int)*result.size());
+				//弹幕分组高度
+				const int slot=40;
+				//计算每个位置的拥挤程度
+				auto calculate=[&](const QList<Graphic *> &data){
+					//将弹幕按高度分组，提高查询效率
+					QMap<int,QList<Graphic *>> parse;
+					for(Graphic *iter:data){
+						const QRectF &rect=iter->currentRect();
+						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
+						for(;m<n;++m){
+							if (iter->getMode()==comment->mode){
+								parse[m].append(iter);
 							}
 						}
-						r=t;
-					};
-					lock->lockForRead();
-					quint64 last=current.isEmpty()?0:current.last()->getIndex();
-					calculate(current);
-					lock->unlock();
-					g->setEnabled(false);
-					ready.append(g);
-					lock->lockForWrite();
-					QList<Graphic *> addtion;
-					QListIterator<Graphic *> iter(current);
-					iter.toBack();
-					while(iter.hasPrevious()){
-						Graphic *p=iter.previous();
-						if(p->getIndex()>last){
-							addtion.prepend(p);
-						}
-						else break;
 					}
-					calculate(addtion);
-					int h=b,m=std::numeric_limits<int>::max();
-					for(int i=0;f(h,e)&&m!=0;h+=s,++i){
-						if (m>result[i]){
-							m=result[i];
-							r.moveTop(h);
+					int i=0;
+					for(const QRectF &iter:locate){
+						rect=iter;
+						//查找附近可能重叠的弹幕组
+						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
+						QList<Graphic *> close;
+						for(auto it=parse.lowerBound(m);it!=parse.end()&&it.key()<=n;++it){
+							close.append(*it);
 						}
+						//弹幕可能跨多个组，去除重复
+						std::sort(close.begin(),close.end());
+						auto tail=std::unique(close.begin(),close.end());
+						//计算交叉面积
+						for(auto iter=close.begin();iter!=tail;++iter){
+							result[i]+=graphic->intersects(*iter);
+						}
+						++i;
 					}
-				}
-				else{
-					g->setEnabled(false);
-					ready.append(g);
-					lock->lockForWrite();
-				}
-				g->setIndex();
-				current.append(g);
+				};
+				//获取读锁，计算现有弹幕的拥挤程度
+				lock->lockForRead();
+				quint64 last=current.isEmpty()?0:current.last()->getIndex();
+				calculate(current);
 				lock->unlock();
+				ready.append(graphic);
+				//获取写锁，计算两次锁之间的新弹幕
+				lock->lockForWrite();
+				QList<Graphic *> addtion;
+				QListIterator<Graphic *> iter(current);
+				iter.toBack();
+				while(iter.hasPrevious()){
+					Graphic *p=iter.previous();
+					if(p->getIndex()>last){
+						addtion.prepend(p);
+					}
+					else break;
+				}
+				calculate(addtion);
+				//挑选最空闲的位置
+				int thin;
+				thin=result[0];
+				rect=locate[0];
+				for(int i=1;thin!=0&&i<result.size();++i){
+					if (thin>result[i]){
+						thin=result[i];
+						rect=locate[i];
+					}
+				}
 			}
-			else{
-				Danmaku::instance()->unrecognizedComment(c);
 			}
+			//相同内容的弹幕需要同时启动，先将其冻结
+			graphic->setEnabled(false);
+			graphic->setIndex();
+			current.append(graphic);
+			lock->unlock();
 		}
 		lock->lockForWrite();
-		for(Graphic *g:ready){
-			g->setEnabled(true);
+		for(Graphic *iter:ready){
+			iter->setEnabled(true);
 		}
 		lock->unlock();
 	}
@@ -568,7 +589,7 @@ private:
 void Danmaku::setTime(qint64 _time)
 {
 	time=_time;
-	int l=Config::getValue("/Shield/Density",100),n=0;
+	int l=Config::getValue("/Shield/Density",0),n=0;
 	QMap<qint64,QMap<QString,QList<const Comment *>>> buffer;
 	for(;cur<danmaku.size()&&danmaku[cur]->time<time;++cur){
 		const Comment *c=danmaku[cur];
