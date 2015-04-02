@@ -411,6 +411,8 @@ public:
 		widget=new RWidget(d);
 		d->power=new QTimer(this);
 		d->power->setTimerType(Qt::PreciseTimer);
+		int fps=Config::getValue("/Performance/Raster/FPS",60);
+		d->power->start(1000/(fps>0?fps:60));
 		connect(APlayer::instance(),&APlayer::decode,d->power,[=](){
 			if(!d->power->isActive()){
 				draw();
@@ -441,24 +443,6 @@ public slots:
 	void resize(QSize size)
 	{
 		widget->resize(size);
-	}
-	
-	void setRefreshRate(int rate,bool soft)
-	{
-		Q_D(RasterRender);
-		if (rate){
-			rate =qBound(30,rate,200);
-			int r=1000/rate;
-			if(soft&&d->power->interval()<r){
-				return;
-			}
-			d->power->start(r);
-		}
-		else{
-			rate=0;
-			d->power->stop();
-		}
-		Render::setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
@@ -811,7 +795,6 @@ public:
 
 	virtual quintptr getHandle()=0;
 	virtual void resize(QSize)=0;
-	virtual void setRefreshRate(int,bool)=0;
 	virtual QSize getActualSize()=0;
 	virtual void draw(QRect)=0;
 
@@ -871,13 +854,6 @@ public:
 	void resize(QSize size)
 	{
 		widget->resize(size);
-	}
-
-	void setRefreshRate(int rate,bool soft)
-	{
-		QScreen *screen=widget->context()->screen();
-		rate=screen->refreshRate();
-		Render::instance()->Render::setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
@@ -990,13 +966,6 @@ public:
 		widget->resize(size);
 	}
 
-	void setRefreshRate(int rate,bool soft)
-	{
-		QScreen *screen=window->screen();
-		rate=screen->refreshRate();
-		Render::instance()->Render::setRefreshRate(rate,soft);
-	}
-
 	QSize getActualSize()
 	{
 		return widget->size();
@@ -1093,12 +1062,6 @@ public slots:
 	{
 		Q_D(OpenGLRender);
 		d->resize(size);
-	}
-
-	void setRefreshRate(int rate,bool soft)
-	{
-		Q_D(OpenGLRender);
-		d->setRefreshRate(rate,soft);
 	}
 
 	QSize getActualSize()
@@ -1227,12 +1190,6 @@ public slots:
 	void resize(QSize)
 	{
 	}
-	
-	void setRefreshRate(int rate,bool soft)
-	{
-		rate=window->screen()->refreshRate();
-		Render::setRefreshRate(rate,soft);
-	}
 
 	QSize getActualSize()
 	{
@@ -1292,6 +1249,7 @@ Render::Render(RenderPrivate *data,QObject *parent):
 {
 	Q_D(Render);
 	d->time=0;
+	connect(lApp,&Local::aboutToQuit,this,&Render::deleteLater);
 	if(Config::getValue("/Interface/Version",true)){
 		d->tv.setFileName(":/Picture/tv.gif");
 		d->tv.setCacheMode(QMovie::CacheAll);
@@ -1315,15 +1273,7 @@ Render::Render(RenderPrivate *data,QObject *parent):
 	d->dirty=0;
 	d->videoAspectRatio=0;
 	d->pixelAspectRatio=1;
-
 	connect(APlayer::instance(),&APlayer::stateChanged,[d](){d->last=QTime();});
-	connect(APlayer::instance(),&APlayer::reach,[this](){
-		setRefreshRate(Config::getValue("/Danmaku/Power",60));
-	});
-
-	connect(lApp,&Local::aboutToQuit,this,&Render::deleteLater);
-	QMetaObject::invokeMethod(this,"setRefreshRate",Qt::QueuedConnection,
-							  Q_ARG(int,Config::getValue("/Danmaku/Power",60)));
 }
 
 Render::~Render()
@@ -1359,9 +1309,7 @@ void Render::setBackground(QString path)
 void Render::setMusic(bool music)
 {
 	Q_D(Render);
-	if((d->music=music)){
-		setRefreshRate(60,true);
-	}
+	d->music=music;
 }
 
 void Render::setDisplayTime(double t)
@@ -1382,14 +1330,6 @@ void Render::setPixelAspectRatio(double ratio)
 {
 	Q_D(Render);
 	d->pixelAspectRatio=ratio;
-}
-
-void Render::setRefreshRate(int rate,bool soft)
-{
-	if(!soft){
-		Config::setValue("/Danmaku/Power",rate);
-	}
-	emit refreshRateChanged(rate);
 }
 
 QSize Render::getPreferSize()

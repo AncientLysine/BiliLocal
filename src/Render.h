@@ -51,11 +51,7 @@ protected:
 	static Render *ins;
 	RenderPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Render)
-
 	Render(RenderPrivate *data,QObject *parent=0);
-
-signals:
-	void refreshRateChanged(int);
 
 public slots:
 	virtual QList<quint8 *> getBuffer();
@@ -70,7 +66,6 @@ public slots:
 	void setPixelAspectRatio(double ratio);
 	virtual quintptr getHandle()=0;
 	virtual void resize(QSize size)=0;
-	virtual void setRefreshRate(int rate,bool soft=false);
 	virtual QSize getBufferSize()=0;
 	virtual QSize getActualSize()=0;
 	virtual	QSize getPreferSize();
