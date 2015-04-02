@@ -35,6 +35,7 @@
 #include "Render.h"
 #include "Search.h"
 #include "Utils.h"
+#include <numeric>
 
 namespace{
 class LoadProxyModel:public QAbstractProxyModel
@@ -237,6 +238,94 @@ public:
 private:
 	QString code;
 };
+
+class TimeEdit :public QLineEdit
+{
+public:
+	explicit TimeEdit(QWidget *parent=0) :
+		QLineEdit(parent)
+	{
+		m_wheel=0;
+		setAlignment(Qt::AlignCenter);
+		setText("00:00");
+
+		connect(this,&QLineEdit::textEdited,this,&TimeEdit::setTime);
+
+		connect(this,&QLineEdit::editingFinished,[this](){
+			Danmaku::instance()->delayAll(editingDelay()-currentDelay());
+		});
+
+		connect(Danmaku::instance(),&Danmaku::layoutChanged,[this](){
+			setText(intToTime(currentDelay()));
+		});
+	}
+
+private:
+	int m_wheel;
+
+	qint64 currentDelay()
+	{
+		const auto &pool=Danmaku::instance()->getPool();
+		if (pool.isEmpty()){
+			return 0;
+		}
+		qint64 delay=std::numeric_limits<qint64>::max();
+		for (const Record &r:pool){
+			delay=qMin(r.delay,delay);
+		}
+		return delay;
+	}
+
+	qint64 editingDelay()
+	{
+		return timeToInt(text());
+	}
+
+	void setText(QString text)
+	{
+		if( text!=this->text()){
+			QLineEdit::setText(text);
+		}
+	}
+
+	void setTime(QString time)
+	{
+		setText(intToTime(timeToInt(time)));
+	}
+
+	qint64 timeToInt(QString t)
+	{
+		qint64 i=0;
+		const QVector<QStringRef> &d=t.splitRef(':');
+		for(int j=0;j<d.size();++j){
+			i=i*((d.size()-j)<2?60:24)+(i<0?-1:1)*d[j].toInt();
+		}
+		return i*1000;
+	}
+
+	QString intToTime(qint64 i)
+	{
+		i/=1000;
+		QString t("%1:%2");
+		if (i<0){
+			i=-i;
+			t.prepend("-");
+		}
+		t=t.arg(i/60,2,10,QChar('0'));
+		t=t.arg(i%60,2,10,QChar('0'));
+		return t;
+	}
+
+	void wheelEvent(QWheelEvent *e) override
+	{
+		m_wheel+=e->angleDelta().y();
+		if(qAbs(m_wheel)>=120){
+			Danmaku::instance()->delayAll(m_wheel>0?-1000:1000);
+			m_wheel=0;
+		}
+		e->accept();
+	}
+};
 }
 
 Menu::Menu(QWidget *parent):
@@ -292,7 +381,7 @@ Menu::Menu(QWidget *parent):
 	danmB=new QPushButton(this);
 	fileB->setText(tr("Open"));
 	danmB->setText(tr("Load"));
-	sechB->setText(tr("Search"));
+	sechB->setText(tr("Seek"));
 	fileA=new QAction(tr("Open File"),this);
 	fileA->setObjectName("File");
 	fileA->setShortcut(Config::getValue("/Shortcut/File",QString()));
@@ -366,21 +455,10 @@ Menu::Menu(QWidget *parent):
 		}
 	});
 	connect(Danmaku::instance(),&Danmaku::alphaChanged,alphaS,&QSlider::setValue);
-	powerT=new QLabel(this);
-	powerT->setText(tr("Danmaku Power"));
-	powerL=new QLineEdit(this);
-	powerL->setValidator(new QRegularExpressionValidator(QRegularExpression("^\\w*$"),powerL));
-	connect(powerL,&QLineEdit::editingFinished,[this](){
-		Render::instance()->setRefreshRate(powerL->text().toInt());
-	});
-	connect(Render::instance(),&Render::refreshRateChanged,[this](int fps){
-		if(fps==0){
-			powerL->clear();
-		}
-		else{
-			powerL->setText(QString::number(fps));
-		}
-	});
+	delayT=new QLabel(this);
+	delayT->setText(tr("Danmaku Delay"));
+	delayL=new TimeEdit(this);
+	delayL->installEventFilter(this);
 	localT=new QLabel(this);
 	localT->setText(tr("Local Danmaku"));
 	localC=new QCheckBox(this);
@@ -479,23 +557,23 @@ void Menu::resizeEvent(QResizeEvent *e)
 {
 	double f=font().pointSizeF();
 	int x=logicalDpiX()*f/72,y=logicalDpiY()*f/72,w=e->size().width();
-	fileL->setGeometry(QRect(0.83*x,2.08*y,w-6.67*x,2.08*y));
-	danmL->setGeometry(QRect(0.83*x,5.42*y,w-6.67*x,2.08*y));
-	sechL->setGeometry(QRect(0.83*x,8.75*y,w-6.67*x,2.08*y));
-	fileB->setGeometry(QRect(w-5.42*x,2.08*y,4.58*x,2.08*y));
-	danmB->setGeometry(QRect(w-5.42*x,5.42*y,4.58*x,2.08*y));
-	sechB->setGeometry(QRect(w-5.42*x,8.75*y,4.58*x,2.08*y));
+	fileL->setGeometry(QRect(0.83*x,2.08*y,w-5.65*x,2.08*y));
+	danmL->setGeometry(QRect(0.83*x,5.42*y,w-5.65*x,2.08*y));
+	sechL->setGeometry(QRect(0.83*x,8.75*y,w-5.65*x,2.08*y));
+	fileB->setGeometry(QRect(w-4.44*x,2.08*y,3.60*x,2.08*y));
+	danmB->setGeometry(QRect(w-4.44*x,5.42*y,3.60*x,2.08*y));
+	sechB->setGeometry(QRect(w-4.44*x,8.75*y,3.60*x,2.08*y));
 	alphaT->setGeometry(QRect(0.83*x,12.08*y,w-1.67*x,2.08*y));
 	alphaS->setGeometry(QRect(0.83*x,14.17*y,w-1.67*x,1.25*y));
-	powerT->setGeometry(QRect(0.83*x,17.08*y,w-1.67*x,1.67*y));
-	powerL->setGeometry(QRect(w-3.33*x,17.08*y,2.50*x,1.67*y));
+	delayT->setGeometry(QRect(0.83*x,17.08*y,w-1.67*x,1.67*y));
+	delayL->setGeometry(QRect(w-4.44*x,17.08*y,3.60*x,1.67*y));
 	localT->setGeometry(QRect(0.83*x,20.00*y,w-1.67*x,2.08*y));
 	subT  ->setGeometry(QRect(0.83*x,22.92*y,w-1.67*x,2.08*y));
 	loopT ->setGeometry(QRect(0.83*x,25.83*y,w-1.67*x,2.08*y));
-	int l=15*logicalDpiX()/96;
-	localC->setGeometry(QRect(w-l/2-2.08*x,20.00*y,l,2.08*y));
-	subC  ->setGeometry(QRect(w-l/2-2.08*x,22.92*y,l,2.08*y));
-	loopC ->setGeometry(QRect(w-l/2-2.08*x,25.83*y,l,2.08*y));
+	int l=15*logicalDpiX()/96,o=delayL->geometry().center().x()-l/2;
+	localC->setGeometry(QRect(o,20.00*y,l,2.08*y));
+	subC  ->setGeometry(QRect(o,22.92*y,l,2.08*y));
+	loopC ->setGeometry(QRect(o,25.83*y,l,2.08*y));
 	QWidget::resizeEvent(e);
 }
 
@@ -504,9 +582,13 @@ bool Menu::eventFilter(QObject *o,QEvent *e)
 	switch(e->type()){
 	case QEvent::ContextMenu:
 	{
+		QLineEdit *l=qobject_cast<QLineEdit *>(o);
+		if(!l){
+			return 1;
+		}
 		isStay=1;
-		QMenu *m=dynamic_cast<QLineEdit *>(o)->createStandardContextMenu();
-		m->exec(dynamic_cast<QContextMenuEvent *>(e)->globalPos());
+		QMenu *m=l->createStandardContextMenu();
+		m->exec(((QContextMenuEvent *)e)->globalPos());
 		delete m;
 		isStay=0;
 		return 1;

@@ -55,8 +55,8 @@ private:
 	QAction *sechA;
 	QLabel *alphaT;
 	QSlider *alphaS;
-	QLabel *powerT;
-	QLineEdit *powerL;
+	QLabel *delayT;
+	QLineEdit *delayL;
 	QLabel *localT;
 	QCheckBox *localC;
 	QLabel *subT;
