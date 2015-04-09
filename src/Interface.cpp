@@ -41,46 +41,6 @@
 #include "Shield.h"
 #include <functional>
 
-class Message:public QMessageBox
-{
-public:
-	explicit Message(QWidget *parent):
-		QMessageBox(parent)
-	{
-		setIcon(Warning);
-	}
-
-	void warning(QString title,QString text)
-	{
-		if (p){
-			p->hide();
-		}
-		setWindowTitle(title);
-		setText(text);
-		show();
-	}
-
-	void setProgress(double progress)
-	{
-		QWidget *active=lApp->activeWindow();
-		if(!p||(p!=active&&p->parent()!=active&&active)){
-			if (p){
-				delete p;
-			}
-			p=new QProgressDialog(active);
-			p->setMaximum(1000);
-			p->setWindowTitle(Interface::tr("Loading"));
-			p->setFixedSize(p->sizeHint());
-			p->show();
-			connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
-		}
-		p->setValue(1000*progress);
-	}
-
-private:
-	QPointer<QProgressDialog> p;
-};
-
 Interface::Interface(QWidget *parent):
 	QWidget(parent)
 {
@@ -90,7 +50,6 @@ Interface::Interface(QWidget *parent):
 	setWindowIcon(QIcon(":/Picture/icon.png"));
 	setMinimumSize(360*logicalDpiX()/72,270*logicalDpiY()/72);
 	Local::objects["Interface"]=this;
-	message=new Message(this);
 	
 	aplayer=APlayer::instance();
 	danmaku=Danmaku::instance();
@@ -157,9 +116,7 @@ Interface::Interface(QWidget *parent):
 		sca->setEnabled(false);
 		render->setVideoAspectRatio(0);
 		if(!geo.isEmpty()&&(list->finished()||m)){
-			if (isFullScreen()){
-				fullA->toggle();
-			}
+			fullA->setChecked(false);
 			restoreGeometry(geo);
 			geo.clear();
 		}
@@ -190,16 +147,16 @@ Interface::Interface(QWidget *parent):
 			string=tr("An error occurred.");
 			break;
 		}
-		message->warning(tr("Warning"),string);
+		warning(tr("Warning"),string);
 	});
 	connect(aplayer,&APlayer::stateChanged,this,&Interface::setWindowFlags);
 	
 	connect(load   ,&Load::errorOccured,[this](int error){
 			QString info=tr("Network error occurred, error code: %1").arg(error);
 			QString sugg=Local::instance()->suggestion(error);
-			message->warning(tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
+			warning(tr("Network Error"),sugg.isEmpty()?info:(info+'\n'+sugg));
 	});
-	connect(load,&Load::progressChanged,message,&Message::setProgress);
+	connect(load,&Load::progressChanged,this,&Interface::percent);
 
 	showprg=sliding=false;
 	connect(aplayer,&APlayer::timeChanged,[this](qint64 t){
@@ -307,9 +264,7 @@ Interface::Interface(QWidget *parent):
 	QAction *escA=new QAction(this);
 	escA->setShortcut(Qt::Key_Escape);
 	connect(escA,&QAction::triggered,[this](){
-		if(isFullScreen()){
-			fullA->toggle();
-		}
+		fullA->setChecked(false);
 	});
 	addAction(escA);
 	
@@ -403,39 +358,6 @@ Interface::Interface(QWidget *parent):
 	setWindowFlags();
 	checkForUpdate();
 	setCenter(QSize(),true);
-}
-
-void Interface::tryLocal(QString p)
-{
-	QFileInfo info(p);
-	QString suffix=info.suffix().toLower();
-	if(!info.exists()){
-		return;
-	}
-	else if(Utils::getSuffix(Utils::Danmaku ).contains(suffix)){
-		load   ->loadDanmaku(p);
-	}
-	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
-		aplayer->addSubtitle(p);
-	}
-	else{
-		switch(Config::getValue("/Interface/Single",1)){
-		case 0:
-		case 1:
-			aplayer->setMedia(p);
-			break;
-		case 2:
-			list->appendMedia(p);
-			break;
-		}
-	}
-}
-
-void Interface::tryLocal(QStringList p)
-{
-	for(const QString &i:p){
-		tryLocal(i);
-	}
 }
 
 void Interface::closeEvent(QCloseEvent *e)
@@ -567,6 +489,39 @@ void Interface::resizeEvent(QResizeEvent *e)
 	QWidget::resizeEvent(e);
 }
 
+void Interface::tryLocal(QString p)
+{
+	QFileInfo info(p);
+	QString suffix=info.suffix().toLower();
+	if(!info.exists()){
+		return;
+	}
+	else if(Utils::getSuffix(Utils::Danmaku ).contains(suffix)){
+		load   ->loadDanmaku(p);
+	}
+	else if(Utils::getSuffix(Utils::Subtitle).contains(suffix)&&aplayer->getState()!=APlayer::Stop){
+		aplayer->addSubtitle(p);
+	}
+	else{
+		switch(Config::getValue("/Interface/Single",1)){
+		case 0:
+		case 1:
+			aplayer->setMedia(p);
+			break;
+		case 2:
+			list->appendMedia(p);
+			break;
+		}
+	}
+}
+
+void Interface::tryLocal(QStringList p)
+{
+	for(const QString &i:p){
+		tryLocal(i);
+	}
+}
+
 void Interface::setWindowFlags()
 {
 	QFlags<Qt::WindowType> flags=windowFlags();
@@ -587,38 +542,74 @@ void Interface::setWindowFlags()
 	}
 }
 
+void Interface::warning(QString title,QString text)
+{
+	auto m=msg?qobject_cast<QMessageBox     *>(msg):nullptr;
+	QWidget *active=qApp->activeWindow();
+	if(!m||(m!=active&&m->parent()!=active&&active)){
+		if (msg){
+			delete msg;
+		}
+		m=new QMessageBox(active);
+		m->setIcon(QMessageBox::Warning);
+		msg=m;
+	}
+	m->setText(text);
+	m->setWindowTitle(title);
+	m->show();
+}
+
+void Interface::percent(double degree)
+{
+	auto p=msg?qobject_cast<QProgressDialog *>(msg):nullptr;
+	QWidget *active=qApp->activeWindow();
+	if(!p||(p!=active&&p->parent()!=active&&active)){
+		if (msg){
+			delete msg;
+		}
+		p=new QProgressDialog(active);
+		p->setMaximum(1000);
+		p->setWindowTitle(tr("Loading"));
+		p->setFixedSize(p->sizeHint());
+		connect(p,&QProgressDialog::canceled,Load::instance(),&Load::dequeue);
+		msg=p;
+	}
+	p->setValue(1000*degree);
+}
 void Interface::checkForUpdate()
 {
 	if(!Config::getValue("/Interface/Update",true)){
 		return;
 	}
 	QNetworkAccessManager *manager=new QNetworkAccessManager(this);
-	QNetworkRequest request(QUrl("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO"));
-	manager->get(request);
+	QString url="https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO";
+	manager->get(QNetworkRequest(url));
 	connect(manager,&QNetworkAccessManager::finished,[=](QNetworkReply *info){
 		QUrl redirect=info->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 		if(redirect.isValid()){
 			manager->get(QNetworkRequest(redirect));
 			return;
 		}
-		if(info->error()==QNetworkReply::NoError){
-			QFile local(":/Text/DATA");
-			local.open(QIODevice::ReadOnly);
-			QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
-			QJsonObject r=QJsonDocument::fromJson(info->readAll()).object();
-			if(r.contains("Version")&&l["Version"].toString()<r["Version"].toString()){
-				QMessageBox::StandardButton button;
-				QString information=r["String"].toString();
-				button=QMessageBox::information(this,
-												tr("Update"),
-												information,
-												QMessageBox::Ok|QMessageBox::Cancel);
-				if(button==QMessageBox::Ok){
-					QDesktopServices::openUrl(r["Url"].toString());
-				}
-			}
-		}
 		manager->deleteLater();
+		if(info->error()!=QNetworkReply::NoError){
+			return;
+		}
+		QFile local(":/Text/DATA");
+		local.open(QIODevice::ReadOnly);
+		QJsonObject l=QJsonDocument::fromJson(local.readAll()).object();
+		QJsonObject r=QJsonDocument::fromJson(info->readAll()).object();
+		if(!r.contains("Version")||l["Version"].toString()>=r["Version"].toString()){
+			return;
+		}
+		QMessageBox::StandardButton button;
+		QString information=r["String"].toString();
+		button=QMessageBox::information(this,
+										tr("Update"),
+										information,
+										QMessageBox::Ok|QMessageBox::Cancel);
+		if(button==QMessageBox::Ok){
+			QDesktopServices::openUrl(r["Url"].toString());
+		}
 	});
 }
 
@@ -642,7 +633,7 @@ void Interface::setCenter(QSize _s,bool _f)
 	bool flag=true;
 	if(r.width()>=s.width()||r.height()>=s.height()){
 		if(isVisible()){
-			fullA->toggle();
+			fullA->setChecked(true);
 			flag=false;
 		}
 		else{
