@@ -29,7 +29,6 @@
 
 #include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
 
 class RenderPrivate;
 

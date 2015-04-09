@@ -37,8 +37,6 @@ class Search:public QDialog
 	Q_OBJECT
 public:
 	explicit Search(QWidget *parent=0);
-	inline QString getKey(){return key;}
-	inline QString getAid(){return aid;}
 
 private:
 	QLabel *statusL;
@@ -69,12 +67,13 @@ private:
 	QList<const char *> getOrder(int site);
 
 public slots:
-	void setText(QString text);
+	void setKey(QString key);
+	QString getKey(){return key;}
+	QString getAid(){return aid;}
 	void setSite();
 	void startSearch();
 	void clearSearch();
 	void accept();
-
 };
 
 #endif // SEARCH_H

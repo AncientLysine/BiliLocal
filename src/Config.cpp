@@ -92,6 +92,11 @@ public:
 		Config::setValue("/Network/Cookie",QString(qCompress(buff).toBase64()));
 	}
 
+	void clear()
+	{
+		setAllCookies(QList<QNetworkCookie>());
+	}
+
 	static Cookie *data;
 };
 
@@ -1086,12 +1091,12 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 				bool flag=false;
 				if(reply->error()==QNetworkReply::NoError){
 					QString page(reply->readAll());
-					if(page.indexOf("setTimeout('JumpUrl()',2000)")!=-1){
-						flag=true;
-					}
-					else{
+					if(!page.isEmpty()){
 						int sta=page.indexOf("document.write(\"")+16;
 						QMessageBox::warning(this,Config::tr("Warning"),page.mid(sta,page.indexOf("\"",sta)-sta));
+					}
+					else{
+						flag=true;
 					}
 				}
 				click->setEnabled(true);
@@ -1145,19 +1150,21 @@ ConfigDialog::ConfigDialog(QWidget *parent,int index):
 
 		auto c=new QHBoxLayout;
 		text=new QLabel(widget[4]);
-		auto m=[=](){
+		auto measure=[=](){
 			QString s=Config::tr("current size is %.2fMB");
 			s.sprintf(s.toUtf8(),DCache::data->cacheSize()/(1024.0*1024));
 			text->setText(s);
 		};
-		m();
+		measure();
 		c->addWidget(text,2);
 		c->addStretch(1);
 		clear=new QPushButton(Config::tr("clear"),widget[4]);
 		clear->setFocusPolicy(Qt::NoFocus);
-		connect(clear,&QPushButton::clicked,[m](){
+		connect(clear,&QPushButton::clicked,[=](){
+			setLogged(false);
 			DCache::data->clear();
-			m();
+			Cookie::data->clear();
+			measure();
 		});
 		c->addWidget(clear,1);
 		cache=new QGroupBox(Config::tr("cache"),widget[4]);

@@ -499,9 +499,9 @@ QList<const char *> Search::getOrder(int site)
 }
 #undef tr
 
-void Search::setText(QString text)
+void Search::setKey(QString key)
 {
-	key=text;
+	this->key=key;
 	keywE->setText(key);
 	searchB->click();
 }

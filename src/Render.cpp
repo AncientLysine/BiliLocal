@@ -29,8 +29,7 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 #include "Local.h"
-
-Render *Render::ins=nullptr;
+#include <QtWidgets>
 
 class RenderPrivate
 {
@@ -1207,6 +1206,8 @@ public slots:
 	}
 };
 #endif
+
+Render *Render::ins=nullptr;
 
 Render *Render::instance()
 {

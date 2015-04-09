@@ -30,8 +30,6 @@
 #include "Render.h"
 #include "Utils.h"
 
-APlayer *APlayer::ins=nullptr;
-
 #ifdef BACKEND_VLC
 extern "C"
 {
@@ -991,6 +989,8 @@ void NPlayer::event(int)
 {
 }
 #endif
+
+APlayer *APlayer::ins=nullptr;
 
 APlayer *APlayer::instance()
 {

@@ -42,7 +42,6 @@ class List;
 class Load;
 class APlayer;
 class Danmaku;
-class Message;
 
 class Interface:public QWidget
 {
@@ -62,6 +61,7 @@ private:
 	QAction *postA;
 	QMenu *rat;
 	QMenu *sca;
+	QPointer<QDialog> msg;
 
 	Render *render;
 	Menu *menu;
@@ -72,7 +72,6 @@ private:
 	Load *load;
 	APlayer *aplayer;
 	Danmaku *danmaku;
-	Message *message;
 
 	QPoint sta;
 	QPoint wgd;
@@ -94,9 +93,11 @@ signals:
 	void windowFlagsChanged(QFlags<Qt::WindowType>);
 
 public slots:
-	void tryLocal(QString p);
-	void tryLocal(QStringList p);
+	void tryLocal(QString path);
+	void tryLocal(QStringList paths);
 	void setWindowFlags();
+	void percent(double degree);
+	void warning(QString title,QString text);
 
 private slots:
 	void checkForUpdate();
