@@ -29,17 +29,19 @@
 
 #include <QtGui>
 #include <QtCore>
-#include "Utils.h"
 
+class Comment;
 class Graphic;
+class Record;
+class DanmakuPrivate;
 
 class Danmaku:public QAbstractItemModel
 {
 	Q_OBJECT
 public:
 	~Danmaku();
-	QList<Record> &getPool(){return pool;}
 	void draw(QPainter *painter,qint64 move);
+	QList<Record> &getPool();
 	QVariant data(const QModelIndex &index,int role) const;
 	int rowCount(const QModelIndex &parent=QModelIndex()) const;
 	int columnCount(const QModelIndex &parent=QModelIndex()) const;
@@ -49,13 +51,9 @@ public:
 	static Danmaku *instance();
 
 private:
-	int cur;
-	qint64 time;
-	QList<Record> pool;
-	QList<Comment *> danmaku;
-	QList<Graphic *> current;
-	mutable QReadWriteLock lock;
 	static Danmaku *ins;
+	DanmakuPrivate *const d_ptr;
+	Q_DECLARE_PRIVATE(Danmaku)
 
 	Danmaku(QObject *parent=0);
 	void setTime(qint64 _time);
@@ -65,18 +63,18 @@ signals:
 	void unrecognizedComment(const Comment *);
 
 public slots:
-	void setAlpha(int _alpha);
+	void setAlpha(int alpha);
 	void resetTime();
 	void clearPool();
 	void appendToPool(const Record *record);
 	void appendToPool(QString source,const Comment *comment);
 	void clearCurrent(bool soft=false);
 	void insertToCurrent(Graphic *graphic,int index=-1);
-	const Comment *commentAt(QPoint point) const;
+	const Comment *commentAt(QPointF point) const;
 	void parse(int flag=0);
-	void delayAll(qint64 _time);
-	void jumpToTime(qint64 _time);
-	void saveToFile(QString file);
+	void delayAll(qint64 time);
+	void jumpToTime(qint64 time);
+	void saveToFile(QString file) const;
 };
 
 #endif // DANMAKU_H

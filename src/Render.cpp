@@ -29,6 +29,7 @@
 #include "APlayer.h"
 #include "Danmaku.h"
 #include "Local.h"
+#include "Utils.h"
 #include <QtWidgets>
 
 class RenderPrivate
