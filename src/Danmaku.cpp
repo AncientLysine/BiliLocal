@@ -35,7 +35,6 @@
 #include "Shield.h"
 #include "Utils.h"
 #include <algorithm>
-#include <functional>
 
 #define qThreadPool QThreadPool::globalInstance()
 
@@ -515,7 +514,7 @@ public:
 				continue;
 			}
 			QRectF &rect=graphic->currentRect();
-			const auto &locate=graphic->locate();
+			const QList<QRectF> &locate=graphic->locate();
 			switch(locate.size()){
 			case 1:
 				//图元指定位置
@@ -530,38 +529,22 @@ public:
 				//弹幕自动定位
 				QVarLengthArray<int> result(locate.size());
 				memset(result.data(),0,sizeof(int)*result.size());
-				//弹幕分组高度
-				const int slot=40;
 				//计算每个位置的拥挤程度
 				auto calculate=[&](const QList<Graphic *> &data){
-					//将弹幕按高度分组，提高查询效率
-					QMap<int,QList<Graphic *>> parse;
 					for(Graphic *iter:data){
+						if (iter->getMode()!=comment->mode){
+							continue;
+						}
 						const QRectF &rect=iter->currentRect();
-						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
-						for(;m<n;++m){
-							if (iter->getMode()==comment->mode){
-								parse[m].append(iter);
-							}
+						const QRectF &from=locate[0];
+						double stp=locate[1].top()-from.top();
+						double len=from.height();
+						int sta=qMax(0,qFloor((stp>0?(rect.top()-from.top()):(rect.bottom()-from.bottom()))/stp));
+						int end=qMin(qCeil((rect.height()+len)/qAbs(stp)+sta),result.size());
+						for(;sta<end;++sta){
+							graphic->currentRect()=locate[sta];
+							result[sta]+=graphic->intersects(iter);
 						}
-					}
-					int i=0;
-					for(const QRectF &iter:locate){
-						rect=iter;
-						//查找附近可能重叠的弹幕组
-						int m=rect.top()/slot,n=(rect.bottom()+slot-1)/slot;
-						QList<Graphic *> close;
-						for(auto it=parse.lowerBound(m);it!=parse.end()&&it.key()<=n;++it){
-							close.append(*it);
-						}
-						//弹幕可能跨多个组，去除重复
-						std::sort(close.begin(),close.end());
-						auto tail=std::unique(close.begin(),close.end());
-						//计算交叉面积
-						for(auto iter=close.begin();iter!=tail;++iter){
-							result[i]+=graphic->intersects(*iter);
-						}
-						++i;
 					}
 				};
 				//获取读锁，计算现有弹幕的拥挤程度
@@ -577,7 +560,7 @@ public:
 				iter.toBack();
 				while(iter.hasPrevious()){
 					Graphic *p=iter.previous();
-					if(p->getIndex()>last){
+					if (p->getIndex()>last&&p->getMode()==comment->mode){
 						addtion.prepend(p);
 					}
 					else break;
