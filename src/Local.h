@@ -53,6 +53,11 @@ public slots:
 		return qobject_cast<QWidget *>(objects["Interface"]);
 	}
 
+	QObject *findObject(QString name)
+	{
+		return objects[name];
+	}
+
 	QString suggestion(int);
 	
 	void synchronize(void *func)

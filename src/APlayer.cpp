@@ -53,7 +53,7 @@ public:
 	QList<QAction *> getTracks(int type);
 
 private:
-	int state;
+	int		state;
 	QActionGroup *tracks[3];
 	libvlc_instance_t *vlc;
 	libvlc_media_player_t *mp;
@@ -78,8 +78,6 @@ public slots:
 
 	void	setVolume(int _volume);
 	int 	getVolume();
-
-	QSize   getSize();
 
 	void    setRate(double _rate);
 	double  getRate();
@@ -295,7 +293,7 @@ void VPlayer::init()
 				if(!Config::getValue("/Playing/Subtitle",true)){
 					libvlc_video_set_spu(mp,-1);
 				}
-				copyTracks(libvlc_video_get_spu_description(mp),tracks[2]);
+				copyTracks(libvlc_video_get_spu_description  (mp),tracks[2]);
 				copyTracks(libvlc_video_get_track_description(mp),tracks[0]);
 				copyTracks(libvlc_audio_get_track_description(mp),tracks[1]);
 				for(QAction *i:tracks[0]->actions()){
@@ -498,19 +496,11 @@ int VPlayer::getVolume()
 	return mp?libvlc_audio_get_volume(mp):0;
 }
 
-QSize VPlayer::getSize()
-{
-	unsigned w=0,h=0;
-	if (mp){
-		libvlc_video_get_size(mp,0,&w,&h);
-	}
-	return QSize(w,h);
-}
-
 void VPlayer::setRate(double _rate)
 {
 	if (mp){
 		libvlc_media_player_set_rate(mp,_rate);
+		emit rateChanged(_rate);
 	}
 }
 
@@ -666,10 +656,10 @@ public:
 
 private:
 	QMediaPlayer *mp;
-	int state;
-	bool manuallyStopped;
-	bool waitingForBegin;
-	bool skipTimeChanged;
+	int		state;
+	bool	manuallyStopped;
+	bool	waitingForBegin;
+	bool	skipTimeChanged;
 
 public slots:
 	void	play();
@@ -687,8 +677,6 @@ public slots:
 
 	void	setVolume(int _volume);
 	int 	getVolume();
-
-	QSize   getSize();
 
 	void    setRate(double _rate);
 	double  getRate();
@@ -761,6 +749,8 @@ QPlayer::QPlayer(QObject *parent):
 	connect(mp,&QMediaPlayer::mediaChanged,this,[this](){
 		emit mediaChanged(getMedia());
 	});
+
+	connect(mp,&QMediaPlayer::playbackRateChanged,this,&QPlayer::rateChanged);
 }
 
 QList<QAction *> QPlayer::getTracks(int)
@@ -836,12 +826,6 @@ int QPlayer::getVolume()
 	return mp->volume();
 }
 
-QSize QPlayer::getSize()
-{
-	//TODO
-	return QSize();
-}
-
 void QPlayer::setRate(double _rate)
 {
 	mp->setPlaybackRate(_rate);
@@ -865,8 +849,8 @@ public:
 	QList<QAction *> getTracks(int type);
 
 private:
-	qint64 start; 
-	int state;
+	qint64	start; 
+	int		state;
 
 	void	timerEvent(QTimerEvent * e);
 
@@ -886,8 +870,6 @@ public slots:
 
 	void	setVolume(int _volume);
 	int 	getVolume();
-
-	QSize   getSize();
 
 	void    setRate(double _rate);
 	double  getRate();
@@ -969,11 +951,6 @@ void NPlayer::setVolume(int)
 int NPlayer::getVolume()
 {
 	return 0;
-}
-
-QSize NPlayer::getSize()
-{
-	return QSize();
 }
 
 void NPlayer::setRate(double)

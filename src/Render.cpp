@@ -38,6 +38,7 @@ public:
 	QMovie tv;
 	double time;
 	QImage me,background,sound;
+	QSize pref;
 	QTime last;
 	bool music;
 	bool dirty;
@@ -1337,11 +1338,19 @@ void Render::setPixelAspectRatio(double ratio)
 QSize Render::getPreferSize()
 {
 	Q_D(Render);
-	if(d->music){
+	if (d->music){
 		return QSize();
 	}
-	QSize s=APlayer::instance()->getSize();
-	s=s.isValid()?s:getBufferSize();
+	if (d->pref.isValid()){
+		return d->pref;
+	}
+	QSize s=getBufferSize();
 	d->pixelAspectRatio>1?(s.rwidth()*=d->pixelAspectRatio):(s.rheight()/=d->pixelAspectRatio);
 	return s;
+}
+
+void Render::setPreferSize(QSize size)
+{
+	Q_D(Render);
+	d->pref=size;
 }
