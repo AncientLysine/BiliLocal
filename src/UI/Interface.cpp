@@ -769,10 +769,12 @@ void Interface::showContextMenu(QPoint p)
 		}
 		sts.setEnabled(!sts.isEmpty());
 		dmk.addMenu(&sts);
+		QAction *loadA = menu->findChild<QAction *>("Danm");
+		QAction *seekA = menu->findChild<QAction *>("Sech");
 		dmk.addAction(toggA);
-		dmk.addAction(postA);
-		dmk.addAction(menu->findChild<QAction *>("Danm"));
-		dmk.addAction(menu->findChild<QAction *>("Sech"));
+		dmk.addAction(tr("Load"), loadA, SLOT(trigger()), loadA->shortcut())->setEnabled(loadA->isEnabled());
+		dmk.addAction(tr("Post"), postA, SLOT(trigger()), postA->shortcut())->setEnabled(postA->isEnabled());
+		dmk.addAction(tr("Seek"), seekA, SLOT(trigger()), seekA->shortcut())->setEnabled(seekA->isEnabled());
 		connect(dmk.addAction(tr("Load Subtitle")), &QAction::triggered, [this](){
 			QFileInfo info(aplayer->getMedia());
 			QString file = QFileDialog::getOpenFileName(this,
