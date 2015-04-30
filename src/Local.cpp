@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Local.cpp
 *   Time:        2013/03/18
@@ -25,21 +25,21 @@
 =========================================================================*/
 
 #include "Local.h"
-#include "APlayer.h"
 #include "Config.h"
-#include "Danmaku.h"
-#include "Interface.h"
-#include "List.h"
-#include "Load.h"
 #include "Plugin.h"
-#include "Render.h"
-#include "Shield.h"
 #include "Utils.h"
+#include "Access/Load.h"
+#include "Model/Danmaku.h"
+#include "Model/List.h"
+#include "Model/Shield.h"
+#include "Player/APlayer.h"
+#include "Render/ARender.h"
+#include "UI/Interface.h"
 
-QHash<QString,QObject *> Local::objects;
+QHash<QString, QObject *> Local::objects;
 
-Local::Local(int &argc,char **argv):
-	QApplication(argc,argv)
+Local::Local(int &argc, char **argv) :
+QApplication(argc, argv)
 {
 	QDir::setCurrent(applicationDirPath());
 	setPalette(setStyle("Fusion")->standardPalette());
@@ -61,79 +61,64 @@ void Local::exit(int code)
 	QApplication::exit(code);
 }
 
-QString Local::suggestion(int code)
-{
-	switch (code){
-	case 3:
-	case 4:
-		return tr("check your network connection");
-	case 203:
-	case 403:
-	case -8:
-		return tr("access denied, try login");
-	default:
-		return QString();
-	}
-}
-
 namespace
 {
-void setDefaultFont()
-{
-	QString def=Utils::defaultFont();
-	QFontInfo i(qApp->font());
-	if(!QFontDatabase().families().contains(def)){
-		def=i.family();
+	void setDefaultFont()
+	{
+		QString def = Utils::defaultFont();
+		QFontInfo i(qApp->font());
+		if (!QFontDatabase().families().contains(def)){
+			def = i.family();
+		}
+		double p = i.pointSizeF();
+		QFont f;
+		f.setFamily(Config::getValue("/Interface/Font/Family", def));
+		f.setPointSizeF(Config::getValue("/Interface/Font/Size", p));
+		qApp->setFont(f);
 	}
-	double p=i.pointSizeF();
-	QFont f;
-	f.setFamily(Config::getValue("/Interface/Font/Family",def));
-	f.setPointSizeF(Config::getValue("/Interface/Font/Size",p));
-	qApp->setFont(f);
-}
 
-void loadTranslator()
-{
-	QString locale=Config::getValue("/Interface/Locale",QLocale::system().name());
-	QFileInfoList list;
-	list+=QDir("./locale/"+locale).entryInfoList();
-	list+=QFileInfo("./locale/"+locale+".qm");
-	locale.resize(2);
-	list+=QDir("./locale/"+locale).entryInfoList();
-	list+=QFileInfo("./locale/"+locale+".qm");
-	for(QFileInfo info:list){
-		if(!info.isFile()){
-			continue;
+	void loadTranslator()
+	{
+		QString locale = Config::getValue("/Interface/Locale", QLocale::system().name());
+		QFileInfoList list;
+		list += QDir("./locale/" + locale).entryInfoList();
+		list += QFileInfo("./locale/" + locale + ".qm");
+		locale.resize(2);
+		list += QDir("./locale/" + locale).entryInfoList();
+		list += QFileInfo("./locale/" + locale + ".qm");
+		for (QFileInfo info : list){
+			if (!info.isFile()){
+				continue;
+			}
+			QTranslator *trans = new QTranslator(qApp);
+			if (trans->load(info.absoluteFilePath())){
+				qApp->installTranslator(trans);
+			}
+			else{
+				delete trans;
+			}
 		}
-		QTranslator *trans=new QTranslator(qApp);
-		if(trans->load(info.absoluteFilePath())){
-			qApp->installTranslator(trans);
-		}
-		else{
-			delete trans;
-		}
+	}
+
+	void setToolTipBase()
+	{
+		QPalette tip = qApp->palette();
+		tip.setColor(QPalette::Inactive, QPalette::ToolTipBase, Qt::white);
+		qApp->setPalette(tip);
+		QToolTip::setPalette(tip);
 	}
 }
 
-void setToolTipBase()
+int main(int argc, char *argv[])
 {
-	QPalette tip=qApp->palette();
-	tip.setColor(QPalette::Inactive,QPalette::ToolTipBase,Qt::white);
-	qApp->setPalette(tip);
-	QToolTip::setPalette(tip);
-}
-}
-
-int main(int argc,char *argv[])
-{
-	Local a(argc,argv);
+	Local a(argc, argv);
 	int single;
-	if((single=Config::getValue("/Interface/Single",1))){
+	if ((single = Config::getValue("/Interface/Single", 1))){
 		QLocalSocket socket;
 		socket.connectToServer("BiliLocalInstance");
 		if (socket.waitForConnected()){
 			QDataStream s(&socket);
-			s<<a.arguments().mid(1);
+			s << a.arguments().mid(1);
 			socket.waitForBytesWritten();
 			return 0;
 		}
@@ -143,30 +128,30 @@ int main(int argc,char *argv[])
 	setToolTipBase();
 	Interface w;
 	Plugin::loadPlugins();
-	if(!w.testAttribute(Qt::WA_WState_ExplicitShowHide)){
+	if (!w.testAttribute(Qt::WA_WState_ExplicitShowHide)){
 		w.show();
 	}
 	w.tryLocal(a.arguments().mid(1));
-	QLocalServer *server=nullptr;
-	if(single){
-		server=new QLocalServer(lApp);
+	QLocalServer *server = nullptr;
+	if (single){
+		server = new QLocalServer(lApp);
 		server->listen("BiliLocalInstance");
-		QObject::connect(server,&QLocalServer::newConnection,[&](){
-			QLocalSocket *r=server->nextPendingConnection();
+		QObject::connect(server, &QLocalServer::newConnection, [&](){
+			QLocalSocket *r = server->nextPendingConnection();
 			r->waitForReadyRead();
 			QDataStream s(r);
 			QStringList args;
-			s>>args;
+			s >> args;
 			delete r;
 			w.tryLocal(args);
 		});
 	}
 	int r;
-	if((r=a.exec())==12450){
-		if(server){
+	if ((r = a.exec()) == 12450){
+		if (server){
 			delete server;
 		}
-		QProcess::startDetached(a.applicationFilePath(),QStringList());
+		QProcess::startDetached(a.applicationFilePath(), QStringList());
 		return 0;
 	}
 	else{

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Plugin.cpp
 *   Time:        2013/04/23
@@ -25,16 +25,16 @@
 =========================================================================*/
 
 #include "Plugin.h"
-#include "Local.h"
 #include "Config.h"
+#include "Local.h"
 
 QList<Plugin> Plugin::plugins;
 
 Plugin::Plugin(QString path)
 {
-	m_regist=(RegistPtr)QLibrary::resolve(path,"regist");
-	m_config=(ConfigPtr)QLibrary::resolve(path,"config");
-	m_string=(StringPtr)QLibrary::resolve(path,"string");
+	m_regist = (RegistPtr)QLibrary::resolve(path, "regist");
+	m_config = (ConfigPtr)QLibrary::resolve(path, "config");
+	m_string = (StringPtr)QLibrary::resolve(path, "string");
 }
 
 bool Plugin::loaded()
@@ -42,7 +42,7 @@ bool Plugin::loaded()
 	return m_regist&&m_config&&m_string;
 }
 
-void Plugin::regist(const QHash<QString,QObject *> &objects)
+void Plugin::regist(const QHash<QString, QObject *> &objects)
 {
 	if (m_regist)
 		m_regist(objects);
@@ -62,16 +62,16 @@ QString Plugin::string(QString query)
 void Plugin::loadPlugins()
 {
 	QFileInfoList list = QDir("./plugins/bililocal/").entryInfoList();
-	for(const QFileInfo &info:list){
-		if(info.isFile()&&QLibrary::isLibrary(info.fileName())){
+	for (const QFileInfo &info : list){
+		if (info.isFile() && QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());
-			if(lib.loaded()){
-				if(Config::getValue("/Plugin/"+lib.string("Name"),true)){
+			if (lib.loaded()){
+				if (Config::getValue("/Plugin/" + lib.string("Name"), true)){
 					lib.regist(Local::objects);
 				}
 				else{
-					lib.m_config=nullptr;
-					lib.m_regist=nullptr;
+					lib.m_config = nullptr;
+					lib.m_regist = nullptr;
 				}
 				plugins.append(lib);
 			}

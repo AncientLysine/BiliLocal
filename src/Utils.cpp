@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Utils.cpp
 *   Time:        2013/05/10
@@ -30,23 +30,23 @@
 
 Utils::Site Utils::parseSite(QString url)
 {
-	url=url.toLower();
-	if(-1!=url.indexOf("letv")){
+	url = url.toLower();
+	if (-1 != url.indexOf("letv")){
 		return Letv;
 	}
-	if(-1!=url.indexOf("tudou")){
+	if (-1 != url.indexOf("tudou")){
 		return Tudou;
 	}
-	if(-1!=url.indexOf("bilibili")){
+	if (-1 != url.indexOf("bilibili")){
 		return Bilibili;
 	}
-	if(-1!=url.indexOf("acfun")){
+	if (-1 != url.indexOf("acfun")){
 		return AcFun;
 	}
-	if(-1!=url.indexOf("acplay")){
+	if (-1 != url.indexOf("acplay")){
 		return AcPlay;
 	}
-	if(-1!=url.indexOf("tucao")){
+	if (-1 != url.indexOf("tucao")){
 		return TuCao;
 	}
 	return Unknown;
@@ -54,16 +54,16 @@ Utils::Site Utils::parseSite(QString url)
 
 void Utils::setCenter(QWidget *widget)
 {
-	QRect rect=widget->geometry();
-	QWidget *parent=widget->parentWidget();
-	if(parent==NULL){
+	QRect rect = widget->geometry();
+	QWidget *parent = widget->parentWidget();
+	if (!parent){
 		rect.moveCenter(QApplication::desktop()->screenGeometry(widget).center());
 	}
 	else{
-		if(widget->isWindow()){
-			QPoint center=parent->geometry().center();
-			if((parent->windowFlags()&Qt::CustomizeWindowHint)){
-				center.ry()+=widget->style()->pixelMetric(QStyle::PM_TitleBarHeight)/2;
+		if (widget->isWindow()){
+			QPoint center = parent->geometry().center();
+			if ((parent->windowFlags()&Qt::CustomizeWindowHint)){
+				center.ry() += widget->style()->pixelMetric(QStyle::PM_TitleBarHeight) / 2;
 			}
 			rect.moveCenter(center);
 		}
@@ -74,54 +74,54 @@ void Utils::setCenter(QWidget *widget)
 	widget->setGeometry(rect);
 }
 
-void Utils::setGround(QWidget *widget,QColor color)
+void Utils::setGround(QWidget *widget, QColor color)
 {
 	widget->setAutoFillBackground(true);
-	QPalette palette=widget->palette();
-	palette.setColor(QPalette::Window,color);
+	QPalette palette = widget->palette();
+	palette.setColor(QPalette::Window, color);
 	widget->setPalette(palette);
 }
 
 namespace{
-template<class T>
-class SStack
-{
-public:
-	inline T &top()
+	template<class T>
+	class SStack
 	{
-		if(isEmpty()){
-			throw("token mismatch");
+	public:
+		inline T &top()
+		{
+			if (isEmpty()){
+				throw("token mismatch");
+			}
+			return stk.top();
 		}
-		return stk.top();
-	}
 
-	inline T pop()
-	{
-		if(isEmpty()){
-			throw("token mismatch");
+		inline T pop()
+		{
+			if (isEmpty()){
+				throw("token mismatch");
+			}
+			return stk.pop();
 		}
-		return stk.pop();
-	}
 
-	inline void push(const T &i)
-	{
-		stk.push(i);
-	}
+		inline void push(const T &i)
+		{
+			stk.push(i);
+		}
 
-	inline bool isEmpty()
-	{
-		return stk.isEmpty();
-	}
+		inline bool isEmpty()
+		{
+			return stk.isEmpty();
+		}
 
-private:
-	QStack<T> stk;
-};
+	private:
+		QStack<T> stk;
+	};
 }
 
 double Utils::evaluate(QString exp)
 {
-	auto priority=[](QChar o){
-		switch(o.unicode())
+	auto priority = [](QChar o){
+		switch (o.unicode())
 		{
 		case '(':
 			return 1;
@@ -131,43 +131,43 @@ double Utils::evaluate(QString exp)
 		case '*':
 		case '/':
 			return 3;
-		case '+'+128:
-		case '-'+128:
+		case '+' + 128:
+		case '-' + 128:
 			return 4;
 		default:
 			return 0;
 		}
 	};
-	exp=exp.trimmed();
+	exp = exp.trimmed();
 	try{
 		QString pst;
 		SStack<QChar> opt;
-		int i=0;
+		int i = 0;
 		opt.push('#');
-		while(i<exp.length()){
-			if(exp[i].isDigit()||exp[i]=='.'){
+		while (i < exp.length()){
+			if (exp[i].isDigit() || exp[i] == '.'){
 				pst.append(exp[i]);
 			}
 			else{
-				switch(exp[i].unicode()){
+				switch (exp[i].unicode()){
 				case '(':
 					opt.push(exp[i]);
 					break;
 				case ')':
-					while(opt.top()!='('){
+					while (opt.top() != '('){
 						pst.append(opt.pop());
 					}
 					opt.pop();
 					break;
 				case '+':
 				case '-':
-					if((i==0||exp[i-1]=='(')&&(i+1)<exp.length()&&(exp[i+1].isDigit()||exp[i+1]=='(')){
-						exp[i].unicode()+=128;
+					if ((i == 0 || exp[i - 1] == '(') && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
+						exp[i].unicode() += 128;
 					}
 				case '*':
 				case '/':
 					pst.append(' ');
-					while(priority(exp[i])<=priority(opt.top())){
+					while (priority(exp[i]) <= priority(opt.top())){
 						pst.append(opt.pop());
 					}
 					opt.push(exp[i]);
@@ -180,56 +180,56 @@ double Utils::evaluate(QString exp)
 			}
 			++i;
 		}
-		while(!opt.isEmpty()){
+		while (!opt.isEmpty()){
 			pst.append(opt.pop());
 		}
 		SStack<double> num;
-		i=0;
-		while(pst[i]!='#'){
-			if(pst[i].isDigit()||pst[i]=='.'){
-				double n=0;
-				while(pst[i].isDigit()){
-					n=n*10+pst[i++].toLatin1()-'0';
+		i = 0;
+		while (pst[i] != '#'){
+			if (pst[i].isDigit() || pst[i] == '.'){
+				double n = 0;
+				while (pst[i].isDigit()){
+					n = n * 10 + pst[i++].toLatin1() - '0';
 				}
-				if(pst[i]=='.'){
+				if (pst[i] == '.'){
 					++i;
-					double d=1;
-					while(pst[i].isDigit()){
-						n+=(d/=10)*(pst[i++].toLatin1()-'0');
+					double d = 1;
+					while (pst[i].isDigit()){
+						n += (d /= 10)*(pst[i++].toLatin1() - '0');
 					}
 				}
 				num.push(n);
 			}
 			else{
-				switch(pst[i].unicode()){
-				case '+'+128:
+				switch (pst[i].unicode()){
+				case '+' + 128:
 					num.push(+num.pop());
 					break;
-				case '-'+128:
+				case '-' + 128:
 					num.push(-num.pop());
 					break;
 				case '+':
 				{
-					double r=num.pop(),l=num.pop();
-					num.push(l+r);
+					double r = num.pop(), l = num.pop();
+					num.push(l + r);
 					break;
 				}
 				case '-':
 				{
-					double r=num.pop(),l=num.pop();
-					num.push(l-r);
+					double r = num.pop(), l = num.pop();
+					num.push(l - r);
 					break;
 				}
 				case '*':
 				{
-					double r=num.pop(),l=num.pop();
+					double r = num.pop(), l = num.pop();
 					num.push(l*r);
 					break;
 				}
 				case '/':
 				{
-					double r=num.pop(),l=num.pop();
-					num.push(l/r);
+					double r = num.pop(), l = num.pop();
+					num.push(l / r);
 					break;
 				}
 				}
@@ -238,14 +238,14 @@ double Utils::evaluate(QString exp)
 		}
 		return num.top();
 	}
-	catch(...){
+	catch (...){
 		return 0;
 	}
 }
 
 QString Utils::defaultFont(bool monospace)
 {
-	if(monospace){
+	if (monospace){
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿等宽正黑");
 #endif
@@ -274,111 +274,111 @@ QString Utils::customUrl(Site site)
 	QString name;
 	switch (site){
 	case AcFun:
-		name="acfun";
+		name = "acfun";
 		break;
 	case Bilibili:
-		name="bili";
+		name = "bili";
 		break;
 	case AcPlay:
-		name="acplay";
+		name = "acplay";
 		break;
 	case Tudou:
-		name="tudou";
+		name = "tudou";
 		break;
 	case Niconico:
-		name="nico";
+		name = "nico";
 		break;
 	case TuCao:
-		name="tucao";
+		name = "tucao";
 		break;
 	default:
 		return QString();
 	}
-	QStringList urls,defs;
-	defs<<"acfun.tv"<<"bilibili.com"<<"acplay.net"<<"tucao.cc";
-	urls=Config::getValue("/Network/Url",defs.join(';')).split(';',QString::SkipEmptyParts);
-	for (QString iter:urls+defs){
-		if (iter.toLower().indexOf(name)!=-1){
+	QStringList urls, defs;
+	defs << "acfun.tv" << "bilibili.com" << "acplay.net" << "tucao.cc";
+	urls = Config::getValue("/Network/Url", defs.join(';')).split(';', QString::SkipEmptyParts);
+	for (QString iter : urls + defs){
+		if (iter.toLower().indexOf(name) != -1){
 			return iter;
 		}
 	}
 	return QString();
 }
 
-QString Utils::decodeXml(QString string,bool fast)
+QString Utils::decodeXml(QString string, bool fast)
 {
-	if(!fast){
+	if (!fast){
 		QTextDocument text;
 		text.setHtml(string);
 		return text.toPlainText();
 	}
 	QString fixed;
 	fixed.reserve(string.length());
-	int i=0,l=string.length();
-	for(i=0;i<l;++i){
-		QChar c=string[i];
-		if(c>=' '||c=='\n'){
-			bool f=true;
-			switch(c.unicode()){
+	int i = 0, l = string.length();
+	for (i = 0; i < l; ++i){
+		QChar c = string[i];
+		if (c >= ' ' || c == '\n'){
+			bool f = true;
+			switch (c.unicode()){
 			case '&':
-				if(l-i>=4){
-					switch(string[i+1].unicode()){
+				if (l - i >= 4){
+					switch (string[i + 1].unicode()){
 					case 'l':
-						if(string[i+2]=='t'&&string[i+3]==';'){
-							fixed+='<';
-							f=false;
-							i+=3;
+						if (string[i + 2] == 't'&&string[i + 3] == ';'){
+							fixed += '<';
+							f = false;
+							i += 3;
 						}
 						break;
 					case 'g':
-						if(string[i+2]=='t'&&string[i+3]==';'){
-							fixed+='>';
-							f=false;
-							i+=3;
+						if (string[i + 2] == 't'&&string[i + 3] == ';'){
+							fixed += '>';
+							f = false;
+							i += 3;
 						}
 						break;
 					case 'a':
-						if(l-i>=5&&string[i+2]=='m'&&string[i+3]=='p'&&string[i+4]==';'){
-							fixed+='&';
-							f=false;
-							i+=4;
+						if (l - i >= 5 && string[i + 2] == 'm'&&string[i + 3] == 'p'&&string[i + 4] == ';'){
+							fixed += '&';
+							f = false;
+							i += 4;
 						}
 						break;
 					case 'q':
-						if(l-i>=6&&string[i+2]=='u'&&string[i+3]=='o'&&string[i+4]=='t'&&string[i+5]==';'){
-							fixed+='\"';
-							f=false;
-							i+=5;
+						if (l - i >= 6 && string[i + 2] == 'u'&&string[i + 3] == 'o'&&string[i + 4] == 't'&&string[i + 5] == ';'){
+							fixed += '\"';
+							f = false;
+							i += 5;
 						}
 						break;
 					}
 				}
 				break;
-			case '/' :
+			case '/':
 			case '\\':
-				if(l-i>=2){
-					switch(string[i+1].unicode()){
+				if (l - i >= 2){
+					switch (string[i + 1].unicode()){
 					case 'n':
-						fixed+='\n';
-						f=false;
-						i+=1;
+						fixed += '\n';
+						f = false;
+						i += 1;
 						break;
 					case 't':
-						fixed+='\t';
-						f=false;
-						i+=1;
+						fixed += '\t';
+						f = false;
+						i += 1;
 						break;
 					case '\"':
-						fixed+='\"';
-						f=false;
-						i+=1;
+						fixed += '\"';
+						f = false;
+						i += 1;
 						break;
 					}
 				}
 				break;
 			}
-			if(f){
-				fixed+=c;
+			if (f){
+				fixed += c;
 			}
 		}
 	}
@@ -389,13 +389,13 @@ QStringList Utils::getRenderModules()
 {
 	QStringList modules;
 #ifdef RENDER_OPENGL
-	modules<<"OpenGL";
+	modules << "OpenGL";
 #endif
 #ifdef RENDER_RASTER
 	modules<<"Raster";
 #endif
 #ifdef RENDER_DETACH
-	modules<<"Detach";
+	modules << "Detach";
 #endif
 	return modules;
 }
@@ -404,53 +404,53 @@ QStringList Utils::getDecodeModules()
 {
 	QStringList modules;
 #ifdef BACKEND_VLC
-	modules<<"VLC";
+	modules << "VLC";
 #endif
 #ifdef BACKEND_QMM
-	modules<<"QMM";
+	modules << "QMM";
 #endif
 #ifdef BACKEND_NIL
-	modules<<"NIL";
+	modules << "NIL";
 #endif
 	return modules;
 }
 
-QStringList Utils::getSuffix(int type,QString format)
+QStringList Utils::getSuffix(int type, QString format)
 {
 	QStringList set;
-	if(type&Video){
-		set<<"3g2"<<"3gp"<<"3gp2"<<"3gpp"<<"amv"<<"asf"<<"avi"<<"divx"<<"drc"<<"dv"<<
-			 "f4v"<<"flv"<<"gvi"<<"gxf"<<"hlv"<<"iso"<<"letv"<<
-			 "m1v"<<"m2t"<<"m2ts"<<"m2v"<<"m4v"<<"mkv"<<"mov"<<
-			 "mp2"<<"mp2v"<<"mp4"<<"mp4v"<<"mpe"<<"mpeg"<<"mpeg1"<<
-			 "mpeg2"<<"mpeg4"<<"mpg"<<"mpv2"<<"mts"<<"mtv"<<"mxf"<<"mxg"<<"nsv"<<"nuv"<<
-			 "ogg"<<"ogm"<<"ogv"<<"ogx"<<"ps"<<
-			 "rec"<<"rm"<<"rmvb"<<"tod"<<"ts"<<"tts"<<"vob"<<"vro"<<
-			 "webm"<<"wm"<<"wmv"<<"wtv"<<"xesc";
+	if (type&Video){
+		set << "3g2" << "3gp" << "3gp2" << "3gpp" << "amv" << "asf" << "avi" << "divx" << "drc" << "dv" <<
+			"f4v" << "flv" << "gvi" << "gxf" << "hlv" << "iso" << "letv" <<
+			"m1v" << "m2t" << "m2ts" << "m2v" << "m4v" << "mkv" << "mov" <<
+			"mp2" << "mp2v" << "mp4" << "mp4v" << "mpe" << "mpeg" << "mpeg1" <<
+			"mpeg2" << "mpeg4" << "mpg" << "mpv2" << "mts" << "mtv" << "mxf" << "mxg" << "nsv" << "nuv" <<
+			"ogg" << "ogm" << "ogv" << "ogx" << "ps" <<
+			"rec" << "rm" << "rmvb" << "tod" << "ts" << "tts" << "vob" << "vro" <<
+			"webm" << "wm" << "wmv" << "wtv" << "xesc";
 	}
-	if(type&Audio){
-		int size=set.size();
-		set<<"3ga"<<"669"<<"a52"<<"aac"<<"ac3"<<"adt"<<"adts"<<"aif"<<"aifc"<<"aiff"<<
-			 "amr"<<"aob"<<"ape"<<"awb"<<"caf"<<"dts"<<"flac"<<"it"<<"kar"<<
-			 "m4a"<<"m4p"<<"m5p"<<"mka"<<"mlp"<<"mod"<<"mp1"<<"mp2"<<"mp3"<<"mpa"<<"mpc"<<"mpga"<<
-			 "oga"<<"ogg"<<"oma"<<"opus"<<"qcp"<<"ra"<<"rmi"<<"s3m"<<"spx"<<"thd"<<"tta"<<
-			 "voc"<<"vqf"<<"w64"<<"wav"<<"wma"<<"wv"<<"xa"<<"xm";
-		std::inplace_merge(set.begin(),set.begin()+size,set.end());
+	if (type&Audio){
+		int size = set.size();
+		set << "3ga" << "669" << "a52" << "aac" << "ac3" << "adt" << "adts" << "aif" << "aifc" << "aiff" <<
+			"amr" << "aob" << "ape" << "awb" << "caf" << "dts" << "flac" << "it" << "kar" <<
+			"m4a" << "m4p" << "m5p" << "mka" << "mlp" << "mod" << "mp1" << "mp2" << "mp3" << "mpa" << "mpc" << "mpga" <<
+			"oga" << "ogg" << "oma" << "opus" << "qcp" << "ra" << "rmi" << "s3m" << "spx" << "thd" << "tta" <<
+			"voc" << "vqf" << "w64" << "wav" << "wma" << "wv" << "xa" << "xm";
+		std::inplace_merge(set.begin(), set.begin() + size, set.end());
 	}
-	if(type&Subtitle){
-		int size=set.size();
-		set<<"aqt"<<"ass"<<"cdg"<<"dks"<<"idx"<<"jss"<<"mks"<<"mpl2"<<"pjs"<<"psb"<<"rt"<<
-			 "smi"<<"smil"<<"srt"<<"ssa"<<"stl"<<"sub"<<"txt"<<"usf"<<"utf";
-		std::inplace_merge(set.begin(),set.begin()+size,set.end());
+	if (type&Subtitle){
+		int size = set.size();
+		set << "aqt" << "ass" << "cdg" << "dks" << "idx" << "jss" << "mks" << "mpl2" << "pjs" << "psb" << "rt" <<
+			"smi" << "smil" << "srt" << "ssa" << "stl" << "sub" << "txt" << "usf" << "utf";
+		std::inplace_merge(set.begin(), set.begin() + size, set.end());
 	}
-	if(type&Danmaku){
-		int size=set.size();
-		set<<"json"<<"xml";
-		std::inplace_merge(set.begin(),set.begin()+size,set.end());
+	if (type&Danmaku){
+		int size = set.size();
+		set << "json" << "xml";
+		std::inplace_merge(set.begin(), set.begin() + size, set.end());
 	}
-	if(!format.isEmpty()){
-		for(QString &iter:set){
-			iter=format.arg(iter);
+	if (!format.isEmpty()){
+		for (QString &iter : set){
+			iter = format.arg(iter);
 		}
 	}
 	return set;

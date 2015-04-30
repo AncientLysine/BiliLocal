@@ -2,9 +2,10 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
-*   Author:      Lysine
+*   Filename:    Search.h
+*   Time:        2013/04/18
+*   Author:      Chaserhkj
+*   Contributor: Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -28,42 +29,51 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Search :public QDialog
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		explicit Search(QWidget *parent = 0);
 
-	static QHash<QString, QObject *> objects;
+	private:
+		QLabel *statusL;
+		QLabel *pageT;
+		QLabel *pageL;
+		QLineEdit *keywE;
+		QLineEdit *pageE;
+		QComboBox *orderC;
+		QComboBox *sitesC;
+		QPushButton *okB;
+		QPushButton *ccB;
+		QPushButton *searchB;
+		QPushButton *pageUpB;
+		QPushButton *pageDnB;
+		QPushButton *pageGoB;
+		QTreeWidget *resultW;
+		QNetworkAccessManager *manager;
+		QSet<QNetworkReply *> remain;
 
-public slots:
-	void exit(int code = 0);
+		QString key;
+		QString aid;
 
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
+		int pageNum;
+		int pageCur;
+		bool isWaiting;
 
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
+		void getData(int pageNum);
+		QList<const char *> getOrder(int site);
 
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	public slots:
+		void setKey(QString key);
+		QString getKey(){ return key; }
+		QString getAid(){ return aid; }
+		void setSite();
+		void startSearch();
+		void clearSearch();
+		void accept();
+	};
+}

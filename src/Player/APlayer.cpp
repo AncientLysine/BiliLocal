@@ -1,9 +1,9 @@
-/*=======================================================================
+﻿/*=======================================================================
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    VPlayer.cpp
+*   Time:        2013/03/18
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,46 +24,54 @@
 *
 =========================================================================*/
 
-#pragma once
+#include "APlayer.h"
+#include "../Config.h"
+#include "../Utils.h"
 
-#include <QtCore>
-#include <QtWidgets>
+#ifdef BACKEND_VLC
+#include "VPlayer.h"
+#endif
+#ifdef BACKEND_QMM
+#include "QPlayer.h"
+#endif
+#ifdef BACKEND_NIL
+#include "NPlayer.h"
+#endif
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
+APlayer *APlayer::ins = nullptr;
 
-class Local :public QApplication
+APlayer *APlayer::instance()
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
-	{
-		return lApp;
+	if (ins){
+		return ins;
 	}
-
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
+	QString d;
+	QStringList l = Utils::getDecodeModules();
+	switch (l.size()){
+	case 0:
+		break;
+	case 1:
+		d = l[0];
+		break;
+	default:
+		d = Config::getValue("/Performance/Decode", l[0]);
+		d = l.contains(d) ? d : l[0];
+		break;
 	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
+#ifdef BACKEND_VLC
+	if (d == "VLC"){
+		return new VPlayer(qApp);
 	}
-
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
+#endif
+#ifdef BACKEND_QMM
+	if (d == "QMM"){
+		return new QPlayer(qApp);
 	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
+#endif
+#ifdef BACKEND_NIL
+	if (d == "NIL"){
+		return new NPlayer(qApp);
 	}
-};
+#endif
+	return 0;
+}

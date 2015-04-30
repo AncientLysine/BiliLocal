@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Jump.h
+*   Time:        2013/04/22
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -29,41 +29,16 @@
 #include <QtCore>
 #include <QtWidgets>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Jump :public QWidget
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		explicit Jump(QWidget *parent);
 
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
-
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	private:
+		QLineEdit * fileL;
+		QPushButton * jumpB;
+	};
+}

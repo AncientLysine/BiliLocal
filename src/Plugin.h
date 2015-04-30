@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Plugin.h
 *   Time:        2013/04/23
@@ -24,8 +24,7 @@
 *
 =========================================================================*/
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#pragma once
 
 #include <QtCore>
 #include <QtWidgets>
@@ -33,16 +32,16 @@
 class Plugin
 {
 public:
-	typedef void (*RegistPtr)(const QHash<QString,QObject *> &);
-	typedef void (*ConfigPtr)(QWidget *);
-	typedef QString (*StringPtr)(QString);
+	typedef void(*RegistPtr)(const QHash<QString, QObject *> &);
+	typedef void(*ConfigPtr)(QWidget *);
+	typedef QString(*StringPtr)(QString);
 
 	static QList<Plugin> plugins;
 	static void loadPlugins();
 
 	Plugin(QString path);
 	bool loaded();
-	void regist(const QHash<QString,QObject *> &);
+	void regist(const QHash<QString, QObject *> &);
 	void config(QWidget *);
 	QString string(QString query);
 
@@ -51,5 +50,3 @@ private:
 	ConfigPtr m_config;
 	StringPtr m_string;
 };
-
-#endif // PLUGIN_H

@@ -2,9 +2,10 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Info.h
+*   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -29,41 +30,52 @@
 #include <QtCore>
 #include <QtWidgets>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Info :public QWidget
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		explicit Info(QWidget *parent = 0);
 
-	static QHash<QString, QObject *> objects;
+		bool isShown()
+		{
+			return isPoped;
+		}
 
-public slots:
-	void exit(int code = 0);
+		bool preferStay()
+		{
+			return isStay;
+		}
 
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
+	private:
+		bool isStay;
+		bool isPoped;
+		bool updating;
+		qint64 duration;
 
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
+		QLabel *duraT;
+		QLabel *timeT;
+		QLabel *volmT;
+		QLabel *plfmT;
+		QSlider *timeS;
+		QSlider *volmS;
+		QLineEdit *plfmL;
+		QTableView *danmV;
+		QPushButton *playB;
+		QPushButton *stopB;
+		QAction *playA;
+		QAction *stopA;
+		QIcon playI, stopI, pausI;
+		QPropertyAnimation *animation;
+		void resizeEvent(QResizeEvent *e);
+		void setTime(qint64 _time);
+		void setDuration(qint64 _duration);
 
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	public slots:
+		void pop();
+		void push(bool force = false);
+		void terminate();
+		void resizeHeader();
+	};
+}

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Utils.h
 *   Time:        2013/05/10
@@ -24,8 +24,7 @@
 *
 =========================================================================*/
 
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <QtGui>
 #include <QtCore>
@@ -42,33 +41,34 @@ public:
 	QString sender;
 	QString string;
 	bool blocked;
+
 	Comment()
 	{
-		mode=font=color=time=date=0;
-		blocked=false;
+		mode = font = color = time = date = 0;
+		blocked = false;
 	}
 	inline bool operator <(const Comment &o) const
 	{
-		return time<o.time;
+		return time < o.time;
 	}
 	inline bool operator==(const Comment &o) const
 	{
-		return mode==o.mode&&font==o.font&&color==o.color&&qFuzzyCompare((float)time,(float)o.time)&&date==o.date&&sender==o.sender&&string==o.string;
+		return mode == o.mode&&font == o.font&&color == o.color&&qFuzzyCompare((float)time, (float)o.time) && date == o.date&&sender == o.sender&&string == o.string;
 	}
 	inline bool isLocal() const
 	{
-		return date==0&&sender.isEmpty();
+		return date == 0 && sender.isEmpty();
 	}
 };
 
-inline uint qHash(const Comment &c,uint seed=0)
+inline uint qHash(const Comment &c, uint seed = 0)
 {
-	uint h=qHash(c.mode,seed);
-	h=(h<<1)^qHash(c.font,seed);
-	h=(h<<1)^qHash(c.color,seed);
-	h=(h<<1)^qHash(c.date,seed);
-	h=(h<<1)^qHash(c.sender,seed);
-	h=(h<<1)^qHash(c.string,seed);
+	uint h = qHash(c.mode, seed);
+	h = (h << 1) ^ qHash(c.font, seed);
+	h = (h << 1) ^ qHash(c.color, seed);
+	h = (h << 1) ^ qHash(c.date, seed);
+	h = (h << 1) ^ qHash(c.sender, seed);
+	h = (h << 1) ^ qHash(c.string, seed);
 	return h;
 }
 
@@ -82,10 +82,11 @@ public:
 	QString string;
 	QString access;
 	QList<Comment> danmaku;
+
 	Record()
 	{
-		full=false;
-		delay=limit=0;
+		full = false;
+		delay = limit = 0;
 	}
 };
 
@@ -106,22 +107,20 @@ namespace Utils
 
 	enum Type
 	{
-		Video=1,
-		Audio=2,
-		Subtitle=4,
-		Danmaku=8
+		Video = 1,
+		Audio = 2,
+		Subtitle = 4,
+		Danmaku = 8
 	};
 
 	Site parseSite(QString url);
 	void setCenter(QWidget *widget);
-	void setGround(QWidget *widget,QColor color);
-	QString defaultFont(bool monospace=false);
+	void setGround(QWidget *widget, QColor color);
+	QString defaultFont(bool monospace = false);
 	QString customUrl(Site site);
-	QString decodeXml(QString string,bool fast=false);
+	QString decodeXml(QString string, bool fast = false);
 	QStringList getRenderModules();
 	QStringList getDecodeModules();
-	QStringList getSuffix(int type,QString format="");
+	QStringList getSuffix(int type, QString format = "");
 	double evaluate(QString expression);
 }
-
-#endif // UTILS_H

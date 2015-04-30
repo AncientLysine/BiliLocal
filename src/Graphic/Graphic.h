@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Graphic.h
+*   Time:        2013/10/19
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -26,44 +26,59 @@
 
 #pragma once
 
+#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
+#include "../Utils.h"
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+class Graphic
 {
-	Q_OBJECT
 public:
-	Local(int &argc, char **argv);
+	virtual QList<QRectF> locate() = 0;
+	virtual bool move(qint64 time) = 0;
+	virtual void draw(QPainter *painter) = 0;
+	virtual uint intersects(Graphic *other) = 0;
+	virtual bool stay(){ return false; }
+	virtual QRectF &currentRect(){ return rect; }
+	virtual ~Graphic() = default;
 
-	static Local *instance()
+	inline int getMode()
 	{
-		return lApp;
+		return source ? source->mode : 0;
 	}
 
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
+	inline bool isEnabled()
 	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
+		return enabled;
 	}
 
-	QObject *findObject(QString name)
+	inline void setEnabled(bool enabled)
 	{
-		return objects[name];
+		this->enabled = enabled;
 	}
 
-	void synchronize(void *func)
+	inline quint64 getIndex()
 	{
-		((void(*)())func)();
+		return index;
 	}
 
-	void synchronize(void *func, void *args)
+	void setIndex();
+
+	inline const Comment *getSource()
 	{
-		((void(*)(void *))func)(args);
+		return source;
 	}
+
+	inline void setSource(const Comment *_source)
+	{
+		source = _source;
+	}
+
+	static Graphic *create(const Comment &comment);
+
+protected:
+	bool enabled;
+	QRectF rect;
+	quint64 index;
+	const Comment *source;
+	Graphic() :enabled(false), source(nullptr){}
 };

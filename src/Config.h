@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013 Lysine.
+*   Copyright (C) 2013-2015 Lysine.
 *
 *   Filename:    Config.h
 *   Time:        2013/06/17
@@ -24,115 +24,114 @@
 *
 =========================================================================*/
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtWidgets>
 
 namespace{
-template<class TypeName>
-TypeName fromJsonValue(QJsonValue v)
-{
-	QVariant t=v.toVariant();
-	if(!t.canConvert<TypeName>()){
-		throw("type missmatch");
+	template<class TypeName>
+	TypeName fromJsonValue(QJsonValue v)
+	{
+		QVariant t = v.toVariant();
+		if (!t.canConvert<TypeName>()){
+			throw("type missmatch");
+		}
+		return t.value<TypeName>();
 	}
-	return t.value<TypeName>();
-}
 
-template<>
-QVariant fromJsonValue(QJsonValue v)
-{
-	return v.toVariant();
-}
-
-template<>
-QJsonArray fromJsonValue(QJsonValue v)
-{
-	if (QJsonValue::Array!=v.type()){
-		throw("type missmatch");
+	template<>
+	QVariant fromJsonValue(QJsonValue v)
+	{
+		return v.toVariant();
 	}
-	return v.toArray();
-}
 
-template<>
-QJsonObject fromJsonValue(QJsonValue v)
-{
-	if (QJsonValue::Object!=v.type()){
-		throw("type missmatch");
+	template<>
+	QJsonArray fromJsonValue(QJsonValue v)
+	{
+		if (QJsonValue::Array != v.type()){
+			throw("type missmatch");
+		}
+		return v.toArray();
 	}
-	return v.toObject();
+
+	template<>
+	QJsonObject fromJsonValue(QJsonValue v)
+	{
+		if (QJsonValue::Object != v.type()){
+			throw("type missmatch");
+		}
+		return v.toObject();
+	}
+
+	template<class TypeName>
+	QJsonValue toJsonValue(TypeName v)
+	{
+		return QJsonValue(v);
+	}
+
+	template<>
+	QJsonValue toJsonValue(QVariant v)
+	{
+		return QJsonValue::fromVariant(v);
+	}
 }
 
-template<class TypeName>
-QJsonValue toJsonValue(TypeName v)
-{
-	return QJsonValue(v);
-}
-
-template<>
-QJsonValue toJsonValue(QVariant v)
-{
-	return QJsonValue::fromVariant(v);
-}
-}
-
-class Config:public QObject
+class Config :public QObject
 {
 	Q_OBJECT
 public:
-	explicit Config(QObject *parent=0);
+	explicit Config(QObject *parent = 0);
 
 	template<class T>
-	static T getValue(QString key,T def=T())
+	static T getValue(QString key, T def = T())
 	{
-		QStringList tree=key.split('/',QString::SkipEmptyParts);
-		QString last=tree.takeLast();
-		QJsonObject cur=config;
+		QStringList tree = key.split('/', QString::SkipEmptyParts);
+		QString last = tree.takeLast();
+		QJsonObject cur = config;
 		QList<QJsonObject> path;
-		for(const QString &k:tree){
+		for (const QString &k : tree){
 			path.append(cur);
-			cur=cur.value(k).toObject();
+			cur = cur.value(k).toObject();
 		}
 		if (cur.contains(last)){
 			try{
 				return fromJsonValue<T>(cur.value(last));
 			}
-			catch(...){}
+			catch (...){}
 		}
-		QJsonValue val=toJsonValue(def);
-		if(!val.isNull()){
-			cur[last]=val;
-			while(!path.isEmpty()){
-				QJsonObject pre=path.takeLast();
-				pre[tree.takeLast()]=cur;
-				cur=pre;
+		QJsonValue val = toJsonValue(def);
+		if (!val.isNull()){
+			cur[last] = val;
+			while (!path.isEmpty()){
+				QJsonObject pre = path.takeLast();
+				pre[tree.takeLast()] = cur;
+				cur = pre;
 			}
-			config=cur;
+			config = cur;
 		}
 		return def;
 	}
 
 	template<class T>
-	static void setValue(QString key,T set)
+	static void setValue(QString key, T set)
 	{
-		QStringList tree=key.split('/',QString::SkipEmptyParts);
-		QString last=tree.takeLast();
-		QJsonObject cur=config;
+		QStringList tree = key.split('/', QString::SkipEmptyParts);
+		QString last = tree.takeLast();
+		QJsonObject cur = config;
 		QList<QJsonObject> path;
-		for(const QString &k:tree){
+		for (const QString &k : tree){
 			path.append(cur);
-			cur=cur.value(k).toObject();
+			cur = cur.value(k).toObject();
 		}
-		cur[last]=toJsonValue(set);
-		while(!path.isEmpty()){
-			QJsonObject pre=path.takeLast();
-			pre[tree.takeLast()]=cur;
-			cur=pre;
+		cur[last] = toJsonValue(set);
+		while (!path.isEmpty()){
+			QJsonObject pre = path.takeLast();
+			pre[tree.takeLast()] = cur;
+			cur = pre;
 		}
-		config=cur;
+		config = cur;
 	}
 
 	static Config *instance();
@@ -142,12 +141,10 @@ private:
 	static QJsonObject config;
 
 public slots:
-	static void exec(QWidget *parent=0,int index=0);
+	static void exec(QWidget *parent = 0, int index = 0);
 	static void load();
 	static void save();
 	static void setManager(QNetworkAccessManager *manager);
-	void     setVariant(QString key,QVariant val);
-	QVariant getVariant(QString key,QVariant val=QVariant());
+	void     setVariant(QString key, QVariant val);
+	QVariant getVariant(QString key, QVariant val = QVariant());
 };
-
-#endif // CONFIG_H

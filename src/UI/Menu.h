@@ -2,9 +2,10 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Menu.h
+*   Time:        2013/04/05
 *   Author:      Lysine
+*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -29,41 +30,56 @@
 #include <QtCore>
 #include <QtWidgets>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Menu :public QWidget
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		explicit Menu(QWidget *parent = 0);
 
-	static QHash<QString, QObject *> objects;
+		bool isShown()
+		{
+			return isPoped;
+		}
 
-public slots:
-	void exit(int code = 0);
+		bool preferStay()
+		{
+			return isStay || !danmC->popup()->isHidden();
+		}
 
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
+	private:
+		bool isStay;
+		bool isPoped;
+		QLineEdit *fileL;
+		QLineEdit *danmL;
+		QLineEdit *sechL;
+		QCompleter *fileC;
+		QCompleter *danmC;
+		QPushButton *fileB;
+		QPushButton *danmB;
+		QPushButton *sechB;
+		QAction *fileA;
+		QAction *danmA;
+		QAction *sechA;
+		QLabel *alphaT;
+		QSlider *alphaS;
+		QLabel *delayT;
+		QLineEdit *delayL;
+		QLabel *localT;
+		QCheckBox *localC;
+		QLabel *subT;
+		QCheckBox *subC;
+		QLabel *loopT;
+		QCheckBox *loopC;
+		QPropertyAnimation *animation;
+		void resizeEvent(QResizeEvent *e);
+		bool eventFilter(QObject *o, QEvent *e);
 
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
+	public slots:
+		void pop();
+		void push(bool force = false);
+		void terminate();
 
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	};
+}

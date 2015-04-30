@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Editor.h
+*   Time:        2013/06/30
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -26,44 +26,22 @@
 
 #pragma once
 
+#include <QtGui>
 #include <QtCore>
 #include <QtWidgets>
+#include <QtNetwork>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Editor :public QDialog
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		static void exec(QWidget *parent = 0);
 
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
-
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	private:
+		QWidget *list;
+		QWidget *pool;
+		explicit Editor(QWidget *parent = 0);
+	};
+}

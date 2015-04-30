@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Type.h
+*   Time:        2015/04/26
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -28,42 +28,29 @@
 
 #include <QtCore>
 #include <QtWidgets>
+#include "../Utils.h"
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+namespace UI
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
+	class Type :public QWidget
 	{
-		return lApp;
-	}
+		Q_OBJECT
+	public:
+		explicit Type(QWidget *parent);
+		void setVisible(bool);
 
-	static QHash<QString, QObject *> objects;
+	private:
+		QLineEdit * commentL;
+		QComboBox * commentS;
+		QComboBox * commentM;
+		QAction * commentA;
+		QPushButton * commentC;
+		QPushButton * commentB;
 
-public slots:
-	void exit(int code = 0);
+		Comment getComment();
 
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
-
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+	public slots:
+		QColor getColor();
+		void setColor(QColor);
+	};
+}

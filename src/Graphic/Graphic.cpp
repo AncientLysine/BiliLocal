@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Graphic.cpp
+*   Time:        2013/10/19
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,46 +24,46 @@
 *
 =========================================================================*/
 
-#pragma once
+#include "Graphic.h"
+#include "../Config.h"
+#include "../Render/ARender.h"
+#include "Mode1.h"
+#include "Mode4.h"
+#include "Mode5.h"
+#include "Mode6.h"
+#include "Mode7.h"
 
-#include <QtCore>
-#include <QtWidgets>
-
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
-
-class Local :public QApplication
+Graphic *Graphic::create(const Comment &comment)
 {
-	Q_OBJECT
-public:
-	Local(int &argc, char **argv);
-
-	static Local *instance()
-	{
-		return lApp;
+	Graphic *graphic = nullptr;
+	switch (comment.mode){
+	case 1:
+		graphic = new Mode1(comment);
+		break;
+	case 4:
+		graphic = new Mode4(comment);
+		break;
+	case 5:
+		graphic = new Mode5(comment);
+		break;
+	case 6:
+		graphic = new Mode6(comment);
+		break;
+	case 7:
+		graphic = new Mode7(comment);
+		break;
 	}
-
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
+	if (graphic&&!graphic->isEnabled()){
+		delete graphic;
+		return nullptr;
 	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
+	else{
+		return graphic;
 	}
+}
 
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
-};
+void Graphic::setIndex()
+{
+	static quint64 globalIndex;
+	index = globalIndex++;
+}

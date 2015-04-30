@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Local.h
-*   Time:        2014/05/10
+*   Filename:    Shield.h
+*   Time:        2013/05/20
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -27,43 +27,35 @@
 #pragma once
 
 #include <QtCore>
-#include <QtWidgets>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
+class Comment;
 
-class Local :public QApplication
+class Shield
 {
-	Q_OBJECT
 public:
-	Local(int &argc, char **argv);
+	enum Group
+	{ 
+		Top,
+		Bottom,
+		Slide,
+		Reverse,
+		Guest,
+		Advanced,
+		Color,
+		Whole
+	};
 
-	static Local *instance()
-	{
-		return lApp;
-	}
+	typedef QString Sender;
+	typedef QRegularExpression Regexp;
 
-	static QHash<QString, QObject *> objects;
-
-public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
-	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
-	}
-
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
-
-	void synchronize(void *func)
-	{
-		((void(*)())func)();
-	}
-
-	void synchronize(void *func, void *args)
-	{
-		((void(*)(void *))func)(args);
-	}
+	static bool shieldG[8];
+	static QSet <Sender> shieldS;
+	static QList<Regexp> shieldR;
+	static void setSenderShield(const QStringList &senders);
+	static void setRegexpShield(const QStringList &regexps);
+	static QStringList getSenderShield();
+	static QStringList getRegexpShield();
+	static void load();
+	static void save();
+	static bool isBlocked(const Comment &comment);
 };
