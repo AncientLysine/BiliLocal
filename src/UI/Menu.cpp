@@ -379,7 +379,7 @@ QWidget(parent)
 	hdelA->setShortcut(QKeySequence(Qt::Key_Delete));
 	connect(hdelA, &QAction::triggered, [=](){
 		QModelIndex index = popup->currentIndex();
-		index = dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index);
+		index = qobject_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index);
 		index = fileM->mapToSource(index);
 		List::instance()->itemFromIndex(index)->setData(QVariant(), List::DateRole);
 	});
@@ -387,7 +387,7 @@ QWidget(parent)
 	connect(popup, SIGNAL(entered(QModelIndex)), popup, SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(fileC, &QCompleter::activated, [=](const QModelIndex &index){
 		setFocus();
-		List::instance()->jumpToIndex(fileM->mapToSource(dynamic_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
+		List::instance()->jumpToIndex(fileM->mapToSource(qobject_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
 	});
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setWidget(danmL);
@@ -396,7 +396,7 @@ QWidget(parent)
 	connect(popup, SIGNAL(entered(QModelIndex)), popup, SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC, &QCompleter::activated, [=](const QModelIndex &index){
 		setFocus();
-		Load::instance()->loadDanmaku(danmM->mapToSource(dynamic_cast<QAbstractProxyModel *>(danmC->completionModel())->mapToSource(index)));
+		Load::instance()->loadDanmaku(danmM->mapToSource(qobject_cast<QAbstractProxyModel *>(danmC->completionModel())->mapToSource(index)));
 	});
 	fileB = new QPushButton(this);
 	sechB = new QPushButton(this);
@@ -439,7 +439,7 @@ QWidget(parent)
 				danmL->setFocus();
 			}
 			else{
-				Load::instance()->loadDanmaku(dynamic_cast<DanmEdit *>(danmL)->getCode());
+				Load::instance()->loadDanmaku(static_cast<DanmEdit *>(danmL)->getCode());
 			}
 		}
 	});
@@ -529,7 +529,7 @@ QWidget(parent)
 		auto syncDanmL = [&](){
 			QString fix(task->code);
 			if (!task->code.isEmpty() && task->processer->regular(fix)){
-				DanmEdit *danmE = dynamic_cast<DanmEdit *>(danmL);
+				DanmEdit *danmE = static_cast<DanmEdit *>(danmL);
 				danmE->setCode(fix);
 				danmE->setCursorPosition(0);
 				danmE->clearFocus();

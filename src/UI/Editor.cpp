@@ -442,8 +442,8 @@ namespace{
 			scroll->setSingleStep(20);
 			connect(scroll, &QScrollBar::valueChanged, [this](int value){
 				value = -value;
-				for (QObject *c : widget->children()){
-					qobject_cast<QWidget *>(c)->move(0, value);
+				for (Track *t : tracks){
+					t->move(0, value);
 					value += 100 * logicalDpiY() / 96;
 				}
 			});
@@ -451,7 +451,13 @@ namespace{
 			widget = new QWidget(this);
 			widget->setContextMenuPolicy(Qt::CustomContextMenu);
 			connect(widget, &QWidget::customContextMenuRequested, [this](QPoint point){
-				Track *c = dynamic_cast<Track *>(childAt(point));
+				Track *c = nullptr;
+				for (Track *t : tracks){
+					if (t->geometry().contains(point)){
+						c = t;
+						break;
+					}
+				}
 				if (!c){
 					return;
 				}
@@ -525,6 +531,7 @@ namespace{
 		}
 
 	private:
+		QList<Track *> tracks;
 		QWidget *widget;
 		QScrollBar *scroll;
 		QNetworkAccessManager *manager;
@@ -556,7 +563,8 @@ namespace{
 
 		void parseRecords()
 		{
-			qDeleteAll(widget->children());
+			qDeleteAll(tracks);
+			tracks.clear();
 			QList<Record> &pool = Danmaku::instance()->getPool();
 			if (!pool.isEmpty()){
 				qint64 duration = -1;
@@ -576,6 +584,7 @@ namespace{
 					t->setDuration(duration);
 					t->setRecord(&r);
 					t->show();
+					tracks.append(t);
 				}
 			}
 			parseLayouts();
@@ -586,7 +595,7 @@ namespace{
 		{
 			double y = 100 * logicalDpiY() / 96;
 			QRect r = rect();
-			if (widget->children().size()*y - 2 > r.height()){
+			if (tracks.size()*y - 2 > r.height()){
 				scroll->show();
 				scroll->setGeometry(r.adjusted(r.width() - scroll->width(), 0, 0, 0));
 				widget->setGeometry(r.adjusted(0, 0, -scroll->width(), 0));
@@ -595,15 +604,11 @@ namespace{
 				scroll->hide();
 				widget->setGeometry(r);
 			}
-			QObjectList c = widget->children();
-			scroll->setRange(0, c.size()*y - r.height() - 2);
-			scroll->setValue(c.size() ? -qobject_cast<QWidget *>(c.first())->y() : 0);
+			scroll->setRange(0, tracks.size()*y - r.height() - 2);
+			scroll->setValue(tracks.size() ? -tracks.first()->y() : 0);
 			scroll->setPageStep(r.height());
-			for (QObject *o : c){
-				QWidget *w = qobject_cast<QWidget *>(o);
-				if (w){
-					w->resize(widget->width(), y);
-				}
+			for (Track *t : tracks){
+				t->resize(widget->width(), y);
 			}
 		}
 
