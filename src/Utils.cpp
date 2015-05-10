@@ -134,11 +134,14 @@ double Utils::evaluate(QString exp)
 		case '+' + 128:
 		case '-' + 128:
 			return 4;
+		case ':':
+		case ':' + 128:
+			return 5;
 		default:
 			return 0;
 		}
 	};
-	exp = exp.trimmed();
+	exp.remove(' ');
 	try{
 		QString pst;
 		SStack<QChar> opt;
@@ -149,6 +152,14 @@ double Utils::evaluate(QString exp)
 				pst.append(exp[i]);
 			}
 			else{
+				auto tra = [&](){
+					pst.append(' ');
+					while (priority(exp[i]) <= priority(opt.top())){
+						pst.append(opt.pop());
+					}
+					opt.push(exp[i]);
+				};
+				int colon = 0;
 				switch (exp[i].unicode()){
 				case '(':
 					opt.push(exp[i]);
@@ -161,18 +172,28 @@ double Utils::evaluate(QString exp)
 					break;
 				case '+':
 				case '-':
-					if ((i == 0 || exp[i - 1] == '(') && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
+				{
+					if ((i == 0 || (!exp[i - 1].isDigit() && exp[i - 1] != ')')) && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
 						exp[i].unicode() += 128;
 					}
+					tra();
+					break;
+				}
+				case ':':
+					switch (colon++){
+					case 2:
+						exp[i].unicode() += 128;
+					case 1:
+					case 0:
+						break;
+					default:
+						throw("colon overflow");
+					}
+					tra();
+					break;
 				case '*':
 				case '/':
-					pst.append(' ');
-					while (priority(exp[i]) <= priority(opt.top())){
-						pst.append(opt.pop());
-					}
-					opt.push(exp[i]);
-					break;
-				case ' ':
+					tra();
 					break;
 				default:
 					throw("token unrecognized");
@@ -230,6 +251,18 @@ double Utils::evaluate(QString exp)
 				{
 					double r = num.pop(), l = num.pop();
 					num.push(l / r);
+					break;
+				}
+				case ':':
+				{
+					double r = num.pop(), l = num.pop();
+					num.push(l * 60 + r);
+					break;
+				}
+				case ':' + 128:
+				{
+					double r = num.pop(), l = num.pop();
+					num.push(l * 24 + r);
 					break;
 				}
 				}
@@ -392,7 +425,7 @@ QStringList Utils::getRenderModules()
 	modules << "OpenGL";
 #endif
 #ifdef RENDER_RASTER
-	modules<<"Raster";
+	modules << "Raster";
 #endif
 #ifdef RENDER_DETACH
 	modules << "Detach";

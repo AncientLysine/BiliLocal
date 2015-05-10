@@ -73,6 +73,47 @@ public:
 
 namespace
 {
+	QString decodeAsText(const QByteArray &data)
+	{
+		QTextCodec *codec = QTextCodec::codecForUtfText(data, nullptr);
+		if (!codec){
+			QByteArray name;
+			QByteArray head = data.left(512).toLower();
+			if (head.startsWith("<?xml")){
+				int pos = head.indexOf("encoding=");
+				if (pos >= 0){
+					pos += 9;
+					if (pos < head.size()){
+						auto c = head.at(pos);
+						if ('\"' == c || '\'' == c){
+							++pos;
+							name = head.mid(pos, head.indexOf(c, pos) - pos);
+						}
+					}
+				}
+			}
+			else{
+				int pos = head.indexOf("charset=", head.indexOf("meta "));
+				if (pos >= 0){
+					pos += 8;
+					int end = pos;
+					while (++end < head.size()){
+						auto c = head.at(end);
+						if (c == '\"' || c == '\'' || c == '>'){
+							name = head.mid(pos, end - pos);
+							break;
+						}
+					}
+				}
+			}
+			codec = QTextCodec::codecForName(name);
+		}
+		if (!codec){
+			codec = QTextCodec::codecForLocale();
+		}
+		return codec->toUnicode(data);
+	}
+
 	QList<Comment> parseComment(QByteArray data, Utils::Site site)
 	{
 		QList<Comment> list;
@@ -80,7 +121,7 @@ namespace
 		case Utils::Bilibili:
 		case Utils::TuCao:
 		{
-			QString xml(data);
+			QString xml = decodeAsText(data);
 			QVector<QStringRef> l = xml.splitRef("<d p=");
 			l.removeFirst();
 			for (const QStringRef &item : l){
@@ -153,7 +194,7 @@ namespace
 		}
 		case Utils::AcfunLocalizer:
 		{
-			QString xml(data);
+			QString xml = decodeAsText(data);
 			QVector<QStringRef> l = xml.splitRef("<l i=\"");
 			l.removeFirst();
 			for (const QStringRef &item : l){
@@ -177,7 +218,7 @@ namespace
 		}
 		case Utils::Niconico:
 		{
-			QStringList l = QString(data).split("<chat ");
+			QStringList l = decodeAsText(data).split("<chat ");
 			l.removeFirst();
 			for (const QString &item : l){
 				Comment comment;
@@ -247,6 +288,106 @@ namespace
 				list.append(comment);
 			}
 			break;
+		}
+		case Utils::ASS:
+		{
+			QString xml = decodeAsText(data);
+			int pos = 0, len;
+			pos = xml.indexOf("PlayResY:") + 9;
+			len = xml.indexOf('\n', pos) + 1 - pos;
+			int vertical = xml.midRef(pos, len).trimmed().toInt();
+			QVector<QStringRef> ref;
+			pos = xml.indexOf("Format:", pos) + 7;
+			len = xml.indexOf('\n', pos) + 1 - pos;
+			ref = xml.midRef(pos, len).split(',');
+			int name = -1, size = -1;
+			for (int i = 0; i < ref.size(); ++i){
+				const QStringRef &item = ref[i].trimmed();
+				if (item == "Name"){
+					name = i;
+				}
+				else if (item == "Fontsize"){
+					size = i;
+				}
+			}
+			if (name < 0 || size < 0){
+				break;
+			}
+			pos += len;
+			len = xml.indexOf("Format:", pos) - pos;
+			ref = xml.midRef(pos, len).split("Style:", QString::SkipEmptyParts);
+			QMap<QString, int> style;
+			for (const QStringRef &item : ref){
+				const auto &args = item.split(',');
+				style[args[name].trimmed().toString()] = args[size].toInt();
+			}
+			pos += len;
+			pos = xml.indexOf("Format:", pos) + 7;
+			len = xml.indexOf("\n", pos) + 1 - pos;
+			ref = xml.midRef(pos, len).split(',');
+			int text = -1, font = -1, time = -1;
+			for (int i = 0; i < ref.size(); ++i){
+				const QStringRef &item = ref[i].trimmed();
+				if (item == "Text"){
+					text = i;
+				}
+				else if (item == "Start"){
+					time = i;
+				}
+				else if (item == "Style"){
+					font = i;
+				}
+			}
+			if (text < 0 || font < 0 || time < 0){
+				break;
+			}
+			qint64 dat = QDateTime::currentDateTime().toTime_t();
+			pos += len;
+			ref = xml.midRef(pos).split("Dialogue:",QString::SkipEmptyParts);
+			for (const QStringRef &item : ref){
+				const auto &args = item.split(',');
+				Comment comment;
+				comment.date = dat;
+				QString t;
+				t = args[time].trimmed().toString();
+				comment.time = 1000 * Utils::evaluate(t);
+				t = args[font].trimmed().toString();
+				comment.font = style[t];
+				t = item.mid(args[text].position()-item.position()).trimmed().toString();
+				int split = t.indexOf("}") + 1;
+				comment.string = t.midRef(split).trimmed().toString();
+				const auto &m = t.midRef(1, split - 2).split('\\', QString::SkipEmptyParts);
+				for (const QStringRef &i : m){
+					if (i.startsWith("fs")){
+						comment.font = i.mid(2).toInt();
+					}
+					else if (i.startsWith("c&H", Qt::CaseSensitive)){
+						comment.color = i.mid(3).toInt(nullptr, 16);
+					}
+					else if (i.startsWith("c")){
+						comment.color = i.mid(1).toInt();
+					}
+					else if (i.startsWith("move")){
+						const auto &p = i.mid(5, i.length() - 6).split(',');
+						if (p.size() == 4){
+							comment.mode = p[0].toInt() > p[2].toInt() ? 1 : 6;
+						}
+					}
+					else if (i.startsWith("pos")){
+						const auto &p = i.mid(4, i.length() - 5).split(',');
+						if (p.size() == 2){
+							comment.mode = p[1].toInt() > vertical / 2 ? 4 : 5;
+						}
+					}
+					else{
+						comment.mode = 0;
+						break;
+					}
+				}
+				if (comment.mode != 0 && comment.color != 0){
+					list.append(comment);
+				}
+			}
 		}
 		default:
 			break;
@@ -650,8 +791,11 @@ QObject(parent), d_ptr(new LoadPrivate(this))
 			load.access = url.isLocalFile() ? url.toLocalFile() : load.source;
 			load.string = QFileInfo(task.code).fileName();
 			load.delay = task.delay;
-			QString head(data.left(256));
-			if (!head.startsWith("<?xml")){
+			QString head = decodeAsText(data.left(512));
+			if (head.startsWith("[Script Info]")){
+				load.danmaku = parseComment(data, Utils::ASS);
+			}
+			else if (!head.startsWith("<?xml")){
 				load.danmaku = parseComment(data, Utils::AcFun);
 			}
 			else if (head.indexOf("<packet>") != -1){

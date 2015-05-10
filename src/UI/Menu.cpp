@@ -310,15 +310,7 @@ namespace{
 
 		qint64 timeToInt(QString t)
 		{
-			const QVector<QStringRef> &d = t.remove(' ').splitRef(':');
-			switch (d.size()){
-			case 2:
-				return 1000 * (d[0].toInt() * 60 + d[1].toInt()*(t.startsWith('-') ? -1 : 1));
-			case 1:
-				return 1000 * (d[0].toInt());
-			default:
-				return 0;
-			}
+			return 1000 * Utils::evaluate(t);
 		}
 
 		QString intToTime(qint64 i)

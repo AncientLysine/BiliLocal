@@ -102,7 +102,8 @@ namespace Utils
 		AcPlay,
 		AcfunLocalizer,
 		Niconico,
-		TuCao
+		TuCao,
+		ASS
 	};
 
 	enum Type

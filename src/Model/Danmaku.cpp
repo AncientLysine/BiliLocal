@@ -47,6 +47,7 @@ public:
 	QList<Record> pool;
 	QList<Comment *> danm;
 	QList<Graphic *> draw;
+	QAtomicInt wait;
 	mutable QReadWriteLock lock;
 };
 
@@ -504,10 +505,15 @@ namespace
 	class Process :public QRunnable
 	{
 	public:
-		Process(QReadWriteLock *l, QList<Graphic *> &c, const QList<const Comment *> &w) :
-			current(c), lock(l), wait(w)
+		Process(DanmakuPrivate *d, const QList<const Comment *> &w) :
+			danm(d), wait(w)
 		{
 			createTime = QDateTime::currentMSecsSinceEpoch();
+		}
+
+		~Process()
+		{
+			danm->wait -= wait.size();
 		}
 
 		void run()
@@ -519,8 +525,7 @@ namespace
 			//子线程默认优先级和主线程相同，会导致卡顿
 			QThread::currentThread()->setPriority(QThread::NormalPriority);
 			QList<Graphic *> ready;
-			while (!wait.isEmpty()){
-				const Comment *comment = wait.takeFirst();
+			for (const Comment *comment : wait){
 				Graphic *graphic = Graphic::create(*comment);
 				if (!graphic){
 					//自带弹幕系统未识别，通知插件处理
@@ -536,7 +541,7 @@ namespace
 				case 0:
 					//弹幕自行定位
 					ready.append(graphic);
-					lock->lockForWrite();
+					danm->lock.lockForWrite();
 					break;
 				default:
 				{
@@ -562,15 +567,15 @@ namespace
 						}
 					};
 					//获取读锁，计算现有弹幕的拥挤程度
-					lock->lockForRead();
-					quint64 last = current.isEmpty() ? 0 : current.last()->getIndex();
-					calculate(current);
-					lock->unlock();
+					danm->lock.lockForRead();
+					quint64 last = danm->draw.isEmpty() ? 0 : danm->draw.last()->getIndex();
+					calculate(danm->draw);
+					danm->lock.unlock();
 					ready.append(graphic);
 					//获取写锁，计算两次锁之间的新弹幕
-					lock->lockForWrite();
+					danm->lock.lockForWrite();
 					QList<Graphic *> addtion;
-					QListIterator<Graphic *> iter(current);
+					QListIterator<Graphic *> iter(danm->draw);
 					iter.toBack();
 					while (iter.hasPrevious()){
 						Graphic *p = iter.previous();
@@ -595,22 +600,21 @@ namespace
 				//相同内容的弹幕需要同时启动，先将其冻结
 				graphic->setEnabled(false);
 				graphic->setIndex();
-				current.append(graphic);
-				lock->unlock();
+				danm->draw.append(graphic);
+				danm->lock.unlock();
 			}
-			lock->lockForWrite();
+			danm->lock.lockForWrite();
 			for (Graphic *iter : ready){
 				iter->setEnabled(true);
 			}
-			lock->unlock();
+			danm->lock.unlock();
 		}
 
 		Process &operator=(const Process &) = delete;
 
 	private:
-		QList<Graphic *> &current;
+		DanmakuPrivate * const danm;
 		qint64 createTime;
-		QReadWriteLock *lock;
 		QList<const Comment *> wait;
 	};
 }
@@ -619,18 +623,18 @@ void Danmaku::setTime(qint64 time)
 {
 	Q_D(Danmaku);
 	d->time = time;
-	int l = Config::getValue("/Shield/Density", 0), n = 0;
+	int limit = Config::getValue("/Shield/Density", 0);
 	QMap<qint64, QMap<QString, QList<const Comment *>>> buffer;
 	for (; d->curr < d->danm.size() && d->danm[d->curr]->time < time; ++d->curr){
 		const Comment *c = d->danm[d->curr];
-		if (!c->blocked && (c->mode>6 || l == 0 || d->draw.size() + n < l)){
-			++n;
+		if (!c->blocked && (limit <= 0 || d->wait + d->draw.size() < limit)){
+			++d->wait;
 			buffer[c->time][c->string].append(c);
 		}
 	}
 	for (const auto &sameTime : buffer){
 		for (const auto &sameText : sameTime){
-			qThreadPool->start(new Process(&d->lock, d->draw, sameText));
+			qThreadPool->start(new Process(d, sameText));
 		}
 	}
 }

@@ -258,7 +258,8 @@ namespace{
 			m_delay->setFrame(false);
 			m_delay->setAlignment(Qt::AlignCenter);
 			connect(m_delay, &QLineEdit::editingFinished, [this](){
-				QString expression = QRegularExpression("[\\s\\d\\.\\+\\-\\*\\/\\(\\)]+").match(m_delay->text()).captured();
+				QRegularExpression r("[\\d\\.\\+\\-\\(][\\s\\d\\.\\:\\+\\-\\*\\/\\(\\)]*");
+				QString expression = r.match(m_delay->text()).captured();
 				if (!expression.isEmpty()){
 					delayRecord(Utils::evaluate(expression) * 1000 - m_record->delay);
 				}
