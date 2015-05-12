@@ -245,7 +245,7 @@ QWidget(parent)
 			Config::exec(lApp->mainWidget(), 3);
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")), &QAction::triggered, [this](){
-			Editor::exec(lApp->mainWidget());
+			Editor::exec(lApp->mainWidget(), 2);
 		});
 		connect(menu.addAction(tr("Clear Danmaku Pool")), &QAction::triggered, Danmaku::instance(), &Danmaku::clearPool);
 		menu.addAction(saveA);

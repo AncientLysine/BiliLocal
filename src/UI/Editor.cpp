@@ -620,11 +620,17 @@ namespace{
 	};
 }
 
-void Editor::exec(QWidget *parent)
+void Editor::exec(QWidget *parent, int show)
 {
 	static Editor *executing;
 	if (!executing){
 		Editor editor(parent);
+		if (!(show&List)){
+			editor.list->hide();
+		}
+		if (!(show&Pool)){
+			editor.pool->hide();
+		}
 		executing = &editor;
 		editor.QDialog::exec();
 		executing = nullptr;

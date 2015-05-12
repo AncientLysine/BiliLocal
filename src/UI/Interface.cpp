@@ -251,7 +251,9 @@ QWidget(parent)
 	listA->setObjectName("List");
 	listA->setShortcut(Config::getValue("/Shortcut/List", QString("Ctrl+L")));
 	addAction(listA);
-	connect(listA, &QAction::triggered, std::bind(&Editor::exec, this));
+	connect(listA, &QAction::triggered, [this](){
+		Editor::exec(this);
+	});
 
 	postA = new QAction(tr("Post Danmaku"), this);
 	postA->setObjectName("Post");

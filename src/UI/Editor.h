@@ -37,7 +37,14 @@ namespace UI
 	{
 		Q_OBJECT
 	public:
-		static void exec(QWidget *parent = 0);
+		enum Show
+		{
+			List = 0x1,
+			Pool = 0x2,
+			All = List | Pool
+		};
+
+		static void exec(QWidget *parent = 0, int show = All);
 
 	private:
 		QWidget *list;
