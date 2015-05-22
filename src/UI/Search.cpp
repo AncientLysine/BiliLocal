@@ -29,6 +29,7 @@
 #include "../Config.h"
 #include "../Local.h"
 #include "../Utils.h"
+#include "../Access/NetworkConfiguration.h"
 #include "../Player/APlayer.h"
 
 using namespace UI;
@@ -181,7 +182,7 @@ Search::Search(QWidget *parent) :QDialog(parent)
 	connect(resultW, &QTreeWidget::itemActivated, this, &Search::accept);
 
 	manager = new QNetworkAccessManager(this);
-	Config::setManager(manager);
+	NetworkConfiguration::instance()->setManager(manager);
 	connect(manager, &QNetworkAccessManager::finished, [this](QNetworkReply *reply){
 		reply->deleteLater();
 		remain.remove(reply);

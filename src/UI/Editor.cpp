@@ -28,6 +28,7 @@
 #include "../Config.h"
 #include "../Utils.h"
 #include "../Access/Load.h"
+#include "../Access/NetworkConfiguration.h"
 #include "../Model/Danmaku.h"
 #include "../Model/List.h"
 #include "../Player/APlayer.h"
@@ -437,7 +438,7 @@ namespace{
 		{
 			setMinimumWidth(100 * logicalDpiX() / 96);
 			manager = new QNetworkAccessManager(this);
-			Config::setManager(manager);
+			NetworkConfiguration::instance()->setManager(manager);
 
 			scroll = new MScroll(this);
 			scroll->setSingleStep(20);

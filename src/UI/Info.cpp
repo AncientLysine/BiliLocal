@@ -35,6 +35,7 @@
 #include "../Model/List.h"
 #include "../Model/Shield.h"
 #include "../UI/Editor.h"
+#include "../UI/Prefer.h"
 
 using namespace UI;
 
@@ -55,7 +56,6 @@ namespace
 			selectionModel()->setCurrentIndex(QModelIndex(), QItemSelectionModel::NoUpdate);
 		}
 	};
-
 }
 
 Info::Info(QWidget *parent) :
@@ -242,7 +242,7 @@ QWidget(parent)
 		}
 		menu.addAction(fullA);
 		connect(menu.addAction(tr("Edit Blocking List")), &QAction::triggered, [this](){
-			Config::exec(lApp->mainWidget(), 3);
+			Prefer::exec(lApp->mainWidget(), 3);
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")), &QAction::triggered, [this](){
 			Editor::exec(lApp->mainWidget(), 2);

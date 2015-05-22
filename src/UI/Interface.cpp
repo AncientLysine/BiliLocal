@@ -39,6 +39,7 @@
 #include "../UI/Info.h"
 #include "../UI/Jump.h"
 #include "../UI/Menu.h"
+#include "../UI/Prefer.h"
 #include "../UI/Type.h"
 #include <functional>
 
@@ -230,7 +231,7 @@ QWidget(parent)
 	confA->setShortcut(Config::getValue("/Shortcut/Conf", QString("Ctrl+I")));
 	addAction(confA);
 	connect(confA, &QAction::triggered, [](){
-		Config::exec(lApp->mainWidget());
+		Prefer::exec(lApp->mainWidget());
 	});
 
 	toggA = new QAction(tr("Block All"), this);

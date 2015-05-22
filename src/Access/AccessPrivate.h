@@ -1,11 +1,10 @@
 #pragma once
 
 #include "../Config.h"
-#include <QtGui>
+#include "NetworkConfiguration.h"
 #include <QtCore>
 #include <QtNetwork>
 #include <algorithm>
-#include <functional>
 
 template<typename Access, typename Proc, typename Task>
 class AccessPrivate
@@ -44,7 +43,7 @@ public:
 				q->forward();
 			}
 		});
-		Config::setManager(&manager);
+		NetworkConfiguration::instance()->setManager(&manager);
 	}
 
 	void addProc(const Proc *proc)

@@ -27,8 +27,6 @@
 #pragma once
 
 #include <QtCore>
-#include <QtNetwork>
-#include <QtWidgets>
 
 namespace{
 	template<class TypeName>
@@ -89,7 +87,9 @@ public:
 	{
 		QStringList tree = key.split('/', QString::SkipEmptyParts);
 		QString last = tree.takeLast();
+		lock.lockForRead();
 		QJsonObject cur = config;
+		lock.unlock();
 		QList<QJsonObject> path;
 		for (const QString &k : tree){
 			path.append(cur);
@@ -109,7 +109,9 @@ public:
 				pre[tree.takeLast()] = cur;
 				cur = pre;
 			}
+			lock.lockForWrite();
 			config = cur;
+			lock.unlock();
 		}
 		return def;
 	}
@@ -131,7 +133,9 @@ public:
 			pre[tree.takeLast()] = cur;
 			cur = pre;
 		}
+		lock.lockForWrite();
 		config = cur;
+		lock.unlock();
 	}
 
 	static Config *instance();
@@ -139,12 +143,14 @@ public:
 private:
 	static Config *ins;
 	static QJsonObject config;
+	static QReadWriteLock lock;
+
+signals:
+	void aboutToSave();
 
 public slots:
-	static void exec(QWidget *parent = 0, int index = 0);
 	static void load();
 	static void save();
-	static void setManager(QNetworkAccessManager *manager);
 	void     setVariant(QString key, QVariant val);
 	QVariant getVariant(QString key, QVariant val = QVariant());
 };

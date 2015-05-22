@@ -12,6 +12,7 @@ CONFIG += c++11
 
 SOURCES += \
     src/Access/Load.cpp \
+    src/Access/NetworkConfiguration.cpp \
     src/Access/Post.cpp \
     src/Graphic/Graphic.cpp \
     src/Graphic/GraphicPrivate.cpp \
@@ -31,6 +32,7 @@ SOURCES += \
     src/UI/Interface.cpp \
     src/UI/Jump.cpp \
     src/UI/Menu.cpp \
+    src/UI/Prefer.cpp \
     src/UI/Search.cpp \
     src/UI/Type.cpp \
     src/Config.cpp \
@@ -41,6 +43,7 @@ SOURCES += \
 HEADERS += \
     src/Access/AccessPrivate.h \
     src/Access/Load.h \
+    src/Access/NetworkConfiguration.h \
     src/Access/Post.h \
     src/Graphic/Graphic.h \
     src/Graphic/GraphicPrivate.h \
@@ -61,6 +64,7 @@ HEADERS += \
     src/UI/Interface.h \
     src/UI/Jump.h \
     src/UI/Menu.h \
+    src/UI/Prefer.h \
     src/UI/Search.h \
     src/UI/Type.h \
     src/Config.h \
