@@ -74,7 +74,7 @@ QHash<QString, QVariant> Prefer::getReparse()
 	QHash<QString, QVariant> data;
 	int g = 0;
 	for (int i = 0; i < 8; ++i){
-		g = (g << 1) + Shield::shieldG[i];
+		g = (g << 1) + check[i]->isChecked();
 	}
 	data["/Shield/Group"] = g;
 	data["/Shield/Regexp"] = rm->stringList();
@@ -601,13 +601,37 @@ QDialog(parent)
 		for (int i = 0; i < 8; ++i){
 			check[i] = new QCheckBox(list[i], widget[3]);
 			check[i]->setFixedHeight(40);
-			check[i]->setChecked(Shield::shieldG[i]);
-			connect(check[i], &QCheckBox::stateChanged, [i](int state){
-				Shield::shieldG[i] = state == Qt::Checked;
-			});
+			check[i]->setChecked(false);
 			g->addWidget(check[i]);
 		}
 		grid->addLayout(g, 0, 0, 1, 4);
+
+		QStringList rl, sl;
+		for (const QString &shield : Shield::instance()->getAllShields()){
+			if (shield.length() <= 2){
+				continue;
+			}
+			QString content = shield.mid(2);
+			switch (shield[0].unicode()){
+			case 'm':
+			{
+				bool ok;
+				int i = content.toInt(&ok);
+				if (ok&&i >= 0 && i < 8){
+					check[i]->setChecked(true);
+				}
+				break;
+			}
+			case 't':
+				rl.append(content);
+				break;
+			case 'u':
+				sl.append(content);
+				break;
+			default:
+				break;
+			}
+		}
 
 		type = new QComboBox(widget[3]);
 		type->addItem(tr("Text"));
@@ -617,10 +641,8 @@ QDialog(parent)
 		sender = new List(widget[3]);
 		regexp->setSelectionMode(QListView::ExtendedSelection);
 		sender->setSelectionMode(QListView::ExtendedSelection);
-		regexp->setModel(rm = new QStringListModel(regexp));
-		sender->setModel(sm = new QStringListModel(sender));
-		rm->setStringList(Shield::getRegexpShield());
-		sm->setStringList(Shield::getSenderShield());
+		regexp->setModel(rm = new QStringListModel(rl, regexp));
+		sender->setModel(sm = new QStringListModel(sl, sender));
 		action[0] = new QAction(tr("Add"), widget[3]);
 		action[1] = new QAction(tr("Del"), widget[3]);
 		action[2] = new QAction(tr("Import"), widget[3]);
@@ -1184,14 +1206,27 @@ QDialog(parent)
 			tab->addTab(widget[8], tr("License"));
 		}
 		connect(this, &QDialog::finished, [this](){
+			Danmaku *d = Danmaku::instance();
+			APlayer *p = APlayer::instance();
 			if (reparse != getReparse()){
-				Shield::setSenderShield(sm->stringList());
-				Shield::setRegexpShield(rm->stringList());
-				Danmaku::instance()->parse(0x2);
+				QStringList shields;
+				for (int i = 0; i < 8; ++i){
+					if (check[i]->isChecked()){
+						shields.append(QString("m=%1").arg(i));
+					}
+				}
+				for (const QString &regexp : rm->stringList()){
+					shields.append("t=" + regexp);
+				}
+				for (const QString &sender : sm->stringList()){
+					shields.append("u=" + sender);
+				}
+				Shield::instance()->setAllShields(shields);
+				d->parse(0x2);
 			}
 			if (restart != getRestart()){
-				if (APlayer::instance()->getState() == APlayer::Stop&&
-					Danmaku::instance()->rowCount() == 0 ||
+				if (p->getState() == APlayer::Stop&&
+					d->rowCount() == 0 ||
 					QMessageBox::warning(this,
 					tr("Warning"),
 					tr("Restart to apply changes?"),

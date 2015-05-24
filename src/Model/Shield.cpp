@@ -29,90 +29,214 @@
 #include "../Utils.h"
 #include <algorithm>
 
-bool Shield::shieldG[8];
-QSet <Shield::Sender> Shield::shieldS;
-QList<Shield::Regexp> Shield::shieldR;
+Shield *Shield::ins = nullptr;
 
-void Shield::setSenderShield(const QStringList &senders)
+Shield *Shield::instance()
 {
-	shieldS = senders.toSet();
+	return ins ? ins : new Shield(qApp);
 }
 
-void Shield::setRegexpShield(const QStringList &regexps)
+class ShieldPrivate
 {
-	shieldR.clear();
-	for (const QString &item : regexps){
-		if (item.isEmpty()){
-			continue;
+public:
+	bool shieldG[8];
+	QSet<QString> shieldS;
+	QList<QRegularExpression> shieldR;
+
+	bool contains(const QString &shield)
+	{
+		if (shield.length() <= 2){
+			return false;
 		}
-		shieldR.append(Regexp(item));
+		QString content = shield.mid(2);
+		switch (shield[0].unicode()){
+		case 'm':
+		{
+			bool ok;
+			int i = content.toInt(&ok);
+			return ok&&i >= 0 && i < 8 && shieldG[i];
+		}
+		case 't':
+			for (const auto &iter : shieldR){
+				if (content == iter.pattern()){
+					return true;
+				}
+			}
+			return false;
+		case 'u':
+			return shieldS.contains(content);
+		default:
+			return false;
+		}
 	}
-}
 
-QStringList Shield::getSenderShield()
-{
-	QStringList senders = shieldS.toList();
-	std::sort(senders.begin(), senders.end());
-	return senders;
-}
-
-QStringList Shield::getRegexpShield()
-{
-	QStringList regexps;
-	regexps.reserve(shieldR.size());
-	for (const Regexp &iter : shieldR){
-		regexps.append(iter.pattern());
+	void insert(const QString &shield)
+	{
+		if (shield.length() <= 2){
+			return;
+		}
+		QString content = shield.mid(2);
+		switch (shield[0].unicode()){
+		case 'm':
+		{
+			bool ok;
+			int i = content.toInt(&ok);
+			if (ok&&i >= 0 && i < 8){
+				shieldG[i] = true;
+			}
+			break;
+		}
+		case 't':
+		{
+			QRegularExpression r(content);
+			if (r.isValid()){
+				shieldR.append(r);
+			}
+			break;
+		}
+		case 'u':
+			shieldS.insert(content);
+			break;
+		default:
+			break;
+		}
 	}
-	return regexps;
-}
 
-void Shield::load()
+	void remove(const QString &shield)
+	{
+		if (shield.length() <= 2){
+			return;
+		}
+		QString content = shield.mid(2);
+		switch (shield[0].unicode()){
+		case 'm':
+		{
+			bool ok;
+			int i = content.toInt(&ok);
+			if (ok&&i >= 0 && i < 8){
+				shieldG[i] = true;
+			}
+			break;
+		}
+		case 't':
+			for (auto iter = shieldR.begin(); iter != shieldR.end(); ++iter){
+				if (iter->pattern() == content){
+					shieldR.erase(iter);
+					break;
+				}
+			}
+			break;
+		case 'u':
+			shieldS.remove(content);
+			break;
+		default:
+			break;
+		}
+	}
+};
+
+Shield::Shield(QObject *parent) :
+QObject(parent), d_ptr(new ShieldPrivate)
 {
+	Q_D(Shield);
+	ins = this;
 	QJsonArray s = Config::getValue<QJsonArray>("/Shield/Sender");
 	QJsonArray r = Config::getValue<QJsonArray>("/Shield/Regexp");
 	for (const QJsonValue &item : s){
-		shieldS.insert(item.toString());
+		d->shieldS.insert(item.toString());
 	}
 	for (const QJsonValue &item : r){
-		shieldR.append(Regexp(item.toString()));
+		d->shieldR.append(QRegularExpression(item.toString()));
 	}
 	int group = Config::getValue("/Shield/Group", 0);
 	for (int i = 7; i >= 0; --i){
-		shieldG[i] = group & 1;
+		d->shieldG[i] = group & 1;
 		group = group >> 1;
 	}
+	connect(Config::instance(), &Config::aboutToSave, [d]{
+		QJsonArray s, r;
+		for (auto &item : d->shieldS){
+			s.append(item);
+		}
+		Config::setValue("/Shield/Sender", s);
+		for (auto &item : d->shieldR){
+			r.append(item.pattern());
+		}
+		Config::setValue("/Shield/Regexp", r);
+		int g = 0;
+		for (int i = 0; i < 8; ++i){
+			g = (g << 1) + d->shieldG[i];
+		}
+		Config::setValue("/Shield/Group", g);
+	});
 }
 
-void Shield::save()
+void Shield::setAllShields(const QStringList &shields)
 {
-	QJsonArray s, r;
-	for (auto &item : shieldS){
-		s.append(item);
+	Q_D(Shield);
+	d->shieldR.clear();
+	d->shieldS.clear();
+	for (auto &iter : d->shieldG){
+		iter = false;
 	}
-	Config::setValue("/Shield/Sender", s);
-	for (auto &item : shieldR){
-		r.append(item.pattern());
+	for (const QString &iter : shields){
+		d->insert(iter);
 	}
-	Config::setValue("/Shield/Regexp", r);
-	int g = 0;
-	for (int i = 0; i < 8; ++i){
-		g = (g << 1) + shieldG[i];
+	emit shieldChanged();
+}
+
+QStringList Shield::getAllShields()
+{
+	Q_D(Shield);
+	QStringList shields;
+	for (int i = 0; i < 8;++i){
+		if (d->shieldG[i]){
+			shields.append(QString("m=%1").arg(i));
+		}
 	}
-	Config::setValue("/Shield/Group", g);
+	for (const auto &iter : d->shieldS){
+		shields.append("u=" + iter);
+	}
+	for (const auto &iter : d->shieldR){
+		shields.append("t=" + iter.pattern());
+	}
+	std::sort(shields.begin(), shields.end());
+	return shields;
+}
+
+bool Shield::contains(const QString &shield)
+{
+	Q_D(Shield);
+	return d->contains(shield);
+}
+
+void Shield::insert(const QString &shield)
+{
+	Q_D(Shield);
+	d->insert(shield);
+	emit shieldChanged();
+}
+
+void Shield::remove(const QString &shield)
+{
+	Q_D(Shield);
+	d->remove(shield);
+	emit shieldChanged();
 }
 
 bool Shield::isBlocked(const Comment &comment)
 {
-	if (shieldG[Whole]
-		|| (comment.mode == 1 && shieldG[Slide])
-		|| (comment.mode == 4 && shieldG[Bottom])
-		|| (comment.mode == 5 && shieldG[Top])
-		|| (comment.mode == 6 && shieldG[Reverse])
-		|| (shieldG[Advanced] && (comment.mode == 7 || comment.mode == 8))
-		|| (comment.color != 0xFFFFFF && shieldG[Color])){
+	Q_D(Shield);
+	if (d->shieldG[Whole]
+		|| (comment.mode == 1 && d->shieldG[Slide])
+		|| (comment.mode == 4 && d->shieldG[Bottom])
+		|| (comment.mode == 5 && d->shieldG[Top])
+		|| (comment.mode == 6 && d->shieldG[Reverse])
+		|| (d->shieldG[Advanced] && (comment.mode == 7 || comment.mode == 8))
+		|| (comment.color != 0xFFFFFF && d->shieldG[Color])){
 		return true;
 	}
-	if (shieldG[Guest]){
+	if (d->shieldG[Guest]){
 		if (comment.sender.length() == 14 && comment.sender[3] == 'k'){
 			return true;
 		}
@@ -123,10 +247,10 @@ bool Shield::isBlocked(const Comment &comment)
 			return true;
 		}
 	}
-	if (shieldS.contains(comment.sender)){
+	if (d->shieldS.contains(comment.sender)){
 		return true;
 	}
-	for (const Regexp &r : shieldR){
+	for (const auto &r : d->shieldR){
 		if (r.match(comment.string).hasMatch()){
 			return true;
 		}

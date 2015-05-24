@@ -216,27 +216,22 @@ QWidget(parent)
 			});
 			connect(menu.addAction(tr("Eliminate The Sender")), &QAction::triggered, [&](){
 				for (const Comment *c : selected){
-					QString sender = c->sender;
-					if (!sender.isEmpty()){
-						Shield::shieldS.insert(sender);
+					if (!c->sender.isEmpty()){
+						Shield::instance()->insert("u=" + c->sender);
 					}
 				}
 				Danmaku::instance()->parse(0x2);
 			});
-			bool flag = false;
 			for (const Comment *c : selected){
-				if (Shield::shieldS.contains(c->sender)){
-					flag = true;
+				if (Shield::instance()->contains("u=" + c->sender)){
+					connect(menu.addAction(tr("Recover The Sender")), &QAction::triggered, [&](){
+						for (const Comment *c : selected){
+							Shield::instance()->remove("u=" + c->sender);
+						}
+						Danmaku::instance()->parse(0x2);
+					});
 					break;
 				}
-			}
-			if (flag){
-				connect(menu.addAction(tr("Recover The Sender")), &QAction::triggered, [&](){
-					for (const Comment *c : selected){
-						Shield::shieldS.remove(c->sender);
-					}
-					Danmaku::instance()->parse(0x2);
-				});
 			}
 			menu.addSeparator();
 		}

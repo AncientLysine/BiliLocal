@@ -480,7 +480,7 @@ void Danmaku::parse(int flag)
 		}
 		for (int i = 0; i < d->danm.size(); ++i){
 			Comment &c = *d->danm[i];
-			c.blocked = c.blocked || (l == 0 ? false : set.contains(clean[i])) || Shield::isBlocked(c);
+			c.blocked = c.blocked || (l == 0 ? false : set.contains(clean[i])) || Shield::instance()->isBlocked(c);
 		}
 		qThreadPool->clear();
 		qThreadPool->waitForDone();

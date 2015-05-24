@@ -73,6 +73,7 @@ QWidget(parent)
 	Local::objects["APlayer"] = aplayer;
 	Local::objects["ARender"] = arender;
 	Local::objects["Config"] = Config::instance();
+	Local::objects["Shield"] = Shield::instance();
 
 	menu = new Menu(this);
 	info = new Info(this);
@@ -237,15 +238,21 @@ QWidget(parent)
 	toggA = new QAction(tr("Block All"), this);
 	toggA->setObjectName("Togg");
 	toggA->setCheckable(true);
-	toggA->setChecked(Shield::shieldG[7]);
+	QString wholeShield = QString("m=%1").arg(Shield::Whole);
+	toggA->setChecked(Shield::instance()->contains(wholeShield));
 	toggA->setShortcut(Config::getValue("/Shortcut/Togg", QString("Ctrl+T")));
 	addAction(toggA);
-	connect(toggA, &QAction::triggered, [this](bool b){
-		Shield::shieldG[7] = b;
+	connect(toggA, &QAction::triggered, [=](bool b){
+		if (b){
+			Shield::instance()->insert(wholeShield);
+		}
+		else{
+			Shield::instance()->remove(wholeShield);
+		}
 		danmaku->parse(0x2);
 	});
-	connect(danmaku, &Danmaku::layoutChanged, [this](){
-		toggA->setChecked(Shield::shieldG[7]);
+	connect(Shield::instance(), &Shield::shieldChanged, [=](){
+		toggA->setChecked(Shield::instance()->contains(wholeShield));
 	});
 
 	listA = new QAction(tr("Playlist"), this);
@@ -733,9 +740,9 @@ void Interface::showContextMenu(QPoint p)
 			connect(top.addAction(tr("Eliminate The Sender")), &QAction::triggered, [=](){
 				QString sender = cur->sender;
 				if (!sender.isEmpty()){
-					Shield::shieldS.insert(sender);
+					Shield::instance()->insert("u=" + sender);
+					danmaku->parse(0x2);
 				}
-				Danmaku::instance()->parse(0x2);
 			});
 			top.addSeparator();
 		}

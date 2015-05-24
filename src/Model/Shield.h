@@ -29,12 +29,14 @@
 #include <QtCore>
 
 class Comment;
+class ShieldPrivate;
 
-class Shield
+class Shield :public QObject
 {
+	Q_OBJECT
 public:
 	enum Group
-	{ 
+	{
 		Top,
 		Bottom,
 		Slide,
@@ -45,17 +47,23 @@ public:
 		Whole
 	};
 
-	typedef QString Sender;
-	typedef QRegularExpression Regexp;
+	static Shield *instance();
 
-	static bool shieldG[8];
-	static QSet <Sender> shieldS;
-	static QList<Regexp> shieldR;
-	static void setSenderShield(const QStringList &senders);
-	static void setRegexpShield(const QStringList &regexps);
-	static QStringList getSenderShield();
-	static QStringList getRegexpShield();
-	static void load();
-	static void save();
-	static bool isBlocked(const Comment &comment);
+private:
+	static Shield *ins;
+	QScopedPointer<ShieldPrivate> const d_ptr;
+	Q_DECLARE_PRIVATE(Shield);
+
+	explicit Shield(QObject *parent = 0);
+
+signals:
+	void shieldChanged();
+
+public slots:
+	void setAllShields(const QStringList &);
+	QStringList getAllShields();
+	bool contains(const QString &);
+	void insert(const QString &);
+	void remove(const QString &);
+	bool isBlocked(const Comment &);
 };

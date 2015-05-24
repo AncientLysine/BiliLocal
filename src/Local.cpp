@@ -46,7 +46,6 @@ QApplication(argc, argv)
 	setAttribute(Qt::AA_UseOpenGLES);
 	thread()->setPriority(QThread::TimeCriticalPriority);
 	Config::load();
-	Shield::load();
 	qsrand(QTime::currentTime().msec());
 }
 
@@ -54,7 +53,6 @@ void Local::exit(int code)
 {
 	delete List::instance();
 	delete Load::instance();
-	Shield::save();
 	Config::save();
 	delete APlayer::instance();
 	delete Danmaku::instance();
