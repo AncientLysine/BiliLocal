@@ -9,9 +9,9 @@ Mode7::Mode7(const Comment &comment)
 {
 	Q_ASSERT(comment.mode == 7);
 	QJsonArray data = QJsonDocument::fromJson(comment.string.toUtf8()).array();
-	int l;
-	if ((l = data.size()) < 5){
-		return;
+	int l = data.size();
+	if (l < 5){
+		throw format_unrecognized();
 	}
 	QSize size = ARender::instance()->getActualSize();
 	auto getDouble = [&data](int i){return data.at(i).toVariant().toDouble(); };
@@ -48,7 +48,6 @@ Mode7::Mode7(const Comment &comment)
 	yRotate = l < 7 ? 0 : getDouble(6);
 	wait = l < 11 ? 0 : getDouble(10) / 1000;
 	stay = l < 10 ? 0 : life - wait - getDouble(9) / 1000;
-	enabled = true;
 	source = &comment;
 	time = 0;
 }

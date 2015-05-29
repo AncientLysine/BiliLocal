@@ -35,30 +35,19 @@
 
 Graphic *Graphic::create(const Comment &comment)
 {
-	Graphic *graphic = nullptr;
 	switch (comment.mode){
 	case 1:
-		graphic = new Mode1(comment);
-		break;
+		return new Mode1(comment);
 	case 4:
-		graphic = new Mode4(comment);
-		break;
+		return new Mode4(comment);
 	case 5:
-		graphic = new Mode5(comment);
-		break;
+		return new Mode5(comment);
 	case 6:
-		graphic = new Mode6(comment);
-		break;
+		return new Mode6(comment);
 	case 7:
-		graphic = new Mode7(comment);
-		break;
-	}
-	if (graphic&&!graphic->isEnabled()){
-		delete graphic;
-		return nullptr;
-	}
-	else{
-		return graphic;
+		return new Mode7(comment);
+	default:
+		throw format_unrecognized();
 	}
 }
 

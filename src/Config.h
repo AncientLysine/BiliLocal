@@ -27,6 +27,7 @@
 #pragma once
 
 #include <QtCore>
+#include <exception>
 
 namespace{
 	template<class TypeName>
@@ -34,7 +35,7 @@ namespace{
 	{
 		QVariant t = v.toVariant();
 		if (!t.canConvert<TypeName>()){
-			throw("type missmatch");
+			throw std::runtime_error("type missmatch");
 		}
 		return t.value<TypeName>();
 	}
@@ -49,7 +50,7 @@ namespace{
 	QJsonArray fromJsonValue(QJsonValue v)
 	{
 		if (QJsonValue::Array != v.type()){
-			throw("type missmatch");
+			throw std::runtime_error("type missmatch");
 		}
 		return v.toArray();
 	}
@@ -58,7 +59,7 @@ namespace{
 	QJsonObject fromJsonValue(QJsonValue v)
 	{
 		if (QJsonValue::Object != v.type()){
-			throw("type missmatch");
+			throw std::runtime_error("type missmatch");
 		}
 		return v.toObject();
 	}

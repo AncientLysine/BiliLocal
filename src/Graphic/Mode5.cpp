@@ -10,10 +10,7 @@ Plain(comment)
 	Q_ASSERT(comment.mode == 5);
 	QString expression = Config::getValue<QString>("/Danmaku/Life", "5");
 	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
-	if ((life = Utils::evaluate(expression)) == 0){
-		return;
-	}
-	enabled = true;
+	life = Utils::evaluate(expression);
 }
 
 QList<QRectF> Mode5::locate()

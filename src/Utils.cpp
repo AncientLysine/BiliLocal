@@ -27,6 +27,7 @@
 #include "Utils.h"
 #include "Config.h"
 #include <algorithm>
+#include <exception>
 
 Utils::Site Utils::parseSite(QString url)
 {
@@ -90,7 +91,7 @@ namespace{
 		inline T &top()
 		{
 			if (isEmpty()){
-				throw("token mismatch");
+				throw std::runtime_error("token mismatch");
 			}
 			return stk.top();
 		}
@@ -98,7 +99,7 @@ namespace{
 		inline T pop()
 		{
 			if (isEmpty()){
-				throw("token mismatch");
+				throw std::runtime_error("token mismatch");
 			}
 			return stk.pop();
 		}
@@ -142,138 +143,133 @@ double Utils::evaluate(QString exp)
 		}
 	};
 	exp.remove(' ');
-	try{
-		QString pst;
-		SStack<QChar> opt;
-		int i = 0;
-		opt.push('#');
-		while (i < exp.length()){
-			if (exp[i].isDigit() || exp[i] == '.'){
-				pst.append(exp[i]);
-			}
-			else{
-				auto tra = [&](){
-					pst.append(' ');
-					while (priority(exp[i]) <= priority(opt.top())){
-						pst.append(opt.pop());
-					}
-					opt.push(exp[i]);
-				};
-				int colon = 0;
-				switch (exp[i].unicode()){
-				case '(':
-					opt.push(exp[i]);
-					break;
-				case ')':
-					while (opt.top() != '('){
-						pst.append(opt.pop());
-					}
-					opt.pop();
-					break;
-				case '+':
-				case '-':
-				{
-					if ((i == 0 || (!exp[i - 1].isDigit() && exp[i - 1] != ')')) && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
-						exp[i].unicode() += 128;
-					}
-					tra();
-					break;
+	QString pst;
+	SStack<QChar> opt;
+	int i = 0;
+	opt.push('#');
+	while (i < exp.length()){
+		if (exp[i].isDigit() || exp[i] == '.'){
+			pst.append(exp[i]);
+		}
+		else{
+			auto tra = [&](){
+				pst.append(' ');
+				while (priority(exp[i]) <= priority(opt.top())){
+					pst.append(opt.pop());
 				}
-				case ':':
-					switch (colon++){
-					case 2:
-						exp[i].unicode() += 128;
-					case 1:
-					case 0:
-						break;
-					default:
-						throw("colon overflow");
-					}
-					tra();
-					break;
-				case '*':
-				case '/':
-					tra();
+				opt.push(exp[i]);
+			};
+			int colon = 0;
+			switch (exp[i].unicode()){
+			case '(':
+				opt.push(exp[i]);
+				break;
+			case ')':
+				while (opt.top() != '('){
+					pst.append(opt.pop());
+				}
+				opt.pop();
+				break;
+			case '+':
+			case '-':
+			{
+				if ((i == 0 || (!exp[i - 1].isDigit() && exp[i - 1] != ')')) && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
+					exp[i].unicode() += 128;
+				}
+				tra();
+				break;
+			}
+			case ':':
+				switch (colon++){
+				case 2:
+					exp[i].unicode() += 128;
+				case 1:
+				case 0:
 					break;
 				default:
-					throw("token unrecognized");
+					throw std::runtime_error("colon overflow");
 				}
+				tra();
+				break;
+			case '*':
+			case '/':
+				tra();
+				break;
+			default:
+				throw std::runtime_error("token unrecognized");
 			}
-			++i;
 		}
-		while (!opt.isEmpty()){
-			pst.append(opt.pop());
-		}
-		SStack<double> num;
-		i = 0;
-		while (pst[i] != '#'){
-			if (pst[i].isDigit() || pst[i] == '.'){
-				double n = 0;
+		++i;
+	}
+	while (!opt.isEmpty()){
+		pst.append(opt.pop());
+	}
+	SStack<double> num;
+	i = 0;
+	while (pst[i] != '#'){
+		if (pst[i].isDigit() || pst[i] == '.'){
+			double n = 0;
+			while (pst[i].isDigit()){
+				n = n * 10 + pst[i++].toLatin1() - '0';
+			}
+			if (pst[i] == '.'){
+				++i;
+				double d = 1;
 				while (pst[i].isDigit()){
-					n = n * 10 + pst[i++].toLatin1() - '0';
+					n += (d /= 10)*(pst[i++].toLatin1() - '0');
 				}
-				if (pst[i] == '.'){
-					++i;
-					double d = 1;
-					while (pst[i].isDigit()){
-						n += (d /= 10)*(pst[i++].toLatin1() - '0');
-					}
-				}
-				num.push(n);
 			}
-			else{
-				switch (pst[i].unicode()){
-				case '+' + 128:
-					num.push(+num.pop());
-					break;
-				case '-' + 128:
-					num.push(-num.pop());
-					break;
-				case '+':
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l + r);
-					break;
-				}
-				case '-':
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l - r);
-					break;
-				}
-				case '*':
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l*r);
-					break;
-				}
-				case '/':
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l / r);
-					break;
-				}
-				case ':':
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l * 60 + r);
-					break;
-				}
-				case ':' + 128:
-				{
-					double r = num.pop(), l = num.pop();
-					num.push(l * 24 + r);
-					break;
-				}
-				}
-				i++;
-			}
+			num.push(n);
 		}
-		return num.top();
+		else{
+			switch (pst[i].unicode()){
+			case '+' + 128:
+				num.push(+num.pop());
+				break;
+			case '-' + 128:
+				num.push(-num.pop());
+				break;
+			case '+':
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l + r);
+				break;
+			}
+			case '-':
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l - r);
+				break;
+			}
+			case '*':
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l*r);
+				break;
+			}
+			case '/':
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l / r);
+				break;
+			}
+			case ':':
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l * 60 + r);
+				break;
+			}
+			case ':' + 128:
+			{
+				double r = num.pop(), l = num.pop();
+				num.push(l * 24 + r);
+				break;
+			}
+			}
+			i++;
+		}
 	}
-	catch (...){
-		return 0;
-	}
+	return num.top();
 }
 
 QString Utils::defaultFont(bool monospace)

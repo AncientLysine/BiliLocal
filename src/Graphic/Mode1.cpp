@@ -10,10 +10,7 @@ Plain(comment)
 	Q_ASSERT(comment.mode == 1);
 	QString expression = Config::getValue<QString>("/Danmaku/Speed", "125+%{width}/5");
 	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
-	if ((speed = Utils::evaluate(expression)) == 0){
-		return;
-	}
-	enabled = true;
+	speed = Utils::evaluate(expression);
 }
 
 QList<QRectF> Mode1::locate()

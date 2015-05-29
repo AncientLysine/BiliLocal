@@ -29,10 +29,20 @@
 #include <QtGui>
 #include <QtCore>
 #include "../Utils.h"
+#include <exception>
 
 class Graphic
 {
 public:
+	class format_unrecognized :public std::runtime_error
+	{
+	public:
+		format_unrecognized() :
+			runtime_error("format_unrecognized")
+		{
+		}
+	};
+
 	virtual QList<QRectF> locate() = 0;
 	virtual bool move(qint64 time) = 0;
 	virtual void draw(QPainter *painter) = 0;
@@ -80,5 +90,5 @@ protected:
 	QRectF rect;
 	quint64 index;
 	const Comment *source;
-	Graphic() :enabled(false), source(nullptr){}
+	Graphic() :enabled(true), source(nullptr){}
 };

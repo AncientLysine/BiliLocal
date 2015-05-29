@@ -526,10 +526,16 @@ namespace
 			QThread::currentThread()->setPriority(QThread::NormalPriority);
 			QList<Graphic *> ready;
 			for (const Comment *comment : wait){
-				Graphic *graphic = Graphic::create(*comment);
-				if (!graphic){
+				Graphic *graphic = nullptr;
+				try{
+					graphic = Graphic::create(*comment);
+				}
+				catch (Graphic::format_unrecognized){
 					//自带弹幕系统未识别，通知插件处理
 					emit Danmaku::instance()->unrecognizedComment(comment);
+				}
+				catch (...){}
+				if (!graphic){
 					continue;
 				}
 				QRectF &rect = graphic->currentRect();
