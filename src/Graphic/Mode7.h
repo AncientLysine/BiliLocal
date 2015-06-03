@@ -7,7 +7,7 @@ class Mode7 :public Graphic
 public:
 	Mode7(const Comment &comment);
 	QList<QRectF> locate(){ return QList<QRectF>(); }
-	bool move(qint64 time);
+	bool move(double time);
 	void draw(QPainter *painter);
 	uint intersects(Graphic *){ return 0; }
 

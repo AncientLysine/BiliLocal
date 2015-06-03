@@ -52,10 +52,10 @@ Mode7::Mode7(const Comment &comment)
 	time = 0;
 }
 
-bool Mode7::move(qint64 time)
+bool Mode7::move(double time)
 {
 	if (enabled){
-		this->time += time / 1000.0;
+		this->time += time;
 	}
 	return (this->time) <= life;
 }

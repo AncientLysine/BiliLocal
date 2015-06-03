@@ -607,9 +607,7 @@ void Interface::warning(QString title, QString text)
 	auto m = msg ? qobject_cast<QMessageBox     *>(msg) : nullptr;
 	QWidget *active = qApp->activeWindow();
 	if (!m || (m != active&&m->parent() != active&&active)){
-		if (msg){
-			delete msg;
-		}
+		delete msg;
 		m = new QMessageBox(active);
 		m->setIcon(QMessageBox::Warning);
 		msg = m;

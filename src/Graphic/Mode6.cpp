@@ -8,9 +8,7 @@ Mode6::Mode6(const Comment &comment) :
 Plain(comment)
 {
 	Q_ASSERT(comment.mode == 6);
-	QString expression = Config::getValue<QString>("/Danmaku/Speed", "125+%{width}/5");
-	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
-	speed = Utils::evaluate(expression);
+	speed = evaluate(Config::getValue<QString>("/Danmaku/Speed", "125+%{width}/5"));
 }
 
 QList<QRectF> Mode6::locate()
@@ -31,11 +29,11 @@ QList<QRectF> Mode6::locate()
 	return results;
 }
 
-bool Mode6::move(qint64 time)
+bool Mode6::move(double time)
 {
 	QSize size = ARender::instance()->getActualSize();
 	if (enabled){
-		rect.moveLeft(rect.left() + speed*time / 1000.0);
+		rect.moveLeft(rect.left() + speed * time);
 	}
 	return rect.left() <= size.width();
 }

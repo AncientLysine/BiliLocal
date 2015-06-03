@@ -30,17 +30,14 @@
 #include <QtCore>
 
 class ARenderPrivate;
+class Comment;
+class ISpirit;
 
 class ARender :public QObject
 {
 	Q_OBJECT
 public:
-	class ICache
-	{
-	public:
-		virtual void draw(QPainter *, QRectF) = 0;
-		virtual ~ICache() = default;
-	};
+	static QStringList getModules();
 
 	virtual ~ARender();
 	static ARender *instance();
@@ -55,18 +52,19 @@ public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize = 0);
-	virtual ICache *getCache(const QImage &) = 0;
+	virtual ISpirit *getSpirit(const QImage &) = 0;
 
 	void setBackground(QString path);
 	void setMusic(bool music);
 	void setDisplayTime(double t);
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
+	void draw();
 	virtual quintptr getHandle() = 0;
 	virtual void resize(QSize size) = 0;
 	virtual QSize getBufferSize() = 0;
 	virtual QSize getActualSize() = 0;
 	virtual	QSize getPreferSize();
 	virtual void setPreferSize(QSize size);
-	virtual void draw(QRect rect = QRect()) = 0;
+	virtual void draw(QRect rect) = 0;
 };

@@ -1,32 +1,35 @@
 #pragma once
 
-#include "ARender.h"
-#include "OpenGLRenderPrivateBase.h"
+#include "ISpirit.h"
+#include "OpenGLRenderPrivate.h"
 
-class SyncTextureTCache :public ARender::ICache
+class SyncTextureSpirit :public ISpirit
 {
 public:
 	GLuint texture;
-	QImage source;
-	OpenGLRenderPrivateBase *render;
+	QImage *source;
+	OpenGLRenderPrivate *const render;
 
-	SyncTextureTCache(const QImage &image, OpenGLRenderPrivateBase *render) :
-		texture(0), source(image), render(render)
+	SyncTextureSpirit(const QImage &image, OpenGLRenderPrivate *render) :
+		texture(0), render(render)
 	{
+		source = new QImage(image);
 	}
 
-	~SyncTextureTCache()
+	~SyncTextureSpirit()
 	{
 		if (texture)
 			render->glDeleteTextures(1, &texture);
+		delete source;
 	}
 
 	void draw(QPainter *painter, QRectF dest)
 	{
 		if (!texture){
 			render->glGenTextures(1, &texture);
-			render->uploadTexture(texture, 4, source.width(), source.height(), (quint8 *)source.bits());
-			source = QImage();
+			render->loadTexture(texture, 4, source->width(), source->height(), source->bits());
+			delete source;
+			source = nullptr;
 		}
 		painter->beginNativePainting();
 		QRect rect(QPoint(0, 0), ARender::instance()->getActualSize());

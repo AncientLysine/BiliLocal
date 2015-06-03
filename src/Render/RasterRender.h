@@ -2,6 +2,7 @@
 
 #include "ARender.h"
 
+class ISpirit;
 class RasterRenderPrivate;
 
 class RasterRender :public ARender
@@ -13,10 +14,10 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender);
 
 public slots:
-	ICache *getCache(const QImage &i);
-	quintptr getHandle();
-	void resize(QSize size);
-	QSize getActualSize();
-	QSize getBufferSize();
-	void draw(QRect rect = QRect());
+	virtual ISpirit *getSpirit(const QImage &i) override;
+	virtual quintptr getHandle() override;
+	virtual void resize(QSize size) override;
+	virtual QSize getActualSize() override;
+	virtual QSize getBufferSize() override;
+	virtual void draw(QRect rect = QRect()) override;
 };

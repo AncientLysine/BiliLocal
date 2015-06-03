@@ -38,6 +38,21 @@
 #include "NPlayer.h"
 #endif
 
+QStringList APlayer::getModules()
+{
+	QStringList modules;
+#ifdef BACKEND_VLC
+	modules << "VLC";
+#endif
+#ifdef BACKEND_QMM
+	modules << "QMM";
+#endif
+#ifdef BACKEND_NIL
+	modules << "NIL";
+#endif
+	return modules;
+}
+
 APlayer *APlayer::ins = nullptr;
 
 APlayer *APlayer::instance()
@@ -46,7 +61,7 @@ APlayer *APlayer::instance()
 		return ins;
 	}
 	QString d;
-	QStringList l = Utils::getDecodeModules();
+	QStringList l = getModules();
 	switch (l.size()){
 	case 0:
 		break;

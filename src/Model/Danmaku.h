@@ -38,15 +38,16 @@ class Danmaku :public QAbstractItemModel
 {
 	Q_OBJECT
 public:
-	~Danmaku();
-	void draw(QPainter *painter, qint64 move);
+	virtual QVariant data(const QModelIndex &index, int role) const override;
+	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+	virtual QModelIndex parent(const QModelIndex &) const override;
+	virtual QModelIndex index(int row, int colum, const QModelIndex &parent = QModelIndex()) const override;
+	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+
+	virtual ~Danmaku();
 	QList<Record> &getPool();
-	QVariant data(const QModelIndex &index, int role) const;
-	int rowCount(const QModelIndex &parent = QModelIndex()) const;
-	int columnCount(const QModelIndex &parent = QModelIndex()) const;
-	QModelIndex parent(const QModelIndex &) const;
-	QModelIndex index(int row, int colum, const QModelIndex &parent = QModelIndex()) const;
-	QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+	void draw(QPainter *painter, double move);
 	static Danmaku *instance();
 
 private:
@@ -55,7 +56,6 @@ private:
 	Q_DECLARE_PRIVATE(Danmaku);
 
 	explicit Danmaku(QObject *parent = 0);
-	void setTime(qint64 _time);
 
 signals:
 	void alphaChanged(int);
@@ -64,8 +64,9 @@ signals:
 public slots:
 	const Comment *commentAt(QPointF point) const;
 	void setAlpha(int alpha);
-	void resetTime();
 	void clearPool();
+	void resetTime();
+	void setTime(qint64 time);
 	void appendToPool(const Record *record);
 	void appendToPool(QString source, const Comment *comment);
 	void clearCurrent(bool soft = false);

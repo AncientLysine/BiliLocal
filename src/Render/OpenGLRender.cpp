@@ -1,340 +1,24 @@
 #include "OpenGLRender.h"
-#include "OpenGLRenderPrivateBase.h"
-#include "SyncTextureCache.h"
+#include "OpenGLRenderPrivate.h"
+#include "./OpenGLRender/WidgetPrivate.h"
+#include "./OpenGLRender/WindowPrivate.h"
+#include "./OpenGLRender/DetachPrivate.h"
+#include "SyncTextureSpirit.h"
 #include "../Config.h"
-#include "../Local.h"
 #include "../Player/APlayer.h"
-#include <QOpenGLWidget>
-#include <QOpenGLWindow>
-
-class OpenGLRenderPrivate :public OpenGLRenderPrivateBase
-{
-public:
-	QSize inner;
-	int format;
-	GLuint frame[3];
-	QMutex dataLock;
-	QList<quint8 *> buffer;
-
-	void initialize()
-	{
-		OpenGLRenderPrivateBase::initialize();
-		glGenTextures(3, frame);
-	}
-
-	void uploadTexture(int i, int c, int w, int h)
-	{
-		OpenGLRenderPrivateBase::uploadTexture(frame[i], c, w, h, buffer[i]);
-	}
-
-	void drawData(QPainter *painter, QRect rect)
-	{
-		if (inner.isEmpty()){
-			return;
-		}
-		painter->beginNativePainting();
-		if (dirty){
-			int w = inner.width(), h = inner.height();
-			dataLock.lock();
-			switch (format){
-			case 0:
-			case 1:
-				uploadTexture(0, 1, w, h);
-				uploadTexture(1, 1, w / 2, h / 2);
-				uploadTexture(2, 1, w / 2, h / 2);
-				break;
-			case 2:
-			case 3:
-				uploadTexture(0, 1, w, h);
-				uploadTexture(1, 2, w / 2, h / 2);
-				break;
-			case 4:
-				uploadTexture(0, 4, w, h);
-				break;
-			}
-			dirty = false;
-			dataLock.unlock();
-		}
-		QRect dest = fitRect(ARender::instance()->getPreferSize(), rect);
-		drawTexture(frame, format, dest, rect);
-		painter->endNativePainting();
-	}
-
-	void paint(QPaintDevice *device)
-	{
-		QPainter painter(device);
-		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0, 0), ARender::instance()->getActualSize());
-		if (APlayer::instance()->getState() == APlayer::Stop){
-			drawStop(&painter, rect);
-		}
-		else{
-			drawPlay(&painter, rect);
-			drawTime(&painter, rect);
-		}
-	}
-
-	QList<quint8 *> getBuffer()
-	{
-		dataLock.lock();
-		return buffer;
-	}
-
-	void releaseBuffer()
-	{
-		dirty = true;
-		dataLock.unlock();
-	}
-
-	void setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize)
-	{
-		if (chroma == "YV12"){
-			format = 1;
-		}
-		else if (chroma == "NV12"){
-			format = 2;
-		}
-		else if (chroma == "NV21"){
-			format = 3;
-		}
-		else{
-			format = 0;
-			chroma = "I420";
-		}
-		inner = size;
-		int s = size.width()*size.height();
-		quint8 *alloc = nullptr;
-		QList<QSize> plane;
-		switch (format){
-		case 0:
-		case 1:
-			alloc = new quint8[s * 3 / 2];
-			plane.append(size);
-			size /= 2;
-			plane.append(size);
-			plane.append(size);
-			break;
-		case 2:
-		case 3:
-			alloc = new quint8[s * 3 / 2];
-			plane.append(size);
-			size.rheight() /= 2;
-			plane.append(size);
-			break;
-		}
-		if (!buffer.isEmpty()){
-			delete[]buffer[0];
-		}
-		buffer.clear();
-		for (const QSize &s : plane){
-			buffer.append(alloc);
-			alloc += s.width()*s.height();
-		}
-		if (bufferSize)
-			bufferSize->swap(plane);
-	}
-
-	virtual quintptr getHandle() = 0;
-	virtual void resize(QSize) = 0;
-	virtual QSize getActualSize() = 0;
-	virtual void draw(QRect) = 0;
-
-	~OpenGLRenderPrivate()
-	{
-		if (!buffer.isEmpty()){
-			delete[]buffer[0];
-		}
-	}
-};
-
-namespace
-{
-	class OWidget :public QOpenGLWidget
-	{
-	public:
-		explicit OWidget(OpenGLRenderPrivate *render) :
-			QOpenGLWidget(lApp->mainWidget()), render(render)
-		{
-			setAttribute(Qt::WA_TransparentForMouseEvents);
-			lower();
-			connect(this, &OWidget::frameSwapped, [this](){
-				if (isVisible() && APlayer::instance()->getState() == APlayer::Play){
-					QTimer::singleShot(2, ARender::instance(), SLOT(draw()));
-				}
-			});
-		}
-
-	private:
-		OpenGLRenderPrivate *const render;
-
-		void initializeGL()
-		{
-			render->initialize();
-		}
-
-		void paintGL()
-		{
-			render->paint(this);
-		}
-	};
-}
-
-class OpenGLWidgetRenderPrivate :public OpenGLRenderPrivate
-{
-public:
-	OpenGLWidgetRenderPrivate()
-	{
-		widget = new OWidget(this);
-	}
-
-	quintptr getHandle()
-	{
-		return (quintptr)widget;
-	}
-
-	void resize(QSize size)
-	{
-		widget->resize(size);
-	}
-
-	QSize getActualSize()
-	{
-		return widget->size();
-	}
-
-	void draw(QRect rect)
-	{
-		widget->update(rect);
-	}
-
-private:
-	OWidget *widget;
-};
-
-namespace
-{
-	class OWindow :public QOpenGLWindow
-	{
-	public:
-		explicit OWindow(OpenGLRenderPrivate *render) :
-			render(render)
-		{
-			window = nullptr;
-			QTimer::singleShot(0, [this](){
-				window = lApp->mainWidget()->backingStore()->window();
-			});
-			connect(this, &OWindow::frameSwapped, [this](){
-				if (isVisible() && APlayer::instance()->getState() == APlayer::Play){
-					QTimer::singleShot(2, ARender::instance(), SLOT(draw()));
-				}
-			});
-		}
-
-	private:
-		QWindow *window;
-		OpenGLRenderPrivate *const render;
-
-		void initializeGL()
-		{
-			render->initialize();
-		}
-
-		void paintGL()
-		{
-			render->paint(this);
-		}
-
-		bool event(QEvent *e)
-		{
-			switch (e->type()){
-			case QEvent::KeyPress:
-			case QEvent::KeyRelease:
-			case QEvent::Enter:
-			case QEvent::Leave:
-			case QEvent::MouseMove:
-			case QEvent::MouseButtonPress:
-			case QEvent::MouseButtonRelease:
-			case QEvent::MouseButtonDblClick:
-			case QEvent::Wheel:
-			case QEvent::DragEnter:
-			case QEvent::DragMove:
-			case QEvent::DragLeave:
-			case QEvent::Drop:
-			case QEvent::ContextMenu:
-				return window ? qApp->sendEvent(window, e) : false;
-			default:
-				return QOpenGLWindow::event(e);
-			}
-		}
-
-	};
-
-	/*	only QMdiSubWindow & QAbstractScrollArea
-		will make windowcontainer to create native widgets.
-		*/
-	class FParent :public QAbstractScrollArea
-	{
-	public:
-		explicit FParent(QWidget *parent) :
-			QAbstractScrollArea(parent)
-		{
-		}
-	};
-}
-
-class OpenGLWindowRenderPrivate :public OpenGLRenderPrivate
-{
-public:
-	OpenGLWindowRenderPrivate()
-	{
-		widget = lApp->mainWidget();
-		middle = new FParent(widget);
-		middle->lower();
-		window = new OWindow(this);
-		widget = QWidget::createWindowContainer(window, middle);
-		middle->setAcceptDrops(false);
-		widget->setAcceptDrops(false);
-	}
-
-	quintptr getHandle()
-	{
-		return (quintptr)window;
-	}
-
-	void resize(QSize size)
-	{
-		middle->resize(size);
-		widget->resize(size);
-	}
-
-	QSize getActualSize()
-	{
-		return widget->size();
-	}
-
-	void draw(QRect rect)
-	{
-		window->update(rect);
-	}
-
-private:
-	QWidget *widget;
-	FParent *middle;
-	OWindow *window;
-};
 
 namespace
 {
 	OpenGLRenderPrivate *choose()
 	{
-		if (Config::getValue("/Performance/Option/OpenGL/FBO", true))
-		{
+		bool detach = Config::getValue<bool>("/Performance/Option/OpenGL/Detach", 0);
+		bool buffer = Config::getValue<bool>("/Performance/Option/OpenGL/Buffer", 1);
+		if (detach)
+			return new OpenGLDetachRenderPrivate;
+		else if (buffer)
 			return new OpenGLWidgetRenderPrivate;
-		}
 		else
-		{
 			return new OpenGLWindowRenderPrivate;
-		}
 	}
 }
 
@@ -343,13 +27,12 @@ ARender(choose(), parent)
 {
 	ins = this;
 	setObjectName("ORender");
-	connect(APlayer::instance(), SIGNAL(stateChanged(int)), this, SLOT(draw()));
 }
 
-ARender::ICache *OpenGLRender::getCache(const QImage &i)
+ISpirit *OpenGLRender::getSpirit(const QImage &i)
 {
 	Q_D(OpenGLRender);
-	return new SyncTextureTCache(i, d);
+	return new SyncTextureSpirit(i, d);;
 }
 
 quintptr OpenGLRender::getHandle()
@@ -373,11 +56,219 @@ QSize OpenGLRender::getActualSize()
 QSize OpenGLRender::getBufferSize()
 {
 	Q_D(OpenGLRender);
-	return d->inner;
+	return d->getBufferSize();
 }
 
 void OpenGLRender::draw(QRect rect)
 {
 	Q_D(OpenGLRender);
 	d->draw(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
+}
+
+namespace
+{
+	const char *vShaderCode =
+		"attribute vec4 VtxCoord;\n"
+		"attribute vec2 TexCoord;\n"
+		"varying highp vec2 TexCoordOut;\n"
+		"void main(void)\n"
+		"{\n"
+		"    gl_Position = VtxCoord;\n"
+		"    TexCoordOut = TexCoord;\n"
+		"}\n";
+
+	const char *fShaderI420 =
+		"varying highp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerU;\n"
+		"uniform sampler2D SamplerV;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    mediump vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+
+	const char *fShaderNV12 =
+		"varying highp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerA;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    mediump vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+
+	const char *fShaderNV21 =
+		"varying highp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerY;\n"
+		"uniform sampler2D SamplerA;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec3 yuv;\n"
+		"    mediump vec3 rgb;\n"
+		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
+		"    yuv.y = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
+		"    yuv.z = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
+		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
+		"               0,     -0.391, 2.018,   \n"
+		"               1.596, -0.813, 0) * yuv;\n"
+		"    gl_FragColor = vec4(rgb, 1);\n"
+		"}";
+
+	const char *fShaderBGRP =
+		"varying highp vec2 TexCoordOut;\n"
+		"uniform sampler2D SamplerP;\n"
+		"void main(void)\n"
+		"{\n"
+		"    mediump vec4 p;\n"
+		"    p = texture2D(SamplerP, TexCoordOut);\n"
+		"    if (p.a != 0.0) {\n"
+		"        p.r /= p.a;\n"
+		"        p.g /= p.a;\n"
+		"        p.b /= p.a;\n"
+		"        gl_FragColor = vec4(p.b, p.g, p.r, p.a);\n"
+		"    } else {\n"
+		"        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);\n"
+		"    }\n"
+		"}";
+}
+
+void OpenGLRenderPrivate::initialize()
+{
+	initializeOpenGLFunctions();
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	for (int i = 0; i < 5; ++i){
+		const char *fShaderCode = nullptr;
+		switch (i){
+		case 0:
+		case 1:
+			fShaderCode = fShaderI420;
+			break;
+		case 2:
+			fShaderCode = fShaderNV12;
+			break;
+		case 3:
+			fShaderCode = fShaderNV21;
+			break;
+		case 4:
+			fShaderCode = fShaderBGRP;
+			break;
+		}
+		QOpenGLShaderProgram &p = program[i];
+		p.addShaderFromSourceCode(QOpenGLShader::Vertex, vShaderCode);
+		p.addShaderFromSourceCode(QOpenGLShader::Fragment, fShaderCode);
+		p.bindAttributeLocation("VtxCoord", 0);
+		p.bindAttributeLocation("TexCoord", 1);
+		p.bind();
+		switch (i){
+		case 0:
+			p.setUniformValue("SamplerY", 0);
+			p.setUniformValue("SamplerU", 1);
+			p.setUniformValue("SamplerV", 2);
+			break;
+		case 1:
+			p.setUniformValue("SamplerY", 0);
+			p.setUniformValue("SamplerV", 1);
+			p.setUniformValue("SamplerU", 2);
+			break;
+		case 2:
+		case 3:
+			p.setUniformValue("SamplerY", 0);
+			p.setUniformValue("SamplerA", 1);
+			break;
+		case 4:
+			p.setUniformValue("SamplerP", 0);
+			break;
+		}
+	}
+	tex[0] = 0; tex[1] = 0;
+	tex[2] = 1; tex[3] = 0;
+	tex[4] = 0; tex[5] = 1;
+	tex[6] = 1; tex[7] = 1;
+	QOpenGLContext *c = QOpenGLContext::currentContext();
+	timer.setInterval(c->format().swapInterval() / (double)c->screen()->refreshRate());
+}
+
+void OpenGLRenderPrivate::loadTexture(GLuint t, int c, int w, int h, quint8 *d)
+{
+	int f;
+	switch (c){
+	case 1:
+		f = GL_LUMINANCE;
+		break;
+	case 2:
+		f = GL_LUMINANCE_ALPHA;
+		break;
+	case 3:
+		f = GL_RGB;
+		break;
+	case 4:
+		f = GL_RGBA;
+		break;
+	default:
+		return;
+	}
+	glBindTexture(GL_TEXTURE_2D, t);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, f, w, h, 0, f, GL_UNSIGNED_BYTE, d);
+}
+
+void OpenGLRenderPrivate::drawTexture(GLuint *planes, int format, QRectF dest, QRectF rect)
+{
+	QOpenGLShaderProgram &p = program[format];
+	p.bind();
+	GLfloat h = 2 / rect.width(), v = 2 / rect.height();
+	GLfloat l = dest.left()*h - 1, r = dest.right()*h - 1, t = 1 - dest.top()*v, b = 1 - dest.bottom()*v;
+	vtx[0] = l; vtx[1] = t;
+	vtx[2] = r; vtx[3] = t;
+	vtx[4] = l; vtx[5] = b;
+	vtx[6] = r; vtx[7] = b;
+	p.setAttributeArray(0, vtx, 2);
+	p.setAttributeArray(1, tex, 2);
+	p.enableAttributeArray(0);
+	p.enableAttributeArray(1);
+	switch (format){
+	case 0:
+	case 1:
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, planes[2]);
+	case 2:
+	case 3:
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, planes[1]);
+	case 4:
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, planes[0]);
+		break;
+	}
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void OpenGLRenderPrivate::onSwapped()
+{
+	if (isVisible() && APlayer::instance()->getState() == APlayer::Play){
+		if (timer.swap()){
+			ARender::instance()->draw();
+		}
+		else{
+			QTimer::singleShot(2, ARender::instance(), SLOT(draw()));
+		}
+	}
 }

@@ -82,7 +82,7 @@ Danmaku::~Danmaku()
 	delete d_ptr;
 }
 
-void Danmaku::draw(QPainter *painter, qint64 move)
+void Danmaku::draw(QPainter *painter, double move)
 {
 	Q_D(Danmaku);
 	QVarLengthArray<Graphic *> dirty;
@@ -238,10 +238,10 @@ const Comment *Danmaku::commentAt(QPointF point) const
 	return nullptr;
 }
 
-void Danmaku::setAlpha(int _alpha)
+void Danmaku::setAlpha(int alpha)
 {
-	Config::setValue("/Danmaku/Alpha", _alpha);
-	emit alphaChanged(_alpha);
+	Config::setValue("/Danmaku/Alpha", alpha);
+	emit alphaChanged(alpha);
 }
 
 void Danmaku::resetTime()
@@ -534,7 +534,7 @@ namespace
 					//自带弹幕系统未识别，通知插件处理
 					emit Danmaku::instance()->unrecognizedComment(comment);
 				}
-				catch (...){}
+				catch (Graphic::args_prasing_error){}
 				if (!graphic){
 					continue;
 				}

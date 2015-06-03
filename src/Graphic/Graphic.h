@@ -38,13 +38,22 @@ public:
 	{
 	public:
 		format_unrecognized() :
-			runtime_error("format_unrecognized")
+			runtime_error("format unrecognized")
+		{
+		}
+	};
+
+	class args_prasing_error :public std::runtime_error
+	{
+	public:
+		args_prasing_error() :
+			runtime_error("args prasing error")
 		{
 		}
 	};
 
 	virtual QList<QRectF> locate() = 0;
-	virtual bool move(qint64 time) = 0;
+	virtual bool move(double time) = 0;
 	virtual void draw(QPainter *painter) = 0;
 	virtual uint intersects(Graphic *other) = 0;
 	virtual bool stay(){ return false; }
@@ -78,9 +87,9 @@ public:
 		return source;
 	}
 
-	inline void setSource(const Comment *_source)
+	inline void setSource(const Comment *source)
 	{
-		source = _source;
+		this->source = source;
 	}
 
 	static Graphic *create(const Comment &comment);

@@ -2,6 +2,7 @@
 
 #include "ARender.h"
 
+class ISpirit;
 class OpenGLRenderPrivate;
 
 class OpenGLRender :public ARender
@@ -13,10 +14,10 @@ private:
 	Q_DECLARE_PRIVATE(OpenGLRender);
 
 public slots:
-	ICache *getCache(const QImage &i);
-	quintptr getHandle();
-	void resize(QSize size);
-	QSize getActualSize();
-	QSize getBufferSize();
-	void draw(QRect rect = QRect());
+	virtual ISpirit *getSpirit(const QImage &) override;
+	virtual quintptr getHandle() override;
+	virtual void resize(QSize size) override;
+	virtual QSize getActualSize() override;
+	virtual QSize getBufferSize() override;
+	virtual void draw(QRect rect = QRect()) override;
 };

@@ -7,7 +7,7 @@ class Mode5 :public Plain
 public:
 	Mode5(const Comment &comment);
 	QList<QRectF> locate();
-	bool move(qint64 time);
+	bool move(double time);
 	uint intersects(Graphic *other);
 
 private:

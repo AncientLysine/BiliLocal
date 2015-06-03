@@ -120,8 +120,6 @@ namespace Utils
 	QString defaultFont(bool monospace = false);
 	QString customUrl(Site site);
 	QString decodeXml(QString string, bool fast = false);
-	QStringList getRenderModules();
-	QStringList getDecodeModules();
-	QStringList getSuffix(int type, QString format = "");
+	QStringList getSuffix(int type, QString format = QString());
 	double evaluate(QString expression);
 }

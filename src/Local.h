@@ -26,8 +26,11 @@
 
 #pragma once
 
-#include <QtCore>
-#include <QtWidgets>
+#include <QApplication>
+#include <QHash>
+#include <QObject>
+#include <QString>
+#include <QWidget>
 
 #define lApp (static_cast<Local *>(QCoreApplication::instance()))
 

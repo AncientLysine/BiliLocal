@@ -8,9 +8,7 @@ Mode1::Mode1(const Comment &comment) :
 Plain(comment)
 {
 	Q_ASSERT(comment.mode == 1);
-	QString expression = Config::getValue<QString>("/Danmaku/Speed", "125+%{width}/5");
-	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
-	speed = Utils::evaluate(expression);
+	speed = evaluate(Config::getValue<QString>("/Danmaku/Speed", "125+%{width}/5"));
 }
 
 QList<QRectF> Mode1::locate()
@@ -31,10 +29,10 @@ QList<QRectF> Mode1::locate()
 	return results;
 }
 
-bool Mode1::move(qint64 time)
+bool Mode1::move(double time)
 {
 	if (enabled){
-		rect.moveLeft(rect.left() - speed*time / 1000.0);
+		rect.moveLeft(rect.left() - speed * time);
 	}
 	return rect.right() >= 0;
 }

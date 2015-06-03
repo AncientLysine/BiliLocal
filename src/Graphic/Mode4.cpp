@@ -8,9 +8,7 @@ Mode4::Mode4(const Comment &comment) :
 Plain(comment)
 {
 	Q_ASSERT(comment.mode == 4);
-	QString expression = Config::getValue<QString>("/Danmaku/Life", "5");
-	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
-	life = Utils::evaluate(expression);
+	life = evaluate(Config::getValue<QString>("/Danmaku/Life", "5"));
 }
 
 QList<QRectF> Mode4::locate()
@@ -31,10 +29,10 @@ QList<QRectF> Mode4::locate()
 	return results;
 }
 
-bool Mode4::move(qint64 time)
+bool Mode4::move(double time)
 {
 	if (enabled){
-		life -= time / 1000.0;
+		life -= time;
 	}
 	return life > 0;
 }

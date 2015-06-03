@@ -31,7 +31,6 @@
 #include "../Utils.h"
 #include "../Model/Danmaku.h"
 #include "../Player/APlayer.h"
-#include <QtWidgets>
 
 #ifdef RENDER_RASTER
 #include "RasterRender.h"
@@ -39,9 +38,18 @@
 #ifdef RENDER_OPENGL
 #include "OpenGLRender.h"
 #endif
-#ifdef RENDER_DETACH
-#include "DetachRender.h"
+
+QStringList ARender::getModules()
+{
+	QStringList modules;
+#ifdef RENDER_OPENGL
+	modules << "OpenGL";
 #endif
+#ifdef RENDER_RASTER
+	modules << "Raster";
+#endif
+	return modules;
+}
 
 ARender *ARender::ins = nullptr;
 
@@ -51,7 +59,7 @@ ARender *ARender::instance()
 		return ins;
 	}
 	QString r;
-	QStringList l = Utils::getRenderModules();
+	QStringList l = getModules();
 	switch (l.size()){
 	case 0:
 		break;
@@ -71,11 +79,6 @@ ARender *ARender::instance()
 #ifdef RENDER_RASTER
 	if (r=="Raster"){
 		return new RasterRender(qApp);
-	}
-#endif
-#ifdef RENDER_DETACH
-	if (r == "Detach"){
-		return new DetachRender(qApp);
 	}
 #endif
 	return nullptr;
@@ -110,7 +113,9 @@ QObject(parent), d_ptr(data)
 	d->dirty = 0;
 	d->videoAspectRatio = 0;
 	d->pixelAspectRatio = 1;
-	connect(APlayer::instance(), &APlayer::stateChanged, [d](){d->last = QTime(); });
+	connect(APlayer::instance(), &APlayer::stateChanged, [d](){
+		d->timer.invalidate();
+	});
 }
 
 ARender::~ARender()
@@ -169,6 +174,13 @@ void ARender::setPixelAspectRatio(double ratio)
 	d->pixelAspectRatio = ratio;
 }
 
+void ARender::draw()
+{
+	QRect rect;
+	rect.setSize(getActualSize());
+	draw(rect);
+}
+
 QSize ARender::getPreferSize()
 {
 	Q_D(ARender);
@@ -188,7 +200,6 @@ void ARender::setPreferSize(QSize size)
 	Q_D(ARender);
 	d->pref = size;
 }
-
 
 QRect ARenderPrivate::fitRect(QSize size, QRect rect)
 {
@@ -228,13 +239,6 @@ void ARenderPrivate::drawStop(QPainter *painter, QRect rect)
 	painter->drawImage((w - me.width()) / 2, (h - me.height()) / 2 + 40, me);
 }
 
-void ARenderPrivate::drawDanm(QPainter *painter, QRect)
-{
-	qint64 time = last.isNull() ? 0 : last.elapsed();
-	if (APlayer::instance()->getState() == APlayer::Play)
-		last.start();
-	Danmaku::instance()->draw(painter, time);
-}
 
 void ARenderPrivate::drawTime(QPainter *painter, QRect rect)
 {
@@ -256,4 +260,9 @@ void ARenderPrivate::drawTime(QPainter *painter, QRect rect)
 	gradient.setColorAt(1, highlight.lighter(130));
 	painter->setBrush(gradient);
 	painter->drawRect(rect);
+}
+
+void ARenderPrivate::drawDanm(QPainter *painter, QRect)
+{
+	Danmaku::instance()->draw(painter, timer.step());
 }

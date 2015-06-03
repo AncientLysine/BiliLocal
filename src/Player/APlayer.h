@@ -33,6 +33,8 @@ class APlayer :public QObject
 {
 	Q_OBJECT
 public:
+	static QStringList getModules();
+
 	enum State
 	{
 		Stop,

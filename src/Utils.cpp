@@ -414,36 +414,6 @@ QString Utils::decodeXml(QString string, bool fast)
 	return fixed;
 }
 
-QStringList Utils::getRenderModules()
-{
-	QStringList modules;
-#ifdef RENDER_OPENGL
-	modules << "OpenGL";
-#endif
-#ifdef RENDER_RASTER
-	modules << "Raster";
-#endif
-#ifdef RENDER_DETACH
-	modules << "Detach";
-#endif
-	return modules;
-}
-
-QStringList Utils::getDecodeModules()
-{
-	QStringList modules;
-#ifdef BACKEND_VLC
-	modules << "VLC";
-#endif
-#ifdef BACKEND_QMM
-	modules << "QMM";
-#endif
-#ifdef BACKEND_NIL
-	modules << "NIL";
-#endif
-	return modules;
-}
-
 QStringList Utils::getSuffix(int type, QString format)
 {
 	QStringList set;

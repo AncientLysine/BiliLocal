@@ -11,12 +11,28 @@ Plain::Plain(const Comment &comment)
 	QSize need = getSize(comment.string, font);
 	rect.setSize(need);
 	const QImage &image = getCache(comment.string, comment.color, font, need, comment.isLocal());
-	cache = ARender::instance()->getCache(image);
+	spirit = ARender::instance()->getSpirit(image);
+}
+
+Plain::~Plain()
+{
+	delete spirit;
 }
 
 void Plain::draw(QPainter *painter)
 {
 	if (enabled){
-		cache->draw(painter, rect);
+		spirit->draw(painter, rect);
+	}
+}
+
+double Plain::evaluate(QString expression)
+{
+	expression.replace("%{width}", QString::number(rect.width()), Qt::CaseInsensitive);
+	try{
+		return Utils::evaluate(expression);
+	}
+	catch (std::runtime_error){
+		throw args_prasing_error();
 	}
 }

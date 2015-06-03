@@ -59,6 +59,8 @@ HEADERS += \
     src/Player/APlayer.h \
     src/Render/ARender.h \
     src/Render/ARenderPrivate.h \
+    src/Render/ISpirit.h \
+    src/Render/ElapsedTimer.h \
     src/UI/Editor.h \
     src/UI/Info.h \
     src/UI/Interface.h \
@@ -98,13 +100,13 @@ DEFINES += \
 
 DEFINES += \
     RENDER_RASTER \
-    RENDER_OPENGL \
-    RENDER_DETACH
+    RENDER_OPENGL
 }
 
 macx{
 DEFINES += \
-    BACKEND_VLC
+    BACKEND_VLC \
+    BACKEND_NIL
 
 DEFINES += \
     RENDER_OPENGL
@@ -139,9 +141,6 @@ SOURCES += \
 
 HEADERS += \
     src/Player/NPlayer.h
-
-QT += \
-    multimedia
 }
 
 contains(DEFINES, RENDER_RASTER){
@@ -150,7 +149,8 @@ SOURCES += \
 
 HEADERS += \
     src/Render/RasterRender.h \
-    src/Render/AsyncRasterCache.h
+    src/Render/RasterRenderPrivate.h \
+    src/Render/AsyncRasterSpirit.h
 
 LIBS += \
     -lswscale \
@@ -160,18 +160,16 @@ LIBS += \
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
     src/Render/OpenGLRender.cpp \
-    src/Render/OpenGLRenderPrivateBase.cpp
+    src/Render/OpenGLRender/DetachPrivate.cpp
+    src/Render/OpenGLRender/WidgetPrivate.cpp
+    src/Render/OpenGLRender/WindowPrivate.cpp
 
 HEADERS += \
     src/Render/OpenGLRender.h \
-    src/Render/OpenGLRenderPrivateBase.h \
-    src/Render/SyncTextureCache.h
-}
-
-contains(DEFINES, RENDER_DETACH){
-SOURCES += \
-    src/Render/DetachRender.cpp
-
-HEADERS += \
-    src/Render/DetachRender.h
+    src/Render/OpenGLRenderPrivate.h \
+    src/Render/SyncTextureSpirit.h \
+    src/Render/OpenGLRender/DetachPrivate.h \
+    src/Render/OpenGLRender/OpaquePrivate.h \
+    src/Render/OpenGLRender/WidgetPrivate.h \
+    src/Render/OpenGLRender/WindowPrivate.h
 }
