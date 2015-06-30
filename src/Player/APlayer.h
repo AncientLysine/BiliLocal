@@ -53,8 +53,9 @@ public:
 		ServiceMissingError
 	};
 
-	virtual QList<QAction *> getTracks(int type) = 0;
 	static APlayer *instance();
+
+	virtual QList<QAction *> getTracks(int type) = 0;
 
 protected:
 	static APlayer *ins;
@@ -69,29 +70,34 @@ signals:
 	void jumped(qint64);
 	void stateChanged(int);
 	void mediaChanged(QString);
+	void delayChanged(int, qint64);
 	void timeChanged(qint64);
 	void rateChanged(double);
 	void volumeChanged(int);
 
 public slots:
-	virtual void	play() = 0;
-	virtual void	stop(bool manually = true) = 0;
-	virtual int 	getState() = 0;
+	virtual void    play() = 0;
+	virtual void    stop(bool manually = true) = 0;
+	virtual int     getState() = 0;
 
-	virtual void	setTime(qint64 _time) = 0;
-	virtual qint64	getTime() = 0;
+	virtual void    setTime(qint64 time) = 0;
+	virtual qint64  getTime() = 0;
 
-	virtual void	setMedia(QString _file, bool manually = true) = 0;
+	virtual void    setMedia(QString file, bool manually = true) = 0;
 	virtual QString getMedia() = 0;
 
-	virtual qint64	getDuration() = 0;
-	virtual void	addSubtitle(QString _file) = 0;
+	virtual qint64  getDuration() = 0;
 
-	virtual void	setVolume(int _volume) = 0;
-	virtual int 	getVolume() = 0;
+	virtual void    setVolume(int volume) = 0;
+	virtual int     getVolume() = 0;
 
-	virtual void    setRate(double _rate) = 0;
-	virtual double  getRate() = 0;
+	virtual void    setRate(double rate);
+	virtual double  getRate();
 
-	virtual void	event(int type) = 0;
+	virtual qint64  getDelay(int type);
+	virtual void    setDelay(int type, qint64 delay);
+
+	virtual void    addSubtitle(QString file);
+
+	virtual void    event(int type);
 };

@@ -63,10 +63,6 @@ qint64 NPlayer::getDuration()
 	return -1;
 }
 
-void NPlayer::addSubtitle(QString)
-{
-}
-
 void NPlayer::setVolume(int)
 {
 }
@@ -74,17 +70,4 @@ void NPlayer::setVolume(int)
 int NPlayer::getVolume()
 {
 	return 0;
-}
-
-void NPlayer::setRate(double)
-{
-}
-
-double NPlayer::getRate()
-{
-	return 0;
-}
-
-void NPlayer::event(int)
-{
 }

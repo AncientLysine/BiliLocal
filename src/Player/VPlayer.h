@@ -25,34 +25,38 @@ public:
 	QList<QAction *> getTracks(int type);
 
 private:
-	int		state;
+	int	    state;
 	QActionGroup *tracks[3];
 	libvlc_instance_t *vlc;
 	libvlc_media_player_t *mp;
 
-	void	init();
-	void	wait();
-	void	free();
+	void    init();
+	void    wait();
+	void    free();
 
 public slots:
-	void	play();
-	void	stop(bool manually = true);
-	int 	getState(){ return state; }
+	void    play();
+	void    stop(bool manually = true);
+	int     getState(){ return state; }
 
-	void	setTime(qint64 _time);
-	qint64	getTime();
+	void    setTime(qint64 time);
+	qint64  getTime();
 
-	void	setMedia(QString _file, bool manually = true);
+	void    setMedia(QString file, bool manually = true);
 	QString getMedia();
 
-	qint64	getDuration();
-	void	addSubtitle(QString _file);
+	qint64  getDuration();
 
-	void	setVolume(int _volume);
-	int 	getVolume();
+	void    setVolume(int volume);
+	int     getVolume();
 
-	void    setRate(double _rate);
+	void    setRate(double rate);
 	double  getRate();
 
-	void	event(int type);
+	qint64  getDelay(int type);
+	void    setDelay(int type, qint64 delay);
+
+	void    addSubtitle(QString file);
+
+	void    event(int type);
 };

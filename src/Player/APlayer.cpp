@@ -90,3 +90,29 @@ APlayer *APlayer::instance()
 #endif
 	return 0;
 }
+
+void APlayer::setRate(double)
+{
+}
+
+double APlayer::getRate()
+{
+	return 0;
+}
+
+qint64 APlayer::getDelay(int)
+{
+	return 0;
+}
+
+void APlayer::setDelay(int, qint64)
+{
+}
+
+void APlayer::addSubtitle(QString)
+{
+}
+
+void APlayer::event(int)
+{
+}

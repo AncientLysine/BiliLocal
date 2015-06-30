@@ -11,30 +11,27 @@ public:
 
 private:
 	QMediaPlayer *mp;
-	int		state;
-	bool	manuallyStopped;
-	bool	waitingForBegin;
-	bool	skipTimeChanged;
+	int	    state;
+	bool    manuallyStopped;
+	bool    waitingForBegin;
+	bool    skipTimeChanged;
 
 public slots:
-	void	play();
-	void	stop(bool manually = true);
+	void    play();
+	void    stop(bool manually = true);
 	int 	getState(){ return state; }
 
-	void	setTime(qint64 _time);
-	qint64	getTime();
+	void    setTime(qint64 time);
+	qint64  getTime();
 
-	void	setMedia(QString _file, bool manually = true);
+	void    setMedia(QString file, bool manually = true);
 	QString getMedia();
 
-	qint64	getDuration();
-	void	addSubtitle(QString _file);
+	qint64  getDuration();
 
-	void	setVolume(int _volume);
-	int 	getVolume();
+	void    setVolume(int volume);
+	int     getVolume();
 
-	void    setRate(double _rate);
+	void    setRate(double rate);
 	double  getRate();
-
-	void	event(int type);
 };

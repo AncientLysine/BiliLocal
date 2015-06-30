@@ -184,29 +184,15 @@ namespace
 void VPlayer::init()
 {
 	if (mp){
-		auto *connection = new QMetaObject::Connection;
+		auto connection = QSharedPointer<QMetaObject::Connection>::create();
 		*connection = connect(this, &VPlayer::timeChanged, this, [=](){
 			int last = state;
 			emit stateChanged(state = Play);
 			disconnect(*connection);
-			delete connection;
 			switch (last){
 			case Stop:
 			{
-				bool music = true;
-				libvlc_media_track_t **info;
-				int n = libvlc_media_tracks_get(libvlc_media_player_get_media(mp), &info);
-				for (int i = 0; i < n; ++i){
-					if (info[i]->i_type == libvlc_track_video){
-						libvlc_video_track_t *v = info[i]->video;
-						double r = v->i_sar_den == 0 ? 1 : (double)v->i_sar_num / v->i_sar_den;
-						ARender::instance()->setPixelAspectRatio(r);
-						music = false;
-						break;
-					}
-				}
-				libvlc_media_tracks_release(info, n);
-				ARender::instance()->setMusic(music);
+				ARender::instance()->setMusic(libvlc_video_get_track_count(mp) <= 0);
 				if (!Config::getValue("/Playing/Subtitle", true)){
 					libvlc_video_set_spu(mp, -1);
 				}
@@ -321,10 +307,10 @@ qint64 VPlayer::getTime()
 	return state == Stop ? -1 : libvlc_media_player_get_time(mp);
 }
 
-void VPlayer::setMedia(QString _file, bool manually)
+void VPlayer::setMedia(QString file, bool manually)
 {
 	stop(manually);
-	libvlc_media_t *m = libvlc_media_new_path(vlc, QDir::toNativeSeparators(_file).toUtf8());
+	libvlc_media_t *m = libvlc_media_new_path(vlc, QDir::toNativeSeparators(file).toUtf8());
 	if (!m){
 		return;
 	}
@@ -376,7 +362,66 @@ qint64 VPlayer::getDuration()
 	return mp ? libvlc_media_player_get_length(mp) : -1;
 }
 
-void VPlayer::addSubtitle(QString _file)
+void VPlayer::setVolume(int volume)
+{
+	volume = qBound(0, volume, 100);
+	Config::setValue("/Playing/Volume", volume);
+	if (mp){
+		libvlc_audio_set_volume(mp, volume);
+	}
+	emit volumeChanged(volume);
+}
+
+int VPlayer::getVolume()
+{
+	return mp ? libvlc_audio_get_volume(mp) : 0;
+}
+
+void VPlayer::setRate(double rate)
+{
+	if (mp){
+		libvlc_media_player_set_rate(mp, rate);
+		emit rateChanged(rate);
+	}
+}
+
+double VPlayer::getRate()
+{
+	return mp ? libvlc_media_player_get_rate(mp) : 0;
+}
+
+qint64 VPlayer::getDelay(int type)
+{
+	if (mp){
+		switch (type){
+		case Utils::Audio:
+			return libvlc_audio_get_delay(mp);
+		case Utils::Subtitle:
+			return libvlc_video_get_spu_delay(mp);
+		}
+	}
+	return 0;
+}
+
+void VPlayer::setDelay(int type, qint64 delay)
+{
+	if (mp){
+		int code = -1;
+		switch (type){
+		case Utils::Audio:
+			code = libvlc_audio_set_delay(mp, delay);
+			break;
+		case Utils::Subtitle:
+			code = libvlc_video_set_spu_delay(mp, delay);
+			break;
+		}
+		if (code == 0){
+			emit delayChanged(type, delay);
+		}
+	}
+}
+
+void VPlayer::addSubtitle(QString file)
 {
 	if (mp){
 		if (tracks[2]->actions().isEmpty()){
@@ -386,44 +431,16 @@ void VPlayer::addSubtitle(QString _file)
 				libvlc_video_set_spu(mp, -1);
 			});
 		}
+		QFileInfo info(file);
 		QAction *outside = new QAction(tracks[2]);
-		QFileInfo info(_file);
 		outside->setCheckable(true);
-		outside->setText(qApp->fontMetrics().elidedText(info.fileName(), Qt::ElideMiddle, 200));
-		outside->setData(QDir::toNativeSeparators(info.absoluteFilePath()));
+		outside->setText(info.fileName());
+		outside->setData(QDir::toNativeSeparators(info.absoluteFilePath().toUtf8()));
 		connect(outside, &QAction::triggered, [=](){
-			libvlc_video_set_subtitle_file(mp, outside->data().toString().toUtf8());
+			libvlc_video_set_subtitle_file(mp, outside->data().toByteArray());
 		});
 		outside->trigger();
 	}
-}
-
-void VPlayer::setVolume(int _volume)
-{
-	_volume = qBound(0, _volume, 100);
-	Config::setValue("/Playing/Volume", _volume);
-	if (mp){
-		libvlc_audio_set_volume(mp, _volume);
-	}
-	emit volumeChanged(_volume);
-}
-
-int VPlayer::getVolume()
-{
-	return mp ? libvlc_audio_get_volume(mp) : 0;
-}
-
-void VPlayer::setRate(double _rate)
-{
-	if (mp){
-		libvlc_media_player_set_rate(mp, _rate);
-		emit rateChanged(_rate);
-	}
-}
-
-double VPlayer::getRate()
-{
-	return mp ? libvlc_media_player_get_rate(mp) : 0;
 }
 
 void VPlayer::event(int type)

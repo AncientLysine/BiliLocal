@@ -49,10 +49,25 @@ namespace
 {
 	void setSingle(QMenu *menu)
 	{
-		auto *g = new QActionGroup(menu);
+		QActionGroup *g = new QActionGroup(menu);
 		for (auto *a : menu->actions()){
 			g->addAction(a)->setCheckable(true);
 		}
+	}
+
+	QAction *addScale(QMenu *menu, double src, double dst)
+	{
+		QAction *s = menu->addAction(QString("%1:%2").arg(src).arg(dst));
+		s->setEnabled(false);
+		s->setData(dst / src);
+		return s;
+	}
+
+	QAction *addRatio(QMenu *menu, double num, double den)
+	{
+		QAction *r = menu->addAction(QString("%1:%2").arg(num).arg(den));
+		r->setData(num / den);
+		return r;
 	}
 }
 
@@ -113,8 +128,12 @@ QWidget(parent)
 
 	connect(aplayer, &APlayer::begin, this, [this](){
 		rat->defaultAction()->setChecked(true);
-		sca->defaultAction()->setChecked(true);
 		spd->defaultAction()->setChecked(true);
+		for (auto iter : sca->actions()){
+			if (iter->data().type() == QVariant::Double){
+				iter->setEnabled(true);
+			}
+		}
 		if (!isFullScreen()){
 			if (geo.isEmpty()){
 				geo = saveGeometry();
@@ -122,7 +141,6 @@ QWidget(parent)
 			}
 		}
 		rat->setEnabled(true);
-		sca->setEnabled(true);
 		spd->setEnabled(true);
 		arender->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
@@ -131,8 +149,12 @@ QWidget(parent)
 		danmaku->resetTime();
 		danmaku->clearCurrent();
 		rat->setEnabled(false);
-		sca->setEnabled(false);
 		spd->setEnabled(false);
+		for (auto iter : sca->actions()){
+			if (iter->data().type() == QVariant::Double){
+				iter->setEnabled(false);
+			}
+		}
 		arender->setVideoAspectRatio(0);
 		if (!geo.isEmpty() && (list->finished() || m)){
 			fullA->setChecked(false);
@@ -211,20 +233,10 @@ QWidget(parent)
 	fullA = new QAction(tr("Full Screen"), this);
 	fullA->setObjectName("Full");
 	fullA->setCheckable(true);
-	fullA->setChecked(false);
 	fullA->setShortcut(Config::getValue("/Shortcut/Full", QString("F")));
 	addAction(fullA);
 	connect(fullA, &QAction::toggled, [this](bool b){
-		if (!b){
-			showNormal();
-			if (aplayer->getState() != APlayer::Stop){
-				sca->setEnabled(true);
-			}
-		}
-		else{
-			showFullScreen();
-			sca->setEnabled(false);
-		}
+		b ? showFullScreen() : showNormal();
 	});
 
 	confA = new QAction(tr("Config"), this);
@@ -364,11 +376,11 @@ QWidget(parent)
 	rat = new QMenu(tr("Ratio"), this);
 	rat->setEnabled(false);
 	rat->setDefaultAction(rat->addAction(tr("Default")));
-	rat->addAction("4:3")->setData(4.0 / 3);
-	rat->addAction("16:10")->setData(16.0 / 10);
-	rat->addAction("16:9")->setData(16.0 / 9);
-	rat->addAction("1.85:1")->setData(1.85);
-	rat->addAction("2.35:1")->setData(2.35);
+	addRatio(rat, 4, 3);
+	addRatio(rat, 16, 10);
+	addRatio(rat, 16, 9);
+	addRatio(rat, 1.85, 1);
+	addRatio(rat, 2.35, 1);
 	connect(rat, &QMenu::triggered, [this](QAction *action){
 		arender->setVideoAspectRatio(action->data().toDouble());
 		if (aplayer->getState() == APlayer::Pause){
@@ -378,24 +390,25 @@ QWidget(parent)
 	setSingle(rat);
 
 	sca = new QMenu(tr("Scale"), this);
-	sca->setEnabled(false);
-	sca->addAction(fullA);
-	sca->addSeparator();
+	connect(sca->addAction(fullA->text()), &QAction::toggled, fullA, &QAction::setChecked);
+	sca->addAction(tr("Init Size"))->setData(QSize());
 	sca->addAction(QStringLiteral("541×384"))->setData(QSize(540, 383));
 	sca->addAction(QStringLiteral("672×438"))->setData(QSize(671, 437));
 	sca->addSeparator();
-	sca->addAction("1:4");
-	sca->addAction("1:2");
-	sca->setDefaultAction(sca->addAction("1:1"));
-	sca->addAction("2:1");
+	addScale(sca, 1, 4);
+	addScale(sca, 1, 2);
+	sca->setDefaultAction(addScale(sca, 1, 1));
+	addScale(sca, 2, 1);
+	addScale(sca, 4, 1);
 	connect(sca, &QMenu::triggered, [this](QAction *action){
-		if (arender->getPreferSize().isValid()){
-			QSize s = action->data().toSize();
-			if (s.isEmpty()){
-				QStringList l = action->text().split(':');
-				s = arender->getPreferSize()*l[0].toInt() / l[1].toInt();
-			}
-			setCenter(s, false);
+		QVariant d = action->data();
+		switch (d.type()){
+		case QVariant::Double:
+			setCenter(arender->getPreferSize() * d.toDouble(), false);
+			break;
+		case QVariant::Size:
+			setCenter(d.toSize(), false);
+			break;
 		}
 	});
 	setSingle(sca);
@@ -537,15 +550,33 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	arender->resize(e->size());
-	int w = e->size().width(), h = e->size().height();
+	const QSize s = e->size();
+	arender->resize(s);
+	int w = s.width(), h = s.height();
 	menu->terminate();
 	info->terminate();
 	int l = Config::getValue("/Interface/Popup/Width", 16 * font().pointSizeF())*logicalDpiX() / 72;
 	menu->setGeometry(menu->isShown() ? 0 : 0 - l, 0, l, h);
 	info->setGeometry(info->isShown() ? w - l : w, 0, l, h);
-	type->move(width() / 2 - type->width() / 2, height() - type->height() - 2);
-	jump->move(width() / 2 - jump->width() / 2, 2);
+	type->move(w / 2 - type->width() / 2, h - type->height() - 2);
+	jump->move(w / 2 - jump->width() / 2, 2);
+	for (QAction *action : sca->actions()){
+		if (action->isSeparator() || !action->isEnabled()){
+			continue;
+		}
+		QVariant d = action->data();
+		switch (d.type()){
+		case QVariant::Double:
+			action->setChecked(s == arender->getPreferSize() * d.toDouble());
+			break;
+		case QVariant::Size:
+			action->setChecked(s == d.toSize());
+			break;
+		default:
+			action->setChecked(fullA->isChecked());
+			break;
+		}
+	}
 	QWidget::resizeEvent(e);
 }
 
@@ -638,11 +669,17 @@ void Interface::percent(double degree)
 
 void Interface::checkForUpdate()
 {
-	if (!Config::getValue("/Interface/Update", true)){
-		return;
+	QString url("https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO");
+	auto update = Config::getValue("/Interface/Update", QVariant(url));
+	if (QVariant::Bool == update.type()){
+		if (!update.toBool()){
+			return;
+		}
+	}
+	else{
+		url = update.toString();
 	}
 	QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-	QString url = "https://raw.githubusercontent.com/AncientLysine/BiliLocal/master/res/INFO";
 	manager->get(QNetworkRequest(url));
 	connect(manager, &QNetworkAccessManager::finished, [=](QNetworkReply *info){
 		QUrl redirect = info->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
@@ -718,6 +755,40 @@ void Interface::setCenter(QSize _s, bool _f)
 	}
 }
 
+namespace
+{
+	void addTrack(QMenu *menu, int type)
+	{
+		QMenu *sub = new QMenu(Interface::tr("Track"), menu);
+		sub->addActions(APlayer::instance()->getTracks(type));
+		sub->setEnabled(!sub->isEmpty());
+		menu->addMenu(sub);
+	}
+
+	void addDelay(QMenu *menu, int type, qint64 step)
+	{
+		QMenu *sub = new QMenu(Interface::tr("Sync"), menu);
+		auto fake = sub->addAction(QString());
+		fake->setEnabled(false);
+		auto edit = new QLineEdit(sub);
+		edit->setFrame(false);
+		edit->setText(Interface::tr("Delay: %1s").arg(APlayer::instance()->getDelay(type) / 1000.0));
+		edit->setGeometry(sub->actionGeometry(fake).adjusted(24, 1, -1, -1));
+		QObject::connect(edit, &QLineEdit::editingFinished, [=](){
+			QString e = QRegularExpression("[\\d\\.\\+\\-\\(][\\s\\d\\.\\:\\+\\-\\*\\/\\(\\)]*").match(edit->text()).captured();
+			APlayer::instance()->setDelay(type, e.isEmpty() ? 0 : Utils::evaluate(e) * 1000);
+		});
+		QObject::connect(sub->addAction(Interface::tr("%1s Faster").arg(step / 1000.0)), &QAction::triggered, [=](){
+			APlayer::instance()->setDelay(type, APlayer::instance()->getDelay(type) + step);
+		});
+		QObject::connect(sub->addAction(Interface::tr("%1s Slower").arg(step / 1000.0)), &QAction::triggered, [=](){
+			APlayer::instance()->setDelay(type, APlayer::instance()->getDelay(type) - step);
+		});
+		sub->setEnabled(APlayer::instance()->getState() != APlayer::Stop);
+		menu->addMenu(sub);
+	}
+}
+
 void Interface::showContextMenu(QPoint p)
 {
 	bool flag = true;
@@ -749,10 +820,7 @@ void Interface::showContextMenu(QPoint p)
 		top.addAction(listA);
 		QMenu vid(tr("Video"), this);
 		vid.setFixedWidth(top.sizeHint().width());
-		QMenu vts(tr("Track"), &vid);
-		vts.addActions(aplayer->getTracks(Utils::Video));
-		vts.setEnabled(!vts.isEmpty());
-		vid.addMenu(&vts);
+		addTrack(&vid, Utils::Video);
 		vid.addMenu(sca);
 		vid.addMenu(rat);
 		vid.addMenu(spd);
@@ -760,30 +828,16 @@ void Interface::showContextMenu(QPoint p)
 		top.addMenu(&vid);
 		QMenu aud(tr("Audio"), this);
 		aud.setFixedWidth(top.sizeHint().width());
-		QMenu ats(tr("Track"), &aud);
-		ats.addActions(aplayer->getTracks(Utils::Audio));
-		ats.setEnabled(!ats.isEmpty());
-		aud.addMenu(&ats);
+		addTrack(&aud, Utils::Audio);
+		addDelay(&aud, Utils::Audio, 100);
 		aud.addAction(findChild<QAction *>("VoUp"));
 		aud.addAction(findChild<QAction *>("VoDn"));
 		top.addMenu(&aud);
-		QMenu dmk(tr("Danmaku"), this);
-		dmk.setFixedWidth(top.sizeHint().width());
-		QMenu sts(tr("Track"), &dmk);
-		sts.addActions(aplayer->getTracks(Utils::Subtitle));
-		sts.addSeparator();
-		for (const Record r : danmaku->getPool()){
-			sts.addAction(r.string);
-		}
-		sts.setEnabled(!sts.isEmpty());
-		dmk.addMenu(&sts);
-		QAction *loadA = menu->findChild<QAction *>("Danm");
-		QAction *seekA = menu->findChild<QAction *>("Sech");
-		dmk.addAction(toggA);
-		dmk.addAction(tr("Load"), loadA, SLOT(trigger()), loadA->shortcut())->setEnabled(loadA->isEnabled());
-		dmk.addAction(tr("Post"), postA, SLOT(trigger()), postA->shortcut())->setEnabled(postA->isEnabled());
-		dmk.addAction(tr("Seek"), seekA, SLOT(trigger()), seekA->shortcut())->setEnabled(seekA->isEnabled());
-		connect(dmk.addAction(tr("Load Subtitle")), &QAction::triggered, [this](){
+		QMenu sub(tr("Subtitle"), this);
+		sub.setFixedWidth(top.sizeHint().width());
+		addTrack(&sub, Utils::Subtitle);
+		addDelay(&sub, Utils::Subtitle, 500);
+		connect(sub.addAction(tr("Load Subtitle")), &QAction::triggered, [this](){
 			QFileInfo info(aplayer->getMedia());
 			QString file = QFileDialog::getOpenFileName(this,
 				tr("Open File"),
@@ -793,6 +847,24 @@ void Interface::showContextMenu(QPoint p)
 				aplayer->addSubtitle(file);
 			}
 		});
+		top.addMenu(&sub);
+		QMenu dmk(tr("Danmaku"), this);
+		dmk.setFixedWidth(top.sizeHint().width());
+		QMenu dts(tr("Track"), &dmk);
+		for (const Record r : danmaku->getPool()){
+			dts.addAction(r.string);
+		}
+		dts.setEnabled(!dts.isEmpty());
+		dmk.addMenu(&dts);
+		connect(dmk.addAction(tr("Sync")), &QAction::triggered, [](){
+			Editor::exec(lApp->mainWidget(), 2);
+		});
+		QAction *loadA = menu->findChild<QAction *>("Danm");
+		QAction *seekA = menu->findChild<QAction *>("Sech");
+		dmk.addAction(toggA);
+		dmk.addAction(tr("Load"), loadA, SLOT(trigger()), loadA->shortcut())->setEnabled(loadA->isEnabled());
+		dmk.addAction(tr("Post"), postA, SLOT(trigger()), postA->shortcut())->setEnabled(postA->isEnabled());
+		dmk.addAction(tr("Seek"), seekA, SLOT(trigger()), seekA->shortcut())->setEnabled(seekA->isEnabled());
 		top.addMenu(&dmk);
 		top.addAction(confA);
 		top.addAction(quitA);

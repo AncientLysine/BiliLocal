@@ -245,10 +245,6 @@ qint64 QPlayer::getDuration()
 	return mp->duration();
 }
 
-void QPlayer::addSubtitle(QString)
-{
-}
-
 void QPlayer::setVolume(int _volume)
 {
 	_volume = qBound(0, _volume, 100);
@@ -269,8 +265,4 @@ void QPlayer::setRate(double _rate)
 double QPlayer::getRate()
 {
 	return mp->playbackRate();
-}
-
-void QPlayer::event(int)
-{
 }

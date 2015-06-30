@@ -86,14 +86,14 @@ private:
 	bool showprg;
 	bool sliding;
 
-	void closeEvent(QCloseEvent *e);
-	void dragEnterEvent(QDragEnterEvent *e);
-	void dropEvent(QDropEvent *e);
-	void mouseDoubleClickEvent(QMouseEvent *e);
-	void mouseMoveEvent(QMouseEvent *e);
-	void mousePressEvent(QMouseEvent *e);
-	void mouseReleaseEvent(QMouseEvent *e);
-	void resizeEvent(QResizeEvent *e);
+	virtual void closeEvent(QCloseEvent *e) override;
+	virtual void dragEnterEvent(QDragEnterEvent *e) override;
+	virtual void dropEvent(QDropEvent *e) override;
+	virtual void mouseDoubleClickEvent(QMouseEvent *e) override;
+	virtual void mouseMoveEvent(QMouseEvent *e) override;
+	virtual void mousePressEvent(QMouseEvent *e) override;
+	virtual void mouseReleaseEvent(QMouseEvent *e) override;
+	virtual void resizeEvent(QResizeEvent *e) override;
 
 signals:
 	void windowFlagsChanged(QFlags<Qt::WindowType>);
