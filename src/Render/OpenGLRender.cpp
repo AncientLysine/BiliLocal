@@ -268,7 +268,7 @@ void OpenGLRenderPrivate::onSwapped()
 			ARender::instance()->draw();
 		}
 		else{
-			QTimer::singleShot(2, ARender::instance(), SLOT(draw()));
+			QTimer::singleShot(1, ARender::instance(), SLOT(draw()));
 		}
 	}
 }

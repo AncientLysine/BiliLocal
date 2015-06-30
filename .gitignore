@@ -12,5 +12,6 @@
 *.opensdf
 *.psd
 *.bak
+*.vspx
 bin
 android

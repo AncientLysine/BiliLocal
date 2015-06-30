@@ -540,38 +540,42 @@ QDialog(parent)
 		r->addWidget(render);
 		e->addWidget(decode);
 
-		QRadioButton *buffer = new QRadioButton(tr("render to buffer"), widget[2]);
-		buffer->setChecked(Config::getValue("/Performance/Option/OpenGL/Buffer", true));
-		connect(buffer, &QRadioButton::toggled, [](bool t){
-			Config::setValue("/Performance/Option/OpenGL/Buffer", t);
-		});
-		QRadioButton *detach = new QRadioButton(tr("detached window"), widget[2]);
-		detach->setChecked(Config::getValue("/Performance/Option/OpenGL/Detach", false));
-		connect(detach, &QRadioButton::toggled, [](bool t){
-			Config::setValue("/Performance/Option/OpenGL/Detach", t);
-		});
-		QRadioButton *direct = new QRadioButton(tr("embedded window"), widget[2]);
-		direct->setChecked(!buffer->isChecked()&&!detach->isChecked());
-		option.insert("OpenGL", detach);
-		option.insert("OpenGL", direct);
-		option.insert("OpenGL", buffer);
+		if (relist.contains("OpenGL")){
+			QRadioButton *buffer = new QRadioButton(tr("render to buffer"), widget[2]);
+			buffer->setChecked(Config::getValue("/Performance/Option/OpenGL/Buffer", true));
+			connect(buffer, &QRadioButton::toggled, [](bool t){
+				Config::setValue("/Performance/Option/OpenGL/Buffer", t);
+			});
+			QRadioButton *detach = new QRadioButton(tr("detached window"), widget[2]);
+			detach->setChecked(Config::getValue("/Performance/Option/OpenGL/Detach", false));
+			connect(detach, &QRadioButton::toggled, [](bool t){
+				Config::setValue("/Performance/Option/OpenGL/Detach", t);
+			});
+			QRadioButton *direct = new QRadioButton(tr("embedded window"), widget[2]);
+			direct->setChecked(!buffer->isChecked() && !detach->isChecked());
+			option.insert("OpenGL", detach);
+			option.insert("OpenGL", direct);
+			option.insert("OpenGL", buffer);
+		}
 
-		QGroupBox *update = new QGroupBox(tr("refresh rate"), widget[2]);
-		auto layout = new QGridLayout;
-		auto slider = new QSlider(widget[2]);
-		slider->setRange(30, 200);
-		slider->setValue(Config::getValue("/Performance/Option/Raster/Update", 100));
-		slider->setOrientation(Qt::Horizontal);
-		connect(slider, &QSlider::valueChanged, [=](int v){
-			QPoint p;
-			p.setX(QCursor::pos().x());
-			p.setY(slider->mapToGlobal(slider->rect().center()).y());
-			QToolTip::showText(p, QString::number(v));
-			Config::setValue("/Performance/Option/Raster/Update", v);
-		});
-		layout->addWidget(slider);
-		update->setLayout(layout);
-		option.insert("Raster", update);
+		if (relist.contains("Raster")){
+			QGroupBox *update = new QGroupBox(tr("refresh rate"), widget[2]);
+			auto layout = new QGridLayout;
+			auto slider = new QSlider(widget[2]);
+			slider->setRange(30, 200);
+			slider->setValue(Config::getValue("/Performance/Option/Raster/Update", 100));
+			slider->setOrientation(Qt::Horizontal);
+			connect(slider, &QSlider::valueChanged, [=](int v){
+				QPoint p;
+				p.setX(QCursor::pos().x());
+				p.setY(slider->mapToGlobal(slider->rect().center()).y());
+				QToolTip::showText(p, QString::number(v));
+				Config::setValue("/Performance/Option/Raster/Update", v);
+			});
+			layout->addWidget(slider);
+			update->setLayout(layout);
+			option.insert("Raster", update);
+		}
 
 		for (QString r : relist){
 			for (QWidget *w : option.values(r)){

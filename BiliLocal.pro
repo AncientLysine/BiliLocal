@@ -99,8 +99,22 @@ DEFINES += \
     BACKEND_NIL
 
 DEFINES += \
-    RENDER_RASTER \
     RENDER_OPENGL
+
+INCLUDEPATH += \
+    D:/App/Programming/include
+
+!contains(QMAKE_TARGET.arch, x86_64){
+DEFINES += \
+    RENDER_RASTER
+
+LIBS += \
+    -LD:/App/Programming/lib
+}
+else{
+LIBS += \
+    -LD:/App/Programming/lib/amd64
+}
 }
 
 macx{
@@ -160,8 +174,8 @@ LIBS += \
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
     src/Render/OpenGLRender.cpp \
-    src/Render/OpenGLRender/DetachPrivate.cpp
-    src/Render/OpenGLRender/WidgetPrivate.cpp
+    src/Render/OpenGLRender/DetachPrivate.cpp \
+    src/Render/OpenGLRender/WidgetPrivate.cpp \
     src/Render/OpenGLRender/WindowPrivate.cpp
 
 HEADERS += \

@@ -57,7 +57,7 @@ public:
 		painter->endNativePainting();
 	}
 
-	virtual void paint(QPaintDevice *device)
+	void paint(QPaintDevice *device)
 	{
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);

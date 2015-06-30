@@ -114,7 +114,7 @@ public:
 			bool ok;
 			int i = content.toInt(&ok);
 			if (ok&&i >= 0 && i < 8){
-				shieldG[i] = true;
+				shieldG[i] = false;
 			}
 			break;
 		}
