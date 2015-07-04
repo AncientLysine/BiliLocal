@@ -2,8 +2,8 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Load.h
-*   Time:        2014/04/22
+*   Filename:    Seek.h
+*   Time:        2015/06/30
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -31,33 +31,25 @@
 #include <QStandardItemModel>
 #include <functional>
 
-class Comment;
-class Record;
-class LoadPrivate;
+class SeekPrivate;
 
-class Load : public QObject
+class Seek : public QObject
 {
 	Q_OBJECT
 public:
 	enum State
 	{
-		None = 0,
-		Page = 381,
-		Part = 407,
-		Code = 379,
-		File = 384,
-	};
-
-	enum Role
-	{
-		UrlRole = Qt::UserRole,
-		StrRole,
-		NxtRole
+		None,
+		List,
+		More,
+		Data
 	};
 
 	struct Proc
 	{
-		std::function<bool(QString &)> regular;
+		QString name;
+		QStringList sort;
+		inline bool regular(QString &code) const { return code == name; }
 		int priority;
 		std::function<void(QNetworkReply *)> process;
 	};
@@ -65,50 +57,38 @@ public:
 	struct Task
 	{
 		QString code;
-		QNetworkRequest request;
+		QString text;
+		int sort;
+		QPair<int, int> page;
+		QSize cover;
+		QStandardItemModel *model;
 		int state;
+		QNetworkRequest request;
 		const Proc *processer;
-		qint64 delay;
-		Task() :state(None), processer(nullptr), delay(0){}
+		Task() :sort(0), state(None), processer(nullptr){}
 	};
 
-	Task codeToTask(QString code);
-	static Load *instance();
-	~Load();
+	static Seek *instance();
+	~Seek();
 
 private:
-	static Load *ins;
-	LoadPrivate *const d_ptr;
-	Q_DECLARE_PRIVATE(Load);
+	static Seek *ins;
+	SeekPrivate *const d_ptr;
+	Q_DECLARE_PRIVATE(Seek);
 
-	explicit Load(QObject *parent);
+	explicit Seek(QObject *parent);
 
 signals:
-	void stateChanged(int state);
-	void errorOccured(int state);
-	void progressChanged(double progress);
+	void stateChanged(int code);
+	void errorOccured(int code);
 
 public slots:
-	void addProc(const Load::Proc *proc);
-	const Load::Proc *getProc(QString code);
+	void addProc(const Seek::Proc *proc);
+	const Seek::Proc *getProc(QString name);
 
-	void fixCode(QString &);
-	bool canLoad(QString);
-	bool canFull(const Record *);
-	bool canHist(const Record *);
-
-	void loadDanmaku(QString);
-	void loadDanmaku(const QModelIndex &index = QModelIndex());
-	void fullDanmaku(const Record *);
-	void loadHistory(const Record *, QDate);
-	void dumpDanmaku(const QList<Comment> *data, bool full);
-	void dumpDanmaku(const QByteArray &data, int site, bool full);
-
-	QStandardItemModel *getModel();
-	void forward();
-	void forward(QNetworkRequest);
-	void forward(QNetworkRequest, int);
+	QStringList modules();
 	void dequeue();
-	bool enqueue(const Load::Task &);
-	Load::Task *getHead();
+	bool enqueue(const Seek::Task &);
+	Seek::Task *getHead();
+	void forward();
 };

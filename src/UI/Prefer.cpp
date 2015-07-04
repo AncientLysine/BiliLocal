@@ -1122,7 +1122,7 @@ QDialog(parent)
 		plugin->header()->setStretchLastSection(false);
 		plugin->header()->setSectionResizeMode(3, QHeaderView::Stretch);
 		plugin->setColumnWidth(0, 50);
-		plugin->setColumnWidth(1, 55 * s);
+		plugin->setColumnWidth(1, 60 * s);
 		plugin->setColumnWidth(2, 35 * s);
 		plugin->setColumnWidth(4, 50 * s);
 		plugin->setColumnWidth(5, 30 * s);
@@ -1247,16 +1247,13 @@ QDialog(parent)
 				Shield::instance()->setAllShields(shields);
 				d->parse(0x2);
 			}
-			if (restart != getRestart()){
-				if (p->getState() == APlayer::Stop&&
-					d->rowCount() == 0 ||
-					QMessageBox::warning(this,
-					tr("Warning"),
-					tr("Restart to apply changes?"),
-					QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes){
-					lApp->exit(12450);
-					return;
-				}
+			if (restart != getRestart() && ((p->getState() == APlayer::Stop && d->rowCount() == 0) ||
+				QMessageBox::warning(this,
+				tr("Warning"),
+				tr("Restart to apply changes?"),
+				QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)){
+				lApp->exit(12450);
+				return;
 			}
 			Config::save();
 		});

@@ -44,9 +44,6 @@ Utils::Site Utils::parseSite(QString url)
 	if (-1 != url.indexOf("acfun")){
 		return AcFun;
 	}
-	if (-1 != url.indexOf("acplay")){
-		return AcPlay;
-	}
 	if (-1 != url.indexOf("tucao")){
 		return TuCao;
 	}
@@ -308,9 +305,6 @@ QString Utils::customUrl(Site site)
 	case Bilibili:
 		name = "bili";
 		break;
-	case AcPlay:
-		name = "acplay";
-		break;
 	case Tudou:
 		name = "tudou";
 		break;
@@ -324,7 +318,7 @@ QString Utils::customUrl(Site site)
 		return QString();
 	}
 	QStringList urls, defs;
-	defs << "acfun.tv" << "bilibili.com" << "acplay.net" << "tucao.cc";
+	defs << "acfun.tv" << "bilibili.com" << "tucao.cc";
 	urls = Config::getValue("/Network/Url", defs.join(';')).split(';', QString::SkipEmptyParts);
 	for (QString iter : urls + defs){
 		if (iter.toLower().indexOf(name) != -1){

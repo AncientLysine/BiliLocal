@@ -30,6 +30,7 @@
 #include "../Local.h"
 #include "../Access/Load.h"
 #include "../Access/Post.h"
+#include "../Access/Seek.h"
 #include "../Model/Danmaku.h"
 #include "../Model/List.h"
 #include "../Model/Shield.h"
@@ -94,14 +95,16 @@ QWidget(parent)
 	info = new Info(this);
 	jump = new UI::Jump(this);
 	type = new UI::Type(this);
-	post = Post::instance();
 	list = List::instance();
 	load = Load::instance();
+	post = Post::instance();
+	seek = Seek::instance();
 	Local::objects["Info"] = info;
 	Local::objects["Menu"] = menu;
 	Local::objects["Next"] = list;
-	Local::objects["Post"] = post;
 	Local::objects["Load"] = load;
+	Local::objects["Post"] = post;
+	Local::objects["Seek"] = seek;
 
 	timer = new QTimer(this);
 	delay = new QTimer(this);
@@ -210,9 +213,10 @@ QWidget(parent)
 		}
 		warning(tr("Network Error"), sugg.isEmpty() ? info : (info + '\n' + sugg));
 	};
-	connect(post, &Post::errorOccured, this, alertNetworkError);
-	connect(load, &Load::errorOccured, this, alertNetworkError);
 	connect(load, &Load::progressChanged, this, &Interface::percent);
+	connect(load, &Load::errorOccured, this, alertNetworkError);
+	connect(post, &Post::errorOccured, this, alertNetworkError);
+	connect(seek, &Seek::errorOccured, this, alertNetworkError);
 
 	showprg = sliding = false;
 	connect(aplayer, &APlayer::timeChanged, [this](qint64 t){
@@ -408,6 +412,8 @@ QWidget(parent)
 			break;
 		case QVariant::Size:
 			setCenter(d.toSize(), false);
+			break;
+		default:
 			break;
 		}
 	});

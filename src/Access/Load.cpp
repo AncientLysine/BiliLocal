@@ -38,36 +38,16 @@ Load *Load::instance()
 	return ins ? ins : new Load(qApp);
 }
 
-class LoadPrivate :public AccessPrivate < Load, Load::Proc, Load::Task >
+class LoadPrivate : public AccessPrivate<Load, Load::Proc, Load::Task>
 {
 public:
 	QStandardItemModel *model;
 
 	explicit LoadPrivate(Load *load) :
-		AccessPrivate <Load, Load::Proc, Load::Task>(load)
+		AccessPrivate<Load, Load::Proc, Load::Task>(load)
 	{
 		Q_Q(Load);
 		model = new QStandardItemModel(q);
-	}
-
-	void forward()
-	{
-		Q_Q(Load);
-		Load::Task &task = queue.head();
-		if (!task.processer){
-			task.state = QNetworkReply::ProtocolUnknownError;
-			emit q->stateChanged(task.state);
-			q->dequeue();
-			return;
-		}
-		if (task.state == 0){
-			task.processer->process(nullptr);
-		}
-		else{
-			emit q->stateChanged(task.state);
-			QNetworkAccessManager &m = manager;
-			remain.insert(m.get(task.request));
-		}
 	}
 };
 
@@ -172,23 +152,6 @@ namespace
 					}
 				}
 				queue.dequeue();
-			}
-			break;
-		}
-		case Utils::AcPlay:
-		{
-			QJsonArray a = QJsonDocument::fromJson(data).object()["Comments"].toArray();
-			for (const QJsonValue &i : a){
-				Comment comment;
-				QJsonObject item = i.toObject();
-				comment.time = item["Time"].toDouble() * 1000 + 0.5;
-				comment.date = item["Timestamp"].toInt();
-				comment.mode = item["Mode"].toInt();
-				comment.font = 25;
-				comment.color = item["Color"].toInt();
-				comment.sender = QString::number(item["UId"].toInt());
-				comment.string = item["Message"].toString();
-				list.append(comment);
 			}
 			break;
 		}
@@ -408,8 +371,7 @@ namespace
 	}
 }
 
-Load::Load(QObject *parent) :
-QObject(parent), d_ptr(new LoadPrivate(this))
+Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 {
 	Q_D(Load);
 	ins = this;
@@ -578,32 +540,6 @@ QObject(parent), d_ptr(new LoadPrivate(this))
 	};
 	auto acRegular = getRegular(QRegularExpression("a(c(\\d+([#_])?(\\d+)?)?)?", QRegularExpression::CaseInsensitiveOption));
 	d->pool.append({ acRegular, 0, acProcess });
-
-	auto ddProcess = [this](QNetworkReply *reply){
-		Q_D(Load);
-		Task &task = d->queue.head();
-		switch (task.state){
-		case None:
-		{
-			QString url = QString("http://api.%1/api/v1/comment/%2");
-			url = url.arg(Utils::customUrl(Utils::AcPlay)).arg(task.code.mid(2));
-			task.request.setUrl(url);
-			task.request.setRawHeader("Accept", "application/json");
-			task.state = File;
-			forward();
-			break;
-		}
-		case File:
-		{
-			dumpDanmaku(reply->readAll(), Utils::AcPlay, false);
-			emit stateChanged(task.state = None);
-			dequeue();
-			break;
-		}
-		}
-	};
-	auto ddRegular = getRegular(QRegularExpression("d(d\\d*)?", QRegularExpression::CaseInsensitiveOption));
-	d->pool.append({ ddRegular, 0, ddProcess });
 
 	auto abProcess = [this, acProcess](QNetworkReply *reply){
 		Q_D(Load);
@@ -990,7 +926,8 @@ QObject(parent), d_ptr(new LoadPrivate(this))
 		case Code:
 		case File:
 			break;
-		default: {
+		default:
+		{
 			Q_D(Load);
 			if (!d->tryNext()){
 				emit errorOccured(code);
@@ -999,6 +936,11 @@ QObject(parent), d_ptr(new LoadPrivate(this))
 		}
 		}
 	});
+}
+
+Load::~Load()
+{
+	delete d_ptr;
 }
 
 Load::Task Load::codeToTask(QString code)
@@ -1124,17 +1066,7 @@ void Load::loadHistory(const Record *record, QDate date)
 	enqueue(task);
 }
 
-void Load::dumpDanmaku(const QByteArray &data, int site, Record *r)
-{
-	r->danmaku = parseComment(data, (Utils::Site)site);
-	if (r->delay != 0){
-		for (Comment &c : r->danmaku){
-			c.time += r->delay;
-		}
-	}
-}
-
-void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
+void Load::dumpDanmaku(const QList<Comment> *data, bool full)
 {
 	Q_D(Load);
 	Task &task = d->queue.head();
@@ -1144,32 +1076,19 @@ void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 	load.string = task.code;
 	load.access = task.code;
 	load.delay = task.delay;
-	dumpDanmaku(data, site, &load);
+	load.danmaku = *data;
+	if (load.delay != 0){
+		for (Comment &c : load.danmaku){
+			c.time += load.delay;
+		}
+	}
 	Danmaku::instance()->appendToPool(&load);
 }
 
-Load::Task *Load::getHead()
+void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 {
-	Q_D(Load);
-	return d->getHead();
-}
-
-int Load::size()
-{
-	Q_D(Load);
-	return d->size();
-}
-
-void Load::dequeue()
-{
-	Q_D(Load);
-	d->dequeue();
-}
-
-bool Load::enqueue(const Load::Task &task)
-{
-	Q_D(Load);
-	return d->enqueue(task);
+	auto list = parseComment(data, (Utils::Site)site);
+	dumpDanmaku(&list, full);
 }
 
 void Load::forward()
@@ -1190,4 +1109,22 @@ void Load::forward(QNetworkRequest request, int state)
 	Task &task = *getHead();
 	task.request = request; task.state = state;
 	forward();
+}
+
+void Load::dequeue()
+{
+	Q_D(Load);
+	d->dequeue();
+}
+
+bool Load::enqueue(const Load::Task &task)
+{
+	Q_D(Load);
+	return d->enqueue(task);
+}
+
+Load::Task *Load::getHead()
+{
+	Q_D(Load);
+	return d->getHead();
 }

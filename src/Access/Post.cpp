@@ -36,38 +36,25 @@ Post *Post::instance()
 	return ins ? ins : new Post(qApp);
 }
 
-class PostPrivate :public AccessPrivate < Post ,Post::Proc, Post::Task>
+class PostPrivate : public AccessPrivate<Post ,Post::Proc, Post::Task>
 {
 public:
 	explicit PostPrivate(Post *post):
-		AccessPrivate <Post, Post::Proc, Post::Task>(post)
+		AccessPrivate<Post, Post::Proc, Post::Task>(post)
 	{
 	}
 
-	void forward()
+	virtual void onShift() override
 	{
 		Q_Q(Post);
 		Post::Task &task = queue.head();
-		if (!task.processer){
-			task.state = QNetworkReply::ProtocolUnknownError;
-			emit q->stateChanged(task.state);
-			q->dequeue();
-			return;
-		}
-		if (task.state == 0){
-			Danmaku::instance()->appendToPool(task.target->source, &task.comment);
-			task.processer->process(nullptr);
-		}
-		else{
-			emit q->stateChanged(task.state);
-			QNetworkAccessManager &m = manager;
-			remain.insert(task.data.isEmpty() ? m.get(task.request) : m.post(task.request, task.data));
-		}
+		emit q->stateChanged(task.state);
+		QNetworkAccessManager &m = manager;
+		remain.insert(task.data.isEmpty() ? m.get(task.request) : m.post(task.request, task.data));
 	}
 };
 
-Post::Post(QObject *parent) :
-QObject(parent), d_ptr(new PostPrivate(this))
+Post::Post(QObject *parent) : QObject(parent), d_ptr(new PostPrivate(this))
 {
 	Q_D(Post);
 	ins = this;
@@ -94,18 +81,13 @@ QObject(parent), d_ptr(new PostPrivate(this))
 			params.addQueryItem("rnd", QString::number(qrand()));
 			params.addQueryItem("mode", QString::number(c.mode));
 			task.data = QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded), "%=&", "-.~_");
-			emit stateChanged(task.state = Code);
+			task.state = Code;
 			forward();
 			break;
 		}
 		case Code:{
 			int code = QString(reply->readAll()).toInt();
-			if (code > 0){
-				emit stateChanged(task.state = None);
-			}
-			else{
-				emit stateChanged(task.state = code);
-			}
+			emit stateChanged(task.state = code > 0 ? None : code);
 			dequeue();
 			break;
 		}
@@ -118,59 +100,13 @@ QObject(parent), d_ptr(new PostPrivate(this))
 	};
 	d->pool.append({ avRegular, 0, avProcess });
 
-	auto ddProcess = [this](QNetworkReply *reply){
-		Q_D(Post);
-		Task &task = d->queue.head();
-		switch (task.state){
-		case None:{
-			QString api("http://api.%1/api/v1/comment/%2");
-			api = api.arg(Utils::customUrl(Utils::AcPlay));
-			api = api.arg(QFileInfo(task.target->source).baseName());
-			task.request.setUrl(api);
-			task.request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-			const Comment &c = task.comment;
-			QJsonObject params;
-			params["Token"] = 0;
-			params["Time"] = c.time / 1000.0;
-			params["Mode"] = c.mode;
-			params["Color"] = c.color;
-			params["TimeStamp"] = QDateTime::currentMSecsSinceEpoch();
-			params["Pool"] = 0;
-			params["UId"] = 0;
-			params["CId"] = 0;
-			params["Message"] = c.string;
-			task.data= QJsonDocument(params).toJson();
-			emit stateChanged(task.state = Code);
-			forward();
-			break;
-		}
-		case Code:{
-			const QJsonObject &result = QJsonDocument::fromJson(reply->readAll()).object();
-			if (result["Success"].toBool()){
-				emit stateChanged(task.state = None);
-			}
-			else{
-				emit stateChanged(task.state = QNetworkReply::UnknownNetworkError);
-			}
-			dequeue();
-			break;
-		}
-		}
-
-	};
-	auto ddRegular = [](QString code){
-		static QRegularExpression r("d(d\\d*)?");
-		r.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-		return r.match(code).capturedLength() == code.length();
-	};
-	d->pool.append({ ddRegular, 0, ddProcess });
-
 	connect(this, &Post::stateChanged, [this](int code){
 		switch (code){
 		case None:
 		case Code:
 			break;
-		default:{
+		default:
+		{
 			Q_D(Post);
 			if (!d->tryNext()){
 				emit errorOccured(code);
@@ -179,6 +115,11 @@ QObject(parent), d_ptr(new PostPrivate(this))
 		}
 		}
 	});
+}
+
+Post::~Post()
+{
+	delete d_ptr;
 }
 
 void Post::addProc(const Post::Proc *proc)
@@ -209,10 +150,10 @@ void Post::postComment(const Record *r, const Comment *c)
 	enqueue(task);
 }
 
-int Post::size()
+void Post::forward()
 {
 	Q_D(Post);
-	return d->size();
+	d->forward();
 }
 
 void Post::dequeue()
@@ -231,10 +172,4 @@ Post::Task *Post::getHead()
 {
 	Q_D(Post);
 	return d->getHead();
-}
-
-void Post::forward()
-{
-	Q_D(Post);
-	d->forward();
 }

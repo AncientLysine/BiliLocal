@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Config.h"
 #include "NetworkConfiguration.h"
 #include <QtCore>
 #include <QtNetwork>
@@ -28,13 +27,10 @@ public:
 			Q_Q(Access);
 			remain.remove(reply);
 			reply->deleteLater();
-			QUrl redirect = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
-			if (reply->error() != QNetworkReply::NoError){
-				if (reply->error() != QNetworkReply::OperationCanceledError)
-					emit q->stateChanged(reply->error());
-				q->dequeue();
+			if (reply->error() != QNetworkReply::NoError && !onError(reply)){
 				return;
 			}
+			QUrl redirect = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
 			if (!redirect.isValid()){
 				queue.head().processer->process(reply);
 			}
@@ -45,6 +41,8 @@ public:
 		});
 		NetworkConfiguration::instance()->setManager(&manager);
 	}
+
+	virtual ~AccessPrivate() = default;
 
 	void addProc(const Proc *proc)
 	{
@@ -63,11 +61,6 @@ public:
 		return p;
 	}
 
-	int size()
-	{
-		return queue.size();
-	}
-
 	void dequeue()
 	{
 		Q_Q(Access);
@@ -81,7 +74,7 @@ public:
 		}
 		flag = 0;
 		queue.dequeue();
-		if (!queue.isEmpty()){
+		if (queue.size()){
 			q->forward();
 		}
 	}
@@ -106,6 +99,41 @@ public:
 		return queue.isEmpty() ? nullptr : &queue.head();
 	}
 
+	void forward()
+	{
+		Q_Q(Access);
+		Task &task = queue.head();
+		if (!task.processer){
+			task.state = QNetworkReply::ProtocolUnknownError;
+			emit q->stateChanged(task.state);
+			q->dequeue();
+			return;
+		}
+		if (task.state == 0){
+			task.processer->process(nullptr);
+		}
+		else{
+			onShift();
+		}
+	}
+
+	virtual void onShift()
+	{
+		Q_Q(Access);
+		Task &task = queue.head();
+		emit q->stateChanged(task.state);
+		remain.insert(manager.get(task.request));
+	}
+
+	virtual bool onError(QNetworkReply *reply)
+	{
+		Q_Q(Access);
+		if (reply->error() != QNetworkReply::OperationCanceledError)
+			emit q->stateChanged(reply->error());
+		q->dequeue();
+		return false;
+	}
+
 	bool tryNext()
 	{
 		Task task = queue.head();
@@ -126,7 +154,7 @@ public:
 			}
 		}
 		std::stable_sort(list.begin(), list.end(), [](const Proc* f, const Proc *s){
-			return f->priority>s->priority; 
+			return f->priority > s->priority; 
 		});
 		int offset = list.indexOf(task.processer) + 1;
 		if (offset<list.size() && offset){

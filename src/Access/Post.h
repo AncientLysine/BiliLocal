@@ -34,7 +34,7 @@
 
 class PostPrivate;
 
-class Post :public QObject
+class Post : public QObject
 {
 	Q_OBJECT
 public:
@@ -64,10 +64,11 @@ public:
 	};
 
 	static Post *instance();
+	~Post();
 
 private:
 	static Post *ins;
-	QScopedPointer<PostPrivate> const d_ptr;
+	PostPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Post);
 
 	explicit Post(QObject *parent);
@@ -77,15 +78,14 @@ signals:
 	void errorOccured(int code);
 
 public slots:
-	void addProc(const Proc *proc);
-	const Proc *getProc(QString code);
+	void addProc(const Post::Proc *proc);
+	const Post::Proc *getProc(QString code);
 
 	bool canPost(QString code);
 	void postComment(const Record *, const Comment *);
 
-	int size();
-	void dequeue();
-	bool enqueue(const Task &);
-	Task*getHead();
 	void forward();
+	void dequeue();
+	bool enqueue(const Post::Task &);
+	Post::Task *getHead();
 };
