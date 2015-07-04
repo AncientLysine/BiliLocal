@@ -32,9 +32,10 @@
 #include <QtWidgets>
 #include <QtNetwork>
 
-class Post;
 class List;
 class Load;
+class Post;
+class Seek;
 class APlayer;
 class Danmaku;
 class ARender;
@@ -72,9 +73,10 @@ private:
 	UI::Info *info;
 	UI::Jump *jump;
 	UI::Type *type;
-	Post *post;
 	List *list;
 	Load *load;
+	Post *post;
+	Seek *seek;
 	APlayer *aplayer;
 	Danmaku *danmaku;
 	ARender *arender;

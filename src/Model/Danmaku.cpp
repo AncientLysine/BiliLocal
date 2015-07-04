@@ -162,10 +162,7 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 			}
 			break;
 		case Qt::ToolTipRole:
-			if (index.column() == 1){
-				return Qt::convertFromPlainText(comment.string);
-			}
-			break;
+			return Qt::convertFromPlainText(comment.string);
 		case Qt::TextAlignmentRole:
 			if (index.column() == 0){
 				return Qt::AlignCenter;
@@ -328,8 +325,12 @@ void Danmaku::appendToPool(const Record *record)
 		}
 	}
 	parse(0x1 | 0x2);
-	if (!append&&Load::instance()->size() < 2 && d->pool.size() >= 2){
-		UI::Editor::exec(lApp->mainWidget());
+	if (d->pool.size() >= 2 && !append){
+		QTimer::singleShot(0, [](){
+			if (!Load::instance()->getHead()){
+				UI::Editor::exec(lApp->mainWidget());
+			}
+		});
 	}
 }
 

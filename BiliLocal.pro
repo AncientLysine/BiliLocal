@@ -14,6 +14,7 @@ SOURCES += \
     src/Access/Load.cpp \
     src/Access/NetworkConfiguration.cpp \
     src/Access/Post.cpp \
+    src/Access/Seek.cpp \
     src/Graphic/Graphic.cpp \
     src/Graphic/GraphicPrivate.cpp \
     src/Graphic/Mode1.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
     src/Access/Load.h \
     src/Access/NetworkConfiguration.h \
     src/Access/Post.h \
+    src/Access/Seek.h \
     src/Graphic/Graphic.h \
     src/Graphic/GraphicPrivate.h \
     src/Graphic/Mode1.h \

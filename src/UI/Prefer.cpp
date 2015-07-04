@@ -1122,7 +1122,7 @@ QDialog(parent)
 		plugin->header()->setStretchLastSection(false);
 		plugin->header()->setSectionResizeMode(3, QHeaderView::Stretch);
 		plugin->setColumnWidth(0, 50);
-		plugin->setColumnWidth(1, 55 * s);
+		plugin->setColumnWidth(1, 60 * s);
 		plugin->setColumnWidth(2, 35 * s);
 		plugin->setColumnWidth(4, 50 * s);
 		plugin->setColumnWidth(5, 30 * s);

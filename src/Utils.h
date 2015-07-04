@@ -99,7 +99,6 @@ namespace Utils
 		AcFun,
 		Tudou,
 		Letv,
-		AcPlay,
 		AcfunLocalizer,
 		Niconico,
 		TuCao,

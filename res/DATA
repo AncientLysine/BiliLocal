@@ -51,16 +51,6 @@
         "98": "综艺",
         "99": "特摄·霹雳"
     },
-    "AcPlayChannel": {
-        "1": "TV剧集",
-        "2": "TV特别篇",
-        "3": "OVA",
-        "4": "剧场版",
-        "5": "MV",
-        "6": "网络放送",
-        "7": "其他",
-        "99": "未知"
-    },
 	"Logo": {
 		"DirectX": "http://upload.wikimedia.org/wikipedia/commons/1/11/DirectX_logo.png",
 		"FFmpeg": "http://www.ffmpeg.org/ffmpeg-logo.png",

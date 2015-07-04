@@ -26,15 +26,16 @@
 
 #pragma once
 
-#include <QtGui>
 #include <QtCore>
 #include <QtNetwork>
+#include <QStandardItemModel>
 #include <functional>
 
+class Comment;
 class Record;
 class LoadPrivate;
 
-class Load :public QObject
+class Load : public QObject
 {
 	Q_OBJECT
 public:
@@ -87,8 +88,8 @@ signals:
 	void progressChanged(double progress);
 
 public slots:
-	void addProc(const Proc *proc);
-	const Proc *getProc(QString code);
+	void addProc(const Load::Proc *proc);
+	const Load::Proc *getProc(QString code);
 
 	void fixCode(QString &);
 	bool canLoad(QString);
@@ -99,14 +100,13 @@ public slots:
 	void loadDanmaku(const QModelIndex &index = QModelIndex());
 	void fullDanmaku(const Record *);
 	void loadHistory(const Record *, QDate);
-	void dumpDanmaku(const QByteArray &data, int site, Record *r);
+	void dumpDanmaku(const QList<Comment> *data, bool full);
 	void dumpDanmaku(const QByteArray &data, int site, bool full);
 
 	QStandardItemModel *getModel();
-	int size();
 	void dequeue();
-	bool enqueue(const Task &);
-	Task*getHead();
+	bool enqueue(const Load::Task &);
+	Load::Task *getHead();
 	void forward();
 	void forward(QNetworkRequest);
 	void forward(QNetworkRequest, int);

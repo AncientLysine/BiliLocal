@@ -29,7 +29,6 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include <QtNetwork>
 
 namespace UI
 {
@@ -53,9 +52,8 @@ namespace UI
 		QPushButton *pageUpB;
 		QPushButton *pageDnB;
 		QPushButton *pageGoB;
-		QTreeWidget *resultW;
-		QNetworkAccessManager *manager;
-		QSet<QNetworkReply *> remain;
+		QTreeView *resultV;
+		QStandardItemModel *resultM;
 
 		QString key;
 		QString aid;
@@ -64,16 +62,12 @@ namespace UI
 		int pageCur;
 		bool isWaiting;
 
-		void getData(int pageNum);
-		QList<const char *> getOrder(int site);
-
 	public slots:
 		void setKey(QString key);
 		QString getKey(){ return key; }
 		QString getAid(){ return aid; }
-		void setSite();
 		void startSearch();
 		void clearSearch();
-		void accept();
+		virtual void accept() override;
 	};
 }

@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013-2015 Lysine.
 *
-*   Filename:    Post.h
-*   Time:        2013/05/23
-*   Author:      zhengdanwei
-*   Contributor: Lysine
+*   Filename:    Seek.h
+*   Time:        2015/06/30
+*   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -27,26 +26,30 @@
 
 #pragma once
 
-#include "../Utils.h"
 #include <QtCore>
 #include <QtNetwork>
+#include <QStandardItemModel>
 #include <functional>
 
-class PostPrivate;
+class SeekPrivate;
 
-class Post : public QObject
+class Seek : public QObject
 {
 	Q_OBJECT
 public:
 	enum State
 	{
 		None,
-		Code
+		List,
+		More,
+		Data
 	};
 
 	struct Proc
 	{
-		std::function<bool(QString)> regular;
+		const QString name;
+		const QStringList sort;
+		inline bool regular(QString &code) const { return code == name; }
 		int priority;
 		std::function<void(QNetworkReply *)> process;
 	};
@@ -54,37 +57,37 @@ public:
 	struct Task
 	{
 		QString code;
-		Comment comment;
-		QNetworkRequest request;
-		QByteArray data;
+		QString text;
+		int sort;
+		QPair<int, int> page;
+		QSize cover;
+		QStandardItemModel *model;
 		int state;
-		const Record *target;
+		QNetworkRequest request;
 		const Proc *processer;
-		Task() :state(0), processer(nullptr){}
+		Task() :sort(0), state(None), processer(nullptr){}
 	};
 
-	static Post *instance();
+	static Seek *instance();
 
 private:
-	static Post *ins;
-	QScopedPointer<PostPrivate> const d_ptr;
-	Q_DECLARE_PRIVATE(Post);
+	static Seek *ins;
+	QScopedPointer<SeekPrivate> const d_ptr;
+	Q_DECLARE_PRIVATE(Seek);
 
-	explicit Post(QObject *parent);
+	explicit Seek(QObject *parent);
 
 signals:
 	void stateChanged(int code);
 	void errorOccured(int code);
 
 public slots:
-	void addProc(const Post::Proc *proc);
-	const Post::Proc *getProc(QString code);
+	void addProc(const Seek::Proc *proc);
+	const Seek::Proc *getProc(QString name);
 
-	bool canPost(QString code);
-	void postComment(const Record *, const Comment *);
-
+	QStringList modules();
 	void dequeue();
-	bool enqueue(const Post::Task &);
-	Post::Task *getHead();
+	bool enqueue(const Seek::Task &);
+	Seek::Task *getHead();
 	void forward();
 };
