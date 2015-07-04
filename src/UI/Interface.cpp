@@ -413,6 +413,8 @@ QWidget(parent)
 		case QVariant::Size:
 			setCenter(d.toSize(), false);
 			break;
+		default:
+			break;
 		}
 	});
 	setSingle(sca);

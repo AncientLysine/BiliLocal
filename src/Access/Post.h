@@ -64,10 +64,11 @@ public:
 	};
 
 	static Post *instance();
+	~Post();
 
 private:
 	static Post *ins;
-	QScopedPointer<PostPrivate> const d_ptr;
+	PostPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Post);
 
 	explicit Post(QObject *parent);
@@ -83,8 +84,8 @@ public slots:
 	bool canPost(QString code);
 	void postComment(const Record *, const Comment *);
 
+	void forward();
 	void dequeue();
 	bool enqueue(const Post::Task &);
 	Post::Task *getHead();
-	void forward();
 };

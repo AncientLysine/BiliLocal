@@ -74,10 +74,11 @@ public:
 
 	Task codeToTask(QString code);
 	static Load *instance();
+	~Load();
 
 private:
 	static Load *ins;
-	QScopedPointer<LoadPrivate> const d_ptr;
+	LoadPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Load);
 
 	explicit Load(QObject *parent);
@@ -104,10 +105,10 @@ public slots:
 	void dumpDanmaku(const QByteArray &data, int site, bool full);
 
 	QStandardItemModel *getModel();
-	void dequeue();
-	bool enqueue(const Load::Task &);
-	Load::Task *getHead();
 	void forward();
 	void forward(QNetworkRequest);
 	void forward(QNetworkRequest, int);
+	void dequeue();
+	bool enqueue(const Load::Task &);
+	Load::Task *getHead();
 };

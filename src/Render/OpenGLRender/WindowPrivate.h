@@ -6,8 +6,9 @@
 #include <QOpenGLWindow>
 #include <functional>
 
-namespace
+class OpenGLWindowRenderPrivate :public OpenGLOpaqueRenderPrivate
 {
+private:
 	class OWindow :public QOpenGLWindow
 	{
 	public:
@@ -71,10 +72,7 @@ namespace
 		{
 		}
 	};
-}
 
-class OpenGLWindowRenderPrivate :public OpenGLOpaqueRenderPrivate
-{
 public:
 	OpenGLWindowRenderPrivate();
 

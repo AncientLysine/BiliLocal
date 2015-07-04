@@ -938,6 +938,11 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 	});
 }
 
+Load::~Load()
+{
+	delete d_ptr;
+}
+
 Load::Task Load::codeToTask(QString code)
 {
 	Task task;
@@ -1086,24 +1091,6 @@ void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 	dumpDanmaku(&list, full);
 }
 
-Load::Task *Load::getHead()
-{
-	Q_D(Load);
-	return d->getHead();
-}
-
-void Load::dequeue()
-{
-	Q_D(Load);
-	d->dequeue();
-}
-
-bool Load::enqueue(const Load::Task &task)
-{
-	Q_D(Load);
-	return d->enqueue(task);
-}
-
 void Load::forward()
 {
 	Q_D(Load);
@@ -1122,4 +1109,22 @@ void Load::forward(QNetworkRequest request, int state)
 	Task &task = *getHead();
 	task.request = request; task.state = state;
 	forward();
+}
+
+void Load::dequeue()
+{
+	Q_D(Load);
+	d->dequeue();
+}
+
+bool Load::enqueue(const Load::Task &task)
+{
+	Q_D(Load);
+	return d->enqueue(task);
+}
+
+Load::Task *Load::getHead()
+{
+	Q_D(Load);
+	return d->getHead();
 }

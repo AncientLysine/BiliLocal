@@ -201,7 +201,7 @@ namespace{
 		void focusInEvent(QFocusEvent *e)
 		{
 			//tab focus will cause whole selection
-			if (e->reason() != Qt::TabFocus){
+			if (e->reason() != Qt::TabFocusReason){
 				QLineEdit::focusInEvent(e);
 			}
 		}
@@ -252,7 +252,7 @@ namespace{
 		void focusInEvent(QFocusEvent *e)
 		{
 			//tab focus will cause whole selection
-			if (e->reason() != Qt::TabFocus){
+			if (e->reason() != Qt::TabFocusReason){
 				QLineEdit::focusInEvent(e);
 			}
 		}

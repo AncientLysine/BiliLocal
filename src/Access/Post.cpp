@@ -117,6 +117,11 @@ Post::Post(QObject *parent) : QObject(parent), d_ptr(new PostPrivate(this))
 	});
 }
 
+Post::~Post()
+{
+	delete d_ptr;
+}
+
 void Post::addProc(const Post::Proc *proc)
 {
 	Q_D(Post);
@@ -145,6 +150,12 @@ void Post::postComment(const Record *r, const Comment *c)
 	enqueue(task);
 }
 
+void Post::forward()
+{
+	Q_D(Post);
+	d->forward();
+}
+
 void Post::dequeue()
 {
 	Q_D(Post);
@@ -161,10 +172,4 @@ Post::Task *Post::getHead()
 {
 	Q_D(Post);
 	return d->getHead();
-}
-
-void Post::forward()
-{
-	Q_D(Post);
-	d->forward();
 }

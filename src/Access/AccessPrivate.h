@@ -42,6 +42,8 @@ public:
 		NetworkConfiguration::instance()->setManager(&manager);
 	}
 
+	virtual ~AccessPrivate() = default;
+
 	void addProc(const Proc *proc)
 	{
 		pool.append(*proc);

@@ -47,8 +47,8 @@ public:
 
 	struct Proc
 	{
-		const QString name;
-		const QStringList sort;
+		QString name;
+		QStringList sort;
 		inline bool regular(QString &code) const { return code == name; }
 		int priority;
 		std::function<void(QNetworkReply *)> process;
@@ -69,10 +69,11 @@ public:
 	};
 
 	static Seek *instance();
+	~Seek();
 
 private:
 	static Seek *ins;
-	QScopedPointer<SeekPrivate> const d_ptr;
+	SeekPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Seek);
 
 	explicit Seek(QObject *parent);

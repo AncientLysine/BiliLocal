@@ -171,6 +171,11 @@ QObject(parent), d_ptr(new ShieldPrivate)
 	});
 }
 
+Shield::~Shield()
+{
+	delete d_ptr;
+}
+
 void Shield::setAllShields(const QStringList &shields)
 {
 	Q_D(Shield);

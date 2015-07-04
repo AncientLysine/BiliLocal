@@ -48,10 +48,11 @@ public:
 	};
 
 	static Shield *instance();
+	~Shield();
 
 private:
 	static Shield *ins;
-	QScopedPointer<ShieldPrivate> const d_ptr;
+	ShieldPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Shield);
 
 	explicit Shield(QObject *parent = 0);

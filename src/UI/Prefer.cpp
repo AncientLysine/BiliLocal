@@ -1247,16 +1247,13 @@ QDialog(parent)
 				Shield::instance()->setAllShields(shields);
 				d->parse(0x2);
 			}
-			if (restart != getRestart()){
-				if (p->getState() == APlayer::Stop&&
-					d->rowCount() == 0 ||
-					QMessageBox::warning(this,
-					tr("Warning"),
-					tr("Restart to apply changes?"),
-					QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes){
-					lApp->exit(12450);
-					return;
-				}
+			if (restart != getRestart() && ((p->getState() == APlayer::Stop && d->rowCount() == 0) ||
+				QMessageBox::warning(this,
+				tr("Warning"),
+				tr("Restart to apply changes?"),
+				QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)){
+				lApp->exit(12450);
+				return;
 			}
 			Config::save();
 		});

@@ -415,6 +415,11 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 	});
 }
 
+Seek::~Seek()
+{
+	delete d_ptr;
+}
+
 void Seek::addProc(const Seek::Proc *proc)
 {
 	Q_D(Seek);
