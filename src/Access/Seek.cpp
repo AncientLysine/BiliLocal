@@ -185,15 +185,15 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				r.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
 				r.setPattern("av\\d+");
 				m = r.match(item);
-				bool isBangumi = !m.hasMatch();
+				bool isSeason = !m.hasMatch();
 				line[0]->setData(m.captured(), Qt::UserRole);
 				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
 				r.setPattern("(?<=src=\")[^\"']+");
-				m = r.match(item, isBangumi ? 0 : m.capturedEnd());
+				m = r.match(item, isSeason ? 0 : m.capturedEnd());
 				QNetworkRequest request(m.captured());
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
 				images[&task].append(request);
-				if (isBangumi){
+				if (isSeason){
 					r.setPattern("(?<=<div class=\"t\">).*?(?=</div>)");
 					m = r.match(item, m.capturedEnd());
 					line[3]->setText(Utils::decodeXml(m.captured()));
@@ -221,17 +221,13 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				r.setPattern("(?<=intro\">).*?(?=</div>)");
 				m = r.match(item, m.capturedEnd());
 				line[3]->setToolTip(toRichText(Utils::decodeXml(m.captured())));
-				if (isBangumi){
-					r.setPattern("(?<=createBangumiList\\().*?(?=\\);)");
+				if (isSeason){
+					r.setPattern("(?<=createSeasonList\\().*?(?=\\);)");
 					m = r.match(item, m.capturedEnd());
 					QStringList args = m.captured().split(',');
-					if (args.size() == 4){
-						for (QString &iter : args){
-							iter = iter.trimmed();
-						}
-						QString url("http://www." + Utils::customUrl(Utils::Bilibili) + "/index/bangumi/");
-						url += args[1] + (args[2] == "0" ? QString() : ("-s" + args[2])) + ".json";
-						QNetworkRequest request(url);
+					if (args.size() >= 2){
+						QString url("http://app.%1/bangumi/seasoninfo/%2");
+						QNetworkRequest request(url.arg(Utils::customUrl(Utils::Bilibili)).arg(args[1].trimmed()));
 						request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
 						d->remain += d->manager.get(request);
 					}
@@ -252,20 +248,19 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 		case More:
 		{
 			auto cell = praseItem(reply->request());
-			QJsonArray list = QJsonDocument::fromJson(reply->readAll()).array();
-			for (const QJsonValue &iter : list){
+			auto list = QJsonDocument::fromJson(reply->readAll()).object()["result"].toObject()["episodes"].toArray();
+			for (const auto &iter : list){
 				QJsonObject item = iter.toObject();
 				QList<QStandardItem *> line;
 				for (int i = 0; i < 6; ++i){
 					line.append(new QStandardItem);
 				}
-				line[0]->setData(QString("av%1").arg(item["aid"].toInt()), Qt::UserRole);
+				line[0]->setData(QString("av%1").arg(item["av_id"].toInt()), Qt::UserRole);
 				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
 				QNetworkRequest request(item["cover"].toString());
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
 				images[&task].append(request);
-				line[1]->setText(QString::number(item["click"].toInt()));
-				line[3]->setText(Utils::decodeXml(item["title"].toString()));
+				line[3]->setText(Utils::decodeXml(item["index_title"].toString()));
 				disableEditing(line);
 				cell->insertRow(0, line);
 			}

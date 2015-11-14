@@ -184,10 +184,15 @@ Search::Search(QWidget *parent) : QDialog(parent)
 			break;
 		}
 	});
-
 	connect(Seek::instance(), &Seek::errorOccured, this, [=](){
 		clearSearch();
 		isWaiting = false;
+	});
+	connect(this, &QWidget::destroyed, Seek::instance(), []()
+	{
+		if (Seek::instance()->getHead()){
+			Seek::instance()->dequeue();
+		}
 	});
 
 	setLayout(outerLayout);
