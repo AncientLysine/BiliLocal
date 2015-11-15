@@ -28,6 +28,12 @@
 #include "AccessPrivate.h"
 #include "../Utils.h"
 
+extern "C"
+{
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+}
+
 Sign *Sign::ins = nullptr;
 
 Sign *Sign::instance()
@@ -58,9 +64,16 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 	ins = this;
 	setObjectName("Sign");
 
-	auto biProcess = [this](QNetworkReply *reply){
-		Q_D(Sign);
-		Task &task = d->queue.head();
+	auto biCaptcha = [this](){
+		Task &task = *getHead();
+		QString url("https://account.%1/captcha");
+		url = url.arg(Utils::customUrl(Utils::Bilibili));
+		task.request.setUrl(url);
+		forward(Code);
+	};
+
+	auto biProcess = [this, biCaptcha](QNetworkReply *reply){
+		Task &task = *getHead();
 		switch (task.state){
 		case None:
 		{
@@ -79,10 +92,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 				emit stateChanged(task.state = Wait);
 			}
 			else{
-				QString url("https://account.%1/captcha");
-				url = url.arg(Utils::customUrl(Utils::Bilibili));
-				task.request.setUrl(url);
-				forward(Code);
+				biCaptcha();
 			}
 			break;
 		}
@@ -110,7 +120,54 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 		}
 		case Salt:
 		{
-			auto data = QJsonDocument::fromJson(reply->readAll()).object();
+			//RSA Encrypt
+			try{
+				QJsonObject key = QJsonDocument::fromJson(reply->readAll()).object();
+				qDebug() << key;
+				static QLibrary lib;
+				static BIO *(*BIO_new_mem_buf)(void *, int);
+				static RSA *(*PEM_read_bio_RSA_PUBKEY)(BIO *, RSA **, pem_password_cb *, void *);
+				static int(*RSA_public_encrypt)(int, const unsigned char *, unsigned char *, RSA *, int);
+				if (lib.fileName().isEmpty()){
+					for (const QString &name : { "libeay32", "libcrypto" }){
+						lib.setFileName(name);
+						if (lib.load()){
+							BIO_new_mem_buf = (decltype(BIO_new_mem_buf))lib.resolve("BIO_new_mem_buf");
+							PEM_read_bio_RSA_PUBKEY = (decltype(PEM_read_bio_RSA_PUBKEY))lib.resolve("PEM_read_bio_RSA_PUBKEY");
+							RSA_public_encrypt = (decltype(RSA_public_encrypt))lib.resolve("RSA_public_encrypt");
+							break;
+						}
+					}
+				}
+				if (!lib.isLoaded()){
+					throw "failed to load openssl library";
+				}
+				QByteArray pub = key["key"].toString().toUtf8();
+				BIO *bio = BIO_new_mem_buf(pub.data(), pub.length());
+				if (!bio){
+					throw "failed to generate BIO";
+				}
+				RSA *rsa = rsa = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL);
+				if (!rsa){
+					throw "failed to generate RSA_PUBKEY";
+				}
+				task.password.prepend(key["hash"].toString());
+				QByteArray dat = task.password.toUtf8();
+				QByteArray buf;
+				buf.resize(1024);
+				int len = RSA_public_encrypt(dat.length(), (const unsigned char *)dat.data(), (unsigned char*)buf.data(), rsa, RSA_PKCS1_PADDING);
+				if (len == -1){
+					throw "failed to encrypt using RSA";
+				}
+				buf.resize(len);
+				task.password = buf.toBase64();
+			}
+			catch (...)
+			{
+				task.error = tr("An error occurred in RSA encryption.");
+				biCaptcha();
+			}
+
 			QString url("https://account.%1/login/dologin");
 			url = url.arg(Utils::customUrl(Utils::Bilibili));
 			task.request.setUrl(url);
@@ -118,7 +175,6 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 			QUrlQuery query;
 			query.addQueryItem("act", "login");
 			query.addQueryItem("userid", task.username);
-			//TDOD: encrypt using rsa
 			query.addQueryItem("pwd", task.password);
 			query.addQueryItem("vdcode", task.captcha.toLower());
 			query.addQueryItem("keeptime", "604800");
@@ -148,10 +204,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 				emit stateChanged(task.state = Wait);
 			}
 			else{
-				QString url("https://account.%1/captcha");
-				url = url.arg(Utils::customUrl(Utils::Bilibili));
-				task.request.setUrl(url);
-				forward(Code);
+				biCaptcha();
 			}
 		}
 		}

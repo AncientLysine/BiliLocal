@@ -960,7 +960,7 @@ QDialog(parent)
 						info->setPixmap(captcha);
 					}
 					if (!task->error.isEmpty()){
-						QMetaObject::invokeMethod(lApp->mainWidget(), "warning", Q_ARG(QString, tr("Input Error")), Q_ARG(QString, task->error));
+						QMetaObject::invokeMethod(lApp->mainWidget(), "warning", Q_ARG(QString, tr("Login Error")), Q_ARG(QString, task->error));
 						task->error.clear();
 					}
 					click->setText(tr("login"));
