@@ -977,6 +977,7 @@ QDialog(parent)
 		});
 		connect(Sign::instance(), &Sign::errorOccured, widget[4], [this](){
 			click->setEnabled(false);
+			info->setText(tr("error"));
 		});
 		connect(widget[4], &QWidget::destroyed, Sign::instance(), [](){
 			if (Sign::instance()->getHead()){

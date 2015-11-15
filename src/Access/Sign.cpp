@@ -123,7 +123,6 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 			//RSA Encrypt
 			try{
 				QJsonObject key = QJsonDocument::fromJson(reply->readAll()).object();
-				qDebug() << key;
 				static QLibrary lib;
 				static BIO *(*BIO_new_mem_buf)(void *, int);
 				static RSA *(*PEM_read_bio_RSA_PUBKEY)(BIO *, RSA **, pem_password_cb *, void *);
