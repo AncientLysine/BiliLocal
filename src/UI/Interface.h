@@ -36,6 +36,7 @@ class List;
 class Load;
 class Post;
 class Seek;
+class Sign;
 class APlayer;
 class Danmaku;
 class ARender;
@@ -77,6 +78,7 @@ private:
 	Load *load;
 	Post *post;
 	Seek *seek;
+	Sign *sign;
 	APlayer *aplayer;
 	Danmaku *danmaku;
 	ARender *arender;

@@ -31,6 +31,7 @@
 #include "../Access/Load.h"
 #include "../Access/Post.h"
 #include "../Access/Seek.h"
+#include "../Access/Sign.h"
 #include "../Model/Danmaku.h"
 #include "../Model/List.h"
 #include "../Model/Shield.h"
@@ -99,12 +100,14 @@ QWidget(parent)
 	load = Load::instance();
 	post = Post::instance();
 	seek = Seek::instance();
+	sign = Sign::instance();
 	Local::objects["Info"] = info;
 	Local::objects["Menu"] = menu;
 	Local::objects["Next"] = list;
 	Local::objects["Load"] = load;
 	Local::objects["Post"] = post;
 	Local::objects["Seek"] = seek;
+	Local::objects["Sign"] = sign;
 
 	timer = new QTimer(this);
 	delay = new QTimer(this);
@@ -217,6 +220,7 @@ QWidget(parent)
 	connect(load, &Load::errorOccured, this, alertNetworkError);
 	connect(post, &Post::errorOccured, this, alertNetworkError);
 	connect(seek, &Seek::errorOccured, this, alertNetworkError);
+	connect(sign, &Sign::errorOccured, this, alertNetworkError);
 
 	showprg = sliding = false;
 	connect(aplayer, &APlayer::timeChanged, [this](qint64 t){
