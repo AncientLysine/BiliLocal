@@ -160,7 +160,7 @@ QWidget(parent)
 		}
 		save.setDefaultSuffix("json");
 		QStringList type;
-		type << tr("AcFun Danmaku Format (*.json)") << tr("Bilibili Danmaku Format (*.xml)");
+		type << tr("Bilibili Danmaku Format (*.xml)") << tr("AcFun Danmaku Format (*.json)");
 		save.setNameFilters(type);
 		save.connect(&save, &QFileDialog::filterSelected, [&](QString filter){
 			save.setDefaultSuffix(filter.indexOf("xml") == -1 ? "json" : "xml");

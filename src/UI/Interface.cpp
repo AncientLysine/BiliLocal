@@ -558,11 +558,22 @@ void Interface::mouseReleaseEvent(QMouseEvent *e)
 	QWidget::mouseReleaseEvent(e);
 }
 
+namespace
+{
+	QSize parseSize(QString s)
+	{
+		QStringList l = s.trimmed().split(',', QString::SkipEmptyParts);
+		QWidget *w = lApp->mainWidget();
+		double x = w->logicalDpiX() / 72.0, y = w->logicalDpiY() / 72.0;
+		return l.size() >= 2 ? QSize(l[0].toInt() * x, l[1].toInt() * y) : QSize(720 * x, 405 * y);
+	}
+}
+
 void Interface::resizeEvent(QResizeEvent *e)
 {
-	const QSize s = e->size();
-	arender->resize(s);
-	int w = s.width(), h = s.height();
+	const QSize size = e->size();
+	arender->resize(size);
+	int w = size.width(), h = size.height();
 	menu->terminate();
 	info->terminate();
 	int l = Config::getValue("/Interface/Popup/Width", 16 * font().pointSizeF())*logicalDpiX() / 72;
@@ -577,11 +588,20 @@ void Interface::resizeEvent(QResizeEvent *e)
 		QVariant d = action->data();
 		switch (d.type()){
 		case QVariant::Double:
-			action->setChecked(s == arender->getPreferSize() * d.toDouble());
+		{
+			QSize will = arender->getPreferSize() * d.toDouble();
+			action->setChecked(will == size && !fullA->isChecked());
 			break;
+		}
 		case QVariant::Size:
-			action->setChecked(s == d.toSize());
+		{
+			QSize will = d.toSize();
+			if (will.isEmpty()){
+				will = parseSize(Config::getValue("/Interface/Size", QString("720,405")));
+			}
+			action->setChecked(will == size && !fullA->isChecked());
 			break;
+		}
 		default:
 			action->setChecked(fullA->isChecked());
 			break;
@@ -722,12 +742,8 @@ void Interface::checkForUpdate()
 
 void Interface::setCenter(QSize _s, bool _f)
 {
-	double x = logicalDpiX() / 72.0, y = logicalDpiY() / 72.0;
-	if (!_s.isValid()){
-		QStringList l = Config::getValue("/Interface/Size", QString("720,405")).trimmed().split(',', QString::SkipEmptyParts);
-		if (l.size() >= 2){
-			_s = QSize(l[0].toInt()*x, l[1].toInt()*y);
-		}
+	if (_s.isEmpty()){
+		_s = parseSize(Config::getValue("/Interface/Size", QString("720,405")));
 	}
 	QSize m = minimumSize();
 	QRect r;
@@ -737,32 +753,29 @@ void Interface::setCenter(QSize _s, bool _f)
 	if ((windowFlags()&Qt::CustomizeWindowHint) == 0){
 		s.setTop(s.top() + style()->pixelMetric(QStyle::PM_TitleBarHeight));
 	}
-	bool flag = true;
 	if (r.width() >= s.width() || r.height() >= s.height()){
 		if (isVisible()){
 			fullA->setChecked(true);
-			flag = false;
+			return;
 		}
 		else{
-			r.setSize(QSize(720 * x, 405 * y));
+			r.setSize(parseSize("720,405"));
 		}
 	}
-	if (flag){
-		r.moveCenter(t.center());
-		if (r.top() < s.top()){
-			r.moveTop(s.top());
-		}
-		if (r.bottom() > s.bottom()){
-			r.moveBottom(s.bottom());
-		}
-		if (r.left() < s.left()){
-			r.moveLeft(s.left());
-		}
-		if (r.right() > s.right()){
-			r.moveRight(s.right());
-		}
-		setGeometry(r);
+	r.moveCenter(t.center());
+	if (r.top() < s.top()){
+		r.moveTop(s.top());
 	}
+	if (r.bottom() > s.bottom()){
+		r.moveBottom(s.bottom());
+	}
+	if (r.left() < s.left()){
+		r.moveLeft(s.left());
+	}
+	if (r.right() > s.right()){
+		r.moveRight(s.right());
+	}
+	setGeometry(r);
 }
 
 namespace
