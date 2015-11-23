@@ -470,9 +470,8 @@ void Danmaku::parse(int flag)
 			}
 		}
 		d->dura = -1;
-		for (int i = d->danm.size() - 1; i >= 0; --i){
-			Comment *c = d->danm[i];
-			if (d->dura < 0 || d->dura * (i + 1) > c->time * (i + 2) * 2){
+		for (Comment *c : d->danm){
+			if (c->time < 10000000 || c->time < d->dura * 2){
 				d->dura = c->time;
 			}
 			else{
