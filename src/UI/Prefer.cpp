@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Prefer.h"
 #include "../Config.h"
 #include "../Local.h"

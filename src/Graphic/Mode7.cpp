@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "Mode7.h"
 #include "GraphicPrivate.h"
 #include "../Config.h"
@@ -43,6 +44,7 @@ Mode7::Mode7(const Comment &comment)
 	int effect = (v.isString() ? v.toString() == "true" : v.toVariant().toBool()) ? Config::getValue("/Danmaku/Effect", 5) / 2 : -1;
 	QFont font = getFont(scale ? comment.font*scale : comment.font, l < 13 ? Utils::defaultFont(true) : data[12].toString());
 	QString string = data[4].toString();
+	//TODO: using ARender::getSprite
 	cache = getCache(string, comment.color, font, getSize(string, font), comment.isLocal(), effect, 100);
 	zRotate = l < 6 ? 0 : getDouble(5);
 	yRotate = l < 7 ? 0 : getDouble(6);

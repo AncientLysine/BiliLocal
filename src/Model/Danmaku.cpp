@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Danmaku.h"
 #include "../Config.h"
 #include "../Local.h"

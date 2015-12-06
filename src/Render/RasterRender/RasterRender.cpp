@@ -1,9 +1,10 @@
+#include "Common.h"
 #include "RasterRender.h"
 #include "RasterRenderPrivate.h"
-#include "AsyncRasterSpirit.h"
-#include "../Config.h"
-#include "../Local.h"
-#include "../Player/APlayer.h"
+#include "AsyncRasterSprite.h"
+#include "../../Config.h"
+#include "../../Local.h"
+#include "../../Player/APlayer.h"
 
 
 RasterRender::RasterRender(QObject *parent) :
@@ -29,9 +30,9 @@ ARender(new RasterRenderPrivate, parent)
 	d->widget = new RasterRenderPrivate::Widget(d);
 }
 
-ISpirit *RasterRender::getSpirit(const QImage &i)
+ISprite *RasterRender::getSprite(const Comment &comment)
 {
-	return new AsyncRasterSpirit(i);
+	return new AsyncRasterSprite(comment);
 }
 
 quintptr RasterRender::getHandle()
@@ -61,7 +62,7 @@ QSize RasterRender::getBufferSize()
 void RasterRender::draw(QRect rect)
 {
 	Q_D(RasterRender);
-	d->widget->update(rect);
+	d->widget->update(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
 }
 
 RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size) :
@@ -113,6 +114,7 @@ void RasterRenderPrivate::Widget::paintEvent(QPaintEvent *)
 	else{
 		render->drawPlay(&painter, rect);
 		render->drawTime(&painter, rect);
+		render->drawDanm(&painter, rect);
 		render->timer.swap();
 	}
 }
@@ -247,8 +249,11 @@ QList<quint8 *> RasterRenderPrivate::getBuffer()
 	return p;
 }
 
-void RasterRenderPrivate::setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize)
+void RasterRenderPrivate::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize)
 {
+	//TODO: Alignment
+	Q_UNUSED(alignment);
+
 	delete srcFrame;
 	srcFrame = new Buffer(getFormat(chroma), size);
 	if (bufferSize){

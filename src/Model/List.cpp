@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "List.h"
 #include "../Config.h"
 #include "../Local.h"

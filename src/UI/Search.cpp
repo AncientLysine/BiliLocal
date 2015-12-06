@@ -25,6 +25,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Search.h"
 #include "../Access/Seek.h"
 #include "../Utils.h"

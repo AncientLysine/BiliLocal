@@ -25,6 +25,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Post.h"
 #include "AccessPrivate.h"
 #include "../Model/Danmaku.h"

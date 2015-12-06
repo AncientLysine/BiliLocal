@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Config.h"
 
 Config *Config::ins = nullptr;

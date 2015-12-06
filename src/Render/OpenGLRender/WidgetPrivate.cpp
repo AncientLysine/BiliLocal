@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "WidgetPrivate.h"
 #include <functional>
 

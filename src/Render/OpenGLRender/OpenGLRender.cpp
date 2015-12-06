@@ -1,11 +1,12 @@
+#include "Common.h"
 #include "OpenGLRender.h"
 #include "OpenGLRenderPrivate.h"
-#include "./OpenGLRender/WidgetPrivate.h"
-#include "./OpenGLRender/WindowPrivate.h"
-#include "./OpenGLRender/DetachPrivate.h"
-#include "SyncTextureSpirit.h"
-#include "../Config.h"
-#include "../Player/APlayer.h"
+#include "WidgetPrivate.h"
+#include "WindowPrivate.h"
+#include "DetachPrivate.h"
+#include "SyncTextureSprite.h"
+#include "../../Config.h"
+#include "../../Player/APlayer.h"
 
 namespace
 {
@@ -29,10 +30,10 @@ ARender(choose(), parent)
 	setObjectName("ORender");
 }
 
-ISpirit *OpenGLRender::getSpirit(const QImage &i)
+ISprite *OpenGLRender::getSprite(const Comment &comment)
 {
 	Q_D(OpenGLRender);
-	return new SyncTextureSpirit(i, d);;
+	return new SyncTextureSprite(comment, d);
 }
 
 quintptr OpenGLRender::getHandle()
@@ -154,7 +155,6 @@ namespace
 void OpenGLRenderPrivate::initialize()
 {
 	initializeOpenGLFunctions();
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	for (int i = 0; i < 5; ++i){
 		const char *fShaderCode = nullptr;
 		switch (i){
@@ -207,31 +207,32 @@ void OpenGLRenderPrivate::initialize()
 	timer.setInterval(c->format().swapInterval() / (double)c->screen()->refreshRate());
 }
 
-void OpenGLRenderPrivate::loadTexture(GLuint t, int c, int w, int h, quint8 *d)
+void OpenGLRenderPrivate::loadTexture(GLuint texture, int channel, int width, int height, quint8 *data, int alignment)
 {
-	int f;
-	switch (c){
+	int format;
+	switch (channel){
 	case 1:
-		f = GL_LUMINANCE;
+		format = GL_LUMINANCE;
 		break;
 	case 2:
-		f = GL_LUMINANCE_ALPHA;
+		format = GL_LUMINANCE_ALPHA;
 		break;
 	case 3:
-		f = GL_RGB;
+		format = GL_RGB;
 		break;
 	case 4:
-		f = GL_RGBA;
+		format = GL_RGBA;
 		break;
 	default:
 		return;
 	}
-	glBindTexture(GL_TEXTURE_2D, t);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, f, w, h, 0, f, GL_UNSIGNED_BYTE, d);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 }
 
 void OpenGLRenderPrivate::drawTexture(GLuint *planes, int format, QRectF dest, QRectF rect)

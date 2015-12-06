@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Sign.h"
 #include "AccessPrivate.h"
 #include "../Utils.h"
@@ -123,24 +124,6 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 			//RSA Encrypt
 			try{
 				QJsonObject key = QJsonDocument::fromJson(reply->readAll()).object();
-				static QLibrary lib;
-				static BIO *(*BIO_new_mem_buf)(void *, int);
-				static RSA *(*PEM_read_bio_RSA_PUBKEY)(BIO *, RSA **, pem_password_cb *, void *);
-				static int(*RSA_public_encrypt)(int, const unsigned char *, unsigned char *, RSA *, int);
-				if (lib.fileName().isEmpty()){
-					for (const QString &name : { "libeay32", "libcrypto" }){
-						lib.setFileName(name);
-						if (lib.load()){
-							BIO_new_mem_buf = (decltype(BIO_new_mem_buf))lib.resolve("BIO_new_mem_buf");
-							PEM_read_bio_RSA_PUBKEY = (decltype(PEM_read_bio_RSA_PUBKEY))lib.resolve("PEM_read_bio_RSA_PUBKEY");
-							RSA_public_encrypt = (decltype(RSA_public_encrypt))lib.resolve("RSA_public_encrypt");
-							break;
-						}
-					}
-				}
-				if (!lib.isLoaded()){
-					throw "failed to load openssl library";
-				}
 				QByteArray pub = key["key"].toString().toUtf8();
 				BIO *bio = BIO_new_mem_buf(pub.data(), pub.length());
 				if (!bio){

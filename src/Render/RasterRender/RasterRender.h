@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ARender.h"
+#include "../ARender.h"
 
-class ISpirit;
+class ISprite;
 class RasterRenderPrivate;
 
 class RasterRender :public ARender
@@ -14,7 +14,7 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender);
 
 public slots:
-	virtual ISpirit *getSpirit(const QImage &i) override;
+	virtual ISprite *getSprite(const Comment &comment) override;
 	virtual quintptr getHandle() override;
 	virtual void resize(QSize size) override;
 	virtual QSize getActualSize() override;

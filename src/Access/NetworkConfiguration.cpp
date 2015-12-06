@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "NetworkConfiguration.h"
 #include "../Config.h"
 #include <functional>

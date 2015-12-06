@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Seek.h"
 #include "AccessPrivate.h"
 #include "../Utils.h"
@@ -255,7 +256,7 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				for (int i = 0; i < 6; ++i){
 					line.append(new QStandardItem);
 				}
-				line[0]->setData(QString("av%1").arg(item["av_id"].toInt()), Qt::UserRole);
+				line[0]->setData("av" + item["av_id"].toString(), Qt::UserRole);
 				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
 				QNetworkRequest request(item["cover"].toString());
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);

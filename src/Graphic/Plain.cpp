@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "Plain.h"
 #include "GraphicPrivate.h"
 
@@ -5,24 +6,20 @@ using namespace GraphicPrivate;
 
 Plain::Plain(const Comment &comment)
 {
-	QSize size = ARender::instance()->getActualSize();
 	source = &comment;
-	QFont font = getFont(comment.font*getScale(comment.mode, comment.date, size));
-	QSize need = getSize(comment.string, font);
-	rect.setSize(need);
-	const QImage &image = getCache(comment.string, comment.color, font, need, comment.isLocal());
-	spirit = ARender::instance()->getSpirit(image);
+	sprite = ARender::instance()->getSprite(comment);
+	rect.setSize(sprite->getSize());
 }
 
 Plain::~Plain()
 {
-	delete spirit;
+	delete sprite;
 }
 
 void Plain::draw(QPainter *painter)
 {
 	if (enabled){
-		spirit->draw(painter, rect);
+		sprite->draw(painter, rect);
 	}
 }
 

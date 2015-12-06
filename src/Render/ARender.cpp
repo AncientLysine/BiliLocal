@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "ARender.h"
 #include "ARenderPrivate.h"
 #include "../Config.h"
@@ -33,10 +34,10 @@
 #include "../Player/APlayer.h"
 
 #ifdef RENDER_RASTER
-#include "RasterRender.h"
+#include "RasterRender/RasterRender.h"
 #endif
 #ifdef RENDER_OPENGL
-#include "OpenGLRender.h"
+#include "OpenGLRender/OpenGLRender.h"
 #endif
 
 QStringList ARender::getModules()
@@ -135,10 +136,10 @@ void ARender::releaseBuffer()
 	d->releaseBuffer();
 }
 
-void ARender::setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize)
+void ARender::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize)
 {
 	Q_D(ARender);
-	d->setBuffer(chroma, size, bufferSize);
+	d->setBuffer(chroma, size, alignment, bufferSize);
 }
 
 void ARender::setBackground(QString path)
@@ -219,7 +220,6 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 	else{
 		drawData(painter, rect);
 	}
-	drawDanm(painter, rect);
 }
 
 void ARenderPrivate::drawStop(QPainter *painter, QRect rect)

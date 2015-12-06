@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "GraphicPrivate.h"
 
 QFont GraphicPrivate::getFont(int pixelSize, QString family)

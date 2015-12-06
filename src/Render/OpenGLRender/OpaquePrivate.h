@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../OpenGLRenderPrivate.h"
+#include "OpenGLRenderPrivate.h"
 #include "../ARender.h"
 #include "../../Player/APlayer.h"
 
@@ -12,6 +12,7 @@ public:
 	GLuint frame[3];
 	QMutex dataLock;
 	QList<quint8 *> buffer;
+	int alignment;
 
 	virtual void initialize() override
 	{
@@ -19,9 +20,9 @@ public:
 		glGenTextures(3, frame);
 	}
 
-	void loadTexture(int i, int c, int w, int h)
+	void loadTexture(int index, int channel, int width, int height)
 	{
-		OpenGLRenderPrivate::loadTexture(frame[i], c, w, h, buffer[i]);
+		OpenGLRenderPrivate::loadTexture(frame[index], channel, width, height, buffer[index], alignment);
 	}
 
 	virtual void drawData(QPainter *painter, QRect rect) override
@@ -67,6 +68,7 @@ public:
 		}
 		else{
 			drawPlay(&painter, rect);
+			drawDanm(&painter, rect);
 			drawTime(&painter, rect);
 		}
 	}
@@ -83,7 +85,7 @@ public:
 		dataLock.unlock();
 	}
 
-	virtual void setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize) override
+	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize) override
 	{
 		if (chroma == "YV12"){
 			format = 1;
@@ -98,6 +100,8 @@ public:
 			format = 0;
 			chroma = "I420";
 		}
+		//TODO: Alignment
+		this->alignment = alignment;
 		inner = size;
 		int s = size.width()*size.height();
 		quint8 *alloc = nullptr;

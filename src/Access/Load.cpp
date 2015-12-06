@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Load.h"
 #include "AccessPrivate.h"
 #include "../Config.h"
