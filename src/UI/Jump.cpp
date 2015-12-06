@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Jump.h"
 #include "../Local.h"
 #include "../Model/List.h"

@@ -92,6 +92,7 @@ namespace UI
 		QGroupBox *label[2];
 
 		//Network
+		QComboBox *sites;
 		QLineEdit *sheet[3];
 		QPushButton *click;
 		QLabel *info;

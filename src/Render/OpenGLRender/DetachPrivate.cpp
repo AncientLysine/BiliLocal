@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "DetachPrivate.h"
 #include <QDesktopWidget>
 #include <functional>

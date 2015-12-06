@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Shield.h"
 #include "../Config.h"
 #include "../Utils.h"

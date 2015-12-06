@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Local.h"
 #include "Config.h"
 #include "Plugin.h"

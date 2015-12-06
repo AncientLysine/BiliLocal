@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "VPlayer.h"
 #include "../Config.h"
 #include "../Utils.h"
@@ -53,7 +54,7 @@ namespace
 	{
 		QString c(chroma);
 		QList<QSize> b;
-		ARender::instance()->setBuffer(c, QSize(*width, *height), &b);
+		ARender::instance()->setBuffer(c, QSize(*width, *height), 1, &b);
 		if (b.isEmpty()){
 			return 0;
 		}

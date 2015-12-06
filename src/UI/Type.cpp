@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Type.h"
 #include "../Local.h"
 #include "../Access/Post.h"

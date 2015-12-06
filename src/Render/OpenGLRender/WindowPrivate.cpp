@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "WindowPrivate.h"
 
 OpenGLWindowRenderPrivate::OpenGLWindowRenderPrivate()

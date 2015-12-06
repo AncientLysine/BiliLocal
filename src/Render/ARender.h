@@ -31,7 +31,7 @@
 
 class ARenderPrivate;
 class Comment;
-class ISpirit;
+class ISprite;
 
 class ARender :public QObject
 {
@@ -51,8 +51,8 @@ protected:
 public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
-	virtual void setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize = 0);
-	virtual ISpirit *getSpirit(const QImage &) = 0;
+	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0);
+	virtual ISprite *getSprite(const Comment &comment) = 0;
 
 	void setBackground(QString path);
 	void setMusic(bool music);

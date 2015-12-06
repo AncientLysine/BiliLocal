@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Graphic.h"
 #include "../Config.h"
 #include "../Render/ARender.h"

@@ -24,6 +24,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Editor.h"
 #include "../Config.h"
 #include "../Utils.h"

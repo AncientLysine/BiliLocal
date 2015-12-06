@@ -24,12 +24,14 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Prefer.h"
 #include "../Config.h"
 #include "../Local.h"
 #include "../Plugin.h"
 #include "../Utils.h"
 #include "../Access/NetworkConfiguration.h"
+#include "../Access/Sign.h"
 #include "../Model/Danmaku.h"
 #include "../Model/Shield.h"
 #include "../Player/APlayer.h"
@@ -875,24 +877,21 @@ QDialog(parent)
 		l->setColumnStretch(1, 1);
 		l->setColumnStretch(2, 1);
 		l->setColumnStretch(3, 1);
+
 		sheet[0] = new QLineEdit(widget[4]);
 		sheet[0]->setPlaceholderText(tr("Username"));
 		sheet[1] = new QLineEdit(widget[4]);
 		sheet[1]->setPlaceholderText(tr("Password"));
 		sheet[1]->setEchoMode(QLineEdit::Password);
 		sheet[2] = new QLineEdit(widget[4]);
-		sheet[2]->setPlaceholderText(tr("Identifier"));
+		sheet[2]->setPlaceholderText(tr("Captcha"));
 		auto checkout = [this](){
-			bool flag = true;
 			for (QLineEdit *iter : sheet){
 				if (iter->text().isEmpty()){
-					flag = false;
-					break;
+					return;
 				}
 			}
-			if (flag){
-				click->click();
-			}
+			click->click();
 		};
 		for (QLineEdit *iter : sheet){
 			connect(iter, &QLineEdit::editingFinished, checkout);
@@ -903,107 +902,94 @@ QDialog(parent)
 		l->addWidget(sheet[0], 0, 0);
 		l->addWidget(sheet[1], 0, 1);
 		l->addWidget(sheet[2], 0, 2);
+
 		info = new QLabel(widget[4]);
 		info->setAlignment(Qt::AlignCenter);
 		info->setText(tr("waiting"));
+		info->setScaledContents(true);
 		l->addWidget(info, 0, 3);
-		auto loadValid = [=](){
-			QString url("https://secure.%1/captcha?r=%2");
-			url = url.arg(Utils::customUrl(Utils::Bilibili));
-			url = url.arg(qrand() / (double)RAND_MAX);
-			fillPicture(info, url, tr("error"), QSize(200, 25));
-		};
-		auto setLogged = [this, loadValid](bool logged){
-			if (logged){
-				info->setText(tr("logged"));
-				sheet[1]->clear();
-				sheet[2]->clear();
-				click->setText(tr("logout"));
+
+		sites = new QComboBox(widget[4]);
+		sites->addItems(Sign::instance()->modules());
+		connect(tab, &QTabWidget::currentChanged, widget[4], [this](){
+			if (tab->currentWidget() == widget[4] && Sign::instance()->getHead() == nullptr){
+				Sign::instance()->enqueue(sites->currentText());
 			}
-			else{
-				loadValid();
-				click->setText(tr("login"));
-			}
-			for (QLineEdit *iter : sheet){
-				iter->setEnabled(!logged);
-			}
-		};
-		auto sendLogin = [this, setLogged](){
-			click->setEnabled(false);
-			QUrlQuery query;
-			query.addQueryItem("act", "login");
-			query.addQueryItem("userid", sheet[0]->text());
-			query.addQueryItem("pwd", sheet[1]->text());
-			query.addQueryItem("vdcode", sheet[2]->text());
-			query.addQueryItem("keeptime", "2592000");
-			QByteArray data = query.query().toUtf8();
-			QString url("https://secure.%1/login");
-			url = url.arg(Utils::customUrl(Utils::Bilibili));
-			QNetworkRequest request(url);
-			request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-			request.setHeader(QNetworkRequest::ContentLengthHeader, data.length());
-			QNetworkReply *reply = manager->post(request, data);
-			connect(reply, &QNetworkReply::finished, [=](){
-				bool flag = false;
-				if (reply->error() == QNetworkReply::NoError){
-					QString page(reply->readAll());
-					if (!page.isEmpty()){
-						int sta = page.indexOf("document.write(\"") + 16;
-						QMessageBox::warning(this, tr("Warning"), page.mid(sta, page.indexOf("\"", sta) - sta));
-					}
-					else{
-						flag = true;
-					}
-				}
-				click->setEnabled(true);
-				setLogged(flag);
-				reply->deleteLater();
-			});
-		};
-		auto setLogout = [=](){
-			click->setEnabled(false);
-			QString url = "https://secure.%1/login?act=exit";
-			url = url.arg(Utils::customUrl(Utils::Bilibili));
-			QNetworkReply *reply = manager->get(QNetworkRequest(url));
-			connect(reply, &QNetworkReply::finished, [=](){
-				click->setEnabled(true);
-				setLogged(reply->error() != QNetworkReply::NoError);
-			});
-		};
-		click = new QPushButton(tr("login"), widget[1]);
+		});
+		connect(sites, &QComboBox::currentTextChanged, Sign::instance(), &Sign::enqueue);
+
+		l->addWidget(sites, 1, 0);
+
+		click = new QPushButton(tr("login"), widget[4]);
 		click->setFocusPolicy(Qt::NoFocus);
-		connect(click, &QPushButton::clicked, [=](){
-			if (click->text() == tr("login")){
+		connect(click, &QPushButton::clicked, [this](){
+			Sign::Task *task = Sign::instance()->getHead();
+			if (task){
+				task->username = sheet[0]->text();
+				task->password = sheet[1]->text();
+				task->captcha = sheet[2]->text();
+				task->processer->process(nullptr);
+			}
+		});
+		l->addWidget(click, 1, 3);
+
+		connect(Sign::instance(), &Sign::stateChanged, widget[4], [this](int code){
+			switch (code){
+			case Sign::Test:
+			case Sign::Code:
+			case Sign::Salt:
+			case Sign::Data:
+				click->setEnabled(false);
 				for (QLineEdit *iter : sheet){
-					if (iter->text().isEmpty()){
-						return;
+					iter->setEnabled(false);
+				}
+				info->setText(tr("waiting"));
+				break;
+			case Sign::Wait:
+			{
+				Sign::Task *task = Sign::instance()->getHead();
+				if (task->logged){
+					info->setText(tr("logged"));
+					sheet[0]->setText(task->username);
+					sheet[1]->clear();
+					sheet[2]->clear();
+					click->setText(tr("logout"));
+				}
+				else{
+					QPixmap captcha;
+					if (captcha.loadFromData(task->data)){
+						info->setPixmap(captcha);
 					}
+					if (!task->error.isEmpty()){
+						QMetaObject::invokeMethod(lApp->mainWidget(), "warning", Q_ARG(QString, tr("Login Error")), Q_ARG(QString, task->error));
+						task->error.clear();
+					}
+					click->setText(tr("login"));
 				}
-				sendLogin();
+				click->setEnabled(true);
+				for (QLineEdit *iter : sheet){
+					iter->setEnabled(!task->logged);
+				}
+				break;
 			}
-			else{
-				setLogout();
+			default:
+				break;
 			}
 		});
-		QString url("http://member.%1/main.html");
-		url = url.arg(Utils::customUrl(Utils::Bilibili));
-		QNetworkReply *reply = manager->get(QNetworkRequest(url));
-		connect(reply, &QNetworkReply::finished, [=](){
-			bool flag = false;
-			if (reply->error() == QNetworkReply::NoError){
-				QString user = QRegularExpression("(?<=\\>).*(?=\\<\\/h3\\>)").match(reply->readAll()).captured();
-				if (!user.isEmpty()){
-					sheet[0]->setText(user);
-					flag = true;
-				}
-			}
-			setLogged(flag);
+		connect(Sign::instance(), &Sign::errorOccured, widget[4], [this](){
+			click->setEnabled(false);
+			info->setText(tr("error"));
 		});
-		l->addWidget(click);
+		connect(widget[4], &QWidget::destroyed, Sign::instance(), [](){
+			if (Sign::instance()->getHead()){
+				Sign::instance()->dequeue();
+			}
+		});
+
 		login = new QGroupBox(tr("login"), widget[4]);
 		login->setLayout(l);
 		list->addWidget(login);
-
+		
 		auto c = new QHBoxLayout;
 		text = new QLabel(widget[4]);
 		auto measure = [=](){
@@ -1017,7 +1003,6 @@ QDialog(parent)
 		clear = new QPushButton(tr("clear"), widget[4]);
 		clear->setFocusPolicy(Qt::NoFocus);
 		connect(clear, &QPushButton::clicked, [=](){
-			setLogged(false);
 			NetworkConfiguration::instance()->clear();
 			measure();
 		});

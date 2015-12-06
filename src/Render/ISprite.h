@@ -3,9 +3,10 @@
 #include <QRectF>
 #include <QPainter>
 
-class ISpirit
+class ISprite
 {
 public:
 	virtual void draw(QPainter *, QRectF) = 0;
-	virtual ~ISpirit() = default;
+	virtual QSize getSize() = 0;
+	virtual ~ISprite() = default;
 };

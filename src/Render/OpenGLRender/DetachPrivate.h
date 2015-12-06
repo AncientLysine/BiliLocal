@@ -28,7 +28,7 @@ public:
 		return QList<quint8 *>();
 	}
 
-	virtual void setBuffer(QString &chroma, QSize, QList<QSize> *) override
+	virtual void setBuffer(QString &chroma, QSize, int, QList<QSize> *) override
 	{
 		chroma = "NONE";
 	}

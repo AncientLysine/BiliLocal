@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "Mode5.h"
 #include "GraphicPrivate.h"
 #include "../Config.h"

@@ -26,6 +26,6 @@ public:
 	virtual void drawData(QPainter *painter, QRect rect) = 0;
 	virtual QList<quint8 *> getBuffer() = 0;
 	virtual void releaseBuffer() = 0;
-	virtual void setBuffer(QString &chroma, QSize size, QList<QSize> *bufferSize = 0) = 0;
+	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0) = 0;
 
 };

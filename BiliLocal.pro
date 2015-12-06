@@ -15,6 +15,7 @@ SOURCES += \
     src/Access/NetworkConfiguration.cpp \
     src/Access/Post.cpp \
     src/Access/Seek.cpp \
+    src/Access/Sign.cpp \
     src/Graphic/Graphic.cpp \
     src/Graphic/GraphicPrivate.cpp \
     src/Graphic/Mode1.cpp \
@@ -47,6 +48,7 @@ HEADERS += \
     src/Access/NetworkConfiguration.h \
     src/Access/Post.h \
     src/Access/Seek.h \
+    src/Access/Sign.h \
     src/Graphic/Graphic.h \
     src/Graphic/GraphicPrivate.h \
     src/Graphic/Mode1.h \
@@ -61,7 +63,7 @@ HEADERS += \
     src/Player/APlayer.h \
     src/Render/ARender.h \
     src/Render/ARenderPrivate.h \
-    src/Render/ISpirit.h \
+    src/Render/ISprite.h \
     src/Render/ElapsedTimer.h \
     src/UI/Editor.h \
     src/UI/Info.h \
@@ -75,6 +77,12 @@ HEADERS += \
     src/Local.h \
     src/Utils.h \
     src/Plugin.h
+
+INCLUDEPATH += \
+    src
+
+PRECOMPILED_HEADER = \
+    src/Common.h
 
 RESOURCES += \
     res/Res.qrc
@@ -106,15 +114,19 @@ DEFINES += \
 INCLUDEPATH += \
     D:/App/Programming/include
 
+LIBS += \
+    -llibeay32 \
+    -lssleay32
+
 !contains(QMAKE_TARGET.arch, x86_64){
 DEFINES += \
     RENDER_RASTER
 
-LIBS += \
+DEPENDPATH += \
     -LD:/App/Programming/lib
 }
 else{
-LIBS += \
+DEPENDPATH += \
     -LD:/App/Programming/lib/amd64
 }
 }
@@ -161,12 +173,12 @@ HEADERS += \
 
 contains(DEFINES, RENDER_RASTER){
 SOURCES += \
-    src/Render/RasterRender.cpp
+    src/Render/RasterRender/RasterRender.cpp
 
 HEADERS += \
-    src/Render/RasterRender.h \
-    src/Render/RasterRenderPrivate.h \
-    src/Render/AsyncRasterSpirit.h
+    src/Render/RasterRender/RasterRender.h \
+    src/Render/RasterRender/RasterRenderPrivate.h \
+    src/Render/RasterRender/AsyncRasterSprite.h
 
 LIBS += \
     -lswscale \
@@ -175,15 +187,16 @@ LIBS += \
 
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
-    src/Render/OpenGLRender.cpp \
+    src/Render/OpenGLRender/OpenGLRender.cpp \
+    src/Render/OpenGLRender/SyncTextureSprite.cpp \
     src/Render/OpenGLRender/DetachPrivate.cpp \
     src/Render/OpenGLRender/WidgetPrivate.cpp \
     src/Render/OpenGLRender/WindowPrivate.cpp
 
 HEADERS += \
-    src/Render/OpenGLRender.h \
-    src/Render/OpenGLRenderPrivate.h \
-    src/Render/SyncTextureSpirit.h \
+    src/Render/OpenGLRender/OpenGLRender.h \
+    src/Render/OpenGLRender/OpenGLRenderPrivate.h \
+    src/Render/OpenGLRender/SyncTextureSprite.h \
     src/Render/OpenGLRender/DetachPrivate.h \
     src/Render/OpenGLRender/OpaquePrivate.h \
     src/Render/OpenGLRender/WidgetPrivate.h \

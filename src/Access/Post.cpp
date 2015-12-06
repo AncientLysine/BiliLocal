@@ -25,6 +25,7 @@
 *
 =========================================================================*/
 
+#include "Common.h"
 #include "Post.h"
 #include "AccessPrivate.h"
 #include "../Model/Danmaku.h"
@@ -49,8 +50,7 @@ public:
 		Q_Q(Post);
 		Post::Task &task = queue.head();
 		emit q->stateChanged(task.state);
-		QNetworkAccessManager &m = manager;
-		remain.insert(task.data.isEmpty() ? m.get(task.request) : m.post(task.request, task.data));
+		remain.insert(task.data.isEmpty() ? manager.get(task.request) : manager.post(task.request, task.data));
 	}
 };
 

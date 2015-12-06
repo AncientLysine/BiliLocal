@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "NPlayer.h"
 #include "../Render/ARender.h"
 

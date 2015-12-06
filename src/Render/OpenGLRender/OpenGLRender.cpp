@@ -1,11 +1,12 @@
+#include "Common.h"
 #include "OpenGLRender.h"
 #include "OpenGLRenderPrivate.h"
-#include "./OpenGLRender/WidgetPrivate.h"
-#include "./OpenGLRender/WindowPrivate.h"
-#include "./OpenGLRender/DetachPrivate.h"
-#include "SyncTextureSpirit.h"
-#include "../Config.h"
-#include "../Player/APlayer.h"
+#include "WidgetPrivate.h"
+#include "WindowPrivate.h"
+#include "DetachPrivate.h"
+#include "SyncTextureSprite.h"
+#include "../../Config.h"
+#include "../../Player/APlayer.h"
 
 namespace
 {
@@ -29,10 +30,10 @@ ARender(choose(), parent)
 	setObjectName("ORender");
 }
 
-ISpirit *OpenGLRender::getSpirit(const QImage &i)
+ISprite *OpenGLRender::getSprite(const Comment &comment)
 {
 	Q_D(OpenGLRender);
-	return new SyncTextureSpirit(i, d);;
+	return new SyncTextureSprite(comment, d);
 }
 
 quintptr OpenGLRender::getHandle()
@@ -68,9 +69,9 @@ void OpenGLRender::draw(QRect rect)
 namespace
 {
 	const char *vShaderCode =
-		"attribute vec4 VtxCoord;\n"
-		"attribute vec2 TexCoord;\n"
-		"varying highp vec2 TexCoordOut;\n"
+		"attribute mediump vec4 VtxCoord;\n"
+		"attribute mediump vec2 TexCoord;\n"
+		"varying mediump vec2 TexCoordOut;\n"
 		"void main(void)\n"
 		"{\n"
 		"    gl_Position = VtxCoord;\n"
@@ -78,63 +79,67 @@ namespace
 		"}\n";
 
 	const char *fShaderI420 =
-		"varying highp vec2 TexCoordOut;\n"
+		"varying mediump vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerU;\n"
 		"uniform sampler2D SamplerV;\n"
 		"void main(void)\n"
 		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    mediump vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerU, TexCoordOut).r - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerV, TexCoordOut).r - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
+		"    lowp vec4 yuv;\n"
+		"    lowp vec4 rgb;\n"
+		"    yuv.r = texture2D(SamplerY, TexCoordOut).r;\n"
+		"    yuv.g = texture2D(SamplerU, TexCoordOut).r;\n"
+		"    yuv.b = texture2D(SamplerV, TexCoordOut).r;\n"
+		"    yuv.a = 1.0;\n"
+		"    rgb = mat4( 1.164,  1.164,  1.164, 0, \n"
+		"                0,     -0.391,  2.018, 0, \n"
+		"                1.596, -0.813,  0,     0, \n"
+		"               -0.871,  0.529, -1.082, 1) * yuv;\n"
+		"    gl_FragColor = rgb;\n"
 		"}";
 
 	const char *fShaderNV12 =
-		"varying highp vec2 TexCoordOut;\n"
+		"varying mediump vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerA;\n"
 		"void main(void)\n"
 		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    mediump vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
+		"    lowp vec4 yuv;\n"
+		"    lowp vec4 rgb;\n"
+		"    yuv.r  = texture2D(SamplerY, TexCoordOut).r; \n"
+		"    yuv.gb = texture2D(SamplerA, TexCoordOut).ra;\n"
+		"    yuv.a  = 1.0;\n"
+		"    rgb = mat4( 1.164,  1.164,  1.164, 0, \n"
+		"                0,     -0.391,  2.018, 0, \n"
+		"                1.596, -0.813,  0,     0, \n"
+		"               -0.871,  0.529, -1.082, 1) * yuv;\n"
+		"    gl_FragColor = rgb;\n"
 		"}";
 
 	const char *fShaderNV21 =
-		"varying highp vec2 TexCoordOut;\n"
+		"varying mediump vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerY;\n"
 		"uniform sampler2D SamplerA;\n"
 		"void main(void)\n"
 		"{\n"
-		"    mediump vec3 yuv;\n"
-		"    mediump vec3 rgb;\n"
-		"    yuv.x = texture2D(SamplerY, TexCoordOut).r - 0.0625;\n"
-		"    yuv.y = texture2D(SamplerA, TexCoordOut).a - 0.5;   \n"
-		"    yuv.z = texture2D(SamplerA, TexCoordOut).r - 0.5;   \n"
-		"    rgb = mat3(1.164,  1.164, 1.164,   \n"
-		"               0,     -0.391, 2.018,   \n"
-		"               1.596, -0.813, 0) * yuv;\n"
-		"    gl_FragColor = vec4(rgb, 1);\n"
+		"    lowp vec4 yuv;\n"
+		"    lowp vec4 rgb;\n"
+		"    yuv.r  = texture2D(SamplerY, TexCoordOut).r; \n"
+		"    yuv.gb = texture2D(SamplerA, TexCoordOut).ar;\n"
+		"    yuv.a  = 1.0;\n"
+		"    rgb = mat4( 1.164,  1.164,  1.164, 0, \n"
+		"                0,     -0.391,  2.018, 0, \n"
+		"                1.596, -0.813,  0,     0, \n"
+		"               -0.871,  0.529, -1.082, 1) * yuv;\n"
+		"    gl_FragColor = rgb;\n"
 		"}";
 
 	const char *fShaderBGRP =
-		"varying highp vec2 TexCoordOut;\n"
+		"varying mediump vec2 TexCoordOut;\n"
 		"uniform sampler2D SamplerP;\n"
 		"void main(void)\n"
 		"{\n"
-		"    mediump vec4 p;\n"
+		"    lowp vec4 p;\n"
 		"    p = texture2D(SamplerP, TexCoordOut);\n"
 		"    if (p.a != 0.0) {\n"
 		"        p.r /= p.a;\n"
@@ -150,7 +155,6 @@ namespace
 void OpenGLRenderPrivate::initialize()
 {
 	initializeOpenGLFunctions();
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	for (int i = 0; i < 5; ++i){
 		const char *fShaderCode = nullptr;
 		switch (i){
@@ -203,31 +207,32 @@ void OpenGLRenderPrivate::initialize()
 	timer.setInterval(c->format().swapInterval() / (double)c->screen()->refreshRate());
 }
 
-void OpenGLRenderPrivate::loadTexture(GLuint t, int c, int w, int h, quint8 *d)
+void OpenGLRenderPrivate::loadTexture(GLuint texture, int channel, int width, int height, quint8 *data, int alignment)
 {
-	int f;
-	switch (c){
+	int format;
+	switch (channel){
 	case 1:
-		f = GL_LUMINANCE;
+		format = GL_LUMINANCE;
 		break;
 	case 2:
-		f = GL_LUMINANCE_ALPHA;
+		format = GL_LUMINANCE_ALPHA;
 		break;
 	case 3:
-		f = GL_RGB;
+		format = GL_RGB;
 		break;
 	case 4:
-		f = GL_RGBA;
+		format = GL_RGBA;
 		break;
 	default:
 		return;
 	}
-	glBindTexture(GL_TEXTURE_2D, t);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, f, w, h, 0, f, GL_UNSIGNED_BYTE, d);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 }
 
 void OpenGLRenderPrivate::drawTexture(GLuint *planes, int format, QRectF dest, QRectF rect)

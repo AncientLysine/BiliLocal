@@ -13,5 +13,6 @@
 *.psd
 *.bak
 *.vspx
+*.ipch
+*.opendb
 bin
-android

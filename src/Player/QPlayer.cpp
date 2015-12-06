@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "QPlayer.h"
 #include "../Config.h"
 #include "../Render/ARender.h"
@@ -34,7 +35,7 @@ namespace
 			if (chroma.isEmpty())
 				return false;
 			QString buffer(chroma);
-			ARender::instance()->setBuffer(buffer, format.frameSize());
+			ARender::instance()->setBuffer(buffer, format.frameSize(), 1);
 			if (buffer != chroma)
 				return false;
 			QSize pixel(format.pixelAspectRatio());
