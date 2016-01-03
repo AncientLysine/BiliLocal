@@ -28,9 +28,14 @@
 #include "Load.h"
 #include "AccessPrivate.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Utils.h"
 #include "../Model/Danmaku.h"
 #include "../Player/APlayer.h"
+#include <QtConcurrent>
+#include <algorithm>
+#include <future>
+#include <functional>
 
 Load *Load::ins = nullptr;
 
@@ -95,7 +100,7 @@ namespace
 		return codec->toUnicode(data);
 	}
 
-	QList<Comment> parseComment(QByteArray data, Utils::Site site)
+	QList<Comment> parseComment(const QByteArray &data, Utils::Site site)
 	{
 		QList<Comment> list;
 		switch (site){
@@ -103,55 +108,79 @@ namespace
 		case Utils::TuCao:
 		{
 			QString xml = decodeAsText(data);
-			QVector<QStringRef> l = xml.splitRef("<d p=");
-			l.removeFirst();
-			for (const QStringRef &item : l){
+			QVector<QStringRef> items = xml.splitRef("<d p=");
+			items.removeFirst();
+			QtConcurrent::blockingMappedReduced<
+				int,
+				QVector<QStringRef>,
+				std::function<Comment(const QStringRef &item)>,
+				std::function<void(int &, const Comment &comment)>
+			>(
+				items,
+				[](const QStringRef &item) {
 				const QVector<QStringRef> &args = item.mid(1, item.indexOf(item.at(0), 1) - 1).split(',');
-				if (args.size() <= 4){
-					continue;
-				}
 				Comment comment;
-				comment.time = args[0].toDouble() * 1000 + 0.5;
-				comment.date = args[4].toInt();
-				comment.mode = args[1].toInt();
-				comment.font = args[2].toInt();
-				comment.color = args[3].toInt();
-				comment.sender = args.size() <= 6 ? QString() : args[6].toString();
-				const QStringRef &last = args[args.size() <= 6 ? 4 : 6];
-				int sta = item.indexOf('>', last.position() + last.size() - item.position()) + 1;
-				int len = item.lastIndexOf('<') - sta;
-				comment.string = Utils::decodeXml(item.mid(sta, len).toString(), true);
-				list.append(comment);
+				if (args.size() > 4) {
+					comment.time = args[0].toDouble() * 1000 + 0.5;
+					comment.date = args[4].toInt();
+					comment.mode = args[1].toInt();
+					comment.font = args[2].toInt();
+					comment.color = args[3].toInt();
+					comment.sender = args.size() <= 6 ? QString() : args[6].toString();
+					const QStringRef &last = args[args.size() <= 6 ? 4 : 6];
+					int sta = item.indexOf('>', last.position() + last.size() - item.position()) + 1;
+					int len = item.lastIndexOf('<') - sta;
+					comment.string = Utils::decodeXml(item.mid(sta, len).toString(), true);
+				}
+				return comment;
+			},
+				[&list](int &,const Comment &comment) {
+				if (!comment.isEmpty()) {
+					list.append(comment);
+				}
 			}
+			);
 			break;
 		}
 		case Utils::AcFun:
 		{
 			QQueue<QJsonArray> queue;
 			queue.append(QJsonDocument::fromJson(data).array());
-			while (!queue.isEmpty()){
-				for (const QJsonValue &i : queue.head()){
-					if (i.isArray()){
-						queue.append(i.toArray());
+			while (!queue.isEmpty()) {
+				QtConcurrent::blockingMappedReduced<
+					int,
+					QJsonArray,
+					std::function<Comment(const QJsonValue &item)>,
+					std::function<void(int &, const Comment &comment)>
+				>(
+					queue.head(),
+					[&queue](const QJsonValue &item) {
+					Comment comment;
+					if (item.isArray()) {
+						queue.append(item.toArray());
 					}
-					else{
-						QJsonObject item = i.toObject();
-						QString c(item["c"].toString()), m(item["m"].toString());
+					else {
+						QJsonObject o = item.toObject();
+						QString c(o["c"].toString()), m(o["m"].toString());
 						const QVector<QStringRef> &args = c.splitRef(',');
-						if (args.size() < 6){
-							continue;
+						if (args.size() > 5) {
+							comment.time = args[0].toDouble() * 1000 + 0.5;
+							comment.date = args[5].toInt();
+							comment.mode = args[2].toInt();
+							comment.font = args[3].toInt();
+							comment.color = args[1].toInt();
+							comment.sender = args[4].toString();
+							comment.string = m;
 						}
-						Comment comment;
-						comment.time = args[0].toDouble() * 1000 + 0.5;
-						comment.date = args[5].toInt();
-						comment.mode = args[2].toInt();
-						comment.font = args[3].toInt();
-						comment.color = args[1].toInt();
-						comment.sender = args[4].toString();
-						comment.string = m;
+					}
+					return comment;
+				},
+					[&list](int &, const Comment &comment) {
+					if (!comment.isEmpty()) {
 						list.append(comment);
 					}
 				}
+				);
 				queue.dequeue();
 			}
 			break;
@@ -370,6 +399,32 @@ namespace
 			return code.length() > 2;
 		};
 	}
+
+	class Process : public QRunnable
+	{
+	public:
+		typedef std::future<QList<Comment>> Future;
+
+		Process(const QByteArray &data, Utils::Site site) :
+			data(data), site(site)
+		{
+		}
+
+		virtual void run() override
+		{
+			promise.set_value(parseComment(data, site));
+		}
+
+		Future getFuture()
+		{
+			return promise.get_future();
+		}
+
+	private:
+		QByteArray data;
+		Utils::Site site;
+		std::promise<QList<Comment>> promise;
+	};
 }
 
 Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
@@ -400,7 +455,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 			d->model->clear();
 			QString api, id, video(reply->readAll());
 			int sta;
-			if ((sta = video.indexOf("<div class=\"alist\">")) != -1 && sharp == -1){
+			if ((sta = video.indexOf("<div class=\"plist\">")) != -1 && sharp == -1){
 				int len = video.indexOf("</select>", sta) - sta + 1;
 				len = len < 0 ? 0 : len;
 				QString select = video.mid(sta, len);
@@ -781,7 +836,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 	auto fullBiProcess = [this](QNetworkReply *reply){
 		Q_D(Load);
 		Task &task = d->queue.head();
-		static QHash<const Task *, QSet<Comment>> progress;
+		static QHash<const Task *, QVector<Process::Future *>> progress;
 		switch (task.state){
 		case None:
 		{
@@ -814,9 +869,9 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 			connect(header, &QNetworkReply::finished, [=, &task](){
 				QByteArray data = header->readAll();
 				auto &record = progress[&task];
-				for (const Comment &c : parseComment(data, Utils::Bilibili)){
-					record.insert(c);
-				}
+				Process *p = new Process(data, Utils::Bilibili);
+				record.append(new Process::Future(p->getFuture()));
+				qThreadPool->start(p);
 				double total = 0;
 				if (count.size() >= 2){
 					int max = QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
@@ -833,6 +888,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 						}
 					}
 					total = d->remain.size() + 2;
+					record.reserve(total);
 					emit progressChanged(2 / total);
 				}
 				else{
@@ -843,9 +899,9 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 				for (QNetworkReply *it : d->remain){
 					connect(it, &QNetworkReply::finished, [=, &record, &task](){
 						QByteArray data = it->readAll();
-						for (const Comment &c : parseComment(data, Utils::Bilibili)){
-							record.insert(c);
-						}
+						Process *p = new Process(data, Utils::Bilibili);
+						record.append(new Process::Future(p->getFuture()));
+						qThreadPool->start(p);
 						switch (it->error()){
 						case QNetworkReply::NoError:
 							emit progressChanged((total - d->remain.size()) / total);
@@ -853,7 +909,13 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 							if (d->remain.isEmpty()){
 								Record load;
 								load.full = true;
-								load.danmaku = record.toList();
+								for (Process::Future *iter : record) {
+									load.danmaku.append(iter->get());
+									delete iter;
+								}
+								std::sort(load.danmaku.begin(), load.danmaku.end());
+								auto div = std::unique(load.danmaku.begin(), load.danmaku.end());
+								load.danmaku.erase(div, load.danmaku.end());
 								load.source = task.code;
 								Danmaku::instance()->appendToPool(&load);
 								progress.remove(&task);

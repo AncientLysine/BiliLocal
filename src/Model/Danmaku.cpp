@@ -35,9 +35,9 @@
 #include "../Graphic/Graphic.h"
 #include "../Model/Shield.h"
 #include "../UI/Editor.h"
+#include <QtConcurrent>
 #include <algorithm>
-
-#define qThreadPool QThreadPool::globalInstance()
+#include <functional>
 
 class DanmakuPrivate
 {
@@ -67,7 +67,6 @@ QAbstractItemModel(parent), d_ptr(new DanmakuPrivate)
 	setObjectName("Danmaku");
 	d->curr = d->time = 0;
 	d->dura = -1;
-	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
 	connect(APlayer::instance(), &APlayer::jumped, this, &Danmaku::jumpToTime);
 	connect(APlayer::instance(), &APlayer::timeChanged, this, &Danmaku::setTime);
 	connect(this, SIGNAL(layoutChanged()), ARender::instance(), SLOT(draw()));
@@ -86,9 +85,8 @@ Danmaku::~Danmaku()
 void Danmaku::draw(QPainter *painter, double move)
 {
 	Q_D(Danmaku);
-	QVarLengthArray<Graphic *> dirty;
 	d->lock.lockForWrite();
-	dirty.reserve(d->draw.size());
+	QVarLengthArray<Graphic *> dirty(d->draw.size());
 	for (auto iter = d->draw.begin(); iter != d->draw.end();){
 		Graphic *g = *iter;
 		if (g->move(move)){
@@ -298,9 +296,9 @@ void Danmaku::appendToPool(const Record *record)
 		QSet<CommentPointer> s;
 		auto &l = d->pool.last().danmaku;
 		for (auto i = l.begin(); i != l.end();){
-			auto c = s.size();
+			int n = s.size();
 			s.insert(&(*i));
-			if (c != s.size()){
+			if (n != s.size()){
 				++i;
 			}
 			else{
@@ -316,9 +314,10 @@ void Danmaku::appendToPool(const Record *record)
 		}
 		for (Comment c : record->danmaku){
 			c.time += append->delay - record->delay;
-			if (!s.contains(&c)){
+			int n = s.size();
+			s.insert(&c);
+			if (n != s.size()){
 				l.append(c);
-				s.insert(&l.last());
 			}
 		}
 		if (record->full){
@@ -430,26 +429,37 @@ void Danmaku::parse(int flag)
 			}
 		}
 		std::stable_sort(d->danm.begin(), d->danm.end(), Compare());
+		d->dura = -1;
+		for (Comment *c : d->danm) {
+			if (c->time < 10000000 || c->time < d->dura * 2) {
+				d->dura = c->time;
+			}
+			else {
+				break;
+			}
+		}
 		jumpToTime(d->time);
 		endResetModel();
 	}
-	if ((flag & 0x2) > 0){
-		for (Record &r : d->pool){
-			for (Comment &c : r.danmaku){
+	if ((flag & 0x2) > 0) {
+		// Date Limit
+		for (Record &r : d->pool) {
+			for (Comment &c : r.danmaku) {
 				c.blocked = r.limit != 0 && c.date > r.limit;
 			}
 		}
-		QSet<QString> set;
+		// Repeat Limit
 		int l = Config::getValue("/Shield/Limit/Count", 5);
 		int t = Config::getValue("/Shield/Limit/Range", 10000);
-		QVector<QString> clean;
-		clean.reserve(d->danm.size());
-		if (l != 0){
-			for (const Comment *c : d->danm){
+		if (l != 0) {
+			QVector<QString> clean;
+			clean.reserve(d->danm.size());
+			QSet<QString> set;
+			for (const Comment *c : d->danm) {
 				QString r;
 				r.reserve(c->string.length());
-				for (const QChar &i : c->string){
-					if (i.isLetterOrNumber() || i.isMark() || i == '_'){
+				for (const QChar &i : c->string) {
+					if (i.isLetterOrNumber() || i.isMark() || i == '_') {
 						r.append(i);
 					}
 				}
@@ -457,42 +467,44 @@ void Danmaku::parse(int flag)
 			}
 			QHash<QString, int> count;
 			int sta = 0, end = sta;
-			while (end != d->danm.size()){
-				while (d->danm[sta]->time + t < d->danm[end]->time){
-					if (--count[clean[sta]] == 0){
+			while (end != d->danm.size()) {
+				while (d->danm[sta]->time + t < d->danm[end]->time) {
+					if (--count[clean[sta]] == 0) {
 						count.remove(clean[sta]);
 					}
 					++sta;
 				}
-				if (++count[clean[end]] > l&&d->danm[end]->mode <= 6){
+				if (++count[clean[end]] > l&&d->danm[end]->mode <= 6) {
 					set.insert(clean[end]);
 				}
 				++end;
 			}
-		}
-		d->dura = -1;
-		for (Comment *c : d->danm){
-			if (c->time < 10000000 || c->time < d->dura * 2){
-				d->dura = c->time;
-			}
-			else{
-				break;
+			for (int i = 0; i < d->danm.size(); ++i) {
+				Comment *c = d->danm[i];
+				c->blocked = c->blocked || set.contains(clean[i]);
 			}
 		}
-		for (int i = 0; i < d->danm.size(); ++i){
-			Comment &c = *d->danm[i];
-			c.blocked = c.blocked || (l == 0 ? false : set.contains(clean[i])) || Shield::instance()->isBlocked(c);
+		// Regex Limit
+		QtConcurrent::map<
+			QList<Comment *>,
+			std::function<void(Comment *)>
+		>(
+			d->danm,
+			[](Comment *c)
+		{
+			c->blocked = c->blocked || Shield::instance()->isBlocked(*c);
 		}
+		);
 		qThreadPool->clear();
 		qThreadPool->waitForDone();
 		d->lock.lockForWrite();
-		for (auto iter = d->draw.begin(); iter != d->draw.end();){
+		for (auto iter = d->draw.begin(); iter != d->draw.end();) {
 			const Comment *cur = (*iter)->getSource();
-			if (cur&&cur->blocked){
+			if (cur&&cur->blocked) {
 				delete *iter;
 				iter = d->draw.erase(iter);
 			}
-			else{
+			else {
 				++iter;
 			}
 		}
@@ -517,7 +529,7 @@ namespace
 			danm->wait -= wait.size();
 		}
 
-		void run()
+		virtual void run() override
 		{
 			//跳过500毫秒以上未处理的弹幕
 			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500){

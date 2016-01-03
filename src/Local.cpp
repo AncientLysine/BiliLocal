@@ -46,6 +46,7 @@ QApplication(argc, argv)
 	setAttribute(Qt::AA_UseOpenGLES);
 	thread()->setPriority(QThread::TimeCriticalPriority);
 	Config::load();
+	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
 	qsrand(QTime::currentTime().msec());
 }
 

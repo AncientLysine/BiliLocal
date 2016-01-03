@@ -31,8 +31,11 @@
 #include <QObject>
 #include <QString>
 #include <QWidget>
+#include <QThreadPool>
 
 #define lApp (static_cast<Local *>(QCoreApplication::instance()))
+
+#define qThreadPool QThreadPool::globalInstance()
 
 class Local :public QApplication
 {

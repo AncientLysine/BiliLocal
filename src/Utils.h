@@ -59,6 +59,10 @@ public:
 	{
 		return date == 0 && sender.isEmpty();
 	}
+	inline bool isEmpty() const
+	{
+		return mode == 0 && font == 0 && color == 0 && time == 0 && date == 0 && !blocked;
+	}
 };
 
 inline uint qHash(const Comment &c, uint seed = 0)
