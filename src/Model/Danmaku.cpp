@@ -485,7 +485,7 @@ void Danmaku::parse(int flag)
 			}
 		}
 		// Regex Limit
-		QtConcurrent::map<
+		QtConcurrent::blockingMap<
 			QList<Comment *>,
 			std::function<void(Comment *)>
 		>(

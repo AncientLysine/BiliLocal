@@ -894,7 +894,7 @@ QDialog(parent)
 			click->click();
 		};
 		for (QLineEdit *iter : sheet){
-			connect(iter, &QLineEdit::editingFinished, checkout);
+			connect(iter, &QLineEdit::returnPressed, checkout);
 		}
 		connect(sheet[2], &QLineEdit::textEdited, [this](QString text){
 			sheet[2]->setText(text.toUpper());

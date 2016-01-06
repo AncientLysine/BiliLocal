@@ -127,11 +127,11 @@ APlayer(parent)
 	for (QJsonValue arg : Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
 	}
-	const char **argv = args.isEmpty() ? nullptr : new const char *[args.size()];
+	QVector<const char *> argv(args.size());
 	for (int i = 0; i < args.size(); ++i){
-		argv[i] = args[i];
+		argv[i] = args[i].data();
 	}
-	vlc = libvlc_new(args.size(), argv);
+	vlc = libvlc_new(argv.size(), argv.data());
 #ifdef Q_OS_WIN
 	libvlc_add_intf(vlc, "bililocal");
 #endif

@@ -569,9 +569,11 @@ void List::jumpToNext()
 bool List::jumpToIndex(const QModelIndex &index, bool manually)
 {
 	QStandardItem *head = itemFromIndex(index);
-	if (!head || (manually&&head->data(CodeRole).toInt() == Inherit)){
+	if (nullptr == head || (manually && head->data(CodeRole).toInt() == Inherit)){
 		return false;
 	}
-	APlayer::instance()->setMedia(head->data(FileRole).toString(), manually);
-	return true;
+	else {
+		APlayer::instance()->setMedia(head->data(FileRole).toString(), manually);
+		return true;
+	}
 }
