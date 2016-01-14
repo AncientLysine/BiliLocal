@@ -329,6 +329,36 @@ QString Utils::customUrl(Site site)
 	return QString();
 }
 
+namespace
+{
+	template<char16_t... list>
+	struct StaticString;
+
+	template<char16_t tail>
+	struct StaticString<tail>
+	{
+		inline static bool equalTo(const char16_t *string, int offset)
+		{
+			return string[offset] == tail;
+		}
+	};
+
+	template<char16_t head, char16_t... rest>
+	struct StaticString<head, rest...>
+	{
+		inline static bool equalTo(const char16_t *string, int offset)
+		{
+			return string[offset] == head && StaticString<rest...>::equalTo(string, offset + 1);
+		}
+	};
+
+	template<char16_t... list>
+	inline bool equal(const char16_t *string, int length, int offset)
+	{
+		return offset + (int)sizeof...(list) < length && StaticString<list...>::equalTo(string, offset);
+	}
+}
+
 QString Utils::decodeXml(QString string, bool fast)
 {
 	if (!fast){
@@ -336,74 +366,121 @@ QString Utils::decodeXml(QString string, bool fast)
 		text.setHtml(string);
 		return text.toPlainText();
 	}
+
+	int length = string.length();
+	const char16_t *data = (char16_t *)string.data();
+
 	QString fixed;
-	fixed.reserve(string.length());
-	int i = 0, l = string.length();
-	for (i = 0; i < l; ++i){
-		QChar c = string[i];
-		if (c >= ' ' || c == '\n'){
-			bool f = true;
-			switch (c.unicode()){
+	fixed.reserve(length);
+
+	for (int i = 0; i < length; ++i) {
+		const QChar &c = data[i];
+		if (c < ' ' && c != '\n') {
+			continue;
+		}
+
+		bool plain = true;
+		if (length - i >= 2) {
+			switch (c.unicode()) {
 			case '&':
-				if (l - i >= 4){
-					switch (string[i + 1].unicode()){
-					case 'l':
-						if (string[i + 2] == 't'&&string[i + 3] == ';'){
-							fixed += '<';
-							f = false;
-							i += 3;
-						}
-						break;
-					case 'g':
-						if (string[i + 2] == 't'&&string[i + 3] == ';'){
-							fixed += '>';
-							f = false;
-							i += 3;
-						}
-						break;
-					case 'a':
-						if (l - i >= 5 && string[i + 2] == 'm'&&string[i + 3] == 'p'&&string[i + 4] == ';'){
-							fixed += '&';
-							f = false;
-							i += 4;
-						}
-						break;
-					case 'q':
-						if (l - i >= 6 && string[i + 2] == 'u'&&string[i + 3] == 'o'&&string[i + 4] == 't'&&string[i + 5] == ';'){
-							fixed += '\"';
-							f = false;
-							i += 5;
-						}
-						break;
+				switch (data[i + 1]) {
+				case 'n':
+					// &nbsp;
+					if (equal<'b', 's', 'p', ';'>(data, length, i + 2)) {
+						fixed += ' ';
+						plain = false;
+						i += 5;
 					}
+				case 'l':
+					// &lt;
+					if (equal<'t', ';'>(data, length, i + 2)) {
+						fixed += '<';
+						plain = false;
+						i += 3;
+					}
+					break;
+				case 'g':
+					// &gt;
+					if (equal<'t', ';'>(data, length, i + 2)) {
+						fixed += '>';
+						plain = false;
+						i += 3;
+					}
+					break;
+				case 'a':
+					// &amp;
+					if (equal<'m', 'p', ';'>(data, length, i + 2)) {
+						fixed += '&';
+						plain = false;
+						i += 4;
+					}
+					break;
+				case 'q':
+					// &quot;
+					if (equal<'u', 'o', 't', ';'>(data, length, i + 2)) {
+						fixed += '\"';
+						plain = false;
+						i += 5;
+					}
+					break;
+				case 'c':
+					// &copy;
+					if (equal<'o', 'p', 'y', ';'>(data, length, i + 2)) {
+						fixed += u'©';
+						plain = false;
+						i += 5;
+					}
+					break;
+				case 'r':
+					// &reg;
+					if (equal<'e', 'g', ';'>(data, length, i + 2)) {
+						fixed += u'®';
+						plain = false;
+						i += 4;
+					}
+					break;
+				case 't':
+					// &times;
+					if (equal<'i', 'm', 'e', 's', ';'>(data, length, i + 2)) {
+						fixed += u'×';
+						plain = false;
+						i += 6;
+					}
+					break;
+				case 'd':
+					// &divide;
+					if (equal<'i', 'v', 'i', 'd', 'e', ';'>(data, length, i + 2)) {
+						fixed += u'÷';
+						plain = false;
+						i += 7;
+					}
+					break;
 				}
 				break;
 			case '/':
 			case '\\':
-				if (l - i >= 2){
-					switch (string[i + 1].unicode()){
-					case 'n':
-						fixed += '\n';
-						f = false;
-						i += 1;
-						break;
-					case 't':
-						fixed += '\t';
-						f = false;
-						i += 1;
-						break;
-					case '\"':
-						fixed += '\"';
-						f = false;
-						i += 1;
-						break;
-					}
+				switch (data[i + 1]) {
+				case 'n':
+					fixed += '\n';
+					plain = false;
+					i += 1;
+					break;
+				case 't':
+					fixed += '\t';
+					plain = false;
+					i += 1;
+					break;
+				case '\"':
+					fixed += '\"';
+					plain = false;
+					i += 1;
+					break;
 				}
 				break;
 			}
-			if (f){
-				fixed += c;
-			}
+		}
+		if (plain) {
+			fixed += c;
 		}
 	}
 	return fixed;

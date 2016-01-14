@@ -285,49 +285,55 @@ void Danmaku::appendToPool(const Record *record)
 {
 	Q_D(Danmaku);
 	Record *append = 0;
-	for (Record &r : d->pool){
-		if (r.source == record->source){
+	for (Record &r : d->pool) {
+		if (r.source == record->source) {
 			append = &r;
 			break;
 		}
 	}
-	if (!append){
+	if (!append) {
 		d->pool.append(*record);
 		QSet<CommentPointer> s;
 		auto &l = d->pool.last().danmaku;
-		for (auto i = l.begin(); i != l.end();){
+		s.reserve(l.size());
+		for (auto i = l.begin(); i != l.end();) {
 			int n = s.size();
 			s.insert(&(*i));
-			if (n != s.size()){
+			if (n != s.size()) {
 				++i;
 			}
-			else{
+			else {
 				i = l.erase(i);
 			}
 		}
 	}
-	else{
-		auto &l = append->danmaku;
+	else {
 		QSet<CommentPointer> s;
-		for (const Comment &c : l){
+		auto &l = append->danmaku;
+		int c = l.size() + record->danmaku.size();
+		s.reserve(c);
+		l.reserve(c);
+		for (const Comment &c : l) {
 			s.insert(&c);
 		}
-		for (Comment c : record->danmaku){
+		for (const Comment &i : record->danmaku) {
+			l.append(i);
+			Comment &c = l.last();
 			c.time += append->delay - record->delay;
 			int n = s.size();
 			s.insert(&c);
-			if (n != s.size()){
-				l.append(c);
+			if (n == s.size()) {
+				l.removeLast();
 			}
 		}
-		if (record->full){
+		if (record->full) {
 			append->full = true;
 		}
 	}
 	parse(0x1 | 0x2);
-	if (d->pool.size() >= 2 && !append){
-		QTimer::singleShot(0, [](){
-			if (!Load::instance()->getHead()){
+	if (d->pool.size() >= 2 && !append) {
+		QTimer::singleShot(0, []() {
+			if (!Load::instance()->getHead()) {
 				UI::Editor::exec(lApp->mainWidget());
 			}
 		});
@@ -336,20 +342,23 @@ void Danmaku::appendToPool(const Record *record)
 
 namespace
 {
-	class Compare
+	class CommentComparer
 	{
 	public:
+		inline bool operator ()(const Comment *f, const Comment *s)
+		{
+			return f->time < s->time;
+		}
+
+		//overloads for comparing with time
 		inline bool operator ()(const Comment *c, qint64 time)
 		{
 			return c->time < time;
 		}
+
 		inline bool operator ()(qint64 time, const Comment *c)
 		{
 			return time < c->time;
-		}
-		inline bool operator ()(const Comment *f, const Comment *s)
-		{
-			return f->time < s->time;
 		}
 	};
 }
@@ -371,9 +380,9 @@ void Danmaku::appendToPool(QString source, const Comment *comment)
 		append = &d->pool.last();
 	}
 	append->danmaku.append(*comment);
-	auto ptr = &append->danmaku.last();
-	ptr->time += append->delay;
-	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), ptr, Compare()), ptr);
+	Comment *c = &append->danmaku.last();
+	c->time += append->delay;
+	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
 	parse(0x2);
 }
 
@@ -424,11 +433,12 @@ void Danmaku::parse(int flag)
 		beginResetModel();
 		d->danm.clear();
 		for (Record &record : d->pool){
+			d->danm.reserve(d->danm.size() + record.danmaku.size());
 			for (Comment &comment : record.danmaku){
 				d->danm.append(&comment);
 			}
 		}
-		std::stable_sort(d->danm.begin(), d->danm.end(), Compare());
+		std::stable_sort(d->danm.begin(), d->danm.end(), CommentComparer());
 		d->dura = -1;
 		for (Comment *c : d->danm) {
 			if (c->time < 10000000 || c->time < d->dura * 2) {
@@ -676,7 +686,7 @@ void Danmaku::jumpToTime(qint64 time)
 	Q_D(Danmaku);
 	clearCurrent(true);
 	d->time = time;
-	d->curr = std::lower_bound(d->danm.begin(), d->danm.end(), time, Compare()) - d->danm.begin();
+	d->curr = std::lower_bound(d->danm.begin(), d->danm.end(), time, CommentComparer()) - d->danm.begin();
 }
 
 void Danmaku::saveToFile(QString file) const
