@@ -666,28 +666,26 @@ void Interface::setWindowFlags()
 
 void Interface::warning(QString title, QString text)
 {
-	auto m = msg ? qobject_cast<QMessageBox     *>(msg) : nullptr;
-	QWidget *active = qApp->activeWindow();
-	if (!m || (m != active&&m->parent() != active&&active)){
+	auto w = msg ? qobject_cast<QMessageBox *>(msg) : nullptr;
+	QWidget *c = qApp->activeWindow();
+	if (!w || (w != c && w->parent() != c && c)){
 		delete msg;
-		m = new QMessageBox(active);
-		m->setIcon(QMessageBox::Warning);
-		msg = m;
+		w = new QMessageBox(c);
+		w->setIcon(QMessageBox::Warning);
+		msg = w;
 	}
-	m->setText(text);
-	m->setWindowTitle(title);
-	m->show();
+	w->setText(text);
+	w->setWindowTitle(title);
+	w->show();
 }
 
 void Interface::percent(double degree)
 {
 	auto p = msg ? qobject_cast<QProgressDialog *>(msg) : nullptr;
-	QWidget *active = qApp->activeWindow();
-	if (!p || (p != active&&p->parent() != active&&active)){
-		if (msg){
-			delete msg;
-		}
-		p = new QProgressDialog(active);
+	QWidget *c = qApp->activeWindow();
+	if (!p || (p != c && p->parent() != c && c)){
+		delete msg;
+		p = new QProgressDialog(c);
 		p->setMaximum(1000);
 		p->setWindowTitle(tr("Loading"));
 		p->setFixedSize(p->sizeHint());

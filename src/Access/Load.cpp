@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <future>
 #include <functional>
+#include <list>
 
 Load *Load::ins = nullptr;
 
@@ -110,6 +111,7 @@ namespace
 			QString xml = decodeAsText(data);
 			QVector<QStringRef> items = xml.splitRef("<d p=");
 			items.removeFirst();
+			list.reserve(items.size());
 			QtConcurrent::blockingMappedReduced<
 				int,
 				QVector<QStringRef>,
@@ -147,13 +149,15 @@ namespace
 			QQueue<QJsonArray> queue;
 			queue.append(QJsonDocument::fromJson(data).array());
 			while (!queue.isEmpty()) {
+				const QJsonArray &items = queue.head();
+				list.reserve(list.size() + items.size());
 				QtConcurrent::blockingMappedReduced<
 					int,
 					QJsonArray,
 					std::function<Comment(const QJsonValue &item)>,
 					std::function<void(int &, const Comment &comment)>
 				>(
-					queue.head(),
+					items,
 					[&queue](const QJsonValue &item) {
 					Comment comment;
 					if (item.isArray()) {
@@ -188,9 +192,10 @@ namespace
 		case Utils::AcfunLocalizer:
 		{
 			QString xml = decodeAsText(data);
-			QVector<QStringRef> l = xml.splitRef("<l i=\"");
-			l.removeFirst();
-			for (const QStringRef &item : l){
+			QVector<QStringRef> items = xml.splitRef("<l i=\"");
+			items.removeFirst();
+			list.reserve(items.size());
+			for (const QStringRef &item : items){
 				const QVector<QStringRef> &args = item.left(item.indexOf("\"")).split(',');
 				if (args.size() < 6){
 					continue;
@@ -211,9 +216,10 @@ namespace
 		}
 		case Utils::Niconico:
 		{
-			QStringList l = decodeAsText(data).split("<chat ");
-			l.removeFirst();
-			for (const QString &item : l){
+			QVector<QStringRef> items = decodeAsText(data).splitRef("<chat ");
+			items.removeFirst();
+			list.reserve(items.size());
+			for (const QStringRef &item : items){
 				Comment comment;
 				QString key, val;
 				/* 0 wait for key
@@ -836,89 +842,94 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 	auto fullBiProcess = [this](QNetworkReply *reply){
 		Q_D(Load);
 		Task &task = d->queue.head();
-		static QHash<const Task *, QVector<Process::Future *>> progress;
-		switch (task.state){
+		switch (task.state) {
 		case None:
 		{
 			QString api("http://comment.%1/rolldate,%2");
 			api = api.arg(Utils::customUrl(Utils::Bilibili));
 			task.code = QUrlQuery(task.code.mid(5)).queryItemValue("source");
-			forward(QNetworkRequest(api.arg(QFileInfo(task.code).baseName())), Code);
+			forward(QNetworkRequest(api.arg(QFileInfo(task.code).baseName())), Page);
+			break;
+		}
+		case Page:
+		{
+			QByteArray data = reply->readAll();
+			QJsonArray date = QJsonDocument::fromJson(data).array();
+			if (date.isEmpty()) {
+				emit stateChanged(203);
+				dequeue();
+				break;
+			}
+			QJsonObject head = date.first().toObject();
+			QString url("http://comment.%1/dmroll,%2,%3");
+			url = url.arg(Utils::customUrl(Utils::Bilibili));
+			url = url.arg(head["timestamp"].toVariant().toInt());
+			url = url.arg(QFileInfo(task.code).baseName());
+			QNetworkRequest request(url);
+			request.setAttribute(QNetworkRequest::User, data);
+			forward(request, Code);
 			break;
 		}
 		case Code:
 		{
-			QMap<QDate, int> count;
-			for (QJsonValue iter : QJsonDocument::fromJson(reply->readAll()).array()){
-				QJsonObject obj = iter.toObject();
-				QJsonValue time = obj["timestamp"], size = obj["new"];
-				count[QDateTime::fromTime_t(time.toVariant().toUInt()).date()] += size.toVariant().toInt();
+			QByteArray data = task.request.attribute(QNetworkRequest::User).toByteArray();
+			QJsonArray date = QJsonDocument::fromJson(data).array();
+			QMap<int, int> count;
+			for (auto iter : date) {
+				QJsonObject item = iter.toObject();
+				count[item["timestamp"].toVariant().toInt()] += item["new"].toVariant().toInt();
 			}
-			if (count.isEmpty()){
-				emit stateChanged(203);
-				dequeue();
-				return;
-			}
-			QString url("http://comment.%1/dmroll,%3,%2");
-			url = url.arg(Utils::customUrl(Utils::Bilibili)).arg(QFileInfo(task.code).baseName());
-			auto getHistory = [=](QDate date){
-				return d->manager.get(QNetworkRequest(url.arg(QDateTime(date).toTime_t())));
-			};
-			emit stateChanged(task.state = File);
-			QNetworkReply *header = getHistory(count.firstKey());
-			connect(header, &QNetworkReply::finished, [=, &task](){
-				QByteArray data = header->readAll();
-				auto &record = progress[&task];
-				Process *p = new Process(data, Utils::Bilibili);
-				record.append(new Process::Future(p->getFuture()));
-				qThreadPool->start(p);
-				double total = 0;
-				if (count.size() >= 2){
-					int max = QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
-					int now = 0;
-					for (auto iter = count.begin() + 1;; ++iter){
-						now += iter.value();
-						if (iter + 1 == count.end()){
-							d->remain += getHistory(iter.key());
-							break;
-						}
-						else if (now + (iter + 1).value() > max){
-							d->remain += getHistory(iter.key());
-							now = 0;
-						}
+
+			data = reply->readAll();
+			if (count.size() >= 2) {
+				int max = QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
+				int now = 0;
+
+				auto getHistory = [d, &count, &task](int date) {
+					QString url("http://comment.%1/dmroll,%2,%3");
+					url = url.arg(Utils::customUrl(Utils::Bilibili));
+					url = url.arg(date);
+					url = url.arg(QFileInfo(task.code).baseName());
+					return d->manager.get(QNetworkRequest(url));
+				};
+
+				for (auto iter = count.begin() + 1;; ++iter) {
+					now += iter.value();
+					if (iter + 1 == count.end()) {
+						d->remain += getHistory(iter.key());
+						break;
 					}
-					total = d->remain.size() + 2;
-					record.reserve(total);
-					emit progressChanged(2 / total);
+					else if (now + (iter + 1).value() > max) {
+						d->remain += getHistory(iter.key());
+						now = 0;
+					}
 				}
-				else{
-					progress.remove(&task);
-					emit stateChanged(task.state = None);
-					dequeue();
-				}
-				for (QNetworkReply *it : d->remain){
-					connect(it, &QNetworkReply::finished, [=, &record, &task](){
-						QByteArray data = it->readAll();
+				//future only has move constructor, use std::list
+				QSharedPointer<std::list<Process::Future>> pool(new std::list<Process::Future>());
+
+				Process *p = new Process(data, Utils::Bilibili);
+				pool->emplace_back(Process::Future(p->getFuture()));
+				qThreadPool->start(p);
+
+				double total = d->remain.size() + 2;
+				for (QNetworkReply *iter : d->remain) {
+					connect(iter, &QNetworkReply::finished, [=, &task]() {
+						QByteArray data = iter->readAll();
 						Process *p = new Process(data, Utils::Bilibili);
-						record.append(new Process::Future(p->getFuture()));
+						pool->emplace_back(Process::Future(p->getFuture()));
 						qThreadPool->start(p);
-						switch (it->error()){
+						switch (iter->error()) {
 						case QNetworkReply::NoError:
 							emit progressChanged((total - d->remain.size()) / total);
 						case QNetworkReply::OperationCanceledError:
-							if (d->remain.isEmpty()){
+							if (d->remain.isEmpty() && !pool->empty()) {
 								Record load;
 								load.full = true;
-								for (Process::Future *iter : record) {
-									load.danmaku.append(iter->get());
-									delete iter;
+								for (Process::Future &iter : *pool) {
+									load.danmaku.append(iter.get());
 								}
-								std::sort(load.danmaku.begin(), load.danmaku.end());
-								auto div = std::unique(load.danmaku.begin(), load.danmaku.end());
-								load.danmaku.erase(div, load.danmaku.end());
 								load.source = task.code;
 								Danmaku::instance()->appendToPool(&load);
-								progress.remove(&task);
 								emit stateChanged(task.state = None);
 								dequeue();
 							}
@@ -927,11 +938,22 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 						}
 					});
 				}
-			});
-			break;
+
+				emit progressChanged(2 / total);
+				emit stateChanged(task.state = File);
+				break;
+			}
+			else {
+				emit progressChanged(1);
+				dumpDanmaku(data, Utils::Bilibili, true);
+				emit stateChanged(task.state = None);
+				dequeue();
+				break;
+			}
 		}
 		}
 	};
+
 	auto fullBiRegular = QRegularExpression("^full\\?source=http://comment\\.bilibili\\.com/\\d+\\.xml$");
 	fullBiRegular.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 	d->pool.append({ getRegular(fullBiRegular), 100, fullBiProcess });
