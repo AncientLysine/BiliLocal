@@ -237,7 +237,6 @@ namespace{
 		QDate curr;
 		QLabel *date;
 		QMap<QDate, int> count;
-		QDate currentLimit();
 	};
 
 	class Track :public QWidget
@@ -476,44 +475,46 @@ namespace{
 				menu.addSeparator();
 				connect(menu.addAction(Editor::tr("History")), &QAction::triggered, [=, &r](){
 					Calendar history(window());
-					QMap<QDate, int> count;
-					QDate c = r.limit == 0 ? QDate::currentDate().addDays(1) : QDateTime::fromTime_t(r.limit).date();
+					QDate c = r.limit == 0 ? QDate::currentDate() : QDateTime::fromTime_t(r.limit).date().addDays(-1);
 					history.setCurrentDate(c);
-					if (!load->canHist(&r)){
-						for (const Comment &c : r.danmaku){
-							++count[QDateTime::fromTime_t(c.date).date()];
-						}
-						count[QDate::currentDate().addDays(1)] = 0;
-						count.remove(count.firstKey());
-						history.setCount(count);
-						history.setCurrentPage(c);
-					}
-					else{
+					if (load->canHist(&r)) {
 						QString cid = QFileInfo(r.source).baseName();
 						QString api("http://comment.%1/rolldate,%2");
 						api = api.arg(Utils::customUrl(Utils::Bilibili));
 						QNetworkReply *reply = manager->get(QNetworkRequest(api.arg(cid)));
-						connect(reply, &QNetworkReply::finished, [&](){
+						connect(reply, &QNetworkReply::finished, [=, &history]() {
 							QMap<QDate, int> count;
-							for (QJsonValue iter : QJsonDocument::fromJson(reply->readAll()).array()){
+							for (QJsonValue iter : QJsonDocument::fromJson(reply->readAll()).array()) {
 								QJsonObject obj = iter.toObject();
 								QJsonValue time = obj["timestamp"], size = obj["new"];
 								count[QDateTime::fromTime_t(time.toVariant().toInt()).date()] += size.toVariant().toInt();
 							}
-							count[QDate::currentDate().addDays(1)] = 0;
+							count[QDate::currentDate()] = 0;
 							history.setCount(count);
 							history.setCurrentPage(c);
 						});
 					}
+					else {
+						//no history available, use date limit instead
+						{
+							QMap<QDate, int> count;
+							for (const Comment &c : r.danmaku) {
+								++count[QDateTime::fromTime_t(c.date).date()];
+							}
+							count[QDate::currentDate()] = 0;
+							history.setCount(count);
+							history.setCurrentPage(c);
+						}
+					}
 					if (history.exec() == QDialog::Accepted){
 						QDate selected = history.selectedDate();
-						if (!load->canHist(&r)){
-							r.limit = selected.isValid() ? QDateTime(selected).toTime_t() : 0;
-							Danmaku::instance()->parse(0x2);
-							widget->update();
+						r.limit = selected.isValid() ? QDateTime(selected.addDays(1)).toTime_t() : 0;
+						if (load->canHist(&r)){
+							load->loadHistory(&r, selected);
 						}
 						else{
-							load->loadHistory(&r, history.selectedDate());
+							Danmaku::instance()->parse(0x2);
+							widget->update();
 						}
 					}
 				});

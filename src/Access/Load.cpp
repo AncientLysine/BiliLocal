@@ -966,18 +966,23 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		{
 			QUrlQuery query(task.code.mid(5));
 			task.code = query.queryItemValue("source");
-			QString cid = QFileInfo(task.code).baseName(), url;
+			QString cid = QFileInfo(task.code).baseName();
 			QString dat = query.queryItemValue("date");
-			if (dat != "0"){
+			QString url;
+			QNetworkRequest request;
+			if (dat != "0" && dat.toInt() != QDateTime(QDate::currentDate()).toTime_t()){
 				url = QString("http://comment.%1/dmroll,%2,%3");
 				url = url.arg(Utils::customUrl(Utils::Bilibili));
 				url = url.arg(dat).arg(cid);
+				int limit = QDateTime(QDateTime::fromTime_t(dat.toInt()).date().addDays(1)).toTime_t();
+				request.setAttribute(QNetworkRequest::User, limit);
 			}
 			else{
 				url = QString("http://comment.%1/%2.xml").arg(Utils::customUrl(Utils::Bilibili));
 				url = url.arg(cid);
 			}
-			forward(QNetworkRequest(url), File);
+			request.setUrl(url);
+			forward(request, File);
 			break;
 		}
 		case File:
@@ -989,9 +994,11 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 				if (iter.source == load.source){
 					iter.full = false;
 					iter.danmaku.clear();
+					iter.limit = 1;
 					break;
 				}
 			}
+			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
 			Danmaku::instance()->appendToPool(&load);
 			emit stateChanged(task.state = None);
 			dequeue();

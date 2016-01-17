@@ -329,6 +329,7 @@ void Danmaku::appendToPool(const Record *record)
 		if (record->full) {
 			append->full = true;
 		}
+		append->limit = record->limit == 0 ? 0 : qMax(append->limit, record->limit);
 	}
 	parse(0x1 | 0x2);
 	if (d->pool.size() >= 2 && !append) {
@@ -383,6 +384,7 @@ void Danmaku::appendToPool(QString source, const Comment *comment)
 	Comment *c = &append->danmaku.last();
 	c->time += append->delay;
 	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
+	append->limit = append->limit == 0 ? 0 : qMax(append->limit, c->date);
 	parse(0x2);
 }
 
