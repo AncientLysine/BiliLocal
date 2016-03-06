@@ -101,7 +101,7 @@ public slots:
 	void loadDanmaku(const QModelIndex &index = QModelIndex());
 	void fullDanmaku(const Record *);
 	void loadHistory(const Record *, QDate);
-	void dumpDanmaku(const QList<Comment> *data, bool full);
+	void dumpDanmaku(const QVector<Comment> *data, bool full);
 	void dumpDanmaku(const QByteArray &data, int site, bool full);
 
 	QStandardItemModel *getModel();

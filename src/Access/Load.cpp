@@ -27,16 +27,13 @@
 #include "Common.h"
 #include "Load.h"
 #include "AccessPrivate.h"
+#include "Parse.h"
 #include "../Config.h"
 #include "../Local.h"
 #include "../Utils.h"
 #include "../Model/Danmaku.h"
 #include "../Player/APlayer.h"
-#include <QtConcurrent>
 #include <algorithm>
-#include <future>
-#include <functional>
-#include <list>
 
 Load *Load::ins = nullptr;
 
@@ -60,340 +57,6 @@ public:
 
 namespace
 {
-	QString decodeAsText(const QByteArray &data)
-	{
-		QTextCodec *codec = QTextCodec::codecForUtfText(data, nullptr);
-		if (!codec){
-			QByteArray name;
-			QByteArray head = data.left(512).toLower();
-			if (head.startsWith("<?xml")){
-				int pos = head.indexOf("encoding=");
-				if (pos >= 0){
-					pos += 9;
-					if (pos < head.size()){
-						auto c = head.at(pos);
-						if ('\"' == c || '\'' == c){
-							++pos;
-							name = head.mid(pos, head.indexOf(c, pos) - pos);
-						}
-					}
-				}
-			}
-			else{
-				int pos = head.indexOf("charset=", head.indexOf("meta "));
-				if (pos >= 0){
-					pos += 8;
-					int end = pos;
-					while (++end < head.size()){
-						auto c = head.at(end);
-						if (c == '\"' || c == '\'' || c == '>'){
-							name = head.mid(pos, end - pos);
-							break;
-						}
-					}
-				}
-			}
-			codec = QTextCodec::codecForName(name);
-		}
-		if (!codec){
-			codec = QTextCodec::codecForLocale();
-		}
-		return codec->toUnicode(data);
-	}
-
-	QList<Comment> parseComment(const QByteArray &data, Utils::Site site)
-	{
-		QList<Comment> list;
-		switch (site){
-		case Utils::Bilibili:
-		case Utils::TuCao:
-		{
-			QString xml = decodeAsText(data);
-			QVector<QStringRef> items = xml.splitRef("<d p=");
-			items.removeFirst();
-			list.reserve(items.size());
-			QtConcurrent::blockingMappedReduced<
-				int,
-				QVector<QStringRef>,
-				std::function<Comment(const QStringRef &item)>,
-				std::function<void(int &, const Comment &comment)>
-			>(
-				items,
-				[](const QStringRef &item) {
-				const QVector<QStringRef> &args = item.mid(1, item.indexOf(item.at(0), 1) - 1).split(',');
-				Comment comment;
-				if (args.size() > 4) {
-					comment.time = args[0].toDouble() * 1000 + 0.5;
-					comment.date = args[4].toInt();
-					comment.mode = args[1].toInt();
-					comment.font = args[2].toInt();
-					comment.color = args[3].toInt();
-					comment.sender = args.size() <= 6 ? QString() : args[6].toString();
-					const QStringRef &last = args[args.size() <= 6 ? 4 : 6];
-					int sta = item.indexOf('>', last.position() + last.size() - item.position()) + 1;
-					int len = item.lastIndexOf('<') - sta;
-					comment.string = Utils::decodeXml(item.mid(sta, len).toString(), true);
-				}
-				return comment;
-			},
-				[&list](int &,const Comment &comment) {
-				if (!comment.isEmpty()) {
-					list.append(comment);
-				}
-			}
-			);
-			break;
-		}
-		case Utils::AcFun:
-		{
-			QQueue<QJsonArray> queue;
-			queue.append(QJsonDocument::fromJson(data).array());
-			while (!queue.isEmpty()) {
-				const QJsonArray &items = queue.head();
-				list.reserve(list.size() + items.size());
-				QtConcurrent::blockingMappedReduced<
-					int,
-					QJsonArray,
-					std::function<Comment(const QJsonValue &item)>,
-					std::function<void(int &, const Comment &comment)>
-				>(
-					items,
-					[&queue](const QJsonValue &item) {
-					Comment comment;
-					if (item.isArray()) {
-						queue.append(item.toArray());
-					}
-					else {
-						QJsonObject o = item.toObject();
-						QString c(o["c"].toString()), m(o["m"].toString());
-						const QVector<QStringRef> &args = c.splitRef(',');
-						if (args.size() > 5) {
-							comment.time = args[0].toDouble() * 1000 + 0.5;
-							comment.date = args[5].toInt();
-							comment.mode = args[2].toInt();
-							comment.font = args[3].toInt();
-							comment.color = args[1].toInt();
-							comment.sender = args[4].toString();
-							comment.string = m;
-						}
-					}
-					return comment;
-				},
-					[&list](int &, const Comment &comment) {
-					if (!comment.isEmpty()) {
-						list.append(comment);
-					}
-				}
-				);
-				queue.dequeue();
-			}
-			break;
-		}
-		case Utils::AcfunLocalizer:
-		{
-			QString xml = decodeAsText(data);
-			QVector<QStringRef> items = xml.splitRef("<l i=\"");
-			items.removeFirst();
-			list.reserve(items.size());
-			for (const QStringRef &item : items){
-				const QVector<QStringRef> &args = item.left(item.indexOf("\"")).split(',');
-				if (args.size() < 6){
-					continue;
-				}
-				Comment comment;
-				comment.time = args[0].toDouble() * 1000 + 0.5;
-				comment.date = args[5].toInt();
-				comment.mode = 1;
-				comment.font = 25;
-				comment.color = args[2].toInt();
-				comment.sender = args[4].toString();
-				int sta = item.indexOf("<![CDATA[") + 9;
-				int len = item.indexOf("]]>", sta) - sta;
-				comment.string = Utils::decodeXml(item.mid(sta, len).toString(), true);
-				list.append(comment);
-			}
-			break;
-		}
-		case Utils::Niconico:
-		{
-			QVector<QStringRef> items = decodeAsText(data).splitRef("<chat ");
-			items.removeFirst();
-			list.reserve(items.size());
-			for (const QStringRef &item : items){
-				Comment comment;
-				QString key, val;
-				/* 0 wait for key
-				 * 1 wait for left quot
-				 * 2 wait for value
-				 * 3 wait for comment
-				 * 4 finsihed */
-				int state = 0;
-				QMap<QString, QString> args;
-				for (const QChar &c : item){
-					switch (state){
-					case 0:
-						if (c == '='){
-							state = 1;
-						}
-						else if (c == '>'){
-							state = 3;
-						}
-						else if (c != ' '){
-							key.append(c);
-						}
-						break;
-					case 1:
-						if (c == '\"'){
-							state = 2;
-						}
-						break;
-					case 2:
-						if (c == '\"'){
-							state = 0;
-							args.insert(key, val);
-							key = val = QString();
-						}
-						else{
-							val.append(c);
-						}
-						break;
-					case 3:
-						if (c == '<'){
-							state = 4;
-						}
-						else{
-							comment.string.append(c);
-						}
-						break;
-					}
-				}
-				if (state != 4){
-					continue;
-				}
-				comment.time = args["vpos"].toLongLong() * 10;
-				comment.date = args["date"].toLongLong();
-				QStringList ctrl = args["mail"].split(' ', QString::SkipEmptyParts);
-				comment.mode = ctrl.contains("shita") ? 4 : (ctrl.contains("ue") ? 5 : 1);
-				comment.font = ctrl.contains("small") ? 15 : (ctrl.contains("big") ? 36 : 25);
-				comment.color = 0xFFFFFF;
-				for (const QString &name : ctrl){
-					QColor color(name);
-					if (color.isValid()){
-						comment.color = color.rgb();
-						break;
-					}
-				}
-				comment.sender = args["user_id"];
-				list.append(comment);
-			}
-			break;
-		}
-		case Utils::ASS:
-		{
-			QString xml = decodeAsText(data);
-			int pos = 0, len;
-			pos = xml.indexOf("PlayResY:") + 9;
-			len = xml.indexOf('\n', pos) + 1 - pos;
-			int vertical = xml.midRef(pos, len).trimmed().toInt();
-			QVector<QStringRef> ref;
-			pos = xml.indexOf("Format:", pos) + 7;
-			len = xml.indexOf('\n', pos) + 1 - pos;
-			ref = xml.midRef(pos, len).split(',');
-			int name = -1, size = -1;
-			for (int i = 0; i < ref.size(); ++i){
-				const QStringRef &item = ref[i].trimmed();
-				if (item == "Name"){
-					name = i;
-				}
-				else if (item == "Fontsize"){
-					size = i;
-				}
-			}
-			if (name < 0 || size < 0){
-				break;
-			}
-			pos += len;
-			len = xml.indexOf("Format:", pos) - pos;
-			ref = xml.midRef(pos, len).split("Style:", QString::SkipEmptyParts);
-			QMap<QString, int> style;
-			for (const QStringRef &item : ref){
-				const auto &args = item.split(',');
-				style[args[name].trimmed().toString()] = args[size].toInt();
-			}
-			pos += len;
-			pos = xml.indexOf("Format:", pos) + 7;
-			len = xml.indexOf("\n", pos) + 1 - pos;
-			ref = xml.midRef(pos, len).split(',');
-			int text = -1, font = -1, time = -1;
-			for (int i = 0; i < ref.size(); ++i){
-				const QStringRef &item = ref[i].trimmed();
-				if (item == "Text"){
-					text = i;
-				}
-				else if (item == "Start"){
-					time = i;
-				}
-				else if (item == "Style"){
-					font = i;
-				}
-			}
-			if (text < 0 || font < 0 || time < 0){
-				break;
-			}
-			qint64 dat = QDateTime::currentDateTime().toTime_t();
-			pos += len;
-			ref = xml.midRef(pos).split("Dialogue:",QString::SkipEmptyParts);
-			for (const QStringRef &item : ref){
-				const auto &args = item.split(',');
-				Comment comment;
-				comment.date = dat;
-				QString t;
-				t = args[time].trimmed().toString();
-				comment.time = 1000 * Utils::evaluate(t);
-				t = args[font].trimmed().toString();
-				comment.font = style[t];
-				t = item.mid(args[text].position()-item.position()).trimmed().toString();
-				int split = t.indexOf("}") + 1;
-				comment.string = t.midRef(split).trimmed().toString();
-				const auto &m = t.midRef(1, split - 2).split('\\', QString::SkipEmptyParts);
-				for (const QStringRef &i : m){
-					if (i.startsWith("fs")){
-						comment.font = i.mid(2).toInt();
-					}
-					else if (i.startsWith("c&H", Qt::CaseSensitive)){
-						comment.color = i.mid(3).toInt(nullptr, 16);
-					}
-					else if (i.startsWith("c")){
-						comment.color = i.mid(1).toInt();
-					}
-					else if (i.startsWith("move")){
-						const auto &p = i.mid(5, i.length() - 6).split(',');
-						if (p.size() == 4){
-							comment.mode = p[0].toInt() > p[2].toInt() ? 1 : 6;
-						}
-					}
-					else if (i.startsWith("pos")){
-						const auto &p = i.mid(4, i.length() - 5).split(',');
-						if (p.size() == 2){
-							comment.mode = p[1].toInt() > vertical / 2 ? 4 : 5;
-						}
-					}
-					else{
-						comment.mode = 0;
-						break;
-					}
-				}
-				if (comment.mode != 0 && comment.color != 0){
-					list.append(comment);
-				}
-			}
-		}
-		default:
-			break;
-		}
-		return list;
-	}
-
 	std::function<bool(QString &)> getRegular(QRegularExpression ex)
 	{
 		return [ex](QString &code){
@@ -405,32 +68,6 @@ namespace
 			return code.length() > 2;
 		};
 	}
-
-	class Process : public QRunnable
-	{
-	public:
-		typedef std::future<QList<Comment>> Future;
-
-		Process(const QByteArray &data, Utils::Site site) :
-			data(data), site(site)
-		{
-		}
-
-		virtual void run() override
-		{
-			promise.set_value(parseComment(data, site));
-		}
-
-		Future getFuture()
-		{
-			return promise.get_future();
-		}
-
-	private:
-		QByteArray data;
-		Utils::Site site;
-		std::promise<QList<Comment>> promise;
-	};
 }
 
 Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
@@ -789,18 +426,18 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 			load.access = url.isLocalFile() ? url.toLocalFile() : load.source;
 			load.string = QFileInfo(task.code).fileName();
 			load.delay = task.delay;
-			QString head = decodeAsText(data.left(512));
+			QString head = Utils::decodeTxt(data.left(512));
 			if (head.startsWith("[Script Info]")){
-				load.danmaku = parseComment(data, Utils::ASS);
+				load.danmaku = Parse::parseComment(data, Utils::ASS);
 			}
 			else if (!head.startsWith("<?xml")){
-				load.danmaku = parseComment(data, Utils::AcFun);
+				load.danmaku = Parse::parseComment(data, Utils::AcFun);
 			}
 			else if (head.indexOf("<packet>") != -1){
-				load.danmaku = parseComment(data, Utils::Niconico);
+				load.danmaku = Parse::parseComment(data, Utils::Niconico);
 			}
 			else if (head.indexOf("<i>") != -1){
-				load.danmaku = parseComment(data, Utils::Bilibili);
+				load.danmaku = Parse::parseComment(data, Utils::Bilibili);
 				QString i = QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
 				if (!i.isEmpty()){
 					load.source = "http://comment.%1/%2.xml";
@@ -808,7 +445,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 				}
 			}
 			else if (head.indexOf("<c>") != -1){
-				load.danmaku = parseComment(data, Utils::AcfunLocalizer);
+				load.danmaku = Parse::parseComment(data, Utils::AcfunLocalizer);
 			}
 			if (load.delay != 0){
 				for (Comment &c : load.danmaku){
@@ -845,6 +482,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		switch (task.state) {
 		case None:
 		{
+			emit progressChanged(0);
 			QString api("http://comment.%1/rolldate,%2");
 			api = api.arg(Utils::customUrl(Utils::Bilibili));
 			task.code = QUrlQuery(task.code.mid(5)).queryItemValue("source");
@@ -904,20 +542,15 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 						now = 0;
 					}
 				}
-				//future only has move constructor, use std::list
-				QSharedPointer<std::list<Process::Future>> pool(new std::list<Process::Future>());
 
-				Process *p = new Process(data, Utils::Bilibili);
-				pool->emplace_back(Process::Future(p->getFuture()));
-				qThreadPool->start(p);
+				auto pool = QSharedPointer<QVector<Parse::ResultDelegate>>::create();
+				pool->append(Parse::parseComment(data, Utils::Bilibili));
 
 				double total = d->remain.size() + 2;
 				for (QNetworkReply *iter : d->remain) {
 					connect(iter, &QNetworkReply::finished, [=, &task]() {
 						QByteArray data = iter->readAll();
-						Process *p = new Process(data, Utils::Bilibili);
-						pool->emplace_back(Process::Future(p->getFuture()));
-						qThreadPool->start(p);
+						pool->append(Parse::parseComment(data, Utils::Bilibili));
 						switch (iter->error()) {
 						case QNetworkReply::NoError:
 							emit progressChanged((total - d->remain.size()) / total);
@@ -925,8 +558,8 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 							if (d->remain.isEmpty() && !pool->empty()) {
 								Record load;
 								load.full = true;
-								for (Process::Future &iter : *pool) {
-									load.danmaku.append(iter.get());
+								for (auto &iter : *pool) {
+									load.danmaku.append(iter);
 								}
 								load.source = task.code;
 								Danmaku::instance()->appendToPool(&load);
@@ -988,7 +621,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		case File:
 		{
 			Record load;
-			load.danmaku = parseComment(reply->readAll(), Utils::Bilibili);
+			load.danmaku = Parse::parseComment(reply->readAll(), Utils::Bilibili);
 			load.source = task.code;
 			for (Record &iter : Danmaku::instance()->getPool()){
 				if (iter.source == load.source){
@@ -1158,7 +791,7 @@ void Load::loadHistory(const Record *record, QDate date)
 	enqueue(task);
 }
 
-void Load::dumpDanmaku(const QList<Comment> *data, bool full)
+void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 {
 	Q_D(Load);
 	Task &task = d->queue.head();
@@ -1179,7 +812,7 @@ void Load::dumpDanmaku(const QList<Comment> *data, bool full)
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 {
-	auto list = parseComment(data, (Utils::Site)site);
+	QVector<Comment> list = Parse::parseComment(data, (Utils::Site)site);
 	dumpDanmaku(&list, full);
 }
 

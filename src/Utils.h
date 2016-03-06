@@ -47,21 +47,25 @@ public:
 		mode = font = color = time = date = 0;
 		blocked = false;
 	}
+
 	inline bool operator <(const Comment &o) const
 	{
 		return time < o.time;
 	}
+
 	inline bool operator==(const Comment &o) const
 	{
-		return mode == o.mode&&font == o.font&&color == o.color&&qFuzzyCompare((float)time, (float)o.time) && date == o.date&&sender == o.sender&&string == o.string;
+		return mode == o.mode && font == o.font && color == o.color && qFuzzyCompare((float)time, (float)o.time) && date == o.date && sender == o.sender && string == o.string;
 	}
+
 	inline bool isLocal() const
 	{
 		return date == 0 && sender.isEmpty();
 	}
+
 	inline bool isEmpty() const
 	{
-		return mode == 0 && font == 0 && color == 0 && time == 0 && date == 0 && !blocked;
+		return mode == 0 && font == 0 && color == 0 && time == 0 && date == 0 && sender.isEmpty() && string.isEmpty() && !blocked;
 	}
 };
 
@@ -85,7 +89,7 @@ public:
 	QString source;
 	QString string;
 	QString access;
-	QList<Comment> danmaku;
+	QVector<Comment> danmaku;
 
 	Record()
 	{
@@ -122,7 +126,9 @@ namespace Utils
 	void setGround(QWidget *widget, QColor color);
 	QString defaultFont(bool monospace = false);
 	QString customUrl(Site site);
+	QString decodeTxt(const QByteArray &data);
 	QString decodeXml(QString string, bool fast = false);
+	QString decodeXml(QStringRef ref, bool fast = false);
 	QStringList getSuffix(int type, QString format = QString());
 	double evaluate(QString expression);
 }

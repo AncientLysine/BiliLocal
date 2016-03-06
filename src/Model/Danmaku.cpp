@@ -35,9 +35,7 @@
 #include "../Graphic/Graphic.h"
 #include "../Model/Shield.h"
 #include "../UI/Editor.h"
-#include <QtConcurrent>
 #include <algorithm>
-#include <functional>
 
 class DanmakuPrivate
 {
@@ -291,21 +289,17 @@ void Danmaku::appendToPool(const Record *record)
 			break;
 		}
 	}
-	if (!append) {
+	if (append == nullptr) {
 		d->pool.append(*record);
 		QSet<CommentPointer> s;
 		auto &l = d->pool.last().danmaku;
 		s.reserve(l.size());
-		for (auto i = l.begin(); i != l.end();) {
+		auto e = std::remove_if(l.begin(), l.end(), [&s](const Comment &c) {
 			int n = s.size();
-			s.insert(&(*i));
-			if (n != s.size()) {
-				++i;
-			}
-			else {
-				i = l.erase(i);
-			}
-		}
+			s.insert(&c);
+			return n == s.size();
+		});
+		l.erase(e, l.end());
 	}
 	else {
 		QSet<CommentPointer> s;
@@ -454,6 +448,9 @@ void Danmaku::parse(int flag)
 		endResetModel();
 	}
 	if ((flag & 0x2) > 0) {
+		//MUST BE SORTED
+		Q_ASSERT(std::is_sorted(d->danm.begin(), d->danm.end(), CommentComparer()));
+
 		// Date Limit
 		for (Record &r : d->pool) {
 			for (Comment &c : r.danmaku) {
@@ -461,52 +458,79 @@ void Danmaku::parse(int flag)
 			}
 		}
 		// Repeat Limit
-		int l = Config::getValue("/Shield/Limit/Count", 5);
-		int t = Config::getValue("/Shield/Limit/Range", 10000);
-		if (l != 0) {
+		int limit = Config::getValue("/Shield/Limit/Count", 5);
+		int range = Config::getValue("/Shield/Limit/Range", 10000);
+		if (limit != 0) {
 			QVector<QString> clean;
-			clean.reserve(d->danm.size());
-			QSet<QString> set;
-			for (const Comment *c : d->danm) {
-				QString r;
-				r.reserve(c->string.length());
-				for (const QChar &i : c->string) {
-					if (i.isLetterOrNumber() || i.isMark() || i == '_') {
-						r.append(i);
+			int size = d->danm.size();
+			clean.reserve(size);
+			for (const Comment *iter : d->danm) {
+				const auto &raw = iter->string;
+
+				int length = raw.length();
+				const QChar *data = raw.data();
+
+				QString clr;
+
+				int passed = 0;
+				const QChar *head = data;
+
+				for (int i = 0; i < length; ++i) {
+					const QChar &c = data[i];
+					if (c.isLetterOrNumber() || c.isMark() || c == '_') {
+						++passed;
+					}
+					else if (passed > 0) {
+						clr.reserve(length);
+						clr.append(head, passed);
+						passed = 0;
+						head = data + i + 1;
 					}
 				}
-				clean.append(r);
+				if (passed == length) {
+					clean.append(raw);
+				}
+				else {
+					if (passed > 0) {
+						clr.append(head, passed);
+					}
+					clean.append(clr);
+				}
 			}
 			QHash<QString, int> count;
 			int sta = 0, end = sta;
-			while (end != d->danm.size()) {
-				while (d->danm[sta]->time + t < d->danm[end]->time) {
-					if (--count[clean[sta]] == 0) {
-						count.remove(clean[sta]);
+			for (; end < size; ++end) {
+				Comment *e = d->danm[end];
+				while (d->danm[sta]->time + range < e->time) {
+					auto i = count.find(clean[sta]);
+					if (i.value() == 1) {
+						count.erase(i);
+					}
+					else if (i.value() > 1) {
+						--(i.value());
 					}
 					++sta;
 				}
-				if (++count[clean[end]] > l&&d->danm[end]->mode <= 6) {
-					set.insert(clean[end]);
+				int &num = count[clean[end]];
+				if (num >= 0 && ++num > limit && e->mode <= 6) {
+					num = -1;
 				}
-				++end;
 			}
-			for (int i = 0; i < d->danm.size(); ++i) {
+			for (; sta < size; ++sta) {
+				auto i = count.find(clean[sta]);
+				if (i.value() > 0) {
+					count.erase(i);
+				}
+			}
+			for (int i = 0; i < size; ++i) {
 				Comment *c = d->danm[i];
-				c->blocked = c->blocked || set.contains(clean[i]);
+				c->blocked = c->blocked || count.contains(clean[i]);
 			}
 		}
 		// Regex Limit
-		QtConcurrent::blockingMap<
-			QList<Comment *>,
-			std::function<void(Comment *)>
-		>(
-			d->danm,
-			[](Comment *c)
-		{
+		for (Comment *c : d->danm) {
 			c->blocked = c->blocked || Shield::instance()->isBlocked(*c);
 		}
-		);
 		qThreadPool->clear();
 		qThreadPool->waitForDone();
 		d->lock.lockForWrite();
@@ -547,8 +571,8 @@ namespace
 			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500){
 				return;
 			}
-			//子线程默认优先级和主线程相同，会导致卡顿
-			QThread::currentThread()->setPriority(QThread::NormalPriority);
+			//子线程优先级需要低于主线程
+			QThread::currentThread()->setPriority(QThread::LowPriority);
 			QList<Graphic *> ready;
 			for (const Comment *comment : wait){
 				Graphic *graphic = nullptr;
