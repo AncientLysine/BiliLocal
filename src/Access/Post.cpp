@@ -80,7 +80,7 @@ Post::Post(QObject *parent) : QObject(parent), d_ptr(new PostPrivate(this))
 			params.addQueryItem("message", c.string);
 			params.addQueryItem("rnd", QString::number(qrand()));
 			params.addQueryItem("mode", QString::number(c.mode));
-			task.data = QUrl::toPercentEncoding(params.query(QUrl::FullyEncoded), "%=&", "-.~_");
+			task.data = params.query(QUrl::FullyEncoded).toUtf8();
 			task.state = Code;
 			forward();
 			break;

@@ -67,7 +67,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 
 	auto biCaptcha = [this](){
 		Task &task = *getHead();
-		QString url("https://account.%1/captcha");
+		QString url("https://passport.%1/captcha");
 		url = url.arg(Utils::customUrl(Utils::Bilibili));
 		task.request.setUrl(url);
 		forward(Code);
@@ -106,7 +106,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 		}
 		case Wait:
 		{
-			QString url = "https://account.%1/login?act=%2";
+			QString url = "https://passport.%1/login?act=%2";
 			url = url.arg(Utils::customUrl(Utils::Bilibili));
 			if (task.logged){
 				task.request.setUrl(url.arg("exit"));
@@ -150,17 +150,17 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 				biCaptcha();
 			}
 
-			QString url("https://account.%1/login/dologin");
+			QString url("https://passport.%1/login/dologin");
 			url = url.arg(Utils::customUrl(Utils::Bilibili));
 			task.request.setUrl(url);
 			task.request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-			QUrlQuery query;
-			query.addQueryItem("act", "login");
-			query.addQueryItem("userid", task.username);
-			query.addQueryItem("pwd", task.password);
-			query.addQueryItem("vdcode", task.captcha.toLower());
-			query.addQueryItem("keeptime", "604800");
-			task.data = query.query().toUtf8();
+			QUrlQuery params;
+			params.addQueryItem("act", "login");
+			params.addQueryItem("userid", task.username);
+			params.addQueryItem("pwd", task.password);
+			params.addQueryItem("vdcode", task.captcha.toUpper());
+			params.addQueryItem("keeptime", "604800");
+			task.data = params.query(QUrl::FullyEncoded).toUtf8();
 			forward(Data);
 			task.data.clear();
 			break;

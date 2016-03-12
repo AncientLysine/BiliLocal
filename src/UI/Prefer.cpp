@@ -906,7 +906,6 @@ QDialog(parent)
 		info = new QLabel(widget[4]);
 		info->setAlignment(Qt::AlignCenter);
 		info->setText(tr("waiting"));
-		info->setScaledContents(true);
 		l->addWidget(info, 0, 3);
 
 		sites = new QComboBox(widget[4]);
@@ -958,6 +957,7 @@ QDialog(parent)
 				else{
 					QPixmap captcha;
 					if (captcha.loadFromData(task->data)){
+						captcha = captcha.scaledToWidth(info->width(), Qt::SmoothTransformation);
 						info->setPixmap(captcha);
 					}
 					if (!task->error.isEmpty()){
