@@ -129,7 +129,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 				if (!bio){
 					throw "failed to generate BIO";
 				}
-				RSA *rsa = rsa = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL);
+				RSA *rsa = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL);
 				if (!rsa){
 					throw "failed to generate RSA_PUBKEY";
 				}

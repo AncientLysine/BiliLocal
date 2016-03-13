@@ -97,22 +97,20 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		{
 			d->model->clear();
 			QString api, id, video(reply->readAll());
-			int sta;
-			if ((sta = video.indexOf("<div class=\"plist\">")) != -1 && sharp == -1){
-				int len = video.indexOf("</select>", sta) - sta + 1;
-				len = len < 0 ? 0 : len;
-				QString select = video.mid(sta, len);
-				QRegExp regex("value\\='[^']+");
-				int cur = 0;
-				api = "http://www." + Utils::customUrl(Utils::Bilibili);
-				while ((cur = regex.indexIn(select, cur)) != -1){
-					sta = select.indexOf('>', cur) + 1;
-					cur += regex.matchedLength();
+			int part = video.indexOf("<select");
+			if (part != -1 && sharp == -1){
+				QRegularExpression r("(?<=>).*?(?=</option>)");
+				QStringRef list(&video, part, video.indexOf("</select>", part) - part);
+				QRegularExpressionMatchIterator i = r.globalMatch(list);
+				api = "http://www.%1/video/%2/index_%3.html";
+				api = api.arg(Utils::customUrl(Utils::Bilibili));
+				while (i.hasNext()){
+					int index = d->model->rowCount() + 1;
 					QStandardItem *item = new QStandardItem;
-					item->setData(QUrl(api + regex.cap().mid(7)), UrlRole);
-					item->setData((task.code + "#%1").arg(d->model->rowCount() + 1), StrRole);
+					item->setData(QUrl(api.arg(task.code).arg(index)), UrlRole);
+					item->setData((task.code + "#%1").arg(index), StrRole);
 					item->setData(Page, NxtRole);
-					item->setData(Utils::decodeXml(select.mid(sta, select.indexOf('<', sta) - sta)), Qt::EditRole);
+					item->setData(Utils::decodeXml(i.next().captured()), Qt::EditRole);
 					d->model->appendRow(item);
 				}
 			}
@@ -161,6 +159,61 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		return getRegular(r)(code);
 	};
 	d->pool.append({ avRegular, 0, avProcess });
+
+	auto bbProcess = [this, avProcess](QNetworkReply *reply) {
+		Q_D(Load);
+		Task &task = d->queue.head();
+		switch (task.state) {
+		case None:
+		{
+			QString i = task.code.mid(2);
+			QString u = "http://www.%1/bangumi/i/%2/";
+			u = u.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
+			forward(QNetworkRequest(u), Page);
+			break;
+		}
+		case Page:
+		{
+			d->model->clear();
+			QString page(reply->readAll());
+			QStringList list = page.split("<li data-index");
+
+			if (list.size() < 2) {
+				emit stateChanged(task.state = None);
+				dequeue();
+				break;
+			}
+
+			list.removeFirst();
+			QListIterator<QString> iter(list);
+			iter.toBack();
+			while (iter.hasPrevious()) {
+				QRegularExpression r;
+				const QString &i = iter.previous();
+				r.setPattern("(?<=href=\")[^\"]+");
+				QString c = r.match(i).captured();
+				fixCode(c);
+				r.setPattern("(?<=<span>).+(?=</span>)");
+				QString t = Utils::decodeXml(r.match(i).captured());
+
+				QStandardItem *item = new QStandardItem;
+				item->setData(c, StrRole);
+				item->setData(None, NxtRole);
+				item->setData(t, Qt::EditRole);
+				d->model->appendRow(item);
+			}
+			emit stateChanged(task.state = Part);
+		}
+		}
+	};
+
+	auto bbRegular = [](QString &code) {
+		code.replace(QRegularExpression("bangumi/i/(?=\\d+)"), "bb");
+		QRegularExpression r("b(b(\\d+)?)?");
+		r.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		return getRegular(r)(code);
+	};
+	d->pool.append({ bbRegular, 0, bbProcess });
 
 	auto acProcess = [this](QNetworkReply *reply){
 		Q_D(Load);
@@ -603,7 +656,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 			QString dat = query.queryItemValue("date");
 			QString url;
 			QNetworkRequest request;
-			if (dat != "0" && dat.toInt() != QDateTime(QDate::currentDate()).toTime_t()){
+			if (dat != "0" && dat.toUInt() != QDateTime(QDate::currentDate()).toTime_t()){
 				url = QString("http://comment.%1/dmroll,%2,%3");
 				url = url.arg(Utils::customUrl(Utils::Bilibili));
 				url = url.arg(dat).arg(cid);
@@ -755,12 +808,12 @@ void Load::loadDanmaku(QString code)
 void Load::loadDanmaku(const QModelIndex &index)
 {
 	if (index.isValid()){
-		QVariant u = index.data(UrlRole), s = index.data(StrRole);
-		if (u.isValid() && s.isValid()){
+		QVariant s = index.data(StrRole);
+		if (s.isValid()){
 			Task task;
 			task.code = s.toString();
 			task.processer = getProc(task.code);
-			task.request = QNetworkRequest(u.toUrl());
+			task.request = QNetworkRequest(index.data(UrlRole).toUrl());
 			task.state = index.data(NxtRole).toInt();
 			APlayer *aplayer = APlayer::instance();
 			task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Playing/Delay", false) ? aplayer->getTime() : 0;

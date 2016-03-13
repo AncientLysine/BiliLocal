@@ -125,12 +125,9 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 	QList<const char *> biOrder;
 #define tr
 	biOrder <<
-		tr("default") <<
-		tr("pubdate") <<
-		tr("senddate") <<
-		tr("ranklevel") <<
+		tr("totalrank") <<
 		tr("click") <<
-		tr("scores") <<
+		tr("pubdate") <<
 		tr("dm") <<
 		tr("stow");
 #undef tr
@@ -147,13 +144,11 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				dequeue();
 				break;
 			}
-			QUrl url("http://www." + Utils::customUrl(Utils::Bilibili) + "/search");
+			QUrl url("http://search." + Utils::customUrl(Utils::Bilibili) + "/all");
 			QUrlQuery query;
 			query.addQueryItem("keyword", task.text);
-			query.addQueryItem("type", "comprehensive");
 			query.addQueryItem("page", QString::number(task.page.first));
-			query.addQueryItem("pagesize", "20");
-			query.addQueryItem("orderby", biOrder[task.sort]);
+			query.addQueryItem("order", biOrder[task.sort]);
 			url.setQuery(query);
 			task.request.setUrl(url);
 			task.state = List;
@@ -169,118 +164,115 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 			task.model->horizontalHeaderItem(2)->setData(45, Qt::UserRole);
 			task.model->horizontalHeaderItem(4)->setData(75, Qt::UserRole);
 			task.model->horizontalHeaderItem(5)->setData(75, Qt::UserRole);
+
 			const QByteArray &data = reply->readAll();
 			auto page = QTextCodec::codecForHtml(data, QTextCodec::codecForName("UTF-8"))->toUnicode(data);
-			auto list = page.split(QRegularExpression("<li class=\"l\\W"), QString::SkipEmptyParts);
-			if (2 > list.size()) break;
-			QString &last = list.last();
-			last.truncate(last.indexOf("</li>") + 5);
-			list.removeFirst();
-			for (const QString &item : list){
+			QStringList list = page.split("<li class=\"list", QString::SkipEmptyParts);
+
+			if (list.isEmpty()) {
+				emit stateChanged(task.state = None);
+				dequeue();
+				break;
+			}
+
+			QRegularExpression r;
+			QRegularExpressionMatch m;
+			r.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
+
+			QStringList bang = list.takeFirst().split("<div class=\"list\">");
+			QString type;
+			if (bang.size() > 0) {
+				r.setPattern("(?<=<h2 class=\"main\">).*?(?=</h2>)");
+				m = r.match(bang.takeFirst());
+				type = Utils::decodeXml(m.captured());
+			}
+			for (const QString &item : bang) {
 				QList<QStandardItem *> line;
-				for (int i = 0; i < 6; ++i){
-					line.append(new QStandardItem);
+				for (int i = 0; i < 6; ++i) {
+					line.append(new QStandardItem());
 				}
-				QRegularExpression r;
-				QRegularExpressionMatch m;
-				r.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
-				r.setPattern("av\\d+");
-				m = r.match(item);
-				bool isSeason = !m.hasMatch();
-				line[0]->setData(m.captured(), Qt::UserRole);
-				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
+
 				r.setPattern("(?<=src=\")[^\"']+");
-				m = r.match(item, isSeason ? 0 : m.capturedEnd());
+				m = r.match(item);
 				QNetworkRequest request(m.captured());
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
-				images[&task].append(request);
-				if (isSeason){
-					r.setPattern("(?<=<div class=\"t\">).*?(?=</div>)");
-					m = r.match(item, m.capturedEnd());
-					line[3]->setText(Utils::decodeXml(m.captured()));
-				}
-				else{
-					r.setPattern("(?<=<span>).*(?=</span>)");
-					m = r.match(item, m.capturedEnd());
-					line[4]->setText(Utils::decodeXml(m.captured()));
-					r.setPattern(".*?(?=</div>)");
-					m = r.match(item, m.capturedEnd());
-					line[3]->setText(Utils::decodeXml(m.captured().trimmed()));
-					r.setPattern("class=\"upper\"");
-					m = r.match(item, m.capturedEnd());
-					r.setPattern("(?<=>)[^<]+");
-					m = r.match(item, m.capturedEnd());
-					line[5]->setText(Utils::decodeXml(m.captured()));
-					r.setPattern("<i class");
-					m = r.match(item, m.capturedEnd());
-					r.setPattern("(?<=>)[\\s\\d\\-]+(?=</i>)");
-					auto i = r.globalMatch(item, m.capturedEnd());
-					line[1]->setText((m = i.next()).captured().simplified());
-					i.next();
-					line[2]->setText((m = i.next()).captured().simplified());
-				}
-				r.setPattern("(?<=intro\">).*?(?=</div>)");
+				d->remain += d->manager.get(request);
+
+				r.setPattern("(?<=bangumi/i/)\\d+(?=/)");
+				m = r.match(item, m.capturedEnd());
+				line[0]->setData("bb" + m.captured(), Qt::UserRole);
+				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
+
+				r.setPattern("(?<=>).*?(?=</a>)");
+				m = r.match(item, m.capturedEnd());
+				line[3]->setText(Utils::decodeXml(m.captured().trimmed()));
+
+				r.setPattern("(?<=<p>).*?(?=</p>)");
 				m = r.match(item, m.capturedEnd());
 				line[3]->setToolTip(toRichText(Utils::decodeXml(m.captured())));
-				if (isSeason){
-					r.setPattern("(?<=createSeasonList\\().*?(?=\\);)");
-					m = r.match(item, m.capturedEnd());
-					QStringList args = m.captured().split(',');
-					if (args.size() >= 2){
-						QString url("http://app.%1/bangumi/seasoninfo/%2");
-						QNetworkRequest request(url.arg(Utils::customUrl(Utils::Bilibili)).arg(args[1].trimmed()));
-						request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
-						d->remain += d->manager.get(request);
-					}
-				}
+
+				line[4]->setText(type);
+
 				disableEditing(line);
 				task.model->appendRow(line);
 			}
-			auto m = QRegularExpression("\\d+").match(page, page.indexOf("pagelistbox"));
-			task.page.second = qMax(list.isEmpty() ? 0 : task.page.first, m.captured().toInt());
+
+			if (list.size() > 0) {
+				QString &last = list.last();
+				last.truncate(last.indexOf("</li>") + 5);
+			}
+			for (const QString &item : list) {
+				QList<QStandardItem *> line;
+				for (int i = 0; i < 6; ++i) {
+					line.append(new QStandardItem());
+				}
+
+				r.setPattern("av\\d+");
+				m = r.match(item);
+				line[0]->setData(m.captured(), Qt::UserRole);
+				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
+
+				r.setPattern("(?<=src=\")[^\"']+");
+				m = r.match(item, m.capturedEnd());
+				QNetworkRequest request(m.captured());
+				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
+				d->remain += d->manager.get(request);
+
+				r.setPattern("(?<=>).*?(?=</a>)");
+				m = r.match(item, item.indexOf("<a class=\"tag", m.capturedEnd()));
+				line[4]->setText(Utils::decodeXml(m.captured()));
+
+				m = r.match(item, item.indexOf("title=\"", m.capturedEnd()));
+				line[3]->setText(Utils::decodeXml(m.captured().trimmed()));
+
+				r.setPattern("(?<=intro\">).*?(?=</p>)");
+				m = r.match(item, m.capturedEnd());
+				line[3]->setToolTip(toRichText(Utils::decodeXml(m.captured())));
+
+				r.setPattern("(?<=i>).*?(?=</span>)");
+				m = r.match(item, item.indexOf("playtime", m.capturedEnd()));
+				line[1]->setText(m.captured().simplified());
+
+				m = r.match(item, item.indexOf("subtitle", m.capturedEnd()));
+				line[2]->setText(m.captured().simplified());
+
+				r.setPattern("(?<=>).*(?=</a>)");
+				m = r.match(item, item.indexOf("uper", m.capturedEnd()));
+				line[5]->setText(Utils::decodeXml(m.captured()));
+
+				disableEditing(line);
+				task.model->appendRow(line);
+			}
+
+			auto num = QRegularExpression("(?<=\")\\d+").match(page, page.indexOf("data-num_pages"));
+			task.page.second = num.captured().toInt();
+
 			if (d->remain.isEmpty()){
-				emit stateChanged(task.state = Data);
+				emit stateChanged(task.state = None);
+				dequeue();
 			}
 			else{
-				emit stateChanged(task.state = More);
-				break;
-			}
-		}
-		case More:
-		{
-			auto cell = praseItem(reply->request());
-			auto list = QJsonDocument::fromJson(reply->readAll()).object()["result"].toObject()["episodes"].toArray();
-			for (const auto &iter : list){
-				QJsonObject item = iter.toObject();
-				QList<QStandardItem *> line;
-				for (int i = 0; i < 6; ++i){
-					line.append(new QStandardItem);
-				}
-				line[0]->setData("av" + item["av_id"].toString(), Qt::UserRole);
-				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
-				QNetworkRequest request(item["cover"].toString());
-				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
-				images[&task].append(request);
-				line[3]->setText(Utils::decodeXml(item["index_title"].toString()));
-				disableEditing(line);
-				cell->insertRow(0, line);
-			}
-			if (d->remain.isEmpty()){
-				if (reply->error() != QNetworkReply::OperationCanceledError){
-					for (auto r : images.take(&task)){
-						d->remain += d->manager.get(r);
-					}
-					if (d->remain.isEmpty()){
-						emit stateChanged(task.state = None);
-						dequeue();
-					}
-					else{
-						emit stateChanged(task.state = Data);
-					}
-				}
-				else{
-					images.remove(&task);
-				}
+				emit stateChanged(task.state = Data);
 			}
 			break;
 		}
@@ -343,14 +335,16 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 			task.model->horizontalHeaderItem(2)->setData(45, Qt::UserRole);
 			task.model->horizontalHeaderItem(4)->setData(75, Qt::UserRole);
 			task.model->horizontalHeaderItem(5)->setData(75, Qt::UserRole);
+
 			QJsonObject page = QJsonDocument::fromJson(reply->readAll()).object()["data"].toObject()["page"].toObject();
-			QJsonArray list = page["list"].toArray();
-			for (int i = 0; i < list.count(); ++i){
-				QJsonObject item = list[i].toObject();
+			for (const QJsonValue &iter : page["list"].toArray()){
+				QJsonObject item = iter.toObject();
+
 				int channelId = item["channelId"].toDouble();
 				if (channelId == 110 || channelId == 63 || (channelId > 72 && channelId < 77)) {
 					continue;
 				}
+
 				QList<QStandardItem *> line;
 				line << new QStandardItem();
 				line << new QStandardItem(QString::number((int)item["views"].toDouble()));
@@ -361,13 +355,17 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				line[0]->setData(item["contentId"].toString(), Qt::UserRole);
 				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
 				line[3]->setToolTip(toRichText(item["description"].toString()));
+
 				QNetworkRequest request(QUrl(item["titleImg"].toString()));
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
 				d->remain += d->manager.get(request);
+
 				disableEditing(line);
 				task.model->appendRow(line);
 			}
+
 			task.page.second = qCeil(page["totalCount"].toDouble() / page["pageSize"].toDouble());
+
 			if (d->remain.isEmpty()){
 				emit stateChanged(task.state = None);
 				dequeue();

@@ -46,6 +46,9 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	{
 		auto xml = QSharedPointer<QString>::create(Utils::decodeTxt(data));
 		QVector<QStringRef> items = xml->splitRef("<d p=");
+		if (items.isEmpty()) {
+			return ResultDelegate();
+		}
 		items.removeFirst();
 		auto future = QtConcurrent::mappedReduced<
 			QVector<Comment>,
@@ -132,6 +135,9 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	{
 		QString xml = Utils::decodeTxt(data);
 		QVector<QStringRef> items = xml.splitRef("<l i=\"");
+		if (items.isEmpty()) {
+			return ResultDelegate();
+		}
 		items.removeFirst();
 		QVector<Comment> list;
 		list.reserve(items.size());
@@ -157,6 +163,9 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	case Utils::Niconico:
 	{
 		QVector<QStringRef> items = Utils::decodeTxt(data).splitRef("<chat ");
+		if (items.isEmpty()) {
+			return ResultDelegate();
+		}
 		items.removeFirst();
 		QVector<Comment> list;
 		list.reserve(items.size());
