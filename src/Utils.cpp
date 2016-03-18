@@ -383,39 +383,31 @@ QString Utils::decodeXml(QString string, bool fast)
 
 namespace
 {
-#ifdef _MSC_VER
-#define FORCEINLINE __forceinline
-#elif defined __GNUC__
-#define FORCEINLINE __inline__ __attribute__((always_inline))
-#else
-#define FORCEINLINE inline
-#endif
-
 	template<char16_t... list>
-	struct StaticString;
+	struct String;
 
 	template<char16_t tail>
-	struct StaticString<tail>
+	struct String<tail>
 	{
-		FORCEINLINE static bool equalTo(const char16_t *string, int offset)
+		inline static bool equalTo(const char16_t *string, int offset)
 		{
 			return string[offset] == tail;
 		}
 	};
 
 	template<char16_t head, char16_t... rest>
-	struct StaticString<head, rest...>
+	struct String<head, rest...>
 	{
-		FORCEINLINE static bool equalTo(const char16_t *string, int offset)
+		inline static bool equalTo(const char16_t *string, int offset)
 		{
 			return string[offset] == head && StaticString<rest...>::equalTo(string, offset + 1);
 		}
 	};
 
 	template<char16_t... list>
-	FORCEINLINE bool equal(const char16_t *string, int length, int offset)
+	inline bool equal(const char16_t *string, int length, int offset)
 	{
-		return offset + (int)sizeof...(list) < length && StaticString<list...>::equalTo(string, offset);
+		return offset + (int)sizeof...(list) < length && String<list...>::equalTo(string, offset);
 	}
 
 	int decodeHtmlEscape(const char16_t *data, int length, int i, char16_t &c)

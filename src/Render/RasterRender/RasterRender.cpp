@@ -6,7 +6,6 @@
 #include "../../Local.h"
 #include "../../Player/APlayer.h"
 
-
 RasterRender::RasterRender(QObject *parent) :
 ARender(new RasterRenderPrivate, parent)
 {
@@ -65,30 +64,39 @@ void RasterRender::draw(QRect rect)
 	d->widget->update(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
 }
 
-RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size) :
-format(AV_PIX_FMT_NONE), size(size)
+RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size, int alignment) :
+	format(AV_PIX_FMT_NONE), size(size)
 {
-	memset(data, 0, sizeof(data[0]) * 4);
-	if (av_image_fill_linesizes(width, format, size.width()) < 0)
+	int len = av_image_alloc(data, width, size.width(), size.height(), format, alignment);
+	if (len < 0 || data[0] == nullptr) {
 		return;
-	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(format);
-	if (!desc || desc->flags&PIX_FMT_HWACCEL)
-		return;
-	int i, p[4] = { 0 };
-	for (i = 0; i < 4; i++)
-		p[desc->comp[i].plane] = 1;
-	lines[0] = size.height();
-	int n = width[0] * lines[0];
-	for (i = 1; i < 4 && p[i]; i++){
-		int s = (i == 1 || i == 2) ? desc->log2_chroma_h : 0;
-		lines[i] = (size.height() + (1 << s) - 1) >> s;
-		n += width[i] * lines[i];
 	}
-	data[0] = new quint8[n];
-	for (i = 1; i < 4 && p[i]; i++){
-		data[i] = data[i - 1] + width[i - 1] * lines[i - 1];
+	size_t i = 0;
+	for (; i < 3; ++i) {
+		quint8 *ptr = data[i + 1];
+		if (ptr == nullptr) {
+			break;
+		}
+		int num = ptr - data[i];
+		if (num == 0) {
+			continue;
+		}
+		lines[i] = num / width[i];
+		len -= num;
+	}
+	lines[i] = len / width[i];
+	++i;
+	for (; i < 4; ++i) {
+		lines[i] = 0;
 	}
 	this->format = format;
+}
+
+RasterRenderPrivate::Buffer::~Buffer()
+{
+	if (isValid()) {
+		av_freep(&data[0]);
+	}
 }
 
 bool RasterRenderPrivate::Buffer::isValid()
@@ -116,13 +124,6 @@ void RasterRenderPrivate::Widget::paintEvent(QPaintEvent *)
 		render->drawTime(&painter, rect);
 		render->drawDanm(&painter, rect);
 		render->timer.swap();
-	}
-}
-
-RasterRenderPrivate::Buffer::~Buffer()
-{
-	if (isValid()){
-		delete data[0];
 	}
 }
 
@@ -216,7 +217,7 @@ void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 	QSize dstSize = dest.size()*painter->device()->devicePixelRatio();
 	if (!dstFrame || dstFrame->size != dstSize){
 		delete dstFrame;
-		dstFrame = new Buffer(AV_PIX_FMT_RGB32, dstSize);
+		dstFrame = new Buffer(AV_PIX_FMT_RGB32, dstSize, 4);
 		frame = QImage(*dstFrame->data, dstSize.width(), dstSize.height(), QImage::Format_RGB32);
 		dirty = true;
 	}
@@ -251,17 +252,14 @@ QList<quint8 *> RasterRenderPrivate::getBuffer()
 
 void RasterRenderPrivate::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize)
 {
-	//TODO: Alignment
-	Q_UNUSED(alignment);
-
 	delete srcFrame;
-	srcFrame = new Buffer(getFormat(chroma), size);
+	srcFrame = new Buffer(getFormat(chroma), size, alignment);
 	if (bufferSize){
 		bufferSize->clear();
 	}
-	for (int i = 0; i < 4; ++i){
-		int l;
-		if ((l = srcFrame->width[i]) == 0){
+	for (size_t i = 0; i < 4; ++i){
+		int l = srcFrame->width[i];
+		if (l == 0){
 			break;
 		}
 		if (bufferSize){

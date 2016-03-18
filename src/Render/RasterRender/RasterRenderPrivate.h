@@ -6,7 +6,6 @@
 
 extern "C"
 {
-#include <libavutil/mem.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
@@ -23,7 +22,7 @@ public:
 		AVPixelFormat format;
 		QSize size;
 
-		Buffer(AVPixelFormat format, QSize size);
+		Buffer(AVPixelFormat format, QSize size, int alignment);
 		~Buffer();
 		bool isValid();
 	};

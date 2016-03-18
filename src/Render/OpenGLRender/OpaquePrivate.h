@@ -85,6 +85,12 @@ public:
 		dataLock.unlock();
 	}
 
+	inline void align(int &size, int alignment)
+	{
+		--alignment;
+		size = (size + alignment) & (~alignment);
+	}
+
 	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize) override
 	{
 		if (chroma == "YV12"){
@@ -100,16 +106,27 @@ public:
 			format = 0;
 			chroma = "I420";
 		}
-		//TODO: Alignment
-		this->alignment = alignment;
+
 		inner = size;
-		int s = size.width()*size.height();
-		quint8 *alloc = nullptr;
+
+		if (alignment >= 8) {
+			alignment = 8;
+		}
+		else if (alignment >= 4) {
+			alignment = 4;
+		}
+		else if (alignment >= 2) {
+			alignment = 2;
+		}
+		else {
+			alignment = 1;
+		}
+		this->alignment = alignment;
+
 		QList<QSize> plane;
 		switch (format){
 		case 0:
 		case 1:
-			alloc = new quint8[s * 3 / 2];
 			plane.append(size);
 			size /= 2;
 			plane.append(size);
@@ -117,19 +134,24 @@ public:
 			break;
 		case 2:
 		case 3:
-			alloc = new quint8[s * 3 / 2];
 			plane.append(size);
 			size.rheight() /= 2;
 			plane.append(size);
 			break;
 		}
-		if (!buffer.isEmpty()){
+		if (buffer.size() > 0) {
 			delete[]buffer[0];
+			buffer.clear();
 		}
-		buffer.clear();
-		for (const QSize &s : plane){
-			buffer.append(alloc);
-			alloc += s.width()*s.height();
+		size_t len = 0;
+		for (QSize &s : plane){
+			align(s.rwidth(), alignment);
+			len += s.width() * s.height();
+		}
+		quint8 *buf = new quint8[len];
+		for (QSize &s : plane) {
+			buffer.append(buf);
+			buf += s.width() * s.height();
 		}
 		if (bufferSize)
 			bufferSize->swap(plane);

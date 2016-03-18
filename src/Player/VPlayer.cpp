@@ -54,7 +54,7 @@ namespace
 	{
 		QString c(chroma);
 		QList<QSize> b;
-		ARender::instance()->setBuffer(c, QSize(*width, *height), 1, &b);
+		ARender::instance()->setBuffer(c, QSize(*width, *height), 8, &b);
 		if (b.isEmpty()){
 			return 0;
 		}
