@@ -400,7 +400,7 @@ namespace
 	{
 		inline static bool equalTo(const char16_t *string, int offset)
 		{
-			return string[offset] == head && StaticString<rest...>::equalTo(string, offset + 1);
+			return string[offset] == head && String<rest...>::equalTo(string, offset + 1);
 		}
 	};
 
