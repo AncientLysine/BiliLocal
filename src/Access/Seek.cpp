@@ -109,11 +109,6 @@ namespace
 			iter->setEditable(false);
 		}
 	}
-
-	QString toRichText(QString text)
-	{
-		return text.isEmpty() ? text : Qt::convertFromPlainText(text);
-	}
 }
 
 Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
@@ -167,7 +162,7 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 
 			const QByteArray &data = reply->readAll();
 			auto page = QTextCodec::codecForHtml(data, QTextCodec::codecForName("UTF-8"))->toUnicode(data);
-			QStringList list = page.split("<li class=\"list", QString::SkipEmptyParts);
+			QStringList list = page.split("<li class=\"video", QString::SkipEmptyParts);
 
 			if (list.isEmpty()) {
 				emit stateChanged(task.state = None);
@@ -179,12 +174,9 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 			QRegularExpressionMatch m;
 			r.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
 
-			QStringList bang = list.takeFirst().split("<div class=\"list\">");
-			QString type;
+			QStringList bang = list.takeFirst().split("<li class=\"synthetical");
 			if (bang.size() > 0) {
-				r.setPattern("(?<=<h2 class=\"main\">).*?(?=</h2>)");
-				m = r.match(bang.takeFirst());
-				type = Utils::decodeXml(m.captured());
+				bang.removeFirst();
 			}
 			for (const QString &item : bang) {
 				QList<QStandardItem *> line;
@@ -207,11 +199,12 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				m = r.match(item, m.capturedEnd());
 				line[3]->setText(Utils::decodeXml(m.captured().trimmed()));
 
-				r.setPattern("(?<=<p>).*?(?=</p>)");
-				m = r.match(item, m.capturedEnd());
-				line[3]->setToolTip(toRichText(Utils::decodeXml(m.captured())));
-
-				line[4]->setText(type);
+				r.setPattern("(?<=>).*?(?=</div>)");
+				m = r.match(item, item.indexOf("class=\"des", m.capturedEnd()));
+				QString d = m.captured().trimmed();
+				d.replace("<em class=\"keyword\">", "<font color=red>").replace("</em>", "</font>");
+				d = "<p>" + d + "</p>";
+				line[3]->setToolTip(d);
 
 				disableEditing(line);
 				task.model->appendRow(line);
@@ -238,16 +231,20 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);
 				d->remain += d->manager.get(request);
 
-				r.setPattern("(?<=>).*?(?=</a>)");
-				m = r.match(item, item.indexOf("<a class=\"tag", m.capturedEnd()));
+				r.setPattern("(?<=>).*?(?=</span>)");
+				m = r.match(item, item.indexOf("class=\"type", m.capturedEnd()));
 				line[4]->setText(Utils::decodeXml(m.captured()));
 
-				m = r.match(item, item.indexOf("title=\"", m.capturedEnd()));
+				r.setPattern("(?<=>).*?(?=</a>)");
+				m = r.match(item, item.indexOf("class=\"title", m.capturedEnd()));
 				line[3]->setText(Utils::decodeXml(m.captured().trimmed()));
 
-				r.setPattern("(?<=intro\">).*?(?=</p>)");
-				m = r.match(item, m.capturedEnd());
-				line[3]->setToolTip(toRichText(Utils::decodeXml(m.captured())));
+				r.setPattern("(?<=>).*?(?=</div>)");
+				m = r.match(item, item.indexOf("class=\"des", m.capturedEnd()));
+				QString d = m.captured().trimmed();
+				d.replace("<em class=\"keyword\">", "<font color=red>").replace("</em>", "</font>");
+				d = "<p>" + d + "</p>";
+				line[3]->setToolTip(d);
 
 				r.setPattern("(?<=i>).*?(?=</span>)");
 				m = r.match(item, item.indexOf("playtime", m.capturedEnd()));
@@ -256,7 +253,7 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				m = r.match(item, item.indexOf("subtitle", m.capturedEnd()));
 				line[2]->setText(m.captured().simplified());
 
-				r.setPattern("(?<=>).*(?=</a>)");
+				r.setPattern("(?<=>).*?(?=</a>)");
 				m = r.match(item, item.indexOf("uper", m.capturedEnd()));
 				line[5]->setText(Utils::decodeXml(m.captured()));
 
@@ -354,7 +351,7 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 				line << new QStandardItem(Utils::decodeXml(item["username"].toString()));
 				line[0]->setData(item["contentId"].toString(), Qt::UserRole);
 				line[0]->setSizeHint(QSize(0, task.cover.height() + 3));
-				line[3]->setToolTip(toRichText(item["description"].toString()));
+				line[3]->setToolTip("<p>" + item["description"].toString() + "</p>");
 
 				QNetworkRequest request(QUrl(item["titleImg"].toString()));
 				request.setAttribute(QNetworkRequest::User, (quintptr)line[0]);

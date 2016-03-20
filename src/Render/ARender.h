@@ -52,7 +52,6 @@ public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0);
-	virtual ISprite *getSprite(const Comment &comment) = 0;
 
 	void setBackground(QString path);
 	void setMusic(bool music);
@@ -60,6 +59,8 @@ public slots:
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
 	void draw();
+
+	virtual ISprite *getSprite(const Comment &comment) = 0;
 	virtual quintptr getHandle() = 0;
 	virtual void resize(QSize size) = 0;
 	virtual QSize getBufferSize() = 0;
