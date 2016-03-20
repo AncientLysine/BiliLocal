@@ -83,8 +83,9 @@ Danmaku::~Danmaku()
 void Danmaku::draw(QPainter *painter, double move)
 {
 	Q_D(Danmaku);
+	QVarLengthArray<Graphic *> dirty;
 	d->lock.lockForWrite();
-	QVarLengthArray<Graphic *> dirty(d->draw.size());
+	dirty.reserve(d->draw.size());
 	for (auto iter = d->draw.begin(); iter != d->draw.end();){
 		Graphic *g = *iter;
 		if (g->move(move)){
