@@ -117,6 +117,7 @@ QObject(parent), d_ptr(data)
 	connect(APlayer::instance(), &APlayer::stateChanged, [d](){
 		d->timer.invalidate();
 	});
+	QMetaObject::invokeMethod(this, "alphaChanged", Qt::QueuedConnection, Q_ARG(int, Config::getValue("/Danmaku/Alpha", 100)));
 }
 
 ARender::~ARender()
@@ -140,6 +141,12 @@ void ARender::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize>
 {
 	Q_D(ARender);
 	d->setBuffer(chroma, size, alignment, bufferSize);
+}
+
+void ARender::setAlpha(int alpha)
+{
+	Config::setValue("/Danmaku/Alpha", alpha);
+	emit alphaChanged(alpha);
 }
 
 void ARender::setBackground(QString path)
@@ -219,6 +226,28 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 	}
 	else{
 		drawData(painter, rect);
+		drawDanm(painter, rect);
+		drawTime(painter, rect);
+#ifdef GRAPHIC_DEBUG
+		auto time = QTime::currentTime();
+		static QTime last = time;
+		static int count = 0;
+		static int speed = 0;
+		static int frame = 0;
+		if (last.second() != time.second()) {
+			last = time;
+			count = Danmaku::instance()->getAllGraphic().size();
+			speed = frame;
+			frame = 0;
+		}
+		++frame;
+		QFont font;
+		font.setPixelSize(20);
+		painter->setFont(font);
+		painter->setPen(Qt::yellow);
+		QRect info(0, 0, 150, 60);
+		painter->drawText(info, QString("Count: %1\nFrame: %2").arg(count).arg(speed));
+#endif
 	}
 }
 
@@ -264,5 +293,7 @@ void ARenderPrivate::drawTime(QPainter *painter, QRect rect)
 
 void ARenderPrivate::drawDanm(QPainter *painter, QRect)
 {
+	painter->save();
 	Danmaku::instance()->draw(painter, timer.step());
+	painter->restore();
 }

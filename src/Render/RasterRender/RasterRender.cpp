@@ -6,8 +6,8 @@
 #include "../../Local.h"
 #include "../../Player/APlayer.h"
 
-RasterRender::RasterRender(QObject *parent) :
-ARender(new RasterRenderPrivate, parent)
+RasterRender::RasterRender(QObject *parent)
+	: ARender(new RasterRenderPrivate, parent)
 {
 	Q_D(RasterRender);
 	ins = this;
@@ -29,9 +29,9 @@ ARender(new RasterRenderPrivate, parent)
 	d->widget = new RasterRenderPrivate::Widget(d);
 }
 
-ISprite *RasterRender::getSprite(const Comment &comment)
+ASprite *RasterRender::getSprite()
 {
-	return new AsyncRasterSprite(comment);
+	return new AsyncRasterSprite();
 }
 
 quintptr RasterRender::getHandle()
@@ -64,8 +64,8 @@ void RasterRender::draw(QRect rect)
 	d->widget->update(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
 }
 
-RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size, int alignment) :
-	format(AV_PIX_FMT_NONE), size(size)
+RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size, int alignment)
+	: format(AV_PIX_FMT_NONE), size(size)
 {
 	int len = av_image_alloc(data, width, size.width(), size.height(), format, alignment);
 	if (len < 0 || data[0] == nullptr) {
@@ -121,8 +121,6 @@ void RasterRenderPrivate::Widget::paintEvent(QPaintEvent *)
 	}
 	else{
 		render->drawPlay(&painter, rect);
-		render->drawTime(&painter, rect);
-		render->drawDanm(&painter, rect);
 		render->timer.swap();
 	}
 }

@@ -30,8 +30,7 @@
 #include <QtCore>
 
 class ARenderPrivate;
-class Comment;
-class ISprite;
+class ASprite;
 
 class ARender :public QObject
 {
@@ -48,11 +47,15 @@ protected:
 	Q_DECLARE_PRIVATE(ARender);
 	ARender(ARenderPrivate *data, QObject *parent = 0);
 
+signals:
+	void alphaChanged(int);
+
 public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0);
 
+	void setAlpha(int alpha);
 	void setBackground(QString path);
 	void setMusic(bool music);
 	void setDisplayTime(double t);
@@ -60,7 +63,7 @@ public slots:
 	void setPixelAspectRatio(double ratio);
 	void draw();
 
-	virtual ISprite *getSprite(const Comment &comment) = 0;
+	virtual ASprite *getSprite() = 0;
 	virtual quintptr getHandle() = 0;
 	virtual void resize(QSize size) = 0;
 	virtual QSize getBufferSize() = 0;

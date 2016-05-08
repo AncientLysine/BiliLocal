@@ -1,31 +1,17 @@
 #pragma once
 
-#include "../ISprite.h"
+#include "../ASprite.h"
 #include "../ARender.h"
-#include "../../Graphic/GraphicPrivate.h"
 #include <QImage>
-#include <QPainter>
 
-class AsyncRasterSprite :public ISprite
+class AsyncRasterSprite : public ASprite
 {
 public:
-	QImage image;
+	virtual void prepare() override;
+	virtual void draw(QPainter *painter) override;
+	virtual QSize getSize() override;
 
-	explicit AsyncRasterSprite(const Comment &comment)
-	{
-		QSize size = ARender::instance()->getActualSize();
-		QFont font = GraphicPrivate::getFont(comment.font*GraphicPrivate::getScale(comment.mode, comment.date, size));
-		QSize need = GraphicPrivate::getSize(comment.string, font);
-		image = GraphicPrivate::getCache(comment.string, comment.color, font, need, comment.isLocal());
-	}
-
-	void draw(QPainter *painter, QRectF dest)
-	{
-		painter->drawImage(dest, image);
-	}
-
-	QSize getSize()
-	{
-		return image.size();
-	}
+private:
+	QImage preImage;
+	double preAlpha;
 };

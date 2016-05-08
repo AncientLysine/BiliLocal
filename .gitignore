@@ -15,4 +15,5 @@
 *.vspx
 *.ipch
 *.opendb
+*.db
 bin

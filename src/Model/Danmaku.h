@@ -45,10 +45,13 @@ public:
 	virtual QModelIndex index(int row, int colum, const QModelIndex &parent = QModelIndex()) const override;
 	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
+	static Danmaku *instance();
 	virtual ~Danmaku();
+
+	const QList<Graphic *> &getAllGraphic();
+	const QList<Comment *> &getAllComment();
 	QList<Record> &getPool();
 	void draw(QPainter *painter, double move);
-	static Danmaku *instance();
 
 private:
 	static Danmaku *ins;
@@ -58,12 +61,10 @@ private:
 	explicit Danmaku(QObject *parent = 0);
 
 signals:
-	void alphaChanged(int);
 	void unrecognizedComment(const Comment *);
 
 public slots:
 	const Comment *commentAt(QPointF point) const;
-	void setAlpha(int alpha);
 	void clearPool();
 	void resetTime();
 	void setTime(qint64 time);

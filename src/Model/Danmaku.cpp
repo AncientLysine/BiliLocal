@@ -68,7 +68,6 @@ QAbstractItemModel(parent), d_ptr(new DanmakuPrivate)
 	connect(APlayer::instance(), &APlayer::jumped, this, &Danmaku::jumpToTime);
 	connect(APlayer::instance(), &APlayer::timeChanged, this, &Danmaku::setTime);
 	connect(this, SIGNAL(layoutChanged()), ARender::instance(), SLOT(draw()));
-	QMetaObject::invokeMethod(this, "alphaChanged", Qt::QueuedConnection, Q_ARG(int, Config::getValue("/Danmaku/Alpha", 100)));
 }
 
 Danmaku::~Danmaku()
@@ -78,6 +77,24 @@ Danmaku::~Danmaku()
 	qThreadPool->waitForDone();
 	qDeleteAll(d->draw);
 	delete d_ptr;
+}
+
+const QList<Graphic*>& Danmaku::getAllGraphic()
+{
+	Q_D(const Danmaku);
+	return d->draw;
+}
+
+const QList<Comment*>& Danmaku::getAllComment()
+{
+	Q_D(const Danmaku);
+	return d->danm;
+}
+
+QList<Record> &Danmaku::getPool()
+{
+	Q_D(Danmaku);
+	return d->pool;
 }
 
 void Danmaku::draw(QPainter *painter, double move)
@@ -101,12 +118,6 @@ void Danmaku::draw(QPainter *painter, double move)
 	for (Graphic *g : dirty){
 		g->draw(painter);
 	}
-}
-
-QList<Record> &Danmaku::getPool()
-{
-	Q_D(Danmaku);
-	return d->pool;
 }
 
 QVariant Danmaku::data(const QModelIndex &index, int role) const
@@ -231,12 +242,6 @@ const Comment *Danmaku::commentAt(QPointF point) const
 	}
 	d->lock.unlock();
 	return nullptr;
-}
-
-void Danmaku::setAlpha(int alpha)
-{
-	Config::setValue("/Danmaku/Alpha", alpha);
-	emit alphaChanged(alpha);
 }
 
 void Danmaku::resetTime()
@@ -603,7 +608,7 @@ namespace
 				{
 					//弹幕自动定位
 					QVarLengthArray<int> result(locate.size());
-					memset(result.data(), 0, sizeof(int)*result.size());
+					std::fill(result.begin(), result.end(), 0);
 					//计算每个位置的拥挤程度
 					auto calculate = [&](const QList<Graphic *> &data){
 						for (Graphic *iter : data){

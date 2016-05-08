@@ -7,7 +7,9 @@ using namespace GraphicPrivate;
 Plain::Plain(const Comment &comment)
 {
 	source = &comment;
-	sprite = ARender::instance()->getSprite(comment);
+	sprite = ARender::instance()->getSprite();
+	sprite->setAuto(comment);
+	sprite->prepare();
 	rect.setSize(sprite->getSize());
 }
 
@@ -19,7 +21,8 @@ Plain::~Plain()
 void Plain::draw(QPainter *painter)
 {
 	if (enabled){
-		sprite->draw(painter, rect);
+		sprite->setRect(rect);
+		sprite->draw(painter);
 	}
 }
 

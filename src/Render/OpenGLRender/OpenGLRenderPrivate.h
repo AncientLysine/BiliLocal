@@ -6,13 +6,29 @@
 class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 {
 public:
-	QOpenGLShaderProgram program[5];
-	GLfloat vtx[8];
-	GLfloat tex[8];
+	QOpenGLShaderProgram program[8];
+
+	struct DrawCall
+	{
+		GLuint texture;
+		QOpenGLShaderProgram *program;
+		GLushort size;
+	};
+
+	struct DrawAttr
+	{
+		GLfloat vtxCoord[2];
+		GLfloat texCoord[2];
+		GLubyte color[4];
+	};
+
+	QVector<DrawCall> drawList;
+	QVector<DrawAttr> attrList;
+	QOpenGLBuffer vtxBuffer;
+	QOpenGLBuffer idxBuffer;
 
 	virtual void initialize();
-	void loadTexture(GLuint texture, int channel, int width, int height, quint8 *data, int alignment);
-	void drawTexture(GLuint *planes, int format, QRectF dest, QRectF rect);
+	virtual void drawDanm(QPainter *painter, QRect rect) override;
 	virtual void onSwapped();
 	virtual bool isVisible() = 0;
 	virtual quintptr getHandle() = 0;

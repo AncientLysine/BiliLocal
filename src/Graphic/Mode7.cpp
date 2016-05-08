@@ -3,10 +3,12 @@
 #include "GraphicPrivate.h"
 #include "../Config.h"
 #include "../Render/ARender.h"
+#include "../Render/ASprite.h"
 
 using namespace GraphicPrivate;
 
 Mode7::Mode7(const Comment &comment)
+	: sprite(nullptr)
 {
 	Q_ASSERT(comment.mode == 7);
 	QJsonArray data = QJsonDocument::fromJson(comment.string.toUtf8()).array();
@@ -44,14 +46,24 @@ Mode7::Mode7(const Comment &comment)
 	int effect = (v.isString() ? v.toString() == "true" : v.toVariant().toBool()) ? Config::getValue("/Danmaku/Effect", 5) / 2 : -1;
 	QFont font = getFont(scale ? comment.font*scale : comment.font, l < 13 ? Utils::defaultFont(true) : data[12].toString());
 	QString string = data[4].toString();
-	//TODO: using ARender::getSprite
-	cache = getCache(string, comment.color, font, getSize(string, font), comment.isLocal(), effect, 100);
+	sprite = ARender::instance()->getSprite();
+	sprite->setAlpha(1.0);
+	sprite->setColor(QColor::fromRgb(comment.color));
+	sprite->setEffect(effect);
+	sprite->setFont(font);
+	sprite->setFrame(comment.isLocal());
+	sprite->setText(string);
 	zRotate = l < 6 ? 0 : getDouble(5);
 	yRotate = l < 7 ? 0 : getDouble(6);
 	wait = l < 11 ? 0 : getDouble(10) / 1000;
 	stay = l < 10 ? 0 : life - wait - getDouble(9) / 1000;
 	source = &comment;
 	time = 0;
+}
+
+Mode7::~Mode7()
+{
+	delete sprite;
 }
 
 bool Mode7::move(double time)
@@ -66,15 +78,15 @@ void Mode7::draw(QPainter *painter)
 {
 	if (enabled){
 		QPointF cPos = bPos + (ePos - bPos)*qBound<double>(0, (time - wait) / (life - stay), 1);
-		QTransform rotate;
-		rotate.translate(+cPos.x(), +cPos.y());
-		rotate.rotate(yRotate, Qt::YAxis);
-		rotate.rotate(zRotate, Qt::ZAxis);
-		rotate.translate(-cPos.x(), -cPos.y());
-		painter->save();
-		painter->setTransform(rotate);
-		painter->setOpacity(bAlpha + (eAlpha - bAlpha)*time / life);
-		painter->drawImage(cPos, cache);
-		painter->restore();
+		QTransform transform;
+		transform.translate(+cPos.x(), +cPos.y());
+		transform.rotate(yRotate, Qt::YAxis);
+		transform.rotate(zRotate, Qt::ZAxis);
+		sprite->setTransform(transform);
+
+		double alpha = bAlpha + (eAlpha - bAlpha)*time / life;
+		sprite->setAlpha(alpha);
+
+		sprite->draw(painter);
 	}
 }

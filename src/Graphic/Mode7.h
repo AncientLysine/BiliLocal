@@ -2,10 +2,13 @@
 
 #include "Graphic.h"
 
+class ASprite;
+
 class Mode7 :public Graphic
 {
 public:
-	Mode7(const Comment &comment);
+	explicit Mode7(const Comment &comment);
+	virtual ~Mode7();
 	QList<QRectF> locate(){ return QList<QRectF>(); }
 	bool move(double time);
 	void draw(QPainter *painter);
@@ -18,7 +21,7 @@ private:
 	double eAlpha;
 	double zRotate;
 	double yRotate;
-	QImage cache;
+	ASprite *sprite;
 	double wait;
 	double stay;
 	double life;

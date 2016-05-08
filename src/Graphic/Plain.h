@@ -2,7 +2,7 @@
 
 #include "Graphic.h"
 #include "../Render/ARender.h"
-#include "../Render/ISprite.h"
+#include "../Render/ASprite.h"
 
 class Plain :public Graphic
 {
@@ -10,7 +10,7 @@ public:
 	void draw(QPainter *painter);
 
 protected:
-	ISprite *sprite;
+	ASprite *sprite;
 
 	explicit Plain(const Comment &comment);
 	virtual ~Plain();

@@ -2,7 +2,7 @@
 
 #include "../ARender.h"
 
-class ISprite;
+class ASprite;
 class OpenGLRenderPrivate;
 
 class OpenGLRender :public ARender
@@ -14,7 +14,7 @@ private:
 	Q_DECLARE_PRIVATE(OpenGLRender);
 
 public slots:
-	virtual ISprite *getSprite(const Comment &comment) override;
+	virtual ASprite *getSprite() override;
 	virtual quintptr getHandle() override;
 	virtual void resize(QSize size) override;
 	virtual QSize getActualSize() override;

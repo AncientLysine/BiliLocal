@@ -2,7 +2,7 @@
 
 #include "../ARender.h"
 
-class ISprite;
+class ASprite;
 class RasterRenderPrivate;
 
 class RasterRender :public ARender
@@ -14,7 +14,7 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender);
 
 public slots:
-	virtual ISprite *getSprite(const Comment &comment) override;
+	virtual ASprite *getSprite() override;
 	virtual quintptr getHandle() override;
 	virtual void resize(QSize size) override;
 	virtual QSize getActualSize() override;

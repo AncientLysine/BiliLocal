@@ -462,7 +462,7 @@ QWidget(parent)
 	alphaS->setOrientation(Qt::Horizontal);
 	alphaS->setRange(0, 100);
 	connect(alphaS, &QSlider::valueChanged, [this](int _alpha){
-		Danmaku::instance()->setAlpha(_alpha);
+		ARender::instance()->setAlpha(_alpha);
 		if (alphaS->isVisible()){
 			QPoint p;
 			p.setX(QCursor::pos().x());
@@ -470,7 +470,7 @@ QWidget(parent)
 			QToolTip::showText(p, QString::number(_alpha));
 		}
 	});
-	connect(Danmaku::instance(), &Danmaku::alphaChanged, alphaS, &QSlider::setValue);
+	connect(ARender::instance(), &ARender::alphaChanged, alphaS, &QSlider::setValue);
 	delayT = new QLabel(this);
 	delayT->setText(tr("Danmaku Delay"));
 	delayL = new TimeEdit(this);

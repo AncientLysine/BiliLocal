@@ -12,17 +12,46 @@ public:
 	GLuint frame[3];
 	QMutex dataLock;
 	QList<quint8 *> buffer;
+	GLfloat vtx[8];
+	GLfloat tex[8];
 	int alignment;
 
 	virtual void initialize() override
 	{
 		OpenGLRenderPrivate::initialize();
 		glGenTextures(3, frame);
+		tex[0] = 0; tex[1] = 0;
+		tex[2] = 1; tex[3] = 0;
+		tex[4] = 0; tex[5] = 1;
+		tex[6] = 1; tex[7] = 1;
 	}
 
 	void loadTexture(int index, int channel, int width, int height)
 	{
-		OpenGLRenderPrivate::loadTexture(frame[index], channel, width, height, buffer[index], alignment);
+		int format;
+		switch (channel) {
+		case 1:
+			format = GL_LUMINANCE;
+			break;
+		case 2:
+			format = GL_LUMINANCE_ALPHA;
+			break;
+		case 3:
+			format = GL_RGB;
+			break;
+		case 4:
+			format = GL_RGBA;
+			break;
+		default:
+			return;
+		}
+		glBindTexture(GL_TEXTURE_2D, frame[index]);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, buffer[index]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	virtual void drawData(QPainter *painter, QRect rect) override
@@ -31,6 +60,7 @@ public:
 			return;
 		}
 		painter->beginNativePainting();
+
 		if (dirty){
 			int w = inner.width(), h = inner.height();
 			dataLock.lock();
@@ -53,8 +83,37 @@ public:
 			dirty = false;
 			dataLock.unlock();
 		}
+
 		QRect dest = fitRect(ARender::instance()->getPreferSize(), rect);
-		drawTexture(frame, format, dest, rect);
+		GLfloat h = 2.0f / rect.width(), v = 2.0f / rect.height();
+		GLfloat l = dest.left() * h - 1, r = dest.right() * h - 1, t = 1 - dest.top() * v, b = 1 - dest.bottom() * v;
+		vtx[0] = l; vtx[1] = t;
+		vtx[2] = r; vtx[3] = t;
+		vtx[4] = l; vtx[5] = b;
+		vtx[6] = r; vtx[7] = b;
+		QOpenGLShaderProgram &p = program[format];
+		p.bind();
+		p.setAttributeArray(0, vtx, 2);
+		p.setAttributeArray(1, tex, 2);
+		p.enableAttributeArray(0);
+		p.enableAttributeArray(1);
+		switch (format) {
+		case 0:
+		case 1:
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, frame[2]);
+		case 2:
+		case 3:
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, frame[1]);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, frame[0]);
+			break;
+		default:
+			break;
+		}
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
 		painter->endNativePainting();
 	}
 
@@ -68,8 +127,6 @@ public:
 		}
 		else{
 			drawPlay(&painter, rect);
-			drawDanm(&painter, rect);
-			drawTime(&painter, rect);
 		}
 	}
 
@@ -167,5 +224,6 @@ public:
 		if (!buffer.isEmpty()){
 			delete[]buffer[0];
 		}
+		glDeleteTextures(3, frame);
 	}
 };
