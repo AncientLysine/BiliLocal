@@ -27,10 +27,12 @@ SOURCES += \
     src/Graphic/Mode7.cpp \
     src/Graphic/Plain.cpp \
     src/Model/Danmaku.cpp \
+    src/Model/Running.cpp \
     src/Model/List.cpp \
     src/Model/Shield.cpp \
     src/Player/APlayer.cpp \
     src/Render/ARender.cpp \
+    src/Render/ASprite.cpp \
     src/UI/Editor.cpp \
     src/UI/Info.cpp \
     src/UI/Interface.cpp \
@@ -61,12 +63,13 @@ HEADERS += \
     src/Graphic/Mode7.h \
     src/Graphic/Plain.h \
     src/Model/Danmaku.h \
+    src/Model/Running.h \
     src/Model/List.h \
     src/Model/Shield.h \
     src/Player/APlayer.h \
     src/Render/ARender.h \
     src/Render/ARenderPrivate.h \
-    src/Render/ISprite.h \
+    src/Render/ASprite.h \
     src/Render/ElapsedTimer.h \
     src/UI/Editor.h \
     src/UI/Info.h \
@@ -186,7 +189,8 @@ HEADERS += \
 
 contains(DEFINES, RENDER_RASTER){
 SOURCES += \
-    src/Render/RasterRender/RasterRender.cpp
+    src/Render/RasterRender/RasterRender.cpp \
+    src/Render/RasterRender/AsyncRasterSprite.cpp
 
 HEADERS += \
     src/Render/RasterRender/RasterRender.h \
@@ -201,6 +205,7 @@ LIBS += \
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
     src/Render/OpenGLRender/OpenGLRender.cpp \
+    src/Render/OpenGLRender/Atlas.cpp \
     src/Render/OpenGLRender/SyncTextureSprite.cpp \
     src/Render/OpenGLRender/DetachPrivate.cpp \
     src/Render/OpenGLRender/WidgetPrivate.cpp \
@@ -209,6 +214,7 @@ SOURCES += \
 HEADERS += \
     src/Render/OpenGLRender/OpenGLRender.h \
     src/Render/OpenGLRender/OpenGLRenderPrivate.h \
+    src/Render/OpenGLRender/Atlas.h \
     src/Render/OpenGLRender/SyncTextureSprite.h \
     src/Render/OpenGLRender/DetachPrivate.h \
     src/Render/OpenGLRender/OpaquePrivate.h \

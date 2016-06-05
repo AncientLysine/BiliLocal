@@ -30,11 +30,10 @@
 #include <QtCore>
 
 class Comment;
-class Graphic;
 class Record;
 class DanmakuPrivate;
 
-class Danmaku :public QAbstractItemModel
+class Danmaku : public QAbstractItemModel
 {
 	Q_OBJECT
 public:
@@ -48,10 +47,10 @@ public:
 	static Danmaku *instance();
 	virtual ~Danmaku();
 
-	const QList<Graphic *> &getAllGraphic();
-	const QList<Comment *> &getAllComment();
 	QList<Record> &getPool();
-	void draw(QPainter *painter, double move);
+	QList<Comment *>::iterator begin();
+	QList<Comment *>::iterator end();
+	Comment *at(int index);
 
 private:
 	static Danmaku *ins;
@@ -60,21 +59,13 @@ private:
 
 	explicit Danmaku(QObject *parent = 0);
 
-signals:
-	void unrecognizedComment(const Comment *);
-
 public slots:
-	const Comment *commentAt(QPointF point) const;
-	void clearPool();
-	void resetTime();
-	void setTime(qint64 time);
-	void appendToPool(const Record *record);
-	void appendToPool(QString source, const Comment *comment);
-	void clearCurrent(bool soft = false);
-	void insertToCurrent(Graphic *graphic, int index = -1);
+	void clear();
+	void append(const Record *record);
+	void append(QString source, const Comment *comment);
 	void parse(int flag = 0);
 	void delayAll(qint64 time);
-	void jumpToTime(qint64 time);
 	void saveToFile(QString file) const;
 	qint64 getDuration() const;
+	int size() const;
 };

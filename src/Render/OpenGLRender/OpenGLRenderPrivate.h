@@ -3,15 +3,50 @@
 #include "../ARenderPrivate.h"
 #include <QOpenGLFunctions>
 
+class AtlasMgr;
+
 class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 {
 public:
+	QRect view;
+
 	QOpenGLShaderProgram program[8];
+
+	QByteArray extensions;
+
+	QOpenGLBuffer vtxBuffer;
+	QOpenGLBuffer idxBuffer;
+
+	AtlasMgr *manager;
+
+	GLenum pixelFormat(int channel, bool renderable = false) const;
+
+	struct LoadCall
+	{
+		GLuint source;
+		GLuint target;
+		QOpenGLShaderProgram *program;
+		GLushort size;
+	};
+
+	struct LoadAttr
+	{
+		GLfloat vtxCoord[2];
+		GLfloat texCoord[2];
+	};
+
+	QVector<LoadCall> loadList;
+	QVector<LoadAttr> loadAttr;
+
+	void appendLoadCall(
+		QRectF draw,
+		QOpenGLShaderProgram *program,
+		QRect data,
+		const GLubyte *bits);
 
 	struct DrawCall
 	{
 		GLuint texture;
-		QOpenGLShaderProgram *program;
 		GLushort size;
 	};
 
@@ -23,9 +58,16 @@ public:
 	};
 
 	QVector<DrawCall> drawList;
-	QVector<DrawAttr> attrList;
-	QOpenGLBuffer vtxBuffer;
-	QOpenGLBuffer idxBuffer;
+	QVector<DrawAttr> drawAttr;
+
+	void appendDrawCall(
+		QRectF draw,
+		QRectF data,
+		GLuint texture,
+		QColor color);
+
+	void flushLoad();
+	void flushDraw();
 
 	virtual void initialize();
 	virtual void drawDanm(QPainter *painter, QRect rect) override;

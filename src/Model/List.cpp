@@ -197,7 +197,7 @@ QStandardItemModel(parent)
 				}
 				break;
 			}
-			Danmaku::instance()->clearPool();
+			Danmaku::instance()->clear();
 			break;
 		case Records:
 		{
@@ -213,7 +213,7 @@ QStandardItemModel(parent)
 				success = true;
 			}
 			if (old || success){
-				Danmaku::instance()->clearPool();
+				Danmaku::instance()->clear();
 			}
 			break;
 		}

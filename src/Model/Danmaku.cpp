@@ -30,9 +30,6 @@
 #include "../Local.h"
 #include "../Utils.h"
 #include "../Access/Load.h"
-#include "../Player/APlayer.h"
-#include "../Render/ARender.h"
-#include "../Graphic/Graphic.h"
 #include "../Model/Shield.h"
 #include "../UI/Editor.h"
 #include <algorithm>
@@ -40,14 +37,9 @@
 class DanmakuPrivate
 {
 public:
-	qint32 curr;
-	qint64 time;
 	qint64 dura;
 	QList<Record> pool;
 	QList<Comment *> danm;
-	QList<Graphic *> draw;
-	QAtomicInt wait;
-	mutable QReadWriteLock lock;
 };
 
 Danmaku *Danmaku::ins = nullptr;
@@ -57,67 +49,18 @@ Danmaku *Danmaku::instance()
 	return ins ? ins : new Danmaku(qApp);
 }
 
-Danmaku::Danmaku(QObject *parent) :
-QAbstractItemModel(parent), d_ptr(new DanmakuPrivate)
+Danmaku::Danmaku(QObject *parent)
+	:QAbstractItemModel(parent), d_ptr(new DanmakuPrivate)
 {
 	Q_D(Danmaku);
 	ins = this;
 	setObjectName("Danmaku");
-	d->curr = d->time = 0;
 	d->dura = -1;
-	connect(APlayer::instance(), &APlayer::jumped, this, &Danmaku::jumpToTime);
-	connect(APlayer::instance(), &APlayer::timeChanged, this, &Danmaku::setTime);
-	connect(this, SIGNAL(layoutChanged()), ARender::instance(), SLOT(draw()));
 }
 
 Danmaku::~Danmaku()
 {
-	Q_D(Danmaku);
-	qThreadPool->clear();
-	qThreadPool->waitForDone();
-	qDeleteAll(d->draw);
 	delete d_ptr;
-}
-
-const QList<Graphic*>& Danmaku::getAllGraphic()
-{
-	Q_D(const Danmaku);
-	return d->draw;
-}
-
-const QList<Comment*>& Danmaku::getAllComment()
-{
-	Q_D(const Danmaku);
-	return d->danm;
-}
-
-QList<Record> &Danmaku::getPool()
-{
-	Q_D(Danmaku);
-	return d->pool;
-}
-
-void Danmaku::draw(QPainter *painter, double move)
-{
-	Q_D(Danmaku);
-	QVarLengthArray<Graphic *> dirty;
-	d->lock.lockForWrite();
-	dirty.reserve(d->draw.size());
-	for (auto iter = d->draw.begin(); iter != d->draw.end();){
-		Graphic *g = *iter;
-		if (g->move(move)){
-			dirty.append(g);
-			++iter;
-		}
-		else{
-			delete g;
-			iter = d->draw.erase(iter);
-		}
-	}
-	d->lock.unlock();
-	for (Graphic *g : dirty){
-		g->draw(painter);
-	}
 }
 
 QVariant Danmaku::data(const QModelIndex &index, int role) const
@@ -230,31 +173,35 @@ QVariant Danmaku::headerData(int section, Qt::Orientation orientation, int role)
 	return QVariant();
 }
 
-const Comment *Danmaku::commentAt(QPointF point) const
-{
-	Q_D(const Danmaku);
-	d->lock.lockForRead();
-	for (Graphic *g : d->draw){
-		if (g->currentRect().contains(point)){
-			d->lock.unlock();
-			return g->getSource();
-		}
-	}
-	d->lock.unlock();
-	return nullptr;
-}
-
-void Danmaku::resetTime()
+QList<Record> &Danmaku::getPool()
 {
 	Q_D(Danmaku);
-	d->curr = d->time = 0;
+	return d->pool;
 }
 
-void Danmaku::clearPool()
+QList<Comment*>::iterator Danmaku::begin()
+{
+	Q_D(Danmaku);
+	return d->danm.begin();
+}
+
+QList<Comment*>::iterator Danmaku::end()
+{
+	Q_D(Danmaku);
+	return d->danm.end();
+}
+
+Comment * Danmaku::at(int index)
+{
+	Q_D(Danmaku);
+	return d->danm.at(index);
+}
+
+void Danmaku::clear()
 {
 	Q_D(Danmaku);
 	if (!d->pool.isEmpty()){
-		clearCurrent();
+		//clearCurrent();
 		d->pool.clear();
 		d->danm.clear();
 		parse(0x1 | 0x2);
@@ -285,7 +232,7 @@ namespace
 	}
 }
 
-void Danmaku::appendToPool(const Record *record)
+void Danmaku::append(const Record *record)
 {
 	Q_D(Danmaku);
 	Record *append = 0;
@@ -350,21 +297,10 @@ namespace
 		{
 			return f->time < s->time;
 		}
-
-		//overloads for comparing with time
-		inline bool operator ()(const Comment *c, qint64 time)
-		{
-			return c->time < time;
-		}
-
-		inline bool operator ()(qint64 time, const Comment *c)
-		{
-			return time < c->time;
-		}
 	};
 }
 
-void Danmaku::appendToPool(QString source, const Comment *comment)
+void Danmaku::append(QString source, const Comment *comment)
 {
 	Q_D(Danmaku);
 	Record *append = nullptr;
@@ -386,46 +322,6 @@ void Danmaku::appendToPool(QString source, const Comment *comment)
 	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
 	append->limit = append->limit == 0 ? 0 : qMax(append->limit, c->date);
 	parse(0x2);
-}
-
-void Danmaku::clearCurrent(bool soft)
-{
-	Q_D(Danmaku);
-	qThreadPool->clear();
-	qThreadPool->waitForDone();
-	d->lock.lockForWrite();
-	for (auto iter = d->draw.begin(); iter != d->draw.end();){
-		Graphic *g = *iter;
-		if (soft&&g->stay()){
-			++iter;
-		}
-		else{
-			delete g;
-			iter = d->draw.erase(iter);
-		}
-	}
-	d->lock.unlock();
-	ARender::instance()->draw();
-}
-
-void Danmaku::insertToCurrent(Graphic *graphic, int index)
-{
-	Q_D(Danmaku);
-	d->lock.lockForWrite();
-	graphic->setIndex();
-	int size = d->draw.size(), next;
-	if (size == 0 || index == 0){
-		next = 0;
-	}
-	else{
-		int ring = size + 1;
-		next = index > 0 ? (index%ring) : (ring + index%ring);
-		if (next == 0){
-			next = size;
-		}
-	}
-	d->draw.insert(next, graphic);
-	d->lock.unlock();
 }
 
 void Danmaku::parse(int flag)
@@ -450,7 +346,6 @@ void Danmaku::parse(int flag)
 				break;
 			}
 		}
-		jumpToTime(d->time);
 		endResetModel();
 	}
 	if ((flag & 0x2) > 0) {
@@ -537,188 +432,21 @@ void Danmaku::parse(int flag)
 		for (Comment *c : d->danm) {
 			c->blocked = c->blocked || Shield::instance()->isBlocked(*c);
 		}
-		qThreadPool->clear();
-		qThreadPool->waitForDone();
-		d->lock.lockForWrite();
-		for (auto iter = d->draw.begin(); iter != d->draw.end();) {
-			const Comment *cur = (*iter)->getSource();
-			if (cur&&cur->blocked) {
-				delete *iter;
-				iter = d->draw.erase(iter);
-			}
-			else {
-				++iter;
-			}
-		}
-		d->lock.unlock();
 		emit layoutChanged();
-	}
-}
-
-namespace
-{
-	class Process :public QRunnable
-	{
-	public:
-		Process(DanmakuPrivate *d, const QList<const Comment *> &w) :
-			danm(d), wait(w)
-		{
-			createTime = QDateTime::currentMSecsSinceEpoch();
-		}
-
-		~Process()
-		{
-			danm->wait -= wait.size();
-		}
-
-		virtual void run() override
-		{
-			//跳过500毫秒以上未处理的弹幕
-			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500){
-				return;
-			}
-			//子线程优先级需要低于主线程
-			QThread::currentThread()->setPriority(QThread::LowPriority);
-			QList<Graphic *> ready;
-			for (const Comment *comment : wait){
-				Graphic *graphic = nullptr;
-				try{
-					graphic = Graphic::create(*comment);
-				}
-				catch (Graphic::format_unrecognized){
-					//自带弹幕系统未识别，通知插件处理
-					emit Danmaku::instance()->unrecognizedComment(comment);
-				}
-				catch (Graphic::args_prasing_error){}
-				if (!graphic){
-					continue;
-				}
-				QRectF &rect = graphic->currentRect();
-				const QList<QRectF> &locate = graphic->locate();
-				switch (locate.size()){
-				case 1:
-					//图元指定位置
-					rect = locate.first();
-				case 0:
-					//弹幕自行定位
-					ready.append(graphic);
-					danm->lock.lockForWrite();
-					break;
-				default:
-				{
-					//弹幕自动定位
-					QVarLengthArray<int> result(locate.size());
-					std::fill(result.begin(), result.end(), 0);
-					//计算每个位置的拥挤程度
-					auto calculate = [&](const QList<Graphic *> &data){
-						for (Graphic *iter : data){
-							if (iter->getMode() != comment->mode){
-								continue;
-							}
-							const QRectF &rect = iter->currentRect();
-							const QRectF &from = locate[0];
-							double stp = locate[1].top() - from.top();
-							double len = from.height();
-							int sta = qMax(0, qFloor((stp > 0 ? (rect.top() - from.top()) : (rect.bottom() - from.bottom())) / stp));
-							int end = qMin(qCeil((rect.height() + len) / qAbs(stp) + sta), result.size());
-							for (; sta < end; ++sta){
-								graphic->currentRect() = locate[sta];
-								result[sta] += graphic->intersects(iter);
-							}
-						}
-					};
-					//获取读锁，计算现有弹幕的拥挤程度
-					danm->lock.lockForRead();
-					quint64 last = danm->draw.isEmpty() ? 0 : danm->draw.last()->getIndex();
-					calculate(danm->draw);
-					danm->lock.unlock();
-					ready.append(graphic);
-					//获取写锁，计算两次锁之间的新弹幕
-					danm->lock.lockForWrite();
-					QList<Graphic *> addtion;
-					QListIterator<Graphic *> iter(danm->draw);
-					iter.toBack();
-					while (iter.hasPrevious()){
-						Graphic *p = iter.previous();
-						if (p->getIndex() > last&&p->getMode() == comment->mode){
-							addtion.prepend(p);
-						}
-						else break;
-					}
-					calculate(addtion);
-					//挑选最空闲的位置
-					int thin;
-					thin = result[0];
-					rect = locate[0];
-					for (int i = 1; thin != 0 && i < result.size(); ++i){
-						if (thin > result[i]){
-							thin = result[i];
-							rect = locate[i];
-						}
-					}
-				}
-				}
-				//相同内容的弹幕需要同时启动，先将其冻结
-				graphic->setEnabled(false);
-				graphic->setIndex();
-				danm->draw.append(graphic);
-				danm->lock.unlock();
-			}
-			danm->lock.lockForWrite();
-			for (Graphic *iter : ready){
-				iter->setEnabled(true);
-			}
-			danm->lock.unlock();
-		}
-
-		Process &operator=(const Process &) = delete;
-
-	private:
-		DanmakuPrivate * const danm;
-		qint64 createTime;
-		QList<const Comment *> wait;
-	};
-}
-
-void Danmaku::setTime(qint64 time)
-{
-	Q_D(Danmaku);
-	d->time = time;
-	int limit = Config::getValue("/Shield/Density", 0);
-	QMap<qint64, QMap<QString, QList<const Comment *>>> buffer;
-	for (; d->curr < d->danm.size() && d->danm[d->curr]->time < time; ++d->curr){
-		const Comment *c = d->danm[d->curr];
-		if (!c->blocked && (limit <= 0 || d->wait + d->draw.size() < limit)){
-			++d->wait;
-			buffer[c->time][c->string].append(c);
-		}
-	}
-	for (const auto &sameTime : buffer){
-		for (const auto &sameText : sameTime){
-			qThreadPool->start(new Process(d, sameText));
-		}
 	}
 }
 
 void Danmaku::delayAll(qint64 time)
 {
 	Q_D(Danmaku);
+	emit beginResetModel();
 	for (Record &r : d->pool){
 		r.delay += time;
 		for (Comment &c : r.danmaku){
 			c.time += time;
 		}
 	}
-	jumpToTime(d->time);
-	emit layoutChanged();
-}
-
-void Danmaku::jumpToTime(qint64 time)
-{
-	Q_D(Danmaku);
-	clearCurrent(true);
-	d->time = time;
-	d->curr = std::lower_bound(d->danm.begin(), d->danm.end(), time, CommentComparer()) - d->danm.begin();
+	emit endResetModel();
 }
 
 void Danmaku::saveToFile(QString file) const
@@ -789,4 +517,10 @@ qint64 Danmaku::getDuration() const
 {
 	Q_D(const Danmaku);
 	return d->dura;
+}
+
+int Danmaku::size() const
+{
+	Q_D(const Danmaku);
+	return d->danm.size();
 }

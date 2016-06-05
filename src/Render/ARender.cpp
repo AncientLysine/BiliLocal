@@ -30,7 +30,7 @@
 #include "../Config.h"
 #include "../Local.h"
 #include "../Utils.h"
-#include "../Model/Danmaku.h"
+#include "../Model/Running.h"
 #include "../Player/APlayer.h"
 
 #ifdef RENDER_RASTER
@@ -236,7 +236,7 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 		static int frame = 0;
 		if (last.second() != time.second()) {
 			last = time;
-			count = Danmaku::instance()->getAllGraphic().size();
+			count = Running::instance()->size();
 			speed = frame;
 			frame = 0;
 		}
@@ -293,7 +293,5 @@ void ARenderPrivate::drawTime(QPainter *painter, QRect rect)
 
 void ARenderPrivate::drawDanm(QPainter *painter, QRect)
 {
-	painter->save();
-	Danmaku::instance()->draw(painter, timer.step());
-	painter->restore();
+	Running::instance()->draw(painter, timer.step());
 }

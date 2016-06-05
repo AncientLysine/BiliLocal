@@ -39,6 +39,7 @@ class Seek;
 class Sign;
 class APlayer;
 class Danmaku;
+class Running;
 class ARender;
 
 namespace UI
@@ -81,6 +82,7 @@ private:
 	Sign *sign;
 	APlayer *aplayer;
 	Danmaku *danmaku;
+	Running *running;
 	ARender *arender;
 
 	QPoint sta;

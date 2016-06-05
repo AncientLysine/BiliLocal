@@ -243,7 +243,7 @@ QWidget(parent)
 		connect(menu.addAction(tr("Edit Danmaku Pool")), &QAction::triggered, [this](){
 			Editor::exec(lApp->mainWidget(), 2);
 		});
-		connect(menu.addAction(tr("Clear Danmaku Pool")), &QAction::triggered, Danmaku::instance(), &Danmaku::clearPool);
+		connect(menu.addAction(tr("Clear Danmaku Pool")), &QAction::triggered, Danmaku::instance(), &Danmaku::clear);
 		menu.addAction(saveA);
 		isStay = 1;
 		menu.exec(danmV->viewport()->mapToGlobal(p));

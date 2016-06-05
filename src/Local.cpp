@@ -29,7 +29,7 @@
 #include "Config.h"
 #include "Plugin.h"
 #include "Utils.h"
-#include "Model/Danmaku.h"
+#include "Model/Running.h"
 #include "Model/List.h"
 #include "Model/Shield.h"
 #include "Player/APlayer.h"
@@ -55,7 +55,7 @@ void Local::exit(int code)
 	delete List::instance();
 	Config::save();
 	delete APlayer::instance();
-	delete Danmaku::instance();
+	delete Running::instance();
 	QApplication::exit(code);
 }
 

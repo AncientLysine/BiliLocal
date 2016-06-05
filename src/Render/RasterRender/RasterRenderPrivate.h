@@ -50,6 +50,7 @@ public:
 	RasterRenderPrivate();
 	AVPixelFormat getFormat(QString &chroma);
 	virtual void drawData(QPainter *painter, QRect rect) override;
+	virtual void drawDanm(QPainter *painter, QRect rect) override;
 	virtual QList<quint8 *> getBuffer() override;
 	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize) override;
 	virtual void releaseBuffer() override;

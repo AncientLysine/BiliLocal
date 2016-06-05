@@ -71,7 +71,7 @@ RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size, int alignm
 	if (len < 0 || data[0] == nullptr) {
 		return;
 	}
-	size_t i = 0;
+	int i = 0;
 	for (; i < 3; ++i) {
 		quint8 *ptr = data[i + 1];
 		if (ptr == nullptr) {
@@ -235,6 +235,13 @@ void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 	painter->drawImage(dest, frame);
 }
 
+void RasterRenderPrivate::drawDanm(QPainter *painter, QRect rect)
+{
+	painter->save();
+	ARenderPrivate::drawDanm(painter, rect);
+	painter->restore();
+}
+
 QList<quint8 *> RasterRenderPrivate::getBuffer()
 {
 	dataLock.lock();
@@ -255,7 +262,7 @@ void RasterRenderPrivate::setBuffer(QString &chroma, QSize size, int alignment, 
 	if (bufferSize){
 		bufferSize->clear();
 	}
-	for (size_t i = 0; i < 4; ++i){
+	for (int i = 0; i < 4; ++i){
 		int l = srcFrame->width[i];
 		if (l == 0){
 			break;

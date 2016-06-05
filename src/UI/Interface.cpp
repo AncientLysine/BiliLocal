@@ -34,6 +34,7 @@
 #include "../Access/Seek.h"
 #include "../Access/Sign.h"
 #include "../Model/Danmaku.h"
+#include "../Model/Running.h"
 #include "../Model/List.h"
 #include "../Model/Shield.h"
 #include "../Player/APlayer.h"
@@ -86,8 +87,10 @@ QWidget(parent)
 
 	aplayer = APlayer::instance();
 	danmaku = Danmaku::instance();
+	running = Running::instance();
 	arender = ARender::instance();
 	Local::objects["Danmaku"] = danmaku;
+	Local::objects["Running"] = running;
 	Local::objects["APlayer"] = aplayer;
 	Local::objects["ARender"] = arender;
 	Local::objects["Config"] = Config::instance();
@@ -153,8 +156,8 @@ QWidget(parent)
 		setWindowFilePath(aplayer->getMedia());
 	});
 	connect(aplayer, &APlayer::reach, this, [this](bool m){
-		danmaku->resetTime();
-		danmaku->clearCurrent();
+		running->jumpTime(0);
+		running->clear();
 		rat->setEnabled(false);
 		spd->setEnabled(false);
 		for (auto iter : sca->actions()){
@@ -818,7 +821,7 @@ void Interface::showContextMenu(QPoint p)
 	flag = flag&&!(info->isVisible() && info->geometry().contains(p));
 	if (flag){
 		QMenu top(this);
-		const Comment *cur = danmaku->commentAt(p);
+		const Comment *cur = running->commentAt(p);
 		if (cur){
 			QAction *text = new QAction(&top);
 			top.addAction(text);

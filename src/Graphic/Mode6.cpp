@@ -44,22 +44,19 @@ uint Mode6::intersects(Graphic *other)
 	Q_ASSERT(other->getMode() == 6);
 	const Mode6 &f = *static_cast<Mode6 *>(other);
 	const Mode6 &s = *this;
-	int h;
-	if ((h = getOverlap(f.rect.top(), f.rect.bottom(), s.rect.top(), s.rect.bottom())) == 0){
+	int h = getOverlap(f.rect.top(), f.rect.bottom(), s.rect.top(), s.rect.bottom());
+	if (h == 0){
 		return 0;
 	}
-	int w = 0;
-	if (f.rect.intersects(s.rect)){
-		if (f.speed > s.speed){
-			w = getOverlap(f.rect.left(), f.rect.right(), s.rect.left(), s.rect.right());
-		}
-		else{
+	int w = getOverlap(f.rect.left(), f.rect.right(), s.rect.left(), s.rect.right());
+	if (w != 0){
+		if (f.speed <= s.speed){
 			w = qMin(f.rect.width(), s.rect.width());
 		}
 	}
 	else{
-		double o = f.rect.left() - f.speed*s.rect.right() / s.speed;
+		double o = f.rect.left() - f.speed * s.rect.right() / s.speed;
 		w = o > 0 ? qMin(qMin(f.rect.width(), s.rect.width()), o) : 0;
 	}
-	return h*w;
+	return h * w;
 }

@@ -1,9 +1,9 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Graphic.cpp
-*   Time:        2013/10/19
+*   Filename:    Layout.h
+*   Time:        2016/05/29
 *   Author:      Lysine
 *
 *   Lysine is a student majoring in Software Engineering
@@ -24,36 +24,38 @@
 *
 =========================================================================*/
 
-#include "Common.h"
-#include "Graphic.h"
-#include "../Config.h"
-#include "../Render/ARender.h"
-#include "Mode1.h"
-#include "Mode4.h"
-#include "Mode5.h"
-#include "Mode6.h"
-#include "Mode7.h"
+#pragma once
 
-Graphic *Graphic::create(const Comment &comment)
-{
-	switch (comment.mode){
-	case 1:
-		return new Mode1(comment);
-	case 4:
-		return new Mode4(comment);
-	case 5:
-		return new Mode5(comment);
-	case 6:
-		return new Mode6(comment);
-	case 7:
-		return new Mode7(comment);
-	default:
-		throw format_unrecognized();
-	}
-}
+#include <QtCore>
+#include <QtGui>
 
-void Graphic::setIndex()
+class Comment;
+class Graphic;
+class RunningPrivate;
+
+class Running : public QObject
 {
-	static quint64 globalIndex;
-	index = ++globalIndex;
-}
+	Q_OBJECT
+public:
+	static Running *instance();
+	virtual ~Running();
+
+private:
+	static Running *ins;
+	RunningPrivate *const d_ptr;
+	Q_DECLARE_PRIVATE(Running);
+
+	explicit Running(QObject *parent = 0);
+
+signals:
+	void unrecognizedComment(const Comment *);
+
+public slots:
+	void clear(bool soft = false);
+	void insert(Graphic *graphic, int index = -1);
+	void moveTime(qint64 time);
+	void jumpTime(qint64 time);
+	void draw(QPainter *painter, double move);
+	const Comment *commentAt(QPointF point) const;
+	int size() const;
+};

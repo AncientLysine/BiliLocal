@@ -1,10 +1,11 @@
 #include "Common.h"
 #include "OpenGLRender.h"
 #include "OpenGLRenderPrivate.h"
+#include "Atlas.h"
+#include "SyncTextureSprite.h"
 #include "WidgetPrivate.h"
 #include "WindowPrivate.h"
 #include "DetachPrivate.h"
-#include "SyncTextureSprite.h"
 #include "../../Config.h"
 #include "../../Player/APlayer.h"
 
@@ -138,7 +139,7 @@ namespace
 		"precision lowp float;\n"
 		"attribute mediump vec4 a_VtxCoord;\n"
 		"attribute mediump vec2 a_TexCoord;\n"
-		"attribute vec4 ForeColor;\n"
+		"attribute vec4 a_ForeColor;\n"
 		"varying mediump vec2 v_vTexCoord;\n"
 		"varying vec3 v_ForeColor;\n"
 		"varying vec3 v_BackColor;\n"
@@ -147,13 +148,13 @@ namespace
 		"{\n"
 		"    gl_Position = a_VtxCoord;\n"
 		"    v_vTexCoord = a_TexCoord;\n"
-		"    v_ForeColor = ForeColor.rgb;\n"
+		"    v_ForeColor = a_ForeColor.rgb;\n"
 		"    if (0.12 > dot(v_ForeColor, vec3(0.34375, 0.5, 0.15625))) {\n"
 		"        v_BackColor = vec3(1.0, 1.0, 1.0);\n"
 		"    } else {\n"
 		"        v_BackColor = vec3(0.0, 0.0, 0.0);\n"
 		"    }\n"
-		"    v_Alpha = ForeColor.a;\n"
+		"    v_Alpha = a_ForeColor.a;\n"
 		"}\n";
 
 	const char *fShaderDanm =
@@ -245,6 +246,305 @@ namespace
 		"}\n";
 }
 
+GLenum OpenGLRenderPrivate::pixelFormat(int channel, bool renderable) const
+{
+	switch (channel)
+	{
+	case 1:
+		if (extensions.contains("texture_rg")) {
+#ifdef GL_RED_EXT
+			return GL_RED_EXT;
+#else
+			return GL_RED;
+#endif
+		}
+		else if (renderable) {
+			return GL_RGB;
+		}
+		else {
+			return GL_LUMINANCE;
+		}
+	case 2:
+		if (extensions.contains("texture_rg")) {
+#ifdef GL_RG_EXT
+			return GL_RG_EXT;
+#else
+			return GL_RG;
+#endif
+		}
+		else if (renderable) {
+			return GL_RGB;
+		}
+		else {
+			return GL_LUMINANCE_ALPHA;
+		}
+	case 3:
+		return GL_RGB;
+	case 4:
+		return GL_RGBA;
+	default:
+		return GL_INVALID_ENUM;
+	}
+}
+
+void OpenGLRenderPrivate::appendLoadCall(QRectF draw, QOpenGLShaderProgram *program, QRect data, const GLubyte *bits)
+{
+	GLuint source = manager->getUpload();
+	GLuint target = manager->getBuffer();
+
+	GLenum format = pixelFormat(1);
+	glBindTexture(GL_TEXTURE_2D, source);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glTexSubImage2D(
+		GL_TEXTURE_2D,
+		0,
+		data.x(),
+		data.y(),
+		data.width(),
+		data.height(),
+		format,
+		GL_UNSIGNED_BYTE,
+		bits);
+
+	if (loadList.isEmpty()
+		|| loadList.last().source != source
+		|| loadList.last().target != target
+		|| loadList.last().program != program) {
+		OpenGLRenderPrivate::LoadCall l;
+		l.source = source;
+		l.target = target;
+		l.program = program;
+		l.size = 0;
+		loadList.append(l);
+	}
+
+	GLfloat vtx[8];
+	GLfloat tex[8];
+	{
+		const GLfloat s = 1.0 / Atlas::MaxSize;
+		GLfloat l = s * draw.left();
+		GLfloat r = s * draw.right();
+		GLfloat t = s * draw.top();
+		GLfloat b = s * draw.bottom();
+		tex[0] = l; tex[1] = t;
+		tex[2] = r; tex[3] = t;
+		tex[4] = l; tex[5] = b;
+		tex[6] = r; tex[7] = b;
+		l = l * 2 - 1;
+		r = r * 2 - 1;
+		t = t * 2 - 1;
+		b = b * 2 - 1;
+		vtx[0] = l; vtx[1] = t;
+		vtx[2] = r; vtx[3] = t;
+		vtx[4] = l; vtx[5] = b;
+		vtx[6] = r; vtx[7] = b;
+	}
+
+	for (int i = 0; i < 4; ++i) {
+		loadAttr.append({
+			vtx[i * 2], vtx[i * 2 + 1],
+			tex[i * 2], tex[i * 2 + 1]
+		});
+	}
+
+	++(loadList.last().size);
+}
+
+void OpenGLRenderPrivate::appendDrawCall(QRectF draw, QRectF data, GLuint texture, QColor color)
+{
+	if (drawList.isEmpty()
+		|| drawList.last().texture != texture) {
+		OpenGLRenderPrivate::DrawCall d;
+		d.texture = texture;
+		d.size = 0;
+		drawList.append(d);
+	}
+
+	GLfloat vtx[8];
+	{
+		GLfloat h = 2.0 / view.width(), v = 2.0 / view.height();
+		GLfloat l = draw.left() * h - 1;
+		GLfloat r = draw.right() * h - 1;
+		GLfloat t = 1 - draw.top() * v;
+		GLfloat b = 1 - draw.bottom() * v;
+		vtx[0] = l; vtx[1] = t;
+		vtx[2] = r; vtx[3] = t;
+		vtx[4] = l; vtx[5] = b;
+		vtx[6] = r; vtx[7] = b;
+	}
+	GLfloat tex[8];
+	{
+		GLfloat s = 1.0 / Atlas::MaxSize;
+		GLfloat l = s * data.left();
+		GLfloat r = s * data.right();
+		GLfloat t = s * data.top();
+		GLfloat b = s * data.bottom();
+		tex[0] = l; tex[1] = t;
+		tex[2] = r; tex[3] = t;
+		tex[4] = l; tex[5] = b;
+		tex[6] = r; tex[7] = b;
+	}
+	GLubyte col[4] = {
+		(GLubyte)color.red(),
+		(GLubyte)color.green(),
+		(GLubyte)color.blue(),
+		(GLubyte)color.alpha()
+	};
+
+	for (int i = 0; i < 4; ++i) {
+		drawAttr.append({
+			vtx[i * 2], vtx[i * 2 + 1],
+			tex[i * 2], tex[i * 2 + 1],
+			col[0], col[1], col[2], col[3]
+		});
+	}
+
+	++(drawList.last().size);
+}
+
+namespace
+{
+	void fillIndices(QVector<GLushort> &indices, GLushort size)
+	{
+		indices.clear();
+		indices.reserve(size * 6);
+		for (GLushort i = 0; i < size; ++i) {
+			indices.append(i * 4);
+			indices.append(i * 4 + 1);
+			indices.append(i * 4 + 3);
+			indices.append(i * 4 + 3);
+			indices.append(i * 4 + 2);
+			indices.append(i * 4);
+		}
+	}
+}
+
+void OpenGLRenderPrivate::flushLoad()
+{
+	glEnable(GL_BLEND);
+	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	glViewport(0, 0, Atlas::MaxSize, Atlas::MaxSize);
+
+	const LoadAttr *vtxData = nullptr;
+	const GLushort *idxData = nullptr;
+
+	if (vtxBuffer.isCreated()) {
+		vtxBuffer.bind();
+		vtxBuffer.allocate(loadAttr.constData(), loadAttr.size() * sizeof(LoadAttr));
+	}
+	else {
+		vtxData = loadAttr.constData();
+	}
+
+	GLushort size = 0;
+	for (const LoadCall &iter : loadList) {
+		size = qMax(size, iter.size);
+	}
+	if (idxBuffer.isCreated()) {
+		idxBuffer.bind();
+		if (size * 6u > (GLushort)idxBuffer.size() / sizeof(GLushort)) {
+			QVector<GLushort> indices;
+			fillIndices(indices, qNextPowerOfTwo(size));
+			idxBuffer.allocate(indices.constData(), indices.size() * sizeof(GLushort));
+		}
+	}
+	else {
+		static QVector<GLushort> indices;
+		if (size * 6u > (GLushort)indices.size()) {
+			fillIndices(indices, qNextPowerOfTwo(size));
+		}
+		idxData = indices.constData();
+	}
+
+	for (const LoadCall &iter : loadList) {
+		glBindFramebuffer(GL_FRAMEBUFFER, iter.target);
+		auto p = iter.program;
+		p->bind();
+		p->setAttributeArray(0, vtxData->vtxCoord, 2, sizeof(LoadAttr));
+		p->setAttributeArray(1, vtxData->texCoord, 2, sizeof(LoadAttr));
+		p->enableAttributeArray(0);
+		p->enableAttributeArray(1);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, iter.source);
+		glDrawElements(GL_TRIANGLES, iter.size * 6, GL_UNSIGNED_SHORT, idxData);
+		vtxData += iter.size * 4;
+	}
+
+	if (vtxBuffer.isCreated()) {
+		vtxBuffer.release();
+	}
+	if (idxBuffer.isCreated()) {
+		idxBuffer.release();
+	}
+
+	loadList.resize(0);
+	loadAttr.resize(0);
+}
+
+void OpenGLRenderPrivate::flushDraw()
+{
+	glEnable(GL_BLEND);
+	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	glViewport(view.x(), view.y(), view.width(), view.height());
+	glBindFramebuffer(GL_FRAMEBUFFER, QOpenGLContext::currentContext()->defaultFramebufferObject());
+
+	const DrawAttr *vtxData = nullptr;
+	const GLushort *idxData = nullptr;
+
+	if (vtxBuffer.isCreated()) {
+		vtxBuffer.bind();
+		vtxBuffer.allocate(drawAttr.constData(), drawAttr.size() * sizeof(DrawAttr));
+	}
+	else {
+		vtxData = drawAttr.constData();
+	}
+
+	GLushort size = 0;
+	for (const DrawCall &iter : drawList) {
+		size = qMax(size, iter.size);
+	}
+	if (idxBuffer.isCreated()) {
+		idxBuffer.bind();
+		if (size * 6u > (GLushort)idxBuffer.size() / sizeof(GLushort)) {
+			QVector<GLushort> indices;
+			fillIndices(indices, qNextPowerOfTwo(size));
+			idxBuffer.allocate(indices.constData(), indices.size() * sizeof(GLushort));
+		}
+	}
+	else {
+		static QVector<GLushort> indices;
+		if (size * 6u > (GLushort)indices.size()) {
+			fillIndices(indices, qNextPowerOfTwo(size));
+		}
+		idxData = indices.constData();
+	}
+
+	for (const DrawCall &iter : drawList) {
+		auto p = &program[4];
+		p->bind();
+		p->setAttributeArray(0, vtxData->vtxCoord, 2, sizeof(DrawAttr));
+		p->setAttributeArray(1, vtxData->texCoord, 2, sizeof(DrawAttr));
+		p->setAttributeArray(2, GL_UNSIGNED_BYTE, vtxData->color, 4, sizeof(DrawAttr));
+		p->enableAttributeArray(0);
+		p->enableAttributeArray(1);
+		p->enableAttributeArray(2);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, iter.texture);
+		glDrawElements(GL_TRIANGLES, iter.size * 6, GL_UNSIGNED_SHORT, idxData);
+		vtxData += iter.size * 4;
+	}
+
+	if (vtxBuffer.isCreated()) {
+		vtxBuffer.release();
+	}
+	if (idxBuffer.isCreated()) {
+		idxBuffer.release();
+	}
+
+	drawList.resize(0);
+	drawAttr.resize(0);
+}
+
 void OpenGLRenderPrivate::initialize()
 {
 	initializeOpenGLFunctions();
@@ -313,7 +613,7 @@ void OpenGLRenderPrivate::initialize()
 		case 4:
 			p.bindAttributeLocation("a_VtxCoord", 0);
 			p.bindAttributeLocation("a_TexCoord", 1);
-			p.bindAttributeLocation("ForeColor", 2);
+			p.bindAttributeLocation("a_ForeColor", 2);
 			p.bind();
 			p.setUniformValue("u_SamplerD", 0);
 			break;
@@ -324,11 +624,13 @@ void OpenGLRenderPrivate::initialize()
 			p.bindAttributeLocation("a_TexCoord", 1);
 			p.bind();
 			p.setUniformValue("u_SamplerA", 0);
-			double size = 1.0 / SyncTextureSprite::Atlas::MaxSize;
+			double size = 1.0 / Atlas::MaxSize;
 			p.setUniformValue("u_vPixelSize", QVector2D(size, size));
 			break;
 		}
 	}
+
+	extensions = (const char *)glGetString(GL_EXTENSIONS);
 
 	vtxBuffer = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
 	vtxBuffer.setUsagePattern(QOpenGLBuffer::StreamDraw);
@@ -338,97 +640,29 @@ void OpenGLRenderPrivate::initialize()
 	idxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
 	idxBuffer.create();
 
+	manager = new AtlasMgr(this);
+
 	QOpenGLContext *c = QOpenGLContext::currentContext();
 	timer.setInterval(c->format().swapInterval() / (double)c->screen()->refreshRate());
-}
-
-namespace
-{
-	void fillIndices(QVector<GLushort> &indices, GLushort size)
-	{
-		indices.clear();
-		indices.reserve(size * 6);
-		for (GLushort i = 0; i < size; ++i) {
-			indices.append(i * 4);
-			indices.append(i * 4 + 1);
-			indices.append(i * 4 + 3);
-			indices.append(i * 4 + 3);
-			indices.append(i * 4 + 2);
-			indices.append(i * 4);
-		}
-	}
 }
 
 void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 {
 	painter->beginNativePainting();
 
+	view = rect;
 	ARenderPrivate::drawDanm(painter, rect);
-
-	glEnable(GL_BLEND);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	glViewport(rect.x(), rect.y(), rect.width(), rect.height());
-
-	const DrawAttr *vtxData = nullptr;
-	if (vtxBuffer.isCreated()) {
-		vtxBuffer.bind();
-		vtxBuffer.allocate(attrList.constData(), attrList.size() * sizeof(DrawAttr));
-	}
-	else {
-		vtxData = attrList.constData();
-	}
-
-	const GLushort *idxData = nullptr;
-	GLushort size = 0;
-	for (const DrawCall &iter : drawList) {
-		size = qMax(size, iter.size);
-	}
-	if (idxBuffer.isCreated()) {
-		idxBuffer.bind();
-		if (size * 6u > (GLushort)idxBuffer.size() / sizeof(GLushort)) {
-			QVector<GLushort> indices;
-			fillIndices(indices, qNextPowerOfTwo(size));
-			idxBuffer.allocate(indices.constData(), indices.size() * sizeof(GLushort));
-		}
-	}
-	else {
-		static QVector<GLushort> indices;
-		if (size * 6u > (GLushort)indices.size()) {
-			fillIndices(indices, qNextPowerOfTwo(size));
-		}
-		idxData = indices.constData();
-	}
-
-	for (const DrawCall &iter : drawList) {
-		auto p = iter.program;
-		p->bind();
-		p->setAttributeArray(0, vtxData->vtxCoord, 2, sizeof(DrawAttr));
-		p->setAttributeArray(1, vtxData->texCoord, 2, sizeof(DrawAttr));
-		p->setAttributeArray(2, GL_UNSIGNED_BYTE, vtxData->color, 4, sizeof(DrawAttr));
-		p->enableAttributeArray(0);
-		p->enableAttributeArray(1);
-		p->enableAttributeArray(2);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, iter.texture);
-		glDrawElements(GL_TRIANGLES, iter.size * 6, GL_UNSIGNED_SHORT, idxData);
-		vtxData += iter.size * 4;
-	}
-
-	if (vtxBuffer.isCreated()) {
-		vtxBuffer.release();
-	}
-	if (idxBuffer.isCreated()) {
-		idxBuffer.release();
-	}
+	flushLoad();
+	flushDraw();
 
 #ifdef GRAPHIC_DEBUG
-	auto atlases = SyncTextureSprite::AtlasMgr::instance(this).getAtlases();
+	auto atlases = manager->getAtlases();
 	for (int i = 0; i < atlases.size(); ++i) {
 		auto *a = atlases[i];
 		auto &p = program[4];
 		p.bind();
 		GLfloat h = 2.0 / rect.width(), v = 2.0 / rect.height();
-		GLfloat s = std::min(256.0f, rect.width() / (GLfloat)atlases.size());
+		GLfloat s = qMin(256.0f, rect.width() / (GLfloat)atlases.size());
 		GLfloat hs = s * h, vs = s * v;
 		GLfloat vtx[8] = {
 			-1 + hs * i, -1 + vs,
@@ -448,10 +682,8 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 #endif
-	painter->endNativePainting();
 
-	drawList.clear();
-	attrList.clear();
+	painter->endNativePainting();
 }
 
 void OpenGLRenderPrivate::onSwapped()

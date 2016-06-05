@@ -505,7 +505,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 					c.time += load.delay;
 				}
 			}
-			Danmaku::instance()->appendToPool(&load);
+			Danmaku::instance()->append(&load);
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -615,7 +615,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 									load.danmaku.append(iter);
 								}
 								load.source = task.code;
-								Danmaku::instance()->appendToPool(&load);
+								Danmaku::instance()->append(&load);
 								emit stateChanged(task.state = None);
 								dequeue();
 							}
@@ -685,7 +685,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 				}
 			}
 			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
-			Danmaku::instance()->appendToPool(&load);
+			Danmaku::instance()->append(&load);
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -801,7 +801,7 @@ void Load::loadDanmaku(QString code)
 {
 	const Task &task = codeToTask(code);
 	if (enqueue(task) && Config::getValue("/Playing/Clear", false)){
-		Danmaku::instance()->clearPool();
+		Danmaku::instance()->clear();
 	}
 }
 
@@ -860,7 +860,7 @@ void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 			c.time += load.delay;
 		}
 	}
-	Danmaku::instance()->appendToPool(&load);
+	Danmaku::instance()->append(&load);
 }
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
