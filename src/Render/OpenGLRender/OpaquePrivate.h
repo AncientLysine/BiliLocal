@@ -2,6 +2,7 @@
 
 #include "OpenGLRenderPrivate.h"
 #include "../ARender.h"
+#include "../../Local.h"
 #include "../../Player/APlayer.h"
 
 class OpenGLOpaqueRenderPrivate :public OpenGLRenderPrivate
@@ -84,7 +85,7 @@ public:
 			dataLock.unlock();
 		}
 
-		QRect dest = fitRect(ARender::instance()->getPreferSize(), rect);
+		QRect dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
 		GLfloat h = 2.0f / rect.width(), v = 2.0f / rect.height();
 		GLfloat l = dest.left() * h - 1, r = dest.right() * h - 1, t = 1 - dest.top() * v, b = 1 - dest.bottom() * v;
 		vtx[0] = l; vtx[1] = t;
@@ -121,8 +122,8 @@ public:
 	{
 		QPainter painter(device);
 		painter.setRenderHints(QPainter::SmoothPixmapTransform);
-		QRect rect(QPoint(0, 0), ARender::instance()->getActualSize());
-		if (APlayer::instance()->getState() == APlayer::Stop){
+		QRect rect(QPoint(0, 0), lApp->findObject<ARender>()->getActualSize());
+		if (lApp->findObject<APlayer>()->getState() == APlayer::Stop){
 			drawStop(&painter, rect);
 		}
 		else{

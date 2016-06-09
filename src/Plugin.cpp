@@ -60,7 +60,7 @@ QString Plugin::string(QString query)
 	return m_string(query);
 }
 
-void Plugin::loadPlugins()
+void Plugin::load()
 {
 	QFileInfoList list = QDir("./plugins/bililocal/").entryInfoList();
 	for (const QFileInfo &info : list){
@@ -68,7 +68,7 @@ void Plugin::loadPlugins()
 			Plugin lib(info.absoluteFilePath());
 			if (lib.loaded()){
 				if (Config::getValue("/Plugin/" + lib.string("Name"), true)){
-					lib.regist(Local::objects);
+					lib.regist(lApp->objects);
 				}
 				else{
 					lib.m_config = nullptr;

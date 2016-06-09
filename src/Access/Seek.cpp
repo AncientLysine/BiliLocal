@@ -29,13 +29,6 @@
 #include "AccessPrivate.h"
 #include "../Utils.h"
 
-Seek *Seek::ins = nullptr;
-
-Seek *Seek::instance()
-{
-	return ins ? ins : new Seek(qApp);
-}
-
 namespace
 {
 	QStandardItem *praseItem(QNetworkRequest requset)
@@ -111,10 +104,10 @@ namespace
 	}
 }
 
-Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
+Seek::Seek(QObject *parent)
+	: QObject(parent), d_ptr(new SeekPrivate(this))
 {
 	Q_D(Seek);
-	ins = this;
 	setObjectName("Seek");
 
 	QList<const char *> biOrder;

@@ -27,92 +27,30 @@
 
 #pragma once
 
-#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
-#include <QtNetwork>
 
-class List;
-class Load;
-class Post;
-class Seek;
-class Sign;
-class APlayer;
-class Danmaku;
-class Running;
-class ARender;
+class QWidget;
+class QWindow;
+class InterfacePrivate;
 
-namespace UI
-{
-	class Menu;
-	class Info;
-	class Jump;
-	class Type;
-}
-
-class Interface :public QWidget
+class Interface :public QObject
 {
 	Q_OBJECT
 public:
-	explicit Interface(QWidget *parent = 0);
+	explicit Interface(QObject *parent = nullptr);
+	virtual ~Interface();
+	void setup();
 
 private:
-	QTimer *timer;
-	QTimer *delay;
+	InterfacePrivate *d_ptr;
+	Q_DECLARE_PRIVATE(Interface);
 
-	QAction *quitA;
-	QAction *fullA;
-	QAction *confA;
-	QAction *toggA;
-	QAction *listA;
-	QAction *postA;
-	QMenu *rat;
-	QMenu *sca;
-	QMenu *spd;
-	QPointer<QDialog> msg;
-
-	UI::Menu *menu;
-	UI::Info *info;
-	UI::Jump *jump;
-	UI::Type *type;
-	List *list;
-	Load *load;
-	Post *post;
-	Seek *seek;
-	Sign *sign;
-	APlayer *aplayer;
-	Danmaku *danmaku;
-	Running *running;
-	ARender *arender;
-
-	QPoint sta;
-	QPoint wgd;
-	QByteArray geo;
-
-	bool showprg;
-	bool sliding;
-
-	virtual void closeEvent(QCloseEvent *e) override;
-	virtual void dragEnterEvent(QDragEnterEvent *e) override;
-	virtual void dropEvent(QDropEvent *e) override;
-	virtual void mouseDoubleClickEvent(QMouseEvent *e) override;
-	virtual void mouseMoveEvent(QMouseEvent *e) override;
-	virtual void mousePressEvent(QMouseEvent *e) override;
-	virtual void mouseReleaseEvent(QMouseEvent *e) override;
-	virtual void resizeEvent(QResizeEvent *e) override;
-
-signals:
-	void windowFlagsChanged(QFlags<Qt::WindowType>);
 
 public slots:
-	void tryLocal(QString path);
-	void tryLocal(QStringList paths);
-	void setWindowFlags();
 	void percent(double degree);
 	void warning(QString title, QString text);
-
-private slots:
-	void checkForUpdate();
-	void setCenter(QSize s, bool f);
-	void showContextMenu(QPoint p);
+	void show();
+	void hide();
+	QWidget *widget();
+	QWindow *window();
 };

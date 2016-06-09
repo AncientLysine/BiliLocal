@@ -9,6 +9,7 @@ class RasterRender :public ARender
 {
 public:
 	explicit RasterRender(QObject *parent = 0);
+	virtual void setup() override;
 
 private:
 	Q_DECLARE_PRIVATE(RasterRender);

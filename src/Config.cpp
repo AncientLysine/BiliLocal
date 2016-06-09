@@ -26,20 +26,13 @@
 
 #include "Common.h"
 #include "Config.h"
-
-Config *Config::ins = nullptr;
+#include "Local.h"
 
 QReadWriteLock Config::lock;
 
-Config *Config::instance()
+Config::Config(QObject *parent)
+	: QObject(parent)
 {
-	return ins ? ins : new Config(qApp);
-}
-
-Config::Config(QObject *parent) :
-QObject(parent)
-{
-	ins = this;
 }
 
 QJsonObject Config::config;
@@ -55,7 +48,7 @@ void Config::load()
 
 void Config::save()
 {
-	emit instance()->aboutToSave();
+	emit lApp->findObject<Config>()->aboutToSave();
 	QFile conf("./Config.txt");
 	conf.open(QIODevice::WriteOnly | QIODevice::Text);
 	conf.write(QJsonDocument(config).toJson());

@@ -7,7 +7,7 @@ class QPlayer :public APlayer
 {
 public:
 	explicit QPlayer(QObject *parent = 0);
-	QList<QAction *> getTracks(int type);
+	virtual QList<QAction *> getTracks(int type) override;
 
 private:
 	QMediaPlayer *mp;

@@ -30,13 +30,6 @@
 #include "AccessPrivate.h"
 #include "../Model/Danmaku.h"
 
-Post *Post::ins = nullptr;
-
-Post *Post::instance()
-{
-	return ins ? ins : new Post(qApp);
-}
-
 class PostPrivate : public AccessPrivate<Post ,Post::Proc, Post::Task>
 {
 public:
@@ -54,10 +47,10 @@ public:
 	}
 };
 
-Post::Post(QObject *parent) : QObject(parent), d_ptr(new PostPrivate(this))
+Post::Post(QObject *parent)
+	: QObject(parent), d_ptr(new PostPrivate(this))
 {
 	Q_D(Post);
-	ins = this;
 	setObjectName("Post");
 
 	auto avProcess = [this](QNetworkReply *reply){

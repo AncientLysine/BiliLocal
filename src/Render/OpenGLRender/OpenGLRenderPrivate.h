@@ -1,9 +1,8 @@
 #pragma once
 
 #include "../ARenderPrivate.h"
+#include "Atlas.h"
 #include <QOpenGLFunctions>
-
-class AtlasMgr;
 
 class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 {
@@ -17,7 +16,7 @@ public:
 	QOpenGLBuffer vtxBuffer;
 	QOpenGLBuffer idxBuffer;
 
-	AtlasMgr *manager;
+	QScopedPointer<AtlasMgr> manager;
 
 	GLenum pixelFormat(int channel, bool renderable = false) const;
 

@@ -26,8 +26,8 @@
 
 #pragma once
 
-#include <QtGui>
 #include <QtCore>
+#include <QtGui>
 
 class ARenderPrivate;
 class ASprite;
@@ -37,38 +37,39 @@ class ARender :public QObject
 	Q_OBJECT
 public:
 	static QStringList getModules();
+	static ARender *create(QObject *parent = nullptr, QString name = QString());
 
 	virtual ~ARender();
-	static ARender *instance();
+	virtual void setup();
 
 protected:
-	static ARender *ins;
-	ARenderPrivate *const d_ptr;
+	ARenderPrivate *d_ptr;
 	Q_DECLARE_PRIVATE(ARender);
-	ARender(ARenderPrivate *data, QObject *parent = 0);
 
-signals:
-	void alphaChanged(int);
+	explicit ARender(QObject *parent);
 
 public slots:
 	virtual QList<quint8 *> getBuffer();
 	virtual void releaseBuffer();
 	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0);
 
-	void setAlpha(int alpha);
 	void setBackground(QString path);
 	void setMusic(bool music);
+
 	void setDisplayTime(double t);
+
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
-	void draw();
 
 	virtual ASprite *getSprite() = 0;
 	virtual quintptr getHandle() = 0;
+
 	virtual void resize(QSize size) = 0;
 	virtual QSize getBufferSize() = 0;
 	virtual QSize getActualSize() = 0;
 	virtual	QSize getPreferSize();
 	virtual void setPreferSize(QSize size);
+
+	void draw();
 	virtual void draw(QRect rect) = 0;
 };

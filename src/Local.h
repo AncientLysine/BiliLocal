@@ -33,42 +33,45 @@
 #include <QWidget>
 #include <QThreadPool>
 
-#define lApp (static_cast<Local *>(QCoreApplication::instance()))
+#define lApp Local::instance()
 
 #define qThreadPool QThreadPool::globalInstance()
 
-class Local :public QApplication
+class Local :public QObject
 {
 	Q_OBJECT
 public:
-	Local(int &argc, char **argv);
+	explicit Local(QObject *parent = 0);
+	virtual ~Local();
 
-	static Local *instance()
+	//last instance of app
+	static Local *instance();
+
+	QHash<QString, QObject *> objects;
+
+	template<class T>
+	T *findObject() const
 	{
-		return lApp;
+		return qobject_cast<T *>(objects.value(T::staticMetaObject.className()));
 	}
 
-	static QHash<QString, QObject *> objects;
+private:
+	static Local *ins;
 
 public slots:
-	void exit(int code = 0);
-
-	QWidget *mainWidget()
+	QObject *findObject(QString name) const
 	{
-		return qobject_cast<QWidget *>(objects["Interface"]);
+		return objects.value(name);
 	}
 
-	QObject *findObject(QString name)
-	{
-		return objects[name];
-	}
+	void tryLocal(QString path);
 
-	void synchronize(void *func)
+	void synchronize(void *func) const
 	{
 		((void(*)())func)();
 	}
 
-	void synchronize(void *func, void *args)
+	void synchronize(void *func, void *args) const
 	{
 		((void(*)(void *))func)(args);
 	}

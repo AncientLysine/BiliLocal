@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "VPlayer.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Utils.h"
 #include "../Render/ARender.h"
 
@@ -34,8 +35,8 @@ namespace
 
 		void flush()
 		{
-			memcpy(ARender::instance()->getBuffer()[0], data[0], size);
-			ARender::instance()->releaseBuffer();
+			memcpy(lApp->findObject<ARender>()->getBuffer()[0], data[0], size);
+			lApp->findObject<ARender>()->releaseBuffer();
 		}
 
 		QList<quint8 *> getBuffer()
@@ -54,7 +55,7 @@ namespace
 	{
 		QString c(chroma);
 		QList<QSize> b;
-		ARender::instance()->setBuffer(c, QSize(*width, *height), 8, &b);
+		lApp->findObject<ARender>()->setBuffer(c, QSize(*width, *height), 8, &b);
 		if (b.isEmpty()){
 			return 0;
 		}
@@ -79,7 +80,7 @@ namespace
 	void dsp(void *opaque, void *)
 	{
 		((Buffer *)opaque)->flush();
-		emit APlayer::instance()->decode();
+		emit lApp->findObject<APlayer>()->decode();
 	}
 
 	void clr(void *opaque)
@@ -89,40 +90,40 @@ namespace
 
 	void sta(const libvlc_event_t *, void *)
 	{
-		QMetaObject::invokeMethod(APlayer::instance(), "event", Q_ARG(int, VPlayer::Init));
+		QMetaObject::invokeMethod(lApp->findObject<APlayer>(), "event", Q_ARG(int, VPlayer::Init));
 	}
 
 	void mid(const libvlc_event_t *, void *)
 	{
 		if (VPlayer::time.tryLock()) {
-			QMetaObject::invokeMethod(APlayer::instance(),
+			QMetaObject::invokeMethod(lApp->findObject<APlayer>(),
 				"timeChanged",
-				Q_ARG(qint64, APlayer::instance()->getTime()));
+				Q_ARG(qint64, lApp->findObject<APlayer>()->getTime()));
 			VPlayer::time.unlock();
 		}
 	}
 
 	void hal(const libvlc_event_t *, void *)
 	{
-		QMetaObject::invokeMethod(APlayer::instance(), "event", Q_ARG(int, VPlayer::Wait));
+		QMetaObject::invokeMethod(lApp->findObject<APlayer>(), "event", Q_ARG(int, VPlayer::Wait));
 	}
 
 	void end(const libvlc_event_t *, void *)
 	{
-		QMetaObject::invokeMethod(APlayer::instance(), "event", Q_ARG(int, VPlayer::Free));
+		QMetaObject::invokeMethod(lApp->findObject<APlayer>(), "event", Q_ARG(int, VPlayer::Free));
 	}
 
 	void err(const libvlc_event_t *, void *)
 	{
-		QMetaObject::invokeMethod(APlayer::instance(), "event", Q_ARG(int, VPlayer::Fail));
+		QMetaObject::invokeMethod(lApp->findObject<APlayer>(), "event", Q_ARG(int, VPlayer::Fail));
 	}
 }
 
-VPlayer::VPlayer(QObject *parent) :
-APlayer(parent)
+VPlayer::VPlayer(QObject *parent)
+	: APlayer(parent)
 {
-	ins = this;
 	setObjectName("VPlayer");
+
 	QList<QByteArray> args;
 	for (QJsonValue arg : Config::getValue<QJsonArray>("/Playing/Arguments")){
 		args.append(arg.toString().toUtf8());
@@ -193,7 +194,7 @@ void VPlayer::init()
 			switch (last){
 			case Stop:
 			{
-				ARender::instance()->setMusic(libvlc_video_get_track_count(mp) <= 0);
+				lApp->findObject<ARender>()->setMusic(libvlc_video_get_track_count(mp) <= 0);
 				if (!Config::getValue("/Playing/Subtitle", true)){
 					libvlc_video_set_spu(mp, -1);
 				}
@@ -204,7 +205,7 @@ void VPlayer::init()
 					int t = i->data().toInt();
 					connect(i, &QAction::triggered, [=](){
 						libvlc_video_set_track(mp, t);
-						ARender::instance()->setMusic(t == -1);
+						lApp->findObject<ARender>()->setMusic(t == -1);
 					});
 					i->setChecked(t == libvlc_video_get_track(mp));
 				}

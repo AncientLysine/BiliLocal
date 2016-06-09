@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Layout.cpp
+*   Filename:    Running.cpp
 *   Time:        2016/05/29
 *   Author:      Lysine
 *
@@ -43,30 +43,35 @@ public:
 	mutable QReadWriteLock lock;
 };
 
-Running *Running::ins = nullptr;
-
-Running *Running::instance()
+Running::Running(QObject *parent)
+	: QObject(parent), d_ptr(new RunningPrivate())
 {
-	return ins ? ins : new Running(qApp);
+	setObjectName("Running");
 }
 
-Running::Running(QObject *parent)
-	: QObject(parent), d_ptr(new RunningPrivate)
+Running::~Running()
 {
 	Q_D(Running);
-	ins = this;
-	setObjectName("Running");
+	qThreadPool->clear();
+	qThreadPool->waitForDone();
+	qDeleteAll(d->draw);
+	delete d_ptr;
+}
+
+void Running::setup()
+{
+	Q_D(Running);
 	d->curr = d->time = 0;
 
-	connect(APlayer::instance(), &APlayer::jumped, this, &Running::jumpTime);
-	connect(APlayer::instance(), &APlayer::timeChanged, this, &Running::moveTime);
+	connect(lApp->findObject<APlayer>(), &APlayer::jumped, this, &Running::jumpTime);
+	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, this, &Running::moveTime);
 
-	connect(Danmaku::instance(), &Danmaku::modelReset, this, [this]() {
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
 		Q_D(Running);
 		jumpTime(d->time);
-		ARender::instance()->draw();
+		lApp->findObject<ARender>()->draw();
 	});
-	connect(Danmaku::instance(), &Danmaku::layoutChanged, this, [this]() {
+	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, [this]() {
 		Q_D(Running);
 		qThreadPool->clear();
 		qThreadPool->waitForDone();
@@ -82,17 +87,8 @@ Running::Running(QObject *parent)
 			}
 		}
 		d->lock.unlock();
-		ARender::instance()->draw();
+		lApp->findObject<ARender>()->draw();
 	});
-}
-
-Running::~Running()
-{
-	Q_D(Running);
-	qThreadPool->clear();
-	qThreadPool->waitForDone();
-	qDeleteAll(d->draw);
-	delete d_ptr;
 }
 
 void Running::clear(bool soft)
@@ -112,7 +108,7 @@ void Running::clear(bool soft)
 		}
 	}
 	d->lock.unlock();
-	ARender::instance()->draw();
+	lApp->findObject<ARender>()->draw();
 }
 
 void Running::insert(Graphic *graphic, int index)
@@ -308,7 +304,7 @@ namespace
 				}
 				catch (Graphic::format_unrecognized) {
 					//自带弹幕系统未识别，通知插件处理
-					emit Running::instance()->unrecognizedComment(comment);
+					emit lApp->findObject<Running>()->unrecognizedComment(comment);
 				}
 				catch (Graphic::args_prasing_error) {}
 			}
@@ -330,7 +326,7 @@ void Running::moveTime(qint64 time)
 	d->time = time;
 	int limit = Config::getValue("/Shield/Density", 0);
 	QMap<qint64, QList<const Comment *>> buffer;
-	auto danm = Danmaku::instance();
+	auto danm = lApp->findObject<Danmaku>();
 	for (; d->curr < danm->size() && danm->at(d->curr)->time < time; ++d->curr) {
 		const Comment *c = danm->at(d->curr);
 		if (!c->blocked && (limit <= 0 || d->wait + d->draw.size() < limit)) {
@@ -365,7 +361,7 @@ void Running::jumpTime(qint64 time)
 {
 	Q_D(Running);
 	clear(true);
-	auto danm = Danmaku::instance();
+	auto danm = lApp->findObject<Danmaku>();
 	d->time = time;
 	d->curr = std::lower_bound(danm->begin(), danm->end(), time, CommentComparer()) - danm->begin();
 }

@@ -33,11 +33,11 @@
 #include "../Model/Running.h"
 #include "../Player/APlayer.h"
 
-#ifdef RENDER_RASTER
-#include "RasterRender/RasterRender.h"
-#endif
 #ifdef RENDER_OPENGL
 #include "OpenGLRender/OpenGLRender.h"
+#endif
+#ifdef RENDER_RASTER
+#include "RasterRender/RasterRender.h"
 #endif
 
 QStringList ARender::getModules()
@@ -52,52 +52,52 @@ QStringList ARender::getModules()
 	return modules;
 }
 
-ARender *ARender::ins = nullptr;
-
-ARender *ARender::instance()
+ARender::ARender(QObject *parent)
+	: QObject(parent), d_ptr(nullptr)
 {
-	if (ins){
-		return ins;
-	}
-	QString r;
-	QStringList l = getModules();
-	switch (l.size()){
-	case 0:
-		break;
-	case 1:
-		r = l[0];
-		break;
-	default:
-		r = Config::getValue("/Performance/Render", l[0]);
-		r = l.contains(r) ? r : l[0];
-		break;
+	setObjectName("ARender");
+}
+
+ARender *ARender::create(QObject *parent, QString name)
+{
+	if (name.isEmpty()) {
+		QStringList l = getModules();
+		switch (l.size()) {
+		case 0:
+			break;
+		case 1:
+			name = l[0];
+			break;
+		default:
+			name = Config::getValue("/Performance/Render", l[0]);
+			name = l.contains(name) ? name : l[0];
+			break;
+		}
 	}
 #ifdef RENDER_OPENGL
-	if (r == "OpenGL"){
-		return new OpenGLRender(qApp);
+	if (name == "OpenGL") {
+		return new OpenGLRender(parent);
 	}
 #endif
 #ifdef RENDER_RASTER
-	if (r=="Raster"){
-		return new RasterRender(qApp);
+	if (name == "Raster") {
+		return new RasterRender(parent);
 	}
 #endif
 	return nullptr;
 }
 
-ARender::ARender(ARenderPrivate *data, QObject *parent) :
-QObject(parent), d_ptr(data)
+void ARender::setup()
 {
 	Q_D(ARender);
 	d->time = 0;
-	connect(lApp, &Local::aboutToQuit, this, &ARender::deleteLater);
 	if (Config::getValue("/Interface/Version", true)){
 		d->tv.setFileName(":/Picture/tv.gif");
 		d->tv.setCacheMode(QMovie::CacheAll);
 		d->tv.start();
 		d->me = QImage(":/Picture/version.png");
-		connect(APlayer::instance(), &APlayer::begin, &d->tv, &QMovie::stop);
-		connect(APlayer::instance(), &APlayer::reach, &d->tv, &QMovie::start);
+		connect(lApp->findObject<APlayer>(), &APlayer::begin, &d->tv, &QMovie::stop);
+		connect(lApp->findObject<APlayer>(), &APlayer::reach, &d->tv, &QMovie::start);
 		connect(&d->tv, &QMovie::updated, [=](){
 			QImage cf = d->tv.currentImage();
 			QPoint ps = QRect(QPoint(0, 0), getActualSize()).center() - cf.rect().center();
@@ -114,10 +114,9 @@ QObject(parent), d_ptr(data)
 	d->dirty = 0;
 	d->videoAspectRatio = 0;
 	d->pixelAspectRatio = 1;
-	connect(APlayer::instance(), &APlayer::stateChanged, [d](){
+	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, [d](){
 		d->timer.invalidate();
 	});
-	QMetaObject::invokeMethod(this, "alphaChanged", Qt::QueuedConnection, Q_ARG(int, Config::getValue("/Danmaku/Alpha", 100)));
 }
 
 ARender::~ARender()
@@ -141,12 +140,6 @@ void ARender::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize>
 {
 	Q_D(ARender);
 	d->setBuffer(chroma, size, alignment, bufferSize);
-}
-
-void ARender::setAlpha(int alpha)
-{
-	Config::setValue("/Danmaku/Alpha", alpha);
-	emit alphaChanged(alpha);
 }
 
 void ARender::setBackground(QString path)
@@ -182,13 +175,6 @@ void ARender::setPixelAspectRatio(double ratio)
 	d->pixelAspectRatio = ratio;
 }
 
-void ARender::draw()
-{
-	QRect rect;
-	rect.setSize(getActualSize());
-	draw(rect);
-}
-
 QSize ARender::getPreferSize()
 {
 	Q_D(ARender);
@@ -207,6 +193,18 @@ void ARender::setPreferSize(QSize size)
 {
 	Q_D(ARender);
 	d->pref = size;
+}
+
+void ARender::draw()
+{
+	QRect rect;
+	rect.setSize(getActualSize());
+	draw(rect);
+}
+
+void ARender::draw(QRect rect)
+{
+	draw(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
 }
 
 QRect ARenderPrivate::fitRect(QSize size, QRect rect)
@@ -236,7 +234,7 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 		static int frame = 0;
 		if (last.second() != time.second()) {
 			last = time;
-			count = Running::instance()->size();
+			count = lApp->findObject<Running>()->size();
 			speed = frame;
 			frame = 0;
 		}
@@ -293,5 +291,5 @@ void ARenderPrivate::drawTime(QPainter *painter, QRect rect)
 
 void ARenderPrivate::drawDanm(QPainter *painter, QRect)
 {
-	Running::instance()->draw(painter, timer.step());
+	lApp->findObject<Running>()->draw(painter, timer.step());
 }

@@ -2,6 +2,7 @@
 #include "Mode4.h"
 #include "GraphicPrivate.h"
 #include "../Config.h"
+#include "../Local.h"
 
 using namespace GraphicPrivate;
 
@@ -18,7 +19,7 @@ QList<QRectF> Mode4::locate()
 	if (rect.height() > 360){
 		return results;
 	}
-	QSize size = ARender::instance()->getActualSize();
+	QSize size = lApp->findObject<ARender>()->getActualSize();
 	QRectF init = rect;
 	init.moveCenter(QPointF(size.width() / 2.0, 0));
 	init.moveBottom(size.height()*(Config::getValue("/Danmaku/Protect", false) ? 0.85 : 1));

@@ -35,13 +35,6 @@ extern "C"
 #include <openssl/rsa.h>
 }
 
-Sign *Sign::ins = nullptr;
-
-Sign *Sign::instance()
-{
-	return ins ? ins : new Sign(qApp);
-}
-
 class SignPrivate : public AccessPrivate<Sign, Sign::Proc, Sign::Task>
 {
 public:
@@ -59,10 +52,10 @@ public:
 	}
 };
 
-Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
+Sign::Sign(QObject *parent)
+	: QObject(parent), d_ptr(new SignPrivate(this))
 {
 	Q_D(Sign);
-	ins = this;
 	setObjectName("Sign");
 
 	auto biCaptcha = [this](){

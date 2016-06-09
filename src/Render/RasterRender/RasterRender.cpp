@@ -5,24 +5,32 @@
 #include "../../Config.h"
 #include "../../Local.h"
 #include "../../Player/APlayer.h"
+#include "../../UI/Interface.h"
 
 RasterRender::RasterRender(QObject *parent)
-	: ARender(new RasterRenderPrivate, parent)
+	: ARender(parent)
 {
-	Q_D(RasterRender);
-	ins = this;
 	setObjectName("RRender");
+}
+
+void RasterRender::setup()
+{
+	d_ptr = new RasterRenderPrivate();
+
+	ARender::setup();
+
+	Q_D(RasterRender);
 	d->power = new QTimer(this);
 	d->power->setTimerType(Qt::PreciseTimer);
 	int fps = Config::getValue("/Performance/Option/Raster/Update", 100);
 	d->power->start(1000 / (fps > 0 ? fps : 60));
-	connect(APlayer::instance(), &APlayer::decode, d->power, [=](){
+	connect(lApp->findObject<APlayer>(), &APlayer::decode, d->power, [=](){
 		if (!d->power->isActive()){
 			draw();
 		}
 	});
-	connect(d->power, &QTimer::timeout, APlayer::instance(), [=](){
-		if (APlayer::instance()->getState() == APlayer::Play){
+	connect(d->power, &QTimer::timeout, lApp->findObject<APlayer>(), [=](){
+		if (lApp->findObject<APlayer>()->getState() == APlayer::Play){
 			draw();
 		}
 	});
@@ -104,8 +112,9 @@ bool RasterRenderPrivate::Buffer::isValid()
 	return format != AV_PIX_FMT_NONE;
 }
 
-RasterRenderPrivate::Widget::Widget(RasterRenderPrivate *render) :
-QWidget(lApp->mainWidget()), render(render)
+RasterRenderPrivate::Widget::Widget(RasterRenderPrivate *render)
+	: QWidget(lApp->findObject<Interface>()->widget())
+	, render(render)
 {
 	setAttribute(Qt::WA_TransparentForMouseEvents);
 	lower();
@@ -114,9 +123,9 @@ QWidget(lApp->mainWidget()), render(render)
 void RasterRenderPrivate::Widget::paintEvent(QPaintEvent *)
 {
 	QPainter painter(this);
-	QRect rect(QPoint(0, 0), ARender::instance()->getActualSize());
+	QRect rect(QPoint(0, 0), lApp->findObject<ARender>()->getActualSize());
 	painter.setRenderHints(QPainter::SmoothPixmapTransform);
-	if (APlayer::instance()->getState() == APlayer::Stop){
+	if (lApp->findObject<APlayer>()->getState() == APlayer::Stop){
 		render->drawStop(&painter, rect);
 	}
 	else{
@@ -211,7 +220,7 @@ void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 	if (!srcFrame->isValid()){
 		return;
 	}
-	QRect dest = fitRect(ARender::instance()->getPreferSize(), rect);
+	QRect dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
 	QSize dstSize = dest.size()*painter->device()->devicePixelRatio();
 	if (!dstFrame || dstFrame->size != dstSize){
 		delete dstFrame;

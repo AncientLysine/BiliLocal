@@ -1,11 +1,11 @@
 #include "Common.h"
 #include "NPlayer.h"
+#include "../Local.h"
 #include "../Render/ARender.h"
 
 NPlayer::NPlayer(QObject *parent) :
 APlayer(parent)
 {
-	ins = this;
 	setObjectName("NPlayer");
 
 	state = Stop;
@@ -29,7 +29,7 @@ void NPlayer::play()
 	if (state != Stop){
 		return;
 	}
-	ARender::instance()->setMusic(true);
+	lApp->findObject<ARender>()->setMusic(true);
 	emit stateChanged(state = Play);
 	emit begin();
 	start = QDateTime::currentMSecsSinceEpoch();

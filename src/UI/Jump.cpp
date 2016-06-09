@@ -49,14 +49,14 @@ QWidget(parent)
 	jumpB = new QPushButton(this);
 	jumpB->setFixedWidth(55);
 	connect(jumpB, &QPushButton::clicked, [this](){
-		QStandardItem *c = List::instance()->getCurrent();
-		APlayer::instance()->setTime(c->data(List::TimeRole).toDouble());
+		QStandardItem *c = lApp->findObject<List>()->getCurrent();
+		lApp->findObject<APlayer>()->setTime(c->data(List::TimeRole).toDouble());
 		hide();
 	});
 	layout->addWidget(jumpB);
 
-	connect(APlayer::instance(), &APlayer::begin, [this](){
-		QStandardItem *c = List::instance()->getCurrent();
+	connect(lApp->findObject<APlayer>(), &APlayer::begin, [this](){
+		QStandardItem *c = lApp->findObject<List>()->getCurrent();
 		if (!c){
 			return;
 		}

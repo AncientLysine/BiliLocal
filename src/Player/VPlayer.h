@@ -22,7 +22,7 @@ public:
 	explicit VPlayer(QObject *parent = 0);
 	~VPlayer();
 	static QMutex time;
-	QList<QAction *> getTracks(int type);
+	virtual QList<QAction *> getTracks(int type) override;
 
 private:
 	int	    state;

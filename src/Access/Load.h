@@ -73,15 +73,13 @@ public:
 	};
 
 	Task codeToTask(QString code);
-	static Load *instance();
-	~Load();
+
+	explicit Load(QObject *parent = nullptr);
+	virtual ~Load();
 
 private:
-	static Load *ins;
 	LoadPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Load);
-
-	explicit Load(QObject *parent);
 
 signals:
 	void stateChanged(int state);

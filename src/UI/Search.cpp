@@ -27,6 +27,7 @@
 
 #include "Common.h"
 #include "Search.h"
+#include "../Local.h"
 #include "../Access/Seek.h"
 #include "../Utils.h"
 
@@ -48,7 +49,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 
 	orderC = new QComboBox(this);
 	sitesC = new QComboBox(this);
-	sitesC->addItems(Seek::instance()->modules());
+	sitesC->addItems(lApp->findObject<Seek>()->modules());
 	sitesC->setEditable(false);
 	orderC->setEditable(false);
 	orderC->setFixedWidth(60 * x);
@@ -60,7 +61,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	});
 	connect(sitesC, &QComboBox::currentTextChanged, [this](QString site){
 		orderC->clear();
-		orderC->addItems(Seek::instance()->getProc(site)->sort);
+		orderC->addItems(lApp->findObject<Seek>()->getProc(site)->sort);
 		if (!isWaiting && resultM->rowCount()){
 			startSearch();
 		}
@@ -148,7 +149,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 	responseLayout->addWidget(ccB);
 	outerLayout->addLayout(responseLayout);
 
-	connect(Seek::instance(), &Seek::stateChanged, this, [=](int code){
+	connect(lApp->findObject<Seek>(), &Seek::stateChanged, this, [=](int code){
 		switch (code){
 		case Seek::List:
 			isWaiting = 1;
@@ -160,7 +161,7 @@ Search::Search(QWidget *parent) : QDialog(parent)
 			isWaiting = 0;
 			resultV->expandAll();
 		case Seek::More:
-			pageNum = Seek::instance()->getHead()->page.second;
+			pageNum = lApp->findObject<Seek>()->getHead()->page.second;
 			pageE->setText(QString::number(pageCur));
 			pageL->setText(QString("/%1").arg(pageNum));
 			resultV->setColumnWidth(0, resultV->iconSize().width() + 6);
@@ -185,14 +186,14 @@ Search::Search(QWidget *parent) : QDialog(parent)
 			break;
 		}
 	});
-	connect(Seek::instance(), &Seek::errorOccured, this, [=](){
+	connect(lApp->findObject<Seek>(), &Seek::errorOccured, this, [=](){
 		clearSearch();
 		isWaiting = false;
 	});
-	connect(this, &QWidget::destroyed, Seek::instance(), []()
+	connect(this, &QWidget::destroyed, lApp->findObject<Seek>(), []()
 	{
-		if (Seek::instance()->getHead()){
-			Seek::instance()->dequeue();
+		if (lApp->findObject<Seek>()->getHead()){
+			lApp->findObject<Seek>()->dequeue();
 		}
 	});
 
@@ -223,8 +224,8 @@ void Search::startSearch()
 	task.page.first = pageCur == -1 ? 1 : pageCur;
 	task.cover = resultV->iconSize();
 	task.model = resultM;
-	task.processer = Seek::instance()->getProc(task.code);
-	Seek::instance()->enqueue(task);
+	task.processer = lApp->findObject<Seek>()->getProc(task.code);
+	lApp->findObject<Seek>()->enqueue(task);
 }
 
 void Search::clearSearch()

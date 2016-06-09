@@ -27,6 +27,7 @@
 #include "Common.h"
 #include "Editor.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Utils.h"
 #include "../Access/Load.h"
 #include "../Access/NetworkConfiguration.h"
@@ -43,7 +44,7 @@ namespace{
 		explicit ListEditor(QWidget *parent = 0) :
 			QListView(parent)
 		{
-			setModel(List::instance());
+			setModel(lApp->findObject<List>());
 			setMinimumWidth(200 * logicalDpiX() / 96);
 			setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 			setSelectionMode(ExtendedSelection);
@@ -54,14 +55,14 @@ namespace{
 
 			megA = new QAction(Editor::tr("Merge"), this);
 			connect(megA, &QAction::triggered, [this](){
-				List::instance()->merge(selectionModel()->selectedRows());
+				lApp->findObject<List>()->merge(selectionModel()->selectedRows());
 				setCurrentIndex(QModelIndex());
 			});
 			addAction(megA);
 
 			grpA = new QAction(Editor::tr("Group"), this);
 			connect(grpA, &QAction::triggered, [this](){
-				List::instance()->group(selectionModel()->selectedRows());
+				lApp->findObject<List>()->group(selectionModel()->selectedRows());
 				setCurrentIndex(QModelIndex());
 			});
 			addAction(grpA);
@@ -69,7 +70,7 @@ namespace{
 			splA = new QAction(Editor::tr("Split"), this);
 			splA->setShortcut(QKeySequence("S"));
 			connect(splA, &QAction::triggered, [this](){
-				List::instance()->split(selectionModel()->selectedRows());
+				lApp->findObject<List>()->split(selectionModel()->selectedRows());
 				setCurrentIndex(QModelIndex());
 			});
 			addAction(splA);
@@ -77,12 +78,12 @@ namespace{
 			delA = new QAction(Editor::tr("Delete"), this);
 			delA->setShortcut(QKeySequence("Del"));
 			connect(delA, &QAction::triggered, [this](){
-				List::instance()->waste(selectionModel()->selectedRows());
+				lApp->findObject<List>()->waste(selectionModel()->selectedRows());
 				setCurrentIndex(QModelIndex());
 			});
 			addAction(delA);
 
-			connect(this, SIGNAL(doubleClicked(QModelIndex)), List::instance(), SLOT(jumpToIndex(QModelIndex)));
+			connect(this, SIGNAL(doubleClicked(QModelIndex)), lApp->findObject<List>(), SLOT(jumpToIndex(QModelIndex)));
 		}
 
 	private:
@@ -103,7 +104,7 @@ namespace{
 		{
 			if (e->mimeData()->hasFormat("text/uri-list")){
 				for (const QString &item : QString(e->mimeData()->data("text/uri-list")).split('\n', QString::SkipEmptyParts)){
-					List::instance()->appendMedia(QUrl(item).toLocalFile().trimmed());
+					lApp->findObject<List>()->appendMedia(QUrl(item).toLocalFile().trimmed());
 				}
 			}
 			QListView::dropEvent(e);
@@ -407,7 +408,7 @@ namespace{
 			for (Comment &c : m_record->danmaku){
 				c.time += delay;
 			}
-			QMetaObject::invokeMethod(Danmaku::instance(), "parse", Qt::QueuedConnection, Q_ARG(int, 0x1 | 0x2));
+			QMetaObject::invokeMethod(lApp->findObject<Danmaku>(), "parse", Qt::QueuedConnection, Q_ARG(int, 0x1 | 0x2));
 		}
 	};
 
@@ -464,8 +465,8 @@ namespace{
 					return;
 				}
 				QMenu menu(this);
-				Load *load = Load::instance();
-				auto &p = Danmaku::instance()->getPool();
+				Load *load = lApp->findObject<Load>();
+				auto &p = lApp->findObject<Danmaku>()->getPool();
 				auto &r = c->getRecord();
 				QAction *fullA = menu.addAction(Editor::tr("Full"));
 				fullA->setEnabled(load->canFull(&r));
@@ -513,7 +514,7 @@ namespace{
 							load->loadHistory(&r, selected);
 						}
 						else{
-							Danmaku::instance()->parse(0x2);
+							lApp->findObject<Danmaku>()->parse(0x2);
 							widget->update();
 						}
 					}
@@ -522,7 +523,7 @@ namespace{
 					for (auto i = p.begin(); i != p.end(); ++i){
 						if (&r == &(*i)){
 							p.erase(i);
-							Danmaku::instance()->parse(0x1 | 0x2);
+							lApp->findObject<Danmaku>()->parse(0x1 | 0x2);
 							break;
 						}
 					}
@@ -531,7 +532,7 @@ namespace{
 			});
 
 			parseRecords();
-			connect(Danmaku::instance(), &Danmaku::modelReset, this, &PoolEditor::parseRecords, Qt::QueuedConnection);
+			connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, &PoolEditor::parseRecords, Qt::QueuedConnection);
 		}
 
 	private:
@@ -542,7 +543,7 @@ namespace{
 
 		void paintEvent(QPaintEvent *)
 		{
-			if (!Danmaku::instance()->getPool().isEmpty()){
+			if (!lApp->findObject<Danmaku>()->getPool().isEmpty()){
 				return;
 			}
 			QPainter p(this);
@@ -569,14 +570,14 @@ namespace{
 		{
 			qDeleteAll(tracks);
 			tracks.clear();
-			QList<Record> &pool = Danmaku::instance()->getPool();
+			QList<Record> &pool = lApp->findObject<Danmaku>()->getPool();
 			if (!pool.isEmpty()){
 				qint64 duration = -1;
 				if (duration <= 0){
-					duration = APlayer::instance()->getDuration();
+					duration = lApp->findObject<APlayer>()->getDuration();
 				}
 				if (duration <= 0){
-					duration = Danmaku::instance()->getDuration();
+					duration = lApp->findObject<Danmaku>()->getDuration();
 				}
 				int height = 0;
 				for (Record &r : pool){
@@ -584,7 +585,7 @@ namespace{
 					t->setPrefix(Editor::tr("Delay: %1s"));
 					t->move(0, height);
 					height += 100 * logicalDpiY() / 96;
-					t->setCurrent(APlayer::instance()->getTime());
+					t->setCurrent(lApp->findObject<APlayer>()->getTime());
 					t->setDuration(duration);
 					t->setRecord(&r);
 					t->show();

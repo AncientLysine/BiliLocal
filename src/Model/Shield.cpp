@@ -27,15 +27,9 @@
 #include "Common.h"
 #include "Shield.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Utils.h"
 #include <algorithm>
-
-Shield *Shield::ins = nullptr;
-
-Shield *Shield::instance()
-{
-	return ins ? ins : new Shield(qApp);
-}
 
 class ShieldPrivate
 {
@@ -140,7 +134,6 @@ Shield::Shield(QObject *parent) :
 QObject(parent), d_ptr(new ShieldPrivate)
 {
 	Q_D(Shield);
-	ins = this;
 	QJsonArray s = Config::getValue<QJsonArray>("/Shield/Sender");
 	QJsonArray r = Config::getValue<QJsonArray>("/Shield/Regexp");
 	for (const QJsonValue &item : s){
@@ -154,7 +147,7 @@ QObject(parent), d_ptr(new ShieldPrivate)
 		d->shieldG[i] = group & 1;
 		group = group >> 1;
 	}
-	connect(Config::instance(), &Config::aboutToSave, [d]{
+	connect(lApp->findObject<Config>(), &Config::aboutToSave, [d]{
 		QJsonArray s, r;
 		for (auto &item : d->shieldS){
 			s.append(item);

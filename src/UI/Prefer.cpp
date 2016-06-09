@@ -26,6 +26,7 @@
 
 #include "Common.h"
 #include "Prefer.h"
+#include "Interface.h"
 #include "../Config.h"
 #include "../Local.h"
 #include "../Plugin.h"
@@ -393,7 +394,7 @@ QDialog(parent)
 		stay->setCurrentIndex(Config::getValue("/Interface/Top", 0));
 		connect<void(QComboBox::*)(int)>(stay, &QComboBox::currentIndexChanged, [this](int i){
 			Config::setValue("/Interface/Top", i);
-			QMetaObject::invokeMethod(lApp->mainWidget(), "setWindowFlags");
+			QMetaObject::invokeMethod(lApp->findObject<Interface>()->widget(), "setWindowFlags");
 		});
 		m->addWidget(stay);
 		ui[6] = new QGroupBox(tr("stay on top"));
@@ -408,7 +409,7 @@ QDialog(parent)
 		back = new QLineEdit(widget[1]);
 		back->setText(Config::getValue("/Interface/Background", QString()));
 		connect(back, &QLineEdit::textChanged, [=](){
-			ARender::instance()->setBackground(back->text());
+			lApp->findObject<ARender>()->setBackground(back->text());
 		});
 		b->addWidget(back);
 		open = new QPushButton(tr("choose"), widget[1]);
@@ -632,7 +633,7 @@ QDialog(parent)
 		grid->addLayout(g, 0, 0, 1, 4);
 
 		QStringList rl, sl;
-		for (const QString &shield : Shield::instance()->getAllShields()){
+		for (const QString &shield : lApp->findObject<Shield>()->getAllShields()){
 			if (shield.length() <= 2){
 				continue;
 			}
@@ -909,20 +910,20 @@ QDialog(parent)
 		l->addWidget(info, 0, 3);
 
 		sites = new QComboBox(widget[4]);
-		sites->addItems(Sign::instance()->modules());
+		sites->addItems(lApp->findObject<Sign>()->modules());
 		connect(tab, &QTabWidget::currentChanged, widget[4], [this](){
-			if (tab->currentWidget() == widget[4] && Sign::instance()->getHead() == nullptr){
-				Sign::instance()->enqueue(sites->currentText());
+			if (tab->currentWidget() == widget[4] && lApp->findObject<Sign>()->getHead() == nullptr){
+				lApp->findObject<Sign>()->enqueue(sites->currentText());
 			}
 		});
-		connect(sites, &QComboBox::currentTextChanged, Sign::instance(), &Sign::enqueue);
+		connect(sites, &QComboBox::currentTextChanged, lApp->findObject<Sign>(), &Sign::enqueue);
 
 		l->addWidget(sites, 1, 0);
 
 		click = new QPushButton(tr("login"), widget[4]);
 		click->setFocusPolicy(Qt::NoFocus);
 		connect(click, &QPushButton::clicked, [this](){
-			Sign::Task *task = Sign::instance()->getHead();
+			Sign::Task *task = lApp->findObject<Sign>()->getHead();
 			if (task){
 				task->username = sheet[0]->text();
 				task->password = sheet[1]->text();
@@ -932,7 +933,7 @@ QDialog(parent)
 		});
 		l->addWidget(click, 1, 3);
 
-		connect(Sign::instance(), &Sign::stateChanged, widget[4], [this](int code){
+		connect(lApp->findObject<Sign>(), &Sign::stateChanged, widget[4], [this](int code){
 			switch (code){
 			case Sign::Test:
 			case Sign::Code:
@@ -946,7 +947,7 @@ QDialog(parent)
 				break;
 			case Sign::Wait:
 			{
-				Sign::Task *task = Sign::instance()->getHead();
+				Sign::Task *task = lApp->findObject<Sign>()->getHead();
 				if (task->logged){
 					info->setText(tr("logged"));
 					sheet[0]->setText(task->username);
@@ -961,7 +962,7 @@ QDialog(parent)
 						info->setPixmap(captcha);
 					}
 					if (!task->error.isEmpty()){
-						QMetaObject::invokeMethod(lApp->mainWidget(), "warning", Q_ARG(QString, tr("Login Error")), Q_ARG(QString, task->error));
+						lApp->findObject<Interface>()->warning(tr("Login Error"), task->error);
 						task->error.clear();
 					}
 					click->setText(tr("login"));
@@ -976,13 +977,13 @@ QDialog(parent)
 				break;
 			}
 		});
-		connect(Sign::instance(), &Sign::errorOccured, widget[4], [this](){
+		connect(lApp->findObject<Sign>(), &Sign::errorOccured, widget[4], [this](){
 			click->setEnabled(false);
 			info->setText(tr("error"));
 		});
-		connect(widget[4], &QWidget::destroyed, Sign::instance(), [](){
-			if (Sign::instance()->getHead()){
-				Sign::instance()->dequeue();
+		connect(widget[4], &QWidget::destroyed, lApp->findObject<Sign>(), [](){
+			if (lApp->findObject<Sign>()->getHead()){
+				lApp->findObject<Sign>()->dequeue();
 			}
 		});
 
@@ -1158,7 +1159,7 @@ QDialog(parent)
 			hotkey->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 			hotkey->setColumnWidth(1, 1.2*logicalDpiX());
 			hotkey->setEditTriggers(QAbstractItemView::NoEditTriggers);
-			for (QAction *iter : lApp->mainWidget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
+			for (QAction *iter : lApp->findObject<Interface>()->widget()->findChildren<QAction *>(QRegularExpression(".{4}"))){
 				QTreeWidgetItem *item = new QTreeWidgetItem;
 				item->setData(0, Qt::DisplayRole, iter->text());
 				item->setData(1, Qt::DisplayRole, iter->shortcut().toString());
@@ -1180,7 +1181,7 @@ QDialog(parent)
 				if (column == 1){
 					QVariant v = item->data(1, Qt::UserRole);
 					if (v.isValid()){
-						QAction *a = lApp->mainWidget()->findChild<QAction *>(v.toString());
+						QAction *a = lApp->findObject<Interface>()->widget()->findChild<QAction *>(v.toString());
 						QString ns = item->text(1);
 						a->setShortcut(ns);
 						Config::setValue("/Shortcut/" + a->objectName(), ns);
@@ -1214,8 +1215,8 @@ QDialog(parent)
 			tab->addTab(widget[8], tr("License"));
 		}
 		connect(this, &QDialog::finished, [this](){
-			Danmaku *d = Danmaku::instance();
-			APlayer *p = APlayer::instance();
+			Danmaku *d = lApp->findObject<Danmaku>();
+			APlayer *p = lApp->findObject<APlayer>();
 			if (reparse != getReparse()){
 				QStringList shields;
 				for (int i = 0; i < 8; ++i){
@@ -1229,15 +1230,15 @@ QDialog(parent)
 				for (const QString &sender : sm->stringList()){
 					shields.append("u=" + sender);
 				}
-				Shield::instance()->setAllShields(shields);
+				lApp->findObject<Shield>()->setAllShields(shields);
 				d->parse(0x2);
 			}
-			if (restart != getRestart() && ((p->getState() == APlayer::Stop && d->rowCount() == 0) ||
-				QMessageBox::warning(this,
+			if (restart != getRestart() && ((p->getState() == APlayer::Stop && d->rowCount() == 0) || QMessageBox::warning(
+				this,
 				tr("Warning"),
 				tr("Restart to apply changes?"),
 				QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)){
-				lApp->exit(12450);
+				qApp->exit(12450);
 				return;
 			}
 			Config::save();

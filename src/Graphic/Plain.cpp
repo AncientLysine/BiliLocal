@@ -1,13 +1,14 @@
 #include "Common.h"
 #include "Plain.h"
 #include "GraphicPrivate.h"
+#include "../Local.h"
 
 using namespace GraphicPrivate;
 
 Plain::Plain(const Comment &comment)
 {
 	source = &comment;
-	sprite = ARender::instance()->getSprite();
+	sprite = lApp->findObject<ARender>()->getSprite();
 	sprite->setAuto(comment);
 	sprite->prepare();
 	rect.setSize(sprite->getSize());

@@ -37,7 +37,7 @@ public:
 	typedef QString(*StringPtr)(QString);
 
 	static QList<Plugin> plugins;
-	static void loadPlugins();
+	static void load();
 
 	Plugin(QString path);
 	bool loaded();

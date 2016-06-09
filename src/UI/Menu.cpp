@@ -27,6 +27,7 @@
 
 #include "Common.h"
 #include "Menu.h"
+#include "Interface.h"
 #include "../Config.h"
 #include "../Local.h"
 #include "../Utils.h"
@@ -47,7 +48,7 @@ namespace{
 		explicit LoadProxyModel(QObject *parent = 0) :
 			QAbstractProxyModel(parent)
 		{
-			setSourceModel(Load::instance()->getModel());
+			setSourceModel(lApp->findObject<Load>()->getModel());
 			connect(sourceModel(), &QAbstractItemModel::rowsInserted, this, &LoadProxyModel::endInsertRows);
 			connect(sourceModel(), &QAbstractItemModel::rowsAboutToBeInserted, [this](const QModelIndex &parent, int sta, int end){
 				beginInsertRows(mapFromSource(parent), sta, end);
@@ -142,7 +143,7 @@ namespace{
 		explicit ListProxyModel(QObject *parent = 0) :
 			QSortFilterProxyModel(parent)
 		{
-			setSourceModel(List::instance());
+			setSourceModel(lApp->findObject<List>());
 			setSortRole(List::DateRole);
 			sort(0, Qt::DescendingOrder);
 		}
@@ -159,7 +160,7 @@ namespace{
 			if (!i.data(List::DateRole).toDateTime().isValid() || i.data(List::CodeRole).toInt() == List::Inherit){
 				return false;
 			}
-			QStandardItem *c = List::instance()->getCurrent();
+			QStandardItem *c = lApp->findObject<List>()->getCurrent();
 			return !c || c->index() != i;
 		}
 	};
@@ -222,7 +223,7 @@ namespace{
 		bool eventFilter(QObject *, QEvent *e) override
 		{
 			if (e->type() == QEvent::Hide){
-				Load::instance()->dequeue();
+				lApp->findObject<Load>()->dequeue();
 			}
 			return false;
 		}
@@ -238,7 +239,7 @@ namespace{
 
 		void fixCode(QString text)
 		{
-			Load::instance()->fixCode(text);
+			lApp->findObject<Load>()->fixCode(text);
 			setCode(text);
 		}
 
@@ -271,10 +272,10 @@ namespace{
 			connect(this, &QLineEdit::textEdited, [this](QString time){
 				setText(intToTime(timeToInt(time)));
 			});
-			connect(this, &QLineEdit::editingFinished, Danmaku::instance(), [this](){
-				Danmaku::instance()->delayAll(editingDelay() - currentDelay());
+			connect(this, &QLineEdit::editingFinished, lApp->findObject<Danmaku>(), [this](){
+				lApp->findObject<Danmaku>()->delayAll(editingDelay() - currentDelay());
 			});
-			connect(Danmaku::instance(), &Danmaku::layoutChanged, [this](){
+			connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, [this](){
 				setText(intToTime(currentDelay()));
 			});
 		}
@@ -284,7 +285,7 @@ namespace{
 
 		qint64 currentDelay()
 		{
-			const auto &pool = Danmaku::instance()->getPool();
+			const auto &pool = lApp->findObject<Danmaku>()->getPool();
 			if (pool.isEmpty()){
 				return 0;
 			}
@@ -329,7 +330,7 @@ namespace{
 
 		void wheelEvent(QWheelEvent *e) override
 		{
-			if (Danmaku::instance()->getPool().isEmpty()){
+			if (lApp->findObject<Danmaku>()->getPool().isEmpty()){
 				return;
 			}
 			setFocus();
@@ -374,13 +375,13 @@ QWidget(parent)
 		QModelIndex index = popup->currentIndex();
 		index = qobject_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index);
 		index = fileM->mapToSource(index);
-		List::instance()->itemFromIndex(index)->setData(QVariant(), List::DateRole);
+		lApp->findObject<List>()->itemFromIndex(index)->setData(QVariant(), List::DateRole);
 	});
 	popup->addAction(hdelA);
 	connect(popup, SIGNAL(entered(QModelIndex)), popup, SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(fileC, &QCompleter::activated, [=](const QModelIndex &index){
 		setFocus();
-		List::instance()->jumpToIndex(fileM->mapToSource(qobject_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
+		lApp->findObject<List>()->jumpToIndex(fileM->mapToSource(qobject_cast<QAbstractProxyModel *>(fileC->completionModel())->mapToSource(index)));
 	});
 	danmC->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
 	danmC->setWidget(danmL);
@@ -389,7 +390,7 @@ QWidget(parent)
 	connect(popup, SIGNAL(entered(QModelIndex)), popup, SLOT(setCurrentIndex(QModelIndex)));
 	connect<void (QCompleter::*)(const QModelIndex &)>(danmC, &QCompleter::activated, [=](const QModelIndex &index){
 		setFocus();
-		Load::instance()->loadDanmaku(danmM->mapToSource(qobject_cast<QAbstractProxyModel *>(danmC->completionModel())->mapToSource(index)));
+		lApp->findObject<Load>()->loadDanmaku(danmM->mapToSource(qobject_cast<QAbstractProxyModel *>(danmC->completionModel())->mapToSource(index)));
 	});
 	fileB = new QPushButton(this);
 	sechB = new QPushButton(this);
@@ -407,22 +408,24 @@ QWidget(parent)
 	sechA->setObjectName("Sech");
 	sechA->setShortcut(Config::getValue("/Shortcut/Sech", QString()));
 	connect(fileA, &QAction::triggered, [this](){
-		QString _file = QFileDialog::getOpenFileName(lApp->mainWidget(),
+		QString _file = QFileDialog::getOpenFileName(
+			lApp->findObject<Interface>()->widget(),
 			tr("Open File"),
-			List::instance()->defaultPath(Utils::Video | Utils::Audio),
+			lApp->findObject<List>()->defaultPath(Utils::Video | Utils::Audio),
 			tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video | Utils::Audio, "*.%1").join(' ')));
 		if (!_file.isEmpty()){
-			APlayer::instance()->setMedia(_file);
+			lApp->findObject<APlayer>()->setMedia(_file);
 		}
 	});
 	connect(danmA, &QAction::triggered, [this](){
 		if (Config::getValue("/Danmaku/Local", false)){
-			QString _file = QFileDialog::getOpenFileName(lApp->mainWidget(),
+			QString _file = QFileDialog::getOpenFileName(
+				lApp->findObject<Interface>()->widget(),
 				tr("Open File"),
-				List::instance()->defaultPath(Utils::Danmaku),
+				lApp->findObject<List>()->defaultPath(Utils::Danmaku),
 				tr("Danmaku files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Danmaku, "*.%1").join(' ')));
 			if (!_file.isEmpty()){
-				Load::instance()->loadDanmaku(_file);
+				lApp->findObject<Load>()->loadDanmaku(_file);
 			}
 		}
 		else{
@@ -432,18 +435,18 @@ QWidget(parent)
 				danmL->setFocus();
 			}
 			else{
-				Load::instance()->loadDanmaku(static_cast<DanmEdit *>(danmL)->getCode());
+				lApp->findObject<Load>()->loadDanmaku(static_cast<DanmEdit *>(danmL)->getCode());
 			}
 		}
 	});
 	connect(sechA, &QAction::triggered, [this](){
-		Search searchBox(lApp->mainWidget());
+		Search searchBox(lApp->findObject<Interface>()->widget());
 		sechL->setText(sechL->text().simplified());
 		if (!sechL->text().isEmpty()){
 			searchBox.setKey(sechL->text());
 		}
 		if (searchBox.exec()) {
-			Load::instance()->loadDanmaku(searchBox.getAid());
+			lApp->findObject<Load>()->loadDanmaku(searchBox.getAid());
 		}
 		sechL->setText(searchBox.getKey());
 		sechL->setFocus();
@@ -461,8 +464,9 @@ QWidget(parent)
 	alphaS = new QSlider(this);
 	alphaS->setOrientation(Qt::Horizontal);
 	alphaS->setRange(0, 100);
+	alphaS->setValue(Config::getValue("/Danmaku/Alpha", 100));
 	connect(alphaS, &QSlider::valueChanged, [this](int _alpha){
-		ARender::instance()->setAlpha(_alpha);
+		Config::setValue("/Danmaku/Alpha", _alpha);
 		if (alphaS->isVisible()){
 			QPoint p;
 			p.setX(QCursor::pos().x());
@@ -470,7 +474,6 @@ QWidget(parent)
 			QToolTip::showText(p, QString::number(_alpha));
 		}
 	});
-	connect(ARender::instance(), &ARender::alphaChanged, alphaS, &QSlider::setValue);
 	delayT = new QLabel(this);
 	delayT->setText(tr("Danmaku Delay"));
 	delayL = new TimeEdit(this);
@@ -484,7 +487,7 @@ QWidget(parent)
 		danmL->setReadOnly(local);
 		danmB->setText(local ? tr("Open") : tr("Load"));
 		danmL->setPlaceholderText(local ? tr("choose a local danmaku") : tr("input av/ac number"));
-		for (const Record &r : Danmaku::instance()->getPool()){
+		for (const Record &r : lApp->findObject<Danmaku>()->getPool()){
 			if (QUrl(r.source).isLocalFile() == local){
 				danmL->setText(r.string);
 			}
@@ -514,11 +517,11 @@ QWidget(parent)
 	connect(animation, &QPropertyAnimation::finished, [this](){
 		if (!isPoped){
 			hide();
-			lApp->mainWidget()->setFocus();
+			lApp->findObject<Interface>()->widget()->setFocus();
 		}
 	});
-	connect(Load::instance(), &Load::stateChanged, [this](int state){
-		Load::Task *task = Load::instance()->getHead();
+	connect(lApp->findObject<Load>(), &Load::stateChanged, [this](int state){
+		Load::Task *task = lApp->findObject<Load>()->getHead();
 		auto syncDanmL = [&](){
 			QString fix(task->code);
 			if (!task->code.isEmpty() && task->processer->regular(fix)){
@@ -550,7 +553,7 @@ QWidget(parent)
 			break;
 		}
 	});
-	connect(Load::instance(), &Load::errorOccured, [this](int state){
+	connect(lApp->findObject<Load>(), &Load::errorOccured, [this](int state){
 		switch (state){
 		case 301:
 			pop();
@@ -562,7 +565,7 @@ QWidget(parent)
 			break;
 		}
 	});
-	connect(APlayer::instance(), &APlayer::mediaChanged, [this](QString _file){
+	connect(lApp->findObject<APlayer>(), &APlayer::mediaChanged, [this](QString _file){
 		fileL->setText(QFileInfo(_file).fileName());
 		fileL->setCursorPosition(0);
 	});

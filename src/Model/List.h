@@ -48,8 +48,8 @@ public:
 		Surmise
 	};
 
-	~List();
-	static List *instance();
+	explicit List(QObject *parent = nullptr);
+
 	QStringList mimeTypes() const;
 	QMimeData  *mimeData(const QModelIndexList &) const;
 	bool    dropMimeData(const QMimeData *, Qt::DropAction, int, int, const QModelIndex &p);
@@ -58,8 +58,6 @@ private:
 	QStandardItem *cur;
 	qint64 time;
 	QList<QIcon> icons;
-	static List *ins;
-	List(QObject *parent);
 	void setRelated(const QModelIndexList &indexes, int reason);
 
 public slots:
@@ -78,4 +76,5 @@ public slots:
 	void jumpToLast();
 	void jumpToNext();
 	bool jumpToIndex(const QModelIndex &index, bool manually = true);
+	void save();
 };

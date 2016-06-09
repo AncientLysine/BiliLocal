@@ -2,6 +2,7 @@
 #include "Mode7.h"
 #include "GraphicPrivate.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Render/ARender.h"
 #include "../Render/ASprite.h"
 
@@ -16,7 +17,7 @@ Mode7::Mode7(const Comment &comment)
 	if (l < 5){
 		throw format_unrecognized();
 	}
-	QSize size = ARender::instance()->getActualSize();
+	QSize size = lApp->findObject<ARender>()->getActualSize();
 	auto getDouble = [&data](int i){return data.at(i).toVariant().toDouble(); };
 	double scale = getScale(comment.mode, comment.date, size);
 	bPos = QPointF(getDouble(0), getDouble(1));
@@ -46,7 +47,7 @@ Mode7::Mode7(const Comment &comment)
 	int effect = (v.isString() ? v.toString() == "true" : v.toVariant().toBool()) ? Config::getValue("/Danmaku/Effect", 5) / 2 : -1;
 	QFont font = getFont(scale ? comment.font*scale : comment.font, l < 13 ? Utils::defaultFont(true) : data[12].toString());
 	QString string = data[4].toString();
-	sprite = ARender::instance()->getSprite();
+	sprite = lApp->findObject<ARender>()->getSprite();
 	sprite->setAlpha(1.0);
 	sprite->setColor(QColor::fromRgb(comment.color));
 	sprite->setEffect(effect);

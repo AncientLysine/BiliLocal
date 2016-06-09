@@ -2,6 +2,7 @@
 #include "Mode6.h"
 #include "GraphicPrivate.h"
 #include "../Config.h"
+#include "../Local.h"
 
 using namespace GraphicPrivate;
 
@@ -18,7 +19,7 @@ QList<QRectF> Mode6::locate()
 	if (rect.height() > 360){
 		return results;
 	}
-	QSize size = ARender::instance()->getActualSize();
+	QSize size = lApp->findObject<ARender>()->getActualSize();
 	QRectF init = rect;
 	init.moveRight(0);
 	int end = size.height()*(Config::getValue("/Danmaku/Protect", false) ? 0.85 : 1) - rect.height();
@@ -32,7 +33,7 @@ QList<QRectF> Mode6::locate()
 
 bool Mode6::move(double time)
 {
-	QSize size = ARender::instance()->getActualSize();
+	QSize size = lApp->findObject<ARender>()->getActualSize();
 	if (enabled){
 		rect.moveLeft(rect.left() + speed * time);
 	}

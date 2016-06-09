@@ -6,7 +6,7 @@ class NPlayer :public APlayer
 {
 public:
 	explicit NPlayer(QObject *parent = 0);
-	QList<QAction *> getTracks(int type);
+	virtual QList<QAction *> getTracks(int type) override;
 
 private:
 	qint64  start;

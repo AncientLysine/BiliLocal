@@ -42,18 +42,10 @@ public:
 	QList<Comment *> danm;
 };
 
-Danmaku *Danmaku::ins = nullptr;
-
-Danmaku *Danmaku::instance()
-{
-	return ins ? ins : new Danmaku(qApp);
-}
-
 Danmaku::Danmaku(QObject *parent)
 	:QAbstractItemModel(parent), d_ptr(new DanmakuPrivate)
 {
 	Q_D(Danmaku);
-	ins = this;
 	setObjectName("Danmaku");
 	d->dura = -1;
 }
@@ -279,12 +271,11 @@ void Danmaku::append(const Record *record)
 		append->limit = record->limit == 0 ? 0 : qMax(append->limit, record->limit);
 	}
 	parse(0x1 | 0x2);
-	if (d->pool.size() >= 2 && !append) {
-		QTimer::singleShot(0, []() {
-			if (!Load::instance()->getHead()) {
-				UI::Editor::exec(lApp->mainWidget());
-			}
-		});
+	if (append) {
+		emit modelInsert();
+	}
+	else {
+		emit modelAppend();
 	}
 }
 
@@ -322,6 +313,7 @@ void Danmaku::append(QString source, const Comment *comment)
 	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
 	append->limit = append->limit == 0 ? 0 : qMax(append->limit, c->date);
 	parse(0x2);
+	emit modelInsert();
 }
 
 void Danmaku::parse(int flag)
@@ -430,7 +422,7 @@ void Danmaku::parse(int flag)
 		}
 		// Regex Limit
 		for (Comment *c : d->danm) {
-			c->blocked = c->blocked || Shield::instance()->isBlocked(*c);
+			c->blocked = c->blocked || lApp->findObject<Shield>()->isBlocked(*c);
 		}
 		emit layoutChanged();
 	}

@@ -26,6 +26,7 @@
 
 #include "Common.h"
 #include "Type.h"
+#include "Interface.h"
 #include "../Local.h"
 #include "../Access/Post.h"
 #include "../Model/Danmaku.h"
@@ -38,8 +39,8 @@ namespace
 	QList<const Record *> getRecords()
 	{
 		QList<const Record *> list;
-		for (const Record &r : Danmaku::instance()->getPool()){
-			if (Post::instance()->canPost(r.access)){
+		for (const Record &r : lApp->findObject<Danmaku>()->getPool()){
+			if (lApp->findObject<Post>()->canPost(r.access)){
 				list.append(&r);
 			}
 		}
@@ -65,7 +66,7 @@ QWidget(parent)
 	commentC->setFixedWidth(25);
 	setColor(Qt::white);
 	connect(commentC, &QPushButton::clicked, [this](){
-		QColor color = QColorDialog::getColor(getColor(), lApp->mainWidget());
+		QColor color = QColorDialog::getColor(getColor(), lApp->findObject<Interface>()->widget());
 		if (color.isValid()){
 			setColor(color);
 		}
@@ -89,10 +90,10 @@ QWidget(parent)
 		if (!commentL->text().isEmpty()){
 			auto r = (const Record *)commentS->currentData().value<quintptr>();
 			auto c = getComment();
-			Post::instance()->postComment(r, &c);
+			lApp->findObject<Post>()->postComment(r, &c);
 		}
 	});
-	connect(Post::instance(), &Post::stateChanged, [this](int code){
+	connect(lApp->findObject<Post>(), &Post::stateChanged, [this](int code){
 		switch (code){
 		case Post::None:
 			setEnabled(1);
@@ -107,7 +108,7 @@ QWidget(parent)
 			break;
 		}
 	});
-	connect(Danmaku::instance(), &Danmaku::modelReset, [this](){
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, [this](){
 		commentS->clear();
 		int w = 0;
 		for (const Record  *r : getRecords()){
@@ -123,8 +124,10 @@ QWidget(parent)
 void Type::setVisible(bool visible)
 {
 	QWidget::setVisible(visible);
-	QWidget *fw = visible ? commentL : lApp->mainWidget();
-	fw->setFocus();
+	QWidget *fw = visible ? commentL : lApp->findObject<Interface>()->widget();
+	if (fw) {
+		fw->setFocus();
+	}
 }
 
 QColor Type::getColor()
@@ -160,7 +163,7 @@ Comment Type::getComment()
 	Comment c;
 	c.mode = translateMode(commentM->currentIndex());
 	c.font = 25;
-	c.time = qMax<qint64>(0, APlayer::instance()->getTime());
+	c.time = qMax<qint64>(0, lApp->findObject<APlayer>()->getTime());
 	c.color = getColor().rgb() & 0xFFFFFF;
 	c.string = commentL->text();
 	return c;

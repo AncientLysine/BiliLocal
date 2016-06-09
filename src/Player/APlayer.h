@@ -26,15 +26,15 @@
 
 #pragma once
 
-#include <QtGui>
 #include <QtCore>
+#include <QtGui>
+
+class APlayerPrivate;
 
 class APlayer :public QObject
 {
 	Q_OBJECT
 public:
-	static QStringList getModules();
-
 	enum State
 	{
 		Stop,
@@ -53,14 +53,13 @@ public:
 		ServiceMissingError
 	};
 
-	static APlayer *instance();
+	static QStringList getModules();
+	static APlayer *create(QObject *parent = nullptr, QString name = QString());
 
 	virtual QList<QAction *> getTracks(int type) = 0;
 
 protected:
-	static APlayer *ins;
-
-	APlayer(QObject *parent = 0) :QObject(parent){}
+	explicit APlayer(QObject *parent);
 
 signals:
 	void errorOccurred(int);

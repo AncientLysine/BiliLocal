@@ -47,15 +47,13 @@ public:
 		Whole
 	};
 
-	static Shield *instance();
-	~Shield();
+	explicit Shield(QObject *parent = nullptr);
+	virtual ~Shield();
 
 private:
-	static Shield *ins;
 	ShieldPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Shield);
 
-	explicit Shield(QObject *parent = 0);
 
 signals:
 	void shieldChanged();

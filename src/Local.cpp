@@ -29,6 +29,11 @@
 #include "Config.h"
 #include "Plugin.h"
 #include "Utils.h"
+#include "Access/Load.h"
+#include "Access/Post.h"
+#include "Access/Seek.h"
+#include "Access/Sign.h"
+#include "Model/Danmaku.h"
 #include "Model/Running.h"
 #include "Model/List.h"
 #include "Model/Shield.h"
@@ -36,27 +41,73 @@
 #include "Render/ARender.h"
 #include "UI/Interface.h"
 
-QHash<QString, QObject *> Local::objects;
+Local *Local::ins = nullptr;
 
-Local::Local(int &argc, char **argv) :
-QApplication(argc, argv)
+Local *Local::instance()
 {
-	QDir::setCurrent(applicationDirPath());
-	setPalette(setStyle("Fusion")->standardPalette());
-	setAttribute(Qt::AA_UseOpenGLES);
-	//thread()->setPriority(QThread::TimeCriticalPriority);
-	Config::load();
-	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
-	qsrand(QTime::currentTime().msec());
+	return ins ? ins : new Local(qApp);
 }
 
-void Local::exit(int code)
+Local::Local(QObject *parent)
+	: QObject(parent)
 {
-	delete List::instance();
+	ins = this;
+	setObjectName("Local");
+#define lIns(ModuleType) (this->objects[#ModuleType] = new ModuleType(this))
+	lIns(Config);
+	lIns(Shield);
+	lIns(Danmaku);
+	lIns(Running);
+	lIns(Interface);
+	objects["APlayer"] = APlayer::create(this);
+	objects["ARender"] = ARender::create(this);
+	lIns(Load);
+	lIns(Post);
+	lIns(Seek);
+	lIns(Sign);
+	lIns(List);
+#define lSet(ModuleType) static_cast<ModuleType *>(this->objects[#ModuleType])->setup()
+	lSet(Interface);
+	lSet(ARender);
+	lSet(Running);
+#undef lIns
+#undef lSet
+	connect(qApp, &QCoreApplication::aboutToQuit, this, &Local::deleteLater);
+}
+
+Local::~Local()
+{
 	Config::save();
-	delete APlayer::instance();
-	delete Running::instance();
-	QApplication::exit(code);
+	delete findObject<APlayer>();
+	delete findObject<Running>();
+	delete findObject<ARender>();
+}
+
+void Local::tryLocal(QString path)
+{
+	QFileInfo info(path);
+	QString suffix = info.suffix().toLower();
+	if (info.exists() == false) {
+		return;
+	}
+	else if (Utils::getSuffix(Utils::Danmaku).contains(suffix)) {
+		findObject<Load>()->loadDanmaku(path);
+	}
+	else if (findObject<APlayer>()->getState() != APlayer::Stop
+		&& Utils::getSuffix(Utils::Subtitle).contains(suffix)) {
+		findObject<APlayer>()->addSubtitle(path);
+	}
+	else {
+		switch (Config::getValue("/Interface/Single", 1)) {
+		case 0:
+		case 1:
+			findObject<APlayer>()->setMedia(path);
+			break;
+		case 2:
+			findObject<List>()->appendMedia(path);
+			break;
+		}
+	}
 }
 
 namespace
@@ -109,9 +160,11 @@ namespace
 
 int main(int argc, char *argv[])
 {
-	Local a(argc, argv);
-	int single;
-	if ((single = Config::getValue("/Interface/Single", 1))){
+	QApplication a(argc, argv);
+	QDir::setCurrent(a.applicationDirPath());
+	Config::load();
+	int single = Config::getValue("/Interface/Single", 1);
+	if (single){
 		QLocalSocket socket;
 		socket.connectToServer("BiliLocalInstance");
 		if (socket.waitForConnected()){
@@ -121,31 +174,37 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 	}
+	a.setPalette(a.setStyle("Fusion")->standardPalette());
+	a.setAttribute(Qt::AA_UseOpenGLES);
+	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
+	qsrand(QTime::currentTime().msec());
 	loadTranslator();
 	setDefaultFont();
 	setToolTipBase();
-	Interface w;
-	Plugin::loadPlugins();
-	if (!w.testAttribute(Qt::WA_WState_ExplicitShowHide)){
-		w.show();
+	new Local(&a);
+	Plugin::load();
+	lApp->findObject<Interface>()->show();
+	for (const QString iter : a.arguments().mid(1)) {
+		lApp->tryLocal(iter);
 	}
-	w.tryLocal(a.arguments().mid(1));
 	QLocalServer *server = nullptr;
 	if (single){
-		server = new QLocalServer(lApp);
+		server = new QLocalServer(&a);
 		server->listen("BiliLocalInstance");
-		QObject::connect(server, &QLocalServer::newConnection, [&](){
+		QObject::connect(server, &QLocalServer::newConnection, [=](){
 			QLocalSocket *r = server->nextPendingConnection();
 			r->waitForReadyRead();
 			QDataStream s(r);
 			QStringList args;
 			s >> args;
 			delete r;
-			w.tryLocal(args);
+			for (const QString iter : args) {
+				lApp->tryLocal(iter);
+			}
 		});
 	}
-	int r;
-	if ((r = a.exec()) == 12450){
+	int r = a.exec();
+	if (r == 12450){
 		if (server){
 			delete server;
 		}

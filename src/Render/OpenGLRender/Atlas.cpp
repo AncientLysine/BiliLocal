@@ -203,10 +203,7 @@ void AtlasMgr::shuffle()
 	if (render->extensions.contains("clear_texture")) {
 		static uchar bits[4];
 		GLenum format = render->pixelFormat(1);
-#ifndef GL_APIENTRYP
-#define GL_APIENTRYP APIENTRYP
-#endif
-		typedef void (GL_APIENTRYP ClearTexImageFunc) (
+		typedef void (QOPENGLF_APIENTRYP ClearTexImageFunc) (
 			GLuint texture,
 			int level,
 			GLenum format,

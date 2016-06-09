@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "QPlayer.h"
 #include "../Config.h"
+#include "../Local.h"
 #include "../Render/ARender.h"
 
 namespace
@@ -35,11 +36,11 @@ namespace
 			if (chroma.isEmpty())
 				return false;
 			QString buffer(chroma);
-			ARender::instance()->setBuffer(buffer, format.frameSize(), 1);
+			lApp->findObject<ARender>()->setBuffer(buffer, format.frameSize(), 1);
 			if (buffer != chroma)
 				return false;
 			QSize pixel(format.pixelAspectRatio());
-			ARender::instance()->setPixelAspectRatio(pixel.width() / (double)pixel.height());
+			lApp->findObject<ARender>()->setPixelAspectRatio(pixel.width() / (double)pixel.height());
 			return true;
 		}
 
@@ -49,15 +50,15 @@ namespace
 			if (f.map(QAbstractVideoBuffer::ReadOnly)){
 				int len = f.mappedBytes();
 				const quint8 *dat = f.bits();
-				QList<quint8 *> buffer = ARender::instance()->getBuffer();
+				QList<quint8 *> buffer = lApp->findObject<ARender>()->getBuffer();
 				memcpy(buffer[0], dat, len);
-				ARender::instance()->releaseBuffer();
+				lApp->findObject<ARender>()->releaseBuffer();
 				f.unmap();
 			}
 			else{
 				return false;
 			}
-			emit APlayer::instance()->decode();
+			emit lApp->findObject<APlayer>()->decode();
 			return true;
 		}
 
@@ -121,16 +122,15 @@ namespace
 }
 
 
-QPlayer::QPlayer(QObject *parent) :
-APlayer(parent)
+QPlayer::QPlayer(QObject *parent)
+	: APlayer(parent)
 {
-	ins = this;
 	setObjectName("QPlayer");
+
 	state = Stop;
 	manuallyStopped = false;
 	waitingForBegin = false;
 	skipTimeChanged = false;
-
 	mp = (new QPlayerThread(this))->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Playing/Volume", 50));
 
@@ -170,7 +170,7 @@ APlayer(parent)
 	connect(mp, &QMediaPlayer::positionChanged, this, [this](qint64 time){
 		if (waitingForBegin&&time > 0){
 			waitingForBegin = false;
-			ARender::instance()->setMusic(!mp->isVideoAvailable());
+			lApp->findObject<ARender>()->setMusic(!mp->isVideoAvailable());
 			emit stateChanged(state = Play);
 			emit begin();
 		}

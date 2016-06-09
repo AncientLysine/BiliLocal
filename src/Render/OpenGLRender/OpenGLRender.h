@@ -9,6 +9,7 @@ class OpenGLRender :public ARender
 {
 public:
 	explicit OpenGLRender(QObject *parent = 0);
+	virtual void setup() override;
 
 private:
 	Q_DECLARE_PRIVATE(OpenGLRender);

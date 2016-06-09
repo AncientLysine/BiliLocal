@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "WidgetPrivate.h"
+#include "../../UI/Interface.h"
 #include <functional>
 
 namespace
@@ -8,7 +9,7 @@ namespace
 	{
 	public:
 		explicit OWidget(OpenGLOpaqueRenderPrivate *render) :
-			QOpenGLWidget(lApp->mainWidget()), render(render)
+			QOpenGLWidget(lApp->findObject<Interface>()->widget()), render(render)
 		{
 			setAttribute(Qt::WA_TransparentForMouseEvents);
 			lower();

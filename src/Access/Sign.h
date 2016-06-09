@@ -24,6 +24,8 @@
 *
 =========================================================================*/
 
+#pragma once
+
 #include <QtCore>
 #include <QtNetwork>
 #include <functional>
@@ -69,15 +71,13 @@ public:
 		Task() :state(None), processer(nullptr), logged(false){}
 	};
 
-	static Sign *instance();
-	~Sign();
+	explicit Sign(QObject *parent = nullptr);
+	virtual ~Sign();
 
 private:
-	static Sign *ins;
 	SignPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Sign);
 
-	explicit Sign(QObject *parent);
 
 signals:
 	void stateChanged(int state);

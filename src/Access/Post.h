@@ -63,15 +63,12 @@ public:
 		Task() :state(0), processer(nullptr){}
 	};
 
-	static Post *instance();
-	~Post();
+	explicit Post(QObject *parent = nullptr);
+	virtual ~Post();
 
 private:
-	static Post *ins;
 	PostPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Post);
-
-	explicit Post(QObject *parent);
 
 signals:
 	void stateChanged(int code);

@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "NetworkConfiguration.h"
 #include "../Config.h"
+#include "../Local.h"
 #include <functional>
 
 NetworkConfiguration *NetworkConfiguration::ins = nullptr;
@@ -116,7 +117,7 @@ QObject(parent), d_ptr(new NetworkConfigurationPrivate)
 	d->d.load();
 	d->c.load();
 	d->p.load();
-	connect(Config::instance(), &Config::aboutToSave, [d](){
+	connect(lApp->findObject<Config>(), &Config::aboutToSave, [d](){
 		d->c.save();
 		d->p.save();
 	});

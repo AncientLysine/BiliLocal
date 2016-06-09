@@ -27,6 +27,7 @@
 
 #include "Common.h"
 #include "Info.h"
+#include "Interface.h"
 #include "../Config.h"
 #include "../Local.h"
 #include "../Utils.h"
@@ -82,7 +83,7 @@ QWidget(parent)
 	timeS->setTracking(false);
 	connect(timeS, &QSlider::valueChanged, [this](int _time){
 		if (duration != -1 && !updating){
-			APlayer::instance()->setTime(duration*_time / 400);
+			lApp->findObject<APlayer>()->setTime(duration*_time / 400);
 		}
 	});
 	connect(volmS, &QSlider::sliderMoved, [this](int _volm){
@@ -93,7 +94,7 @@ QWidget(parent)
 	});
 	connect(volmS, &QSlider::valueChanged, [this](int _volm){
 		if (!updating){
-			APlayer::instance()->setVolume(_volm);
+			lApp->findObject<APlayer>()->setVolume(_volm);
 		}
 	});
 	playB = new QPushButton(this);
@@ -116,8 +117,8 @@ QWidget(parent)
 	stopA->setShortcut(Config::getValue("/Shortcut/Stop", QString()));
 	addAction(playA);
 	addAction(stopA);
-	connect(playA, SIGNAL(triggered()), APlayer::instance(), SLOT(play()));
-	connect(stopA, SIGNAL(triggered()), APlayer::instance(), SLOT(stop()));
+	connect(playA, SIGNAL(triggered()), lApp->findObject<APlayer>(), SLOT(play()));
+	connect(stopA, SIGNAL(triggered()), lApp->findObject<APlayer>(), SLOT(stop()));
 	connect(playB, &QPushButton::clicked, playA, &QAction::trigger);
 	connect(stopB, &QPushButton::clicked, stopA, &QAction::trigger);
 	duraT = new QLabel(this);
@@ -130,7 +131,7 @@ QWidget(parent)
 	danmV->verticalHeader()->hide();
 	danmV->setAlternatingRowColors(true);
 	danmV->setContextMenuPolicy(Qt::CustomContextMenu);
-	danmV->setModel(Danmaku::instance());
+	danmV->setModel(lApp->findObject<Danmaku>());
 	QHeaderView *header;
 	header = danmV->horizontalHeader();
 	header->setSectionResizeMode(0, QHeaderView::Fixed);
@@ -139,9 +140,9 @@ QWidget(parent)
 	resizeHeader();
 	header = danmV->verticalHeader();
 	header->setDefaultSectionSize(22.5*logicalDpiY() / 72);
-	connect(Danmaku::instance(), &Danmaku::layoutChanged, this, &Info::resizeHeader);
+	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, &Info::resizeHeader);
 	connect(danmV, &QTableView::doubleClicked, [this](QModelIndex index){
-		APlayer::instance()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
+		lApp->findObject<APlayer>()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
 	});
 
 	QAction *saveA = new QAction(tr("Save Danmaku to File"), this);
@@ -149,15 +150,15 @@ QWidget(parent)
 	saveA->setShortcut(Config::getValue("/Shortcut/Save", QString()));
 	saveA->setEnabled(false);
 	connect(saveA, &QAction::triggered, [](){
-		QFileDialog save(lApp->mainWidget(), tr("Save File"));
+		QFileDialog save(lApp->findObject<Interface>()->widget(), tr("Save File"));
 		save.setAcceptMode(QFileDialog::AcceptSave);
-		QFileInfo info(APlayer::instance()->getMedia());
+		QFileInfo info(lApp->findObject<APlayer>()->getMedia());
 		if (info.isFile()){
 			save.setDirectory(info.absolutePath());
 			save.selectFile(info.completeBaseName());
 		}
 		else{
-			save.setDirectory(List::instance()->defaultPath(Utils::Danmaku));
+			save.setDirectory(lApp->findObject<List>()->defaultPath(Utils::Danmaku));
 		}
 		save.setDefaultSuffix("json");
 		QStringList type;
@@ -169,7 +170,7 @@ QWidget(parent)
 		if (save.exec() == QDialog::Accepted){
 			QStringList file = save.selectedFiles();
 			if (file.size() == 1){
-				Danmaku::instance()->saveToFile(file.first());
+				lApp->findObject<Danmaku>()->saveToFile(file.first());
 			}
 		}
 	});
@@ -180,8 +181,8 @@ QWidget(parent)
 	fullA->setShortcut(Config::getValue("/Shortcut/Char", QString()));
 	fullA->setEnabled(false);
 	connect(fullA, &QAction::triggered, [](){
-		Load *load = Load::instance();
-		for (const Record &r : Danmaku::instance()->getPool()){
+		Load *load = lApp->findObject<Load>();
+		for (const Record &r : lApp->findObject<Danmaku>()->getPool()){
 			if (load->canFull(&r)){
 				load->fullDanmaku(&r);
 			}
@@ -189,11 +190,11 @@ QWidget(parent)
 	});
 	danmV->addAction(fullA);
 
-	connect(Danmaku::instance(), &Danmaku::modelReset, [=](){
-		const QList<Record> &pool = Danmaku::instance()->getPool();
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, [=](){
+		const QList<Record> &pool = lApp->findObject<Danmaku>()->getPool();
 		fullA->setEnabled(false);
 		for (const Record &r : pool){
-			if (Load::instance()->canFull(&r)){
+			if (lApp->findObject<Load>()->canFull(&r)){
 				fullA->setEnabled(true);
 				break;
 			}
@@ -218,18 +219,18 @@ QWidget(parent)
 			connect(menu.addAction(tr("Eliminate The Sender")), &QAction::triggered, [&](){
 				for (const Comment *c : selected){
 					if (!c->sender.isEmpty()){
-						Shield::instance()->insert("u=" + c->sender);
+						lApp->findObject<Shield>()->insert("u=" + c->sender);
 					}
 				}
-				Danmaku::instance()->parse(0x2);
+				lApp->findObject<Danmaku>()->parse(0x2);
 			});
 			for (const Comment *c : selected){
-				if (Shield::instance()->contains("u=" + c->sender)){
+				if (lApp->findObject<Shield>()->contains("u=" + c->sender)){
 					connect(menu.addAction(tr("Recover The Sender")), &QAction::triggered, [&](){
 						for (const Comment *c : selected){
-							Shield::instance()->remove("u=" + c->sender);
+							lApp->findObject<Shield>()->remove("u=" + c->sender);
 						}
-						Danmaku::instance()->parse(0x2);
+						lApp->findObject<Danmaku>()->parse(0x2);
 					});
 					break;
 				}
@@ -238,12 +239,12 @@ QWidget(parent)
 		}
 		menu.addAction(fullA);
 		connect(menu.addAction(tr("Edit Blocking List")), &QAction::triggered, [this](){
-			Prefer::exec(lApp->mainWidget(), 3);
+			Prefer::exec(lApp->findObject<Interface>()->widget(), 3);
 		});
 		connect(menu.addAction(tr("Edit Danmaku Pool")), &QAction::triggered, [this](){
-			Editor::exec(lApp->mainWidget(), 2);
+			Editor::exec(lApp->findObject<Interface>()->widget(), 2);
 		});
-		connect(menu.addAction(tr("Clear Danmaku Pool")), &QAction::triggered, Danmaku::instance(), &Danmaku::clear);
+		connect(menu.addAction(tr("Clear Danmaku Pool")), &QAction::triggered, lApp->findObject<Danmaku>(), &Danmaku::clear);
 		menu.addAction(saveA);
 		isStay = 1;
 		menu.exec(danmV->viewport()->mapToGlobal(p));
@@ -256,23 +257,23 @@ QWidget(parent)
 	connect(animation, &QPropertyAnimation::finished, [this](){
 		if (!isPoped){
 			hide();
-			lApp->mainWidget()->setFocus();
+			lApp->findObject<Interface>()->widget()->setFocus();
 		}
 	});
 
-	connect(APlayer::instance(), &APlayer::timeChanged, this, &Info::setTime);
-	connect(APlayer::instance(), &APlayer::volumeChanged, [this](int volume){
+	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, this, &Info::setTime);
+	connect(lApp->findObject<APlayer>(), &APlayer::volumeChanged, [this](int volume){
 		updating = 1;
 		volmS->setValue(volume);
 		updating = 0;
 	});
-	connect(APlayer::instance(), &APlayer::begin, [this](){
-		setDuration(APlayer::instance()->getDuration());
+	connect(lApp->findObject<APlayer>(), &APlayer::begin, [this](){
+		setDuration(lApp->findObject<APlayer>()->getDuration());
 	});
-	connect(APlayer::instance(), &APlayer::reach, [this](){
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, [this](){
 		setDuration(-1);
 	});
-	connect(APlayer::instance(), &APlayer::stateChanged, [this](int state){
+	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, [this](int state){
 		bool playing = state == APlayer::Play;
 		playB->setIcon(playing ? pausI : playI);
 		playA->setIcon(playing ? pausI : playI);
@@ -330,7 +331,7 @@ void Info::resizeEvent(QResizeEvent *e)
 
 void Info::resizeHeader()
 {
-	Danmaku *d = Danmaku::instance();
+	Danmaku *d = lApp->findObject<Danmaku>();
 	QStringList list;
 	list.append(d->headerData(0, Qt::Horizontal, Qt::DisplayRole).toString());
 	int c = d->rowCount() - 1, i;

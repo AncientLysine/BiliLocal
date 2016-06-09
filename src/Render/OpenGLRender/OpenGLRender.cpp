@@ -1,7 +1,6 @@
 #include "Common.h"
 #include "OpenGLRender.h"
 #include "OpenGLRenderPrivate.h"
-#include "Atlas.h"
 #include "SyncTextureSprite.h"
 #include "WidgetPrivate.h"
 #include "WindowPrivate.h"
@@ -9,26 +8,24 @@
 #include "../../Config.h"
 #include "../../Player/APlayer.h"
 
-namespace
+OpenGLRender::OpenGLRender(QObject *parent) :
+	ARender(parent)
 {
-	OpenGLRenderPrivate *choose()
-	{
-		bool detach = Config::getValue<bool>("/Performance/Option/OpenGL/Detach", 0);
-		bool buffer = Config::getValue<bool>("/Performance/Option/OpenGL/Buffer", 1);
-		if (detach)
-			return new OpenGLDetachRenderPrivate;
-		else if (buffer)
-			return new OpenGLWidgetRenderPrivate;
-		else
-			return new OpenGLWindowRenderPrivate;
-	}
+	setObjectName("ORender");
 }
 
-OpenGLRender::OpenGLRender(QObject *parent) :
-ARender(choose(), parent)
+void OpenGLRender::setup()
 {
-	ins = this;
-	setObjectName("ORender");
+	bool detach = Config::getValue<bool>("/Performance/Option/OpenGL/Detach", 0);
+	bool buffer = Config::getValue<bool>("/Performance/Option/OpenGL/Buffer", 1);
+	if (detach)
+		d_ptr = new OpenGLDetachRenderPrivate();
+	else if (buffer)
+		d_ptr = new OpenGLWidgetRenderPrivate();
+	else
+		d_ptr = new OpenGLWindowRenderPrivate();
+
+	ARender::setup();
 }
 
 ASprite *OpenGLRender::getSprite()
@@ -640,7 +637,7 @@ void OpenGLRenderPrivate::initialize()
 	idxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
 	idxBuffer.create();
 
-	manager = new AtlasMgr(this);
+	manager.reset(new AtlasMgr(this));
 
 	QOpenGLContext *c = QOpenGLContext::currentContext();
 	timer.setInterval(c->format().swapInterval() / (double)c->screen()->refreshRate());
@@ -688,12 +685,12 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 
 void OpenGLRenderPrivate::onSwapped()
 {
-	if (isVisible() && APlayer::instance()->getState() == APlayer::Play){
+	if (isVisible() && lApp->findObject<APlayer>()->getState() == APlayer::Play){
 		if (timer.swap()){
-			ARender::instance()->draw();
+			lApp->findObject<ARender>()->draw();
 		}
 		else{
-			QTimer::singleShot(1, ARender::instance(), SLOT(draw()));
+			QTimer::singleShot(1, lApp->findObject<ARender>(), SLOT(draw()));
 		}
 	}
 }
