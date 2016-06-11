@@ -26,9 +26,9 @@
 
 #include "Common.h"
 #include "Jump.h"
-#include "../Local.h"
-#include "../Model/List.h"
-#include "../Player/APlayer.h"
+#include "../../Local.h"
+#include "../../Model/List.h"
+#include "../../Player/APlayer.h"
 
 using namespace UI;
 

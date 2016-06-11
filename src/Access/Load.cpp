@@ -720,7 +720,7 @@ Load::Task Load::codeToTask(QString code)
 	task.processer = getProc(code);
 	task.code = code;
 	APlayer *aplayer = lApp->findObject<APlayer>();
-	task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Playing/Delay", false) ? aplayer->getTime() : 0;
+	task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Player/Delay", false) ? aplayer->getTime() : 0;
 	return task;
 }
 
@@ -793,7 +793,7 @@ bool Load::canHist(const Record *record)
 void Load::loadDanmaku(QString code)
 {
 	const Task &task = codeToTask(code);
-	if (enqueue(task) && Config::getValue("/Playing/Clear", false)){
+	if (enqueue(task) && Config::getValue("/Player/Clear", false)){
 		lApp->findObject<Danmaku>()->clear();
 	}
 }
@@ -809,7 +809,7 @@ void Load::loadDanmaku(const QModelIndex &index)
 			task.request = QNetworkRequest(index.data(UrlRole).toUrl());
 			task.state = index.data(NxtRole).toInt();
 			APlayer *aplayer = lApp->findObject<APlayer>();
-			task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Playing/Delay", false) ? aplayer->getTime() : 0;
+			task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Player/Delay", false) ? aplayer->getTime() : 0;
 			enqueue(task);
 		}
 	}

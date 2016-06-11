@@ -26,14 +26,15 @@
 
 #include "Common.h"
 #include "Editor.h"
-#include "../Config.h"
-#include "../Local.h"
-#include "../Utils.h"
-#include "../Access/Load.h"
-#include "../Access/NetworkConfiguration.h"
-#include "../Model/Danmaku.h"
-#include "../Model/List.h"
-#include "../Player/APlayer.h"
+#include "WidgetUtils.h"
+#include "../../Config.h"
+#include "../../Local.h"
+#include "../../Utils.h"
+#include "../../Access/Load.h"
+#include "../../Access/NetworkConfiguration.h"
+#include "../../Model/Danmaku.h"
+#include "../../Model/List.h"
+#include "../../Player/APlayer.h"
 
 using namespace UI;
 

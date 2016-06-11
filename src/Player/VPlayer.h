@@ -1,7 +1,8 @@
 #pragma once
 
 #include "APlayer.h"
-#include <QActionGroup>
+#include "Utils.h"
+#include <functional>
 
 extern "C"
 {
@@ -20,19 +21,32 @@ public:
 	};
 
 	explicit VPlayer(QObject *parent = 0);
-	~VPlayer();
+	virtual ~VPlayer();
+
 	static QMutex time;
-	virtual QList<QAction *> getTracks(int type) override;
 
 private:
-	int	    state;
-	QActionGroup *tracks[3];
+	struct Track
+	{
+		QString name;
+		std::function<void()> set;
+	};
+
+	struct TrackSlot
+	{
+		QList<Track> list;
+		int current;
+	};
+
+	int state;
 	libvlc_instance_t *vlc;
 	libvlc_media_player_t *mp;
+	TrackSlot tracks[3];
 
 	void    init();
 	void    wait();
 	void    free();
+	void    parseTracks(Utils::Type type);
 
 public slots:
 	void    play();
@@ -42,7 +56,7 @@ public slots:
 	void    setTime(qint64 time);
 	qint64  getTime();
 
-	void    setMedia(QString file, bool manually = true);
+	void    setMedia(QString file);
 	QString getMedia();
 
 	qint64  getDuration();
@@ -55,6 +69,11 @@ public slots:
 
 	qint64  getDelay(int type);
 	void    setDelay(int type, qint64 delay);
+
+	int     getTrack(int type);
+	void    setTrack(int type, int index);
+	QStringList getTracks(int type);
+
 
 	void    addSubtitle(QString file);
 

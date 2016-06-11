@@ -22,7 +22,7 @@ void RasterRender::setup()
 	Q_D(RasterRender);
 	d->power = new QTimer(this);
 	d->power->setTimerType(Qt::PreciseTimer);
-	int fps = Config::getValue("/Performance/Option/Raster/Update", 100);
+	int fps = Config::getValue("/Render/Option/Raster/Update", 100);
 	d->power->start(1000 / (fps > 0 ? fps : 60));
 	connect(lApp->findObject<APlayer>(), &APlayer::decode, d->power, [=](){
 		if (!d->power->isActive()){
@@ -42,10 +42,10 @@ ASprite *RasterRender::getSprite()
 	return new AsyncRasterSprite();
 }
 
-quintptr RasterRender::getHandle()
+QObject *RasterRender::getHandle()
 {
 	Q_D(RasterRender);
-	return (quintptr)d->widget;
+	return d->widget;
 }
 
 void RasterRender::resize(QSize size)

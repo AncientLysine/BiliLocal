@@ -28,7 +28,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include "../Utils.h"
+#include "../../Utils.h"
 
 namespace UI
 {

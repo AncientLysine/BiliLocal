@@ -27,22 +27,21 @@
 #pragma once
 
 #include <QtCore>
-#include <QtWidgets>
 
 class Plugin
 {
 public:
-	typedef void(*RegistPtr)(const QHash<QString, QObject *> &);
-	typedef void(*ConfigPtr)(QWidget *);
-	typedef QString(*StringPtr)(QString);
+	typedef void(*RegistPtr)(QObject *);
+	typedef void(*ConfigPtr)();
+	typedef void(*StringPtr)(QString *, QString *);
 
 	static QList<Plugin> plugins;
 	static void load();
 
 	Plugin(QString path);
 	bool loaded();
-	void regist(const QHash<QString, QObject *> &);
-	void config(QWidget *);
+	void regist(QObject *);
+	void config();
 	QString string(QString query);
 
 private:

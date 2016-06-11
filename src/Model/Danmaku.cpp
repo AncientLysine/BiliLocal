@@ -31,7 +31,6 @@
 #include "../Utils.h"
 #include "../Access/Load.h"
 #include "../Model/Shield.h"
-#include "../UI/Editor.h"
 #include <algorithm>
 
 class DanmakuPrivate

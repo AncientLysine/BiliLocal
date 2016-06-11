@@ -27,16 +27,17 @@
 
 #include "Common.h"
 #include "Menu.h"
-#include "Interface.h"
-#include "../Config.h"
-#include "../Local.h"
-#include "../Utils.h"
-#include "../Access/Load.h"
-#include "../Model/Danmaku.h"
-#include "../Model/List.h"
-#include "../Player/APlayer.h"
-#include "../Render/ARender.h"
-#include "../UI/Search.h"
+#include "Search.h"
+#include "WidgetUtils.h"
+#include "../Interface.h"
+#include "../../Config.h"
+#include "../../Local.h"
+#include "../../Utils.h"
+#include "../../Access/Load.h"
+#include "../../Model/Danmaku.h"
+#include "../../Model/List.h"
+#include "../../Player/APlayer.h"
+#include "../../Render/ARender.h"
 #include <numeric>
 
 using namespace UI;
@@ -414,6 +415,7 @@ QWidget(parent)
 			lApp->findObject<List>()->defaultPath(Utils::Video | Utils::Audio),
 			tr("Media files (%1);;All files (*.*)").arg(Utils::getSuffix(Utils::Video | Utils::Audio, "*.%1").join(' ')));
 		if (!_file.isEmpty()){
+			lApp->findObject<APlayer>()->stop();
 			lApp->findObject<APlayer>()->setMedia(_file);
 		}
 	});
@@ -506,9 +508,9 @@ QWidget(parent)
 	loopT = new QLabel(this);
 	loopT->setText(tr("Loop Playback"));
 	loopC = new QCheckBox(this);
-	loopC->setChecked(Config::getValue("/Playing/Loop", false));
+	loopC->setChecked(Config::getValue("/Player/Loop", false));
 	connect(loopC, &QCheckBox::stateChanged, [this](int state){
-		Config::setValue("/Playing/Loop", state == Qt::Checked);
+		Config::setValue("/Player/Loop", state == Qt::Checked);
 	});
 
 	animation = new QPropertyAnimation(this, "pos", this);

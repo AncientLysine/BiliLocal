@@ -132,7 +132,7 @@ QPlayer::QPlayer(QObject *parent)
 	waitingForBegin = false;
 	skipTimeChanged = false;
 	mp = (new QPlayerThread(this))->getMediaPlayer();
-	mp->setVolume(Config::getValue("/Playing/Volume", 50));
+	mp->setVolume(Config::getValue("/Player/Volume", 50));
 
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp, &QMediaPlayer::error, this, [this](int error){
 		if ((State)mp->state() == Play){
@@ -145,7 +145,7 @@ QPlayer::QPlayer(QObject *parent)
 
 	connect(mp, &QMediaPlayer::stateChanged, this, [this](int _state){
 		if (_state == Stop){
-			if (!manuallyStopped&&Config::getValue("/Playing/Loop", false)){
+			if (!manuallyStopped&&Config::getValue("/Player/Loop", false)){
 				stateChanged(state = Loop);
 				play();
 				emit jumped(0);
@@ -189,11 +189,6 @@ QPlayer::QPlayer(QObject *parent)
 	connect(mp, &QMediaPlayer::playbackRateChanged, this, &QPlayer::rateChanged);
 }
 
-QList<QAction *> QPlayer::getTracks(int)
-{
-	return QList<QAction *>();
-}
-
 void QPlayer::play()
 {
 	QMetaObject::invokeMethod(mp, getState() == Play ? "pause" : "play",
@@ -207,13 +202,13 @@ void QPlayer::stop(bool manually)
 		Qt::BlockingQueuedConnection);
 }
 
-void QPlayer::setTime(qint64 _time)
+void QPlayer::setTime(qint64 time)
 {
 	QMetaObject::invokeMethod(mp, "setPosition",
 		Qt::BlockingQueuedConnection,
-		Q_ARG(qint64, _time));
+		Q_ARG(qint64, time));
 	skipTimeChanged = true;
-	emit jumped(_time);
+	emit jumped(time);
 }
 
 qint64 QPlayer::getTime()
@@ -221,24 +216,23 @@ qint64 QPlayer::getTime()
 	return mp->position();
 }
 
-void QPlayer::setMedia(QString _file, bool manually)
+void QPlayer::setMedia(QString file)
 {
-	stop(manually);
 	QMetaObject::invokeMethod(mp, "setMedia",
 		Qt::BlockingQueuedConnection,
-		Q_ARG(QMediaContent, QUrl::fromLocalFile(_file)));
+		Q_ARG(QMediaContent, QUrl::fromUserInput(file)));
 	QMetaObject::invokeMethod(mp, "setPlaybackRate",
 		Qt::BlockingQueuedConnection,
 		Q_ARG(qreal, 1.0));
-	if (Config::getValue("/Playing/Immediate", false)){
+	if (Config::getValue("/Player/Immediate", false)){
 		play();
 	}
 }
 
 QString QPlayer::getMedia()
 {
-	QUrl u = mp->media().canonicalUrl();
-	return u.isLocalFile() ? u.toLocalFile() : QString();
+	const QUrl &u = mp->media().canonicalUrl();
+	return u.isLocalFile() ? u.toLocalFile() : u.toString();
 }
 
 qint64 QPlayer::getDuration()
@@ -246,11 +240,11 @@ qint64 QPlayer::getDuration()
 	return mp->duration();
 }
 
-void QPlayer::setVolume(int _volume)
+void QPlayer::setVolume(int volume)
 {
-	_volume = qBound(0, _volume, 100);
-	mp->setVolume(_volume);
-	Config::setValue("/Playing/Volume", _volume);
+	volume = qBound(0, volume, 100);
+	mp->setVolume(volume);
+	Config::setValue("/Player/Volume", volume);
 }
 
 int QPlayer::getVolume()
@@ -258,9 +252,9 @@ int QPlayer::getVolume()
 	return mp->volume();
 }
 
-void QPlayer::setRate(double _rate)
+void QPlayer::setRate(double rate)
 {
-	mp->setPlaybackRate(_rate);
+	mp->setPlaybackRate(rate);
 }
 
 double QPlayer::getRate()

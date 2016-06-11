@@ -15,9 +15,9 @@ public:
 		return widget->isVisible();
 	}
 
-	virtual quintptr getHandle() override
+	virtual QObject *getHandle() override
 	{
-		return (quintptr)window;
+		return window;
 	}
 
 	virtual void resize(QSize size) override

@@ -26,17 +26,18 @@
 
 #include "Common.h"
 #include "Prefer.h"
-#include "Interface.h"
-#include "../Config.h"
-#include "../Local.h"
-#include "../Plugin.h"
-#include "../Utils.h"
-#include "../Access/NetworkConfiguration.h"
-#include "../Access/Sign.h"
-#include "../Model/Danmaku.h"
-#include "../Model/Shield.h"
-#include "../Player/APlayer.h"
-#include "../Render/ARender.h"
+#include "WidgetUtils.h"
+#include "../Interface.h"
+#include "../../Config.h"
+#include "../../Local.h"
+#include "../../Plugin.h"
+#include "../../Utils.h"
+#include "../../Access/NetworkConfiguration.h"
+#include "../../Access/Sign.h"
+#include "../../Model/Danmaku.h"
+#include "../../Model/Shield.h"
+#include "../../Player/APlayer.h"
+#include "../../Render/ARender.h"
 
 using namespace UI;
 
@@ -58,7 +59,9 @@ void Prefer::exec(QWidget *parent, int index)
 QHash<QString, QVariant> Prefer::getRestart()
 {
 	QStringList path;
-	path << "/Performance" <<
+	path <<
+		"/Render" <<
+		"/Player" <<
 		"/Interface/Font" <<
 		"/Interface/Frameless" <<
 		"/Interface/Single" <<
@@ -155,27 +158,27 @@ QDialog(parent)
 		auto list = new QVBoxLayout(widget[0]);
 		auto c = new QGridLayout;
 		load[0] = new QCheckBox(tr("clear when reloading"), widget[0]);
-		load[0]->setChecked(Config::getValue("/Playing/Clear", false));
+		load[0]->setChecked(Config::getValue("/Player/Clear", false));
 		connect(load[0], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Playing/Clear", state == Qt::Checked);
+			Config::setValue("/Player/Clear", state == Qt::Checked);
 		});
 		c->addWidget(load[0], 0, 0);
 		load[1] = new QCheckBox(tr("auto delay after loaded"), widget[0]);
-		load[1]->setChecked(Config::getValue("/Playing/Delay", false));
+		load[1]->setChecked(Config::getValue("/Player/Delay", false));
 		connect(load[1], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Playing/Delay", state == Qt::Checked);
+			Config::setValue("/Player/Delay", state == Qt::Checked);
 		});
 		c->addWidget(load[1], 0, 1);
 		load[2] = new QCheckBox(tr("load local subtitles"), widget[0]);
-		load[2]->setChecked(Config::getValue("/Playing/Subtitle", true));
+		load[2]->setChecked(Config::getValue("/Player/Subtitle", true));
 		connect(load[2], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Playing/Subtitle", state == Qt::Checked);
+			Config::setValue("/Player/Subtitle", state == Qt::Checked);
 		});
 		c->addWidget(load[2], 1, 0);
 		load[3] = new QCheckBox(tr("auto play after loaded"), widget[0]);
-		load[3]->setChecked(Config::getValue("/Playing/Immediate", false));
+		load[3]->setChecked(Config::getValue("/Player/Immediate", false));
 		connect(load[3], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Playing/Immediate", state == Qt::Checked);
+			Config::setValue("/Player/Immediate", state == Qt::Checked);
 		});
 		c->addWidget(load[3], 1, 1);
 		box[0] = new QGroupBox(tr("loading"), widget[0]);
@@ -451,14 +454,14 @@ QDialog(parent)
 		render->addItems(relist);
 		decode->addItems(delist);
 		if (relist.size() >= 2){
-			QString r = Config::getValue("/Performance/Render", relist[0]);
+			QString r = Config::getValue("/Render/Type", relist[0]);
 			render->setCurrentText(r);
 		}
 		else{
 			render->setEnabled(false);
 		}
 		if (delist.size() >= 2){
-			QString r = Config::getValue("/Performance/Decode", delist[0]);
+			QString r = Config::getValue("/Player/Type", delist[0]);
 			decode->setCurrentText(r);
 		}
 		else{
@@ -507,7 +510,7 @@ QDialog(parent)
 			}
 			retext->setText(lineNumFix(desc));
 			if (relist.size() >= 2){
-				Config::setValue("/Performance/Render", text);
+				Config::setValue("/Render/Type", text);
 			}
 		});
 		connect(decode, &QComboBox::currentTextChanged, [=](QString text){
@@ -537,25 +540,35 @@ QDialog(parent)
 			}
 			detext->setText(lineNumFix(desc));
 			if (delist.size() >= 2){
-				Config::setValue("/Performance/Decode", text);
+				Config::setValue("/Player/Type", text);
 			}
 		});
 		r->addWidget(render);
 		e->addWidget(decode);
 
 		if (relist.contains("OpenGL")){
+			QString type = Config::getValue<QString>("/Render/Option/OpenGL/Output", "Widget");
 			QRadioButton *buffer = new QRadioButton(tr("render to buffer"), widget[2]);
-			buffer->setChecked(Config::getValue("/Performance/Option/OpenGL/Buffer", true));
+			buffer->setChecked(type == "Widget");
 			connect(buffer, &QRadioButton::toggled, [](bool t){
-				Config::setValue("/Performance/Option/OpenGL/Buffer", t);
-			});
-			QRadioButton *detach = new QRadioButton(tr("detached window"), widget[2]);
-			detach->setChecked(Config::getValue("/Performance/Option/OpenGL/Detach", false));
-			connect(detach, &QRadioButton::toggled, [](bool t){
-				Config::setValue("/Performance/Option/OpenGL/Detach", t);
+				if (t) {
+					Config::setValue("/Render/Option/OpenGL/Output", QString("Widget"));
+				}
 			});
 			QRadioButton *direct = new QRadioButton(tr("embedded window"), widget[2]);
-			direct->setChecked(!buffer->isChecked() && !detach->isChecked());
+			direct->setChecked(type == "Window");
+			connect(direct, &QRadioButton::toggled, [](bool t) {
+				if (t) {
+					Config::setValue("/Render/Option/OpenGL/Output", QString("Window"));
+				}
+			});
+			QRadioButton *detach = new QRadioButton(tr("detached window"), widget[2]);
+			detach->setChecked(type == "Detach");
+			connect(detach, &QRadioButton::toggled, [](bool t){
+				if (t) {
+					Config::setValue("/Render/Option/OpenGL/Output", QString("Detach"));
+				}
+			});
 			option.insert("OpenGL", detach);
 			option.insert("OpenGL", direct);
 			option.insert("OpenGL", buffer);
@@ -566,14 +579,14 @@ QDialog(parent)
 			auto layout = new QGridLayout;
 			auto slider = new QSlider(widget[2]);
 			slider->setRange(30, 200);
-			slider->setValue(Config::getValue("/Performance/Option/Raster/Update", 100));
+			slider->setValue(Config::getValue("/Render/Option/Raster/Update", 100));
 			slider->setOrientation(Qt::Horizontal);
 			connect(slider, &QSlider::valueChanged, [=](int v){
 				QPoint p;
 				p.setX(QCursor::pos().x());
 				p.setY(slider->mapToGlobal(slider->rect().center()).y());
 				QToolTip::showText(p, QString::number(v));
-				Config::setValue("/Performance/Option/Raster/Update", v);
+				Config::setValue("/Render/Option/Raster/Update", v);
 			});
 			layout->addWidget(slider);
 			update->setLayout(layout);
@@ -1139,7 +1152,7 @@ QDialog(parent)
 		connect(plugin, &QTreeWidget::itemClicked, [=](QTreeWidgetItem *item, int column){
 			Plugin *p = (Plugin *)item->data(0, Qt::UserRole).value<quintptr>();
 			if (column == 5){
-				p->config(this);
+				p->config();
 			}
 		});
 		connect(plugin, &QTreeWidget::currentItemChanged, [this](){

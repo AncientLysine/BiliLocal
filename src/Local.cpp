@@ -40,6 +40,7 @@
 #include "Player/APlayer.h"
 #include "Render/ARender.h"
 #include "UI/Interface.h"
+#include <type_traits>
 
 Local *Local::ins = nullptr;
 
@@ -72,7 +73,9 @@ Local::Local(QObject *parent)
 	lSet(Running);
 #undef lIns
 #undef lSet
-	connect(qApp, &QCoreApplication::aboutToQuit, this, &Local::deleteLater);
+	connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+		delete this;
+	});
 }
 
 Local::~Local()
@@ -101,6 +104,7 @@ void Local::tryLocal(QString path)
 		switch (Config::getValue("/Interface/Single", 1)) {
 		case 0:
 		case 1:
+			findObject<APlayer>()->stop();
 			findObject<APlayer>()->setMedia(path);
 			break;
 		case 2:
@@ -148,19 +152,11 @@ namespace
 			}
 		}
 	}
-
-	void setToolTipBase()
-	{
-		QPalette tip = qApp->palette();
-		tip.setColor(QPalette::Inactive, QPalette::ToolTipBase, Qt::white);
-		qApp->setPalette(tip);
-		QToolTip::setPalette(tip);
-	}
 }
 
 int main(int argc, char *argv[])
 {
-	QApplication a(argc, argv);
+	std::remove_pointer<decltype(qApp)>::type a(argc, argv);
 	QDir::setCurrent(a.applicationDirPath());
 	Config::load();
 	int single = Config::getValue("/Interface/Single", 1);
@@ -174,13 +170,11 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 	}
-	a.setPalette(a.setStyle("Fusion")->standardPalette());
 	a.setAttribute(Qt::AA_UseOpenGLES);
 	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
 	qsrand(QTime::currentTime().msec());
 	loadTranslator();
 	setDefaultFont();
-	setToolTipBase();
 	new Local(&a);
 	Plugin::load();
 	lApp->findObject<Interface>()->show();

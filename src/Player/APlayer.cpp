@@ -65,7 +65,7 @@ APlayer * APlayer::create(QObject *parent, QString name)
 			name = l[0];
 			break;
 		default:
-			name = Config::getValue("/Performance/Decode", l[0]);
+			name = Config::getValue("/Player/Type", l[0]);
 			name = l.contains(name) ? name : l[0];
 			break;
 		}
@@ -111,6 +111,20 @@ qint64 APlayer::getDelay(int)
 
 void APlayer::setDelay(int, qint64)
 {
+}
+
+int APlayer::getTrack(int)
+{
+	return -1;
+}
+
+void APlayer::setTrack(int, int)
+{
+}
+
+QStringList APlayer::getTracks(int)
+{
+	return QStringList();
 }
 
 void APlayer::addSubtitle(QString)

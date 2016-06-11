@@ -1,7 +1,6 @@
 #pragma once
 
 #include "OpaquePrivate.h"
-#include "../../Local.h"
 #include <QOpenGLWidget>
 
 class OpenGLWidgetRenderPrivate :public OpenGLOpaqueRenderPrivate
@@ -14,9 +13,9 @@ public:
 		return widget->isVisible();
 	}
 
-	virtual quintptr getHandle() override
+	virtual QObject * getHandle() override
 	{
-		return (quintptr)widget;
+		return widget;
 	}
 
 	virtual void resize(QSize size) override

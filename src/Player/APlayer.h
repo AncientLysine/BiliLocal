@@ -42,6 +42,7 @@ public:
 		Pause,
 		Loop
 	};
+	Q_ENUM(State)
 
 	enum Error
 	{
@@ -52,27 +53,27 @@ public:
 		AccessDeniedError,
 		ServiceMissingError
 	};
+	Q_ENUM(Error)
 
 	static QStringList getModules();
 	static APlayer *create(QObject *parent = nullptr, QString name = QString());
-
-	virtual QList<QAction *> getTracks(int type) = 0;
 
 protected:
 	explicit APlayer(QObject *parent);
 
 signals:
-	void errorOccurred(int);
+	void errorOccurred(int error);
 	void begin();
-	void reach(bool);
+	void reach(bool manually);
 	void decode();
-	void jumped(qint64);
-	void stateChanged(int);
-	void mediaChanged(QString);
-	void delayChanged(int, qint64);
-	void timeChanged(qint64);
-	void rateChanged(double);
-	void volumeChanged(int);
+	void jumped(qint64 time);
+	void stateChanged(int state);
+	void mediaChanged(QString media);
+	void delayChanged(int type, qint64 delay);
+	void trackChanged(int type, int current);
+	void timeChanged(qint64 time);
+	void rateChanged(double rate);
+	void volumeChanged(int volume);
 
 public slots:
 	virtual void    play() = 0;
@@ -82,7 +83,7 @@ public slots:
 	virtual void    setTime(qint64 time) = 0;
 	virtual qint64  getTime() = 0;
 
-	virtual void    setMedia(QString file, bool manually = true) = 0;
+	virtual void    setMedia(QString file) = 0;
 	virtual QString getMedia() = 0;
 
 	virtual qint64  getDuration() = 0;
@@ -95,6 +96,10 @@ public slots:
 
 	virtual qint64  getDelay(int type);
 	virtual void    setDelay(int type, qint64 delay);
+
+	virtual int     getTrack(int type);
+	virtual void    setTrack(int type, int index);
+	virtual QStringList getTracks(int type);
 
 	virtual void    addSubtitle(QString file);
 

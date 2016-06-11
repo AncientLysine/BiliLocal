@@ -27,9 +27,10 @@
 
 #include "Common.h"
 #include "Search.h"
-#include "../Local.h"
-#include "../Access/Seek.h"
-#include "../Utils.h"
+#include "WidgetUtils.h"
+#include "../../Local.h"
+#include "../../Access/Seek.h"
+#include "../../Utils.h"
 
 using namespace UI;
 

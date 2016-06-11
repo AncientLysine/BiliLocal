@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "WidgetPrivate.h"
+#include "../../Local.h"
 #include "../../UI/Interface.h"
 #include <functional>
 

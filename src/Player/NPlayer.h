@@ -6,7 +6,6 @@ class NPlayer :public APlayer
 {
 public:
 	explicit NPlayer(QObject *parent = 0);
-	virtual QList<QAction *> getTracks(int type) override;
 
 private:
 	qint64  start;
@@ -22,7 +21,7 @@ public slots:
 	void    setTime(qint64 time);
 	qint64  getTime();
 
-	void    setMedia(QString file, bool manually = true);
+	void    setMedia(QString file);
 	QString getMedia();
 
 	qint64  getDuration();

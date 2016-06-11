@@ -27,7 +27,6 @@ public:
 		bool isValid();
 	};
 
-
 	class Widget :public QWidget
 	{
 	public:

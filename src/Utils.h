@@ -26,9 +26,8 @@
 
 #pragma once
 
-#include <QtGui>
 #include <QtCore>
-#include <QtWidgets>
+#include <QtGui>
 
 class Comment
 {
@@ -122,8 +121,6 @@ namespace Utils
 	};
 
 	Site parseSite(QString url);
-	void setCenter(QWidget *widget);
-	void setGround(QWidget *widget, QColor color);
 	QString defaultFont(bool monospace = false);
 	QString customUrl(Site site);
 	QString decodeTxt(const QByteArray &data);

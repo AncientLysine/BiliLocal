@@ -1,6 +1,5 @@
 #include "Common.h"
 #include "DetachPrivate.h"
-#include <QDesktopWidget>
 #include <functional>
 
 namespace
@@ -15,7 +14,7 @@ namespace
 			f.setAlphaBufferSize(8);
 			setFormat(f);
 			setFlags(flags() | Qt::Tool | Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint);
-			setGeometry(qApp->desktop()->screenGeometry());
+			setGeometry(screen()->geometry());
 			connect(this, &DWindow::frameSwapped, std::bind(&OpenGLRenderPrivate::onSwapped, render));
 		}
 

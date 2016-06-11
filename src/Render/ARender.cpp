@@ -34,10 +34,10 @@
 #include "../Player/APlayer.h"
 
 #ifdef RENDER_OPENGL
-#include "OpenGLRender/OpenGLRender.h"
+#include "OpenGL/OpenGLRender.h"
 #endif
 #ifdef RENDER_RASTER
-#include "RasterRender/RasterRender.h"
+#include "Raster/RasterRender.h"
 #endif
 
 QStringList ARender::getModules()
@@ -69,7 +69,7 @@ ARender *ARender::create(QObject *parent, QString name)
 			name = l[0];
 			break;
 		default:
-			name = Config::getValue("/Performance/Render", l[0]);
+			name = Config::getValue("/Render/Type", l[0]);
 			name = l.contains(name) ? name : l[0];
 			break;
 		}

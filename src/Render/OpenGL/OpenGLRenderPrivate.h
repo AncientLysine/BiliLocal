@@ -72,7 +72,7 @@ public:
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
 	virtual void onSwapped();
 	virtual bool isVisible() = 0;
-	virtual quintptr getHandle() = 0;
+	virtual QObject *getHandle() = 0;
 	virtual void resize(QSize size) = 0;
 	virtual QSize getActualSize() = 0;
 	virtual QSize getBufferSize() = 0;

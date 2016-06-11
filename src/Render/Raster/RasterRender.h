@@ -16,7 +16,7 @@ private:
 
 public slots:
 	virtual ASprite *getSprite() override;
-	virtual quintptr getHandle() override;
+	virtual QObject *getHandle() override;
 	virtual void resize(QSize size) override;
 	virtual QSize getActualSize() override;
 	virtual QSize getBufferSize() override;

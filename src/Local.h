@@ -26,11 +26,9 @@
 
 #pragma once
 
-#include <QApplication>
 #include <QHash>
 #include <QObject>
 #include <QString>
-#include <QWidget>
 #include <QThreadPool>
 
 #define lApp Local::instance()
@@ -47,7 +45,7 @@ public:
 	//last instance of app
 	static Local *instance();
 
-	QHash<QString, QObject *> objects;
+	QHash<QByteArray, QObject *> objects;
 
 	template<class T>
 	T *findObject() const
@@ -59,12 +57,10 @@ private:
 	static Local *ins;
 
 public slots:
-	QObject *findObject(QString name) const
+	QObject *findObject(QByteArray name) const
 	{
 		return objects.value(name);
 	}
-
-	void tryLocal(QString path);
 
 	void synchronize(void *func) const
 	{
@@ -75,4 +71,6 @@ public slots:
 	{
 		((void(*)(void *))func)(args);
 	}
+
+	void tryLocal(QString path);
 };

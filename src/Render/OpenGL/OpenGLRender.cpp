@@ -2,11 +2,17 @@
 #include "OpenGLRender.h"
 #include "OpenGLRenderPrivate.h"
 #include "SyncTextureSprite.h"
+#ifdef INTERFACE_WIDGET
 #include "WidgetPrivate.h"
 #include "WindowPrivate.h"
+#endif
+#ifdef INTERFACE_QUICK2
+#include "Quick2Private.h"
+#endif
 #include "DetachPrivate.h"
 #include "../../Config.h"
 #include "../../Player/APlayer.h"
+#include "../../UI/Interface.h"
 
 OpenGLRender::OpenGLRender(QObject *parent) :
 	ARender(parent)
@@ -16,15 +22,47 @@ OpenGLRender::OpenGLRender(QObject *parent) :
 
 void OpenGLRender::setup()
 {
-	bool detach = Config::getValue<bool>("/Performance/Option/OpenGL/Detach", 0);
-	bool buffer = Config::getValue<bool>("/Performance/Option/OpenGL/Buffer", 1);
-	if (detach)
+	QStringList l;
+#ifdef INTERFACE_WIDGET
+	l << "Widget";
+	l << "Window";
+#endif
+#ifdef INTERFACE_QUICK2
+	l << "Quick2";
+#endif
+	l << "Detach";
+	QString name;
+	switch (l.size()) {
+	case 0:
+		return;
+	case 1:
+		name = l[0];
+		break;
+	default:
+		name = Config::getValue("/Render/Option/OpenGL/Output", l[0]);
+		name = l.contains(name) ? name : l[0];
+		break;
+	}
+	auto ui = lApp->findObject<Interface>();
+	if (name == "Detach") {
 		d_ptr = new OpenGLDetachRenderPrivate();
-	else if (buffer)
+	}
+#ifdef INTERFACE_WIDGET
+	else if (name == "Widget" && ui->widget() != nullptr) {
 		d_ptr = new OpenGLWidgetRenderPrivate();
-	else
+	}
+	else if (name == "Window"&& ui->widget() != nullptr) {
 		d_ptr = new OpenGLWindowRenderPrivate();
-
+	}
+#endif
+#ifdef INTERFACE_QUICK2
+	else if (name == "Quick2" && ui->widget() == nullptr) {
+		d_ptr = new OpenGLQuick2RenderPrivate();
+	}
+#endif
+	else{
+		return;
+	}
 	ARender::setup();
 }
 
@@ -34,7 +72,7 @@ ASprite *OpenGLRender::getSprite()
 	return new SyncTextureSprite(d);
 }
 
-quintptr OpenGLRender::getHandle()
+QObject *OpenGLRender::getHandle()
 {
 	Q_D(OpenGLRender);
 	return d->getHandle();

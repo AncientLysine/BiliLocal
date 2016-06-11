@@ -26,11 +26,11 @@
 
 #include "Common.h"
 #include "Type.h"
-#include "Interface.h"
-#include "../Local.h"
-#include "../Access/Post.h"
-#include "../Model/Danmaku.h"
-#include "../Player/APlayer.h"
+#include "../Interface.h"
+#include "../../Local.h"
+#include "../../Access/Post.h"
+#include "../../Model/Danmaku.h"
+#include "../../Player/APlayer.h"
 
 using namespace UI;
 

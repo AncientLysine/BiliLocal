@@ -19,11 +19,6 @@ void NPlayer::timerEvent(QTimerEvent *)
 	}
 }
 
-QList<QAction *> NPlayer::getTracks(int)
-{
-	return QList<QAction *>();
-}
-
 void NPlayer::play()
 {
 	if (state != Stop){
@@ -50,7 +45,7 @@ qint64 NPlayer::getTime()
 	return state == Stop ? -1 : (QDateTime::currentMSecsSinceEpoch() - start);
 }
 
-void NPlayer::setMedia(QString, bool)
+void NPlayer::setMedia(QString)
 {
 }
 

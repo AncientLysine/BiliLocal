@@ -123,7 +123,7 @@ List::List(QObject *parent)
 			setRelated(indexes, lastC);
 		}
 	};
-	for (const QJsonValue &i : Config::getValue<QJsonArray>("/Playing/List")){
+	for (const QJsonValue &i : Config::getValue<QJsonArray>("/List")){
 		QStandardItem *item = new QStandardItem;
 		QJsonObject data = i.toObject();
 		QFileInfo info(data["File"].toString());
@@ -409,7 +409,7 @@ QStandardItem *List::itemFromFile(QString file, bool create)
 bool List::finished()
 {
 	QStandardItem *n = item(cur ? cur->row() + 1 : 0);
-	return !n || (n->data(CodeRole).toInt() == Records&&!Config::getValue("/Playing/Continue", true));
+	return !n || (n->data(CodeRole).toInt() == Records&&!Config::getValue("/Player/Continue", true));
 }
 
 void List::appendMedia(QString file)
@@ -531,7 +531,8 @@ bool List::jumpToIndex(const QModelIndex &index, bool manually)
 		return false;
 	}
 	else {
-		lApp->findObject<APlayer>()->setMedia(head->data(FileRole).toString(), manually);
+		lApp->findObject<APlayer>()->stop(manually);
+		lApp->findObject<APlayer>()->setMedia(head->data(FileRole).toString());
 		return true;
 	}
 }
@@ -569,5 +570,5 @@ void List::save()
 		}
 		list.append(data);
 	}
-	Config::setValue("/Playing/List", list);
+	Config::setValue("/List", list);
 }

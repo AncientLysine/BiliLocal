@@ -27,17 +27,18 @@
 
 #include "Common.h"
 #include "Info.h"
-#include "Interface.h"
-#include "../Config.h"
-#include "../Local.h"
-#include "../Utils.h"
-#include "../Access/Load.h"
-#include "../Player/APlayer.h"
-#include "../Model/Danmaku.h"
-#include "../Model/List.h"
-#include "../Model/Shield.h"
-#include "../UI/Editor.h"
-#include "../UI/Prefer.h"
+#include "Editor.h"
+#include "Prefer.h"
+#include "WidgetUtils.h"
+#include "../Interface.h"
+#include "../../Config.h"
+#include "../../Local.h"
+#include "../../Utils.h"
+#include "../../Access/Load.h"
+#include "../../Player/APlayer.h"
+#include "../../Model/Danmaku.h"
+#include "../../Model/List.h"
+#include "../../Model/Shield.h"
 
 using namespace UI;
 
@@ -79,7 +80,7 @@ QWidget(parent)
 	timeS->setRange(0, 0);
 	volmS->setRange(0, 100);
 	timeS->setValue(0);
-	volmS->setValue(Config::getValue("/Playing/Volume", 50));
+	volmS->setValue(Config::getValue("/Player/Volume", 50));
 	timeS->setTracking(false);
 	connect(timeS, &QSlider::valueChanged, [this](int _time){
 		if (duration != -1 && !updating){
