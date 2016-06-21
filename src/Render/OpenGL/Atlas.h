@@ -9,9 +9,9 @@ class OpenGLRenderPrivate;
 class Atlas
 {
 public:
-	static const int MaxSize = 2048;
-	static const int Padding = 2;
-	static const int Spacing = 0;
+	static const int MaxSize;
+	static const int Padding;
+	static const int Spacing;
 
 	explicit Atlas(OpenGLRenderPrivate *render);
 

@@ -145,15 +145,15 @@ AVPixelFormat RasterRenderPrivate::getFormat(QString &chroma)
 {
 	static QHash<QString, AVPixelFormat> f;
 	if (f.isEmpty()){
-		f.insert("RV32", AV_PIX_FMT_RGB32);
-		f.insert("RV24", AV_PIX_FMT_RGB24);
 		f.insert("RGB8", AV_PIX_FMT_RGB8);
 		f.insert("RV12", AV_PIX_FMT_RGB444);
 		f.insert("RV15", AV_PIX_FMT_RGB555);
 		f.insert("RV16", AV_PIX_FMT_RGB565);
-		f.insert("RGBA", AV_PIX_FMT_RGBA);
-		f.insert("ARGB", AV_PIX_FMT_ARGB);
-		f.insert("BGRA", AV_PIX_FMT_BGRA);
+		f.insert("RV24", AV_PIX_FMT_BGR24);
+		f.insert("RV32", AV_PIX_FMT_RGB32);
+		f.insert("RGBA", AV_PIX_FMT_ABGR);
+		f.insert("ARGB", AV_PIX_FMT_BGRA);
+		f.insert("BGRA", AV_PIX_FMT_ARGB);
 		f.insert("I410", AV_PIX_FMT_YUV410P);
 		f.insert("I411", AV_PIX_FMT_YUV411P);
 		f.insert("I420", AV_PIX_FMT_YUV420P);

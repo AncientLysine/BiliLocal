@@ -224,29 +224,29 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 	}
 	else{
 		drawData(painter, rect);
-		drawDanm(painter, rect);
-		drawTime(painter, rect);
-#ifdef GRAPHIC_DEBUG
-		auto time = QTime::currentTime();
-		static QTime last = time;
-		static int count = 0;
-		static int speed = 0;
-		static int frame = 0;
-		if (last.second() != time.second()) {
-			last = time;
-			count = lApp->findObject<Running>()->size();
-			speed = frame;
-			frame = 0;
-		}
-		++frame;
-		QFont font;
-		font.setPixelSize(20);
-		painter->setFont(font);
-		painter->setPen(Qt::yellow);
-		QRect info(0, 0, 150, 60);
-		painter->drawText(info, QString("Count: %1\nFrame: %2").arg(count).arg(speed));
-#endif
 	}
+	drawDanm(painter, rect);
+	drawTime(painter, rect);
+#ifdef GRAPHIC_DEBUG
+	auto time = QTime::currentTime();
+	static QTime last = time;
+	static int count = 0;
+	static int speed = 0;
+	static int frame = 0;
+	if (last.second() != time.second()) {
+		last = time;
+		count = lApp->findObject<Running>()->size();
+		speed = frame;
+		frame = 0;
+	}
+	++frame;
+	QFont font;
+	font.setPixelSize(20);
+	painter->setFont(font);
+	painter->setPen(Qt::yellow);
+	QRect info(0, 0, 150, 60);
+	painter->drawText(info, QString("Count: %1\nFrame: %2").arg(count).arg(speed));
+#endif
 }
 
 void ARenderPrivate::drawStop(QPainter *painter, QRect rect)

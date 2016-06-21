@@ -3,9 +3,13 @@
 #include "OpenGLRenderPrivate.h"
 #include "../../Graphic/GraphicPrivate.h"
 
+const int Atlas::MaxSize = 2048;
+const int Atlas::Padding = 2;
+const int Atlas::Spacing = 0;
+
 Atlas::Atlas(OpenGLRenderPrivate *render)
-	: refNum(0)
-	, render(render)
+	: render(render)
+	, refNum(0)
 	, cached(0)
 {
 	render->glGenTextures(1, &cached);
@@ -54,18 +58,18 @@ void Atlas::insert(QList<QImage> &source, int effect, QList<Sprite> &result)
 			QOpenGLShaderProgram *p = nullptr;
 			switch (effect) {
 			case 0:
-				p = &render->program[5];
-				break;
-			case 1:
 				p = &render->program[6];
 				break;
-			case 2:
+			case 1:
 				p = &render->program[7];
+				break;
+			case 2:
+				p = &render->program[8];
 				break;
 			default:
 				return;
 			}
-			constexpr int spc = Atlas::Spacing;
+			const int spc = Atlas::Spacing;
 			QRectF draw(data.adjusted(spc, spc, -spc, -spc));
 
 			render->appendLoadCall(draw, p, data, iter->constBits());
@@ -110,22 +114,17 @@ AtlasMgr::~AtlasMgr()
 	render->glDeleteTextures(1, &upload);
 }
 
-namespace
+uint qHash(const AtlasMgr::CreateInfo &i, uint seed = 0)
 {
-	typedef AtlasMgr::CreateInfo CreateInfo;
+	uint h = ::qHash(i.effect, seed);
+	h = (h << 1) ^ ::qHash(i.text, seed);
+	h = (h << 1) ^ ::qHash(i.font, seed);
+	return h;
+}
 
-	inline uint qHash(const CreateInfo &i, uint seed = 0)
-	{
-		uint h = ::qHash(i.effect, seed);
-		h = (h << 1) ^ ::qHash(i.text, seed);
-		h = (h << 1) ^ ::qHash(i.font, seed);
-		return h;
-	}
-
-	inline bool operator ==(const CreateInfo &f, const CreateInfo &s)
-	{
-		return f.text == s.text && f.font == s.font && f.effect == s.effect;
-	}
+bool operator ==(const AtlasMgr::CreateInfo &f, const AtlasMgr::CreateInfo &s)
+{
+	return f.text == s.text && f.font == s.font && f.effect == s.effect;
 }
 
 void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
@@ -136,7 +135,7 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 		return;
 	}
 
-	constexpr int exp = Atlas::Padding + Atlas::Spacing;
+	const int exp = Atlas::Padding + Atlas::Spacing;
 	QImage source(GraphicPrivate::getSize(info.text, info.font) + QSize(exp, exp) * 2, QImage::Format_Alpha8);
 	source.fill(Qt::transparent);
 	QPainter painter(&source);

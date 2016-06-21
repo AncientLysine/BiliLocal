@@ -132,13 +132,14 @@ namespace
 
 	void loadTranslator()
 	{
-		QString locale = Config::getValue("/Interface/Locale", QLocale::system().name());
+		QString path = Utils::localPath(Utils::Locale);
+		QString name = Config::getValue("/Interface/Locale", QLocale::system().name());
 		QFileInfoList list;
-		list += QDir("./locale/" + locale).entryInfoList();
-		list += QFileInfo("./locale/" + locale + ".qm");
-		locale.resize(2);
-		list += QDir("./locale/" + locale).entryInfoList();
-		list += QFileInfo("./locale/" + locale + ".qm");
+		list += QDir(path + name).entryInfoList();
+		list += QFileInfo(path + name + ".qm");
+		name.resize(2);
+		list += QDir(path + name).entryInfoList();
+		list += QFileInfo(path + name + ".qm");
 		for (QFileInfo info : list){
 			if (!info.isFile()){
 				continue;
@@ -157,8 +158,8 @@ namespace
 int main(int argc, char *argv[])
 {
 	std::remove_pointer<decltype(qApp)>::type a(argc, argv);
-	QDir::setCurrent(a.applicationDirPath());
 	Config::load();
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	int single = Config::getValue("/Interface/Single", 1);
 	if (single){
 		QLocalSocket socket;
@@ -171,6 +172,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	a.setAttribute(Qt::AA_UseOpenGLES);
+#endif
 	qThreadPool->setMaxThreadCount(Config::getValue("/Danmaku/Thread", QThread::idealThreadCount()));
 	qsrand(QTime::currentTime().msec());
 	loadTranslator();
@@ -181,6 +183,7 @@ int main(int argc, char *argv[])
 	for (const QString iter : a.arguments().mid(1)) {
 		lApp->tryLocal(iter);
 	}
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	QLocalServer *server = nullptr;
 	if (single){
 		server = new QLocalServer(&a);
@@ -208,4 +211,7 @@ int main(int argc, char *argv[])
 	else{
 		return r;
 	}
+#else
+	return a.exec();
+#endif
 }

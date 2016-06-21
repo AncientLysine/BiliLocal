@@ -5,18 +5,22 @@
 #include <functional>
 
 OpenGLQuick2RenderPrivate::OpenGLQuick2RenderPrivate()
+	: uninitialized(true)
 {
 	window = qobject_cast<QQuickWindow *>(lApp->findObject<Interface>()->window());
 	window->setClearBeforeRendering(false);
-	initialize();
 	auto setSize = [this]() {
-		device.setSize(window->size());
+		device->setSize(window->size());
 	};
-	setSize();
 	QObject::connect(window, &QQuickWindow::widthChanged,  setSize);
 	QObject::connect(window, &QQuickWindow::heightChanged, setSize);
-	QObject::connect(window, &QQuickWindow::beforeRendering, [this] {
-		paint(&device);
+	QObject::connect(window, &QQuickWindow::beforeRendering, [=] {
+		if (uninitialized){
+			initialize();
+			device.reset(new QOpenGLPaintDevice(window->size()));
+			uninitialized = false;
+		}
+		paint(device.data());
 	});
 	QObject::connect(window, &QQuickWindow::frameSwapped, std::bind(&ElapsedTimer::swap, &timer));
 }

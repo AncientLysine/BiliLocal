@@ -48,15 +48,15 @@ void OpenGLRender::setup()
 		d_ptr = new OpenGLDetachRenderPrivate();
 	}
 #ifdef INTERFACE_WIDGET
-	else if (name == "Widget" && ui->widget() != nullptr) {
-		d_ptr = new OpenGLWidgetRenderPrivate();
-	}
-	else if (name == "Window"&& ui->widget() != nullptr) {
+	else if (ui->widget() != nullptr && name == "Window") {
 		d_ptr = new OpenGLWindowRenderPrivate();
+	}
+	else if (ui->widget() != nullptr) {
+		d_ptr = new OpenGLWidgetRenderPrivate();
 	}
 #endif
 #ifdef INTERFACE_QUICK2
-	else if (name == "Quick2" && ui->widget() == nullptr) {
+	else if (ui->widget() == nullptr) {
 		d_ptr = new OpenGLQuick2RenderPrivate();
 	}
 #endif
@@ -168,6 +168,15 @@ namespace
 		"         0,     -0.391,  2.018, 0, \n"
 		"         1.596, -0.813,  0,     0, \n"
 		"        -0.871,  0.529, -1.082, 1) * yuv;\n"
+		"}\n";
+
+	const char *fShaderBGRA =
+		"precision lowp float;\n"
+		"varying mediump vec2 v_vTexCoord;\n"
+		"uniform sampler2D u_SamplerP;\n"
+		"void main(void)\n"
+		"{\n"
+		"    gl_FragColor.bgra = texture2D(u_SamplerP, v_vTexCoord).rgba;\n"
 		"}\n";
 
 	const char *vShaderDanm =
@@ -555,7 +564,7 @@ void OpenGLRenderPrivate::flushDraw()
 	}
 
 	for (const DrawCall &iter : drawList) {
-		auto p = &program[4];
+		auto p = &program[5];
 		p->bind();
 		p->setAttributeArray(0, vtxData->vtxCoord, 2, sizeof(DrawAttr));
 		p->setAttributeArray(1, vtxData->texCoord, 2, sizeof(DrawAttr));
@@ -580,10 +589,13 @@ void OpenGLRenderPrivate::flushDraw()
 	drawAttr.resize(0);
 }
 
+const int OpenGLRenderPrivate::programNum = 9;
+
 void OpenGLRenderPrivate::initialize()
 {
 	initializeOpenGLFunctions();
-	for (int i = 0; i < sizeof(program) / sizeof(QOpenGLShaderProgram); ++i){
+	program.reset(new QOpenGLShaderProgram[programNum]);
+	for (size_t i = 0; i < programNum; ++i){
 		const char *vShaderCode = nullptr;
 		const char *fShaderCode = nullptr;
 		switch (i){
@@ -601,18 +613,22 @@ void OpenGLRenderPrivate::initialize()
 			fShaderCode = fShaderNV21;
 			break;
 		case 4:
+			vShaderCode = vShaderData;
+			fShaderCode = fShaderBGRA;
+			break;
+		case 5:
 			vShaderCode = vShaderDanm;
 			fShaderCode = fShaderDanm;
 			break;
-		case 5:
+		case 6:
 			vShaderCode = vShaderPost;
 			fShaderCode = fShaderStro;
 			break;
-		case 6:
+		case 7:
 			vShaderCode = vShaderPost;
 			fShaderCode = fShaderProj;
 			break;
-		case 7:
+		case 8:
 			vShaderCode = vShaderPost;
 			fShaderCode = fShaderGlow;
 			break;
@@ -648,13 +664,19 @@ void OpenGLRenderPrivate::initialize()
 		case 4:
 			p.bindAttributeLocation("a_VtxCoord", 0);
 			p.bindAttributeLocation("a_TexCoord", 1);
+			p.bind();
+			p.setUniformValue("u_SamplerP", 0);
+			break;
+		case 5:
+			p.bindAttributeLocation("a_VtxCoord", 0);
+			p.bindAttributeLocation("a_TexCoord", 1);
 			p.bindAttributeLocation("a_ForeColor", 2);
 			p.bind();
 			p.setUniformValue("u_SamplerD", 0);
 			break;
-		case 5:
 		case 6:
 		case 7:
+		case 8:
 			p.bindAttributeLocation("a_VtxCoord", 0);
 			p.bindAttributeLocation("a_TexCoord", 1);
 			p.bind();
@@ -694,7 +716,7 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 	auto atlases = manager->getAtlases();
 	for (int i = 0; i < atlases.size(); ++i) {
 		auto *a = atlases[i];
-		auto &p = program[4];
+		auto &p = program[5];
 		p.bind();
 		GLfloat h = 2.0 / rect.width(), v = 2.0 / rect.height();
 		GLfloat s = qMin(256.0f, rect.width() / (GLfloat)atlases.size());

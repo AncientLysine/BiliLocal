@@ -266,6 +266,42 @@ QString Utils::defaultFont(bool monospace)
 	}
 }
 
+QString Utils::localPath(Path path)
+{
+#ifdef Q_OS_WIN32
+	QString base = qApp->applicationDirPath() + '/';
+	switch (path){
+	case Cache:
+		return base + "cache/";
+	case Config:
+		return base;
+	case Locale:
+		return base + "locale/";
+	case Plugin:
+		return base + "plugins/";
+	case Script:
+		return base + "scripts/";
+	default:
+		return base;
+	}
+#else
+	switch (path){
+	case Cache:
+		return QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+	case Config:
+		return QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
+	case Locale:
+		return ":/Locale/";
+	case Plugin:
+		return ":/Plugin/";
+	case Script:
+		return ":/Script/";
+	default:
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+	}
+#endif
+}
+
 QString Utils::customUrl(Site site)
 {
 	QString name;

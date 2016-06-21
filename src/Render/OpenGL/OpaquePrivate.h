@@ -107,6 +107,7 @@ public:
 		case 3:
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, frame[1]);
+		case 4:
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, frame[0]);
 			break;
@@ -160,6 +161,9 @@ public:
 		else if (chroma == "NV21"){
 			format = 3;
 		}
+		else if (chroma == "BGRA"){
+			format = 4;
+		}
 		else{
 			format = 0;
 			chroma = "I420";
@@ -194,6 +198,10 @@ public:
 		case 3:
 			plane.append(size);
 			size.rheight() /= 2;
+			plane.append(size);
+			break;
+		case 4:
+			size.rwidth() *= 4;
 			plane.append(size);
 			break;
 		}

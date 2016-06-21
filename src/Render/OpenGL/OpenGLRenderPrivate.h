@@ -9,7 +9,8 @@ class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 public:
 	QRect view;
 
-	QOpenGLShaderProgram program[8];
+	static const int programNum;
+	QScopedArrayPointer<QOpenGLShaderProgram> program;
 
 	QByteArray extensions;
 

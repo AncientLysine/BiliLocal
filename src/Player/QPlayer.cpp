@@ -17,6 +17,8 @@ namespace
 			return "NV12";
 		case QVideoFrame::Format_NV21:
 			return "NV21";
+		case QVideoFrame::Format_BGR32:
+			return "BGRA";
 		default:
 			return QString();
 		}
@@ -33,15 +35,17 @@ namespace
 		bool start(const QVideoSurfaceFormat &format)
 		{
 			QString chroma = getFormat(format.pixelFormat());
-			if (chroma.isEmpty())
+			if (chroma.isEmpty()) {
 				return false;
+			}
 			QString buffer(chroma);
 			lApp->findObject<ARender>()->setBuffer(buffer, format.frameSize(), 1);
-			if (buffer != chroma)
+			if (buffer != chroma) {
 				return false;
+			}
 			QSize pixel(format.pixelAspectRatio());
 			lApp->findObject<ARender>()->setPixelAspectRatio(pixel.width() / (double)pixel.height());
-			return true;
+			return QAbstractVideoSurface::start(format);
 		}
 
 		bool present(const QVideoFrame &frame)
@@ -64,14 +68,20 @@ namespace
 
 		QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
 		{
-			QList<QVideoFrame::PixelFormat> f;
-			if (QAbstractVideoBuffer::NoHandle == handleType){
-				f << QVideoFrame::Format_NV12 <<
-					QVideoFrame::Format_NV21 <<
-					QVideoFrame::Format_YV12 <<
-					QVideoFrame::Format_YUV420P;
+			QList<QVideoFrame::PixelFormat> fmt;
+			switch (handleType) {
+			case QAbstractVideoBuffer::NoHandle:
+				fmt << QVideoFrame::Format_BGR32
+					<< QVideoFrame::Format_NV12
+					<< QVideoFrame::Format_NV21
+					<< QVideoFrame::Format_YV12
+					<< QVideoFrame::Format_YUV420P;
+				break;
+			case QAbstractVideoBuffer::GLTextureHandle:
+			default:
+				break;
 			}
-			return f;
+			return fmt;
 		}
 	};
 

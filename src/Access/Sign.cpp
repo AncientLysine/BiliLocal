@@ -29,11 +29,13 @@
 #include "AccessPrivate.h"
 #include "../Utils.h"
 
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 extern "C"
 {
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 }
+#endif
 
 class SignPrivate : public AccessPrivate<Sign, Sign::Proc, Sign::Task>
 {
@@ -116,6 +118,7 @@ Sign::Sign(QObject *parent)
 		{
 			//RSA Encrypt
 			try{
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 				QJsonObject key = QJsonDocument::fromJson(reply->readAll()).object();
 				QByteArray pub = key["key"].toString().toUtf8();
 				BIO *bio = BIO_new_mem_buf(pub.data(), pub.length());
@@ -136,6 +139,9 @@ Sign::Sign(QObject *parent)
 				}
 				buf.resize(len);
 				task.password = buf.toBase64();
+#else
+                throw "not supported";
+#endif
 			}
 			catch (...)
 			{

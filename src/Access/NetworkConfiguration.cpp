@@ -2,6 +2,7 @@
 #include "NetworkConfiguration.h"
 #include "../Config.h"
 #include "../Local.h"
+#include "../Utils.h"
 #include <functional>
 
 NetworkConfiguration *NetworkConfiguration::ins = nullptr;
@@ -70,7 +71,7 @@ namespace
 
 		void load()
 		{
-			setCacheDirectory("./cache");
+			setCacheDirectory(Utils::localPath(Utils::Cache));
 			setMaximumCacheSize(Config::getValue("/Network/Cache/Maximum", 100 * 1024 * 1024));
 		}
 	};

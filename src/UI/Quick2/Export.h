@@ -26,7 +26,7 @@ namespace UI
 		}
 
 #define lReg(ModuleType, Name) \
-		Q_PROPERTY(ModuleType * Name READ get##ModuleType) \
+		Q_PROPERTY(ModuleType * Name READ get##ModuleType CONSTANT) \
 		ModuleType *get##ModuleType() const { return lApp->findObject<ModuleType>(); }
 		lReg(Config, Config);
 		lReg(Shield, Shield);

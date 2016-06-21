@@ -49,7 +49,7 @@ QSize SyncTextureSprite::getSize()
 		return QSize(w, h);
 	}
 	else {
-		constexpr int pad = Atlas::Padding;
+		const int pad = Atlas::Padding;
 		return GraphicPrivate::getSize(text, font) + QSize(pad, pad) * 2;
 	}
 }

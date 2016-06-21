@@ -83,7 +83,7 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-linux{
+linux : !android{
 DEFINES += \
     BACKEND_VLC \
     BACKEND_QMM \
@@ -113,8 +113,7 @@ DEFINES += \
     RENDER_OPENGL
 
 DEFINES += \
-    INTERFACE_WIDGET \
-    INTERFACE_QUICK2
+    INTERFACE_WIDGET
 
 INCLUDEPATH += \
     D:/App/Programming/include
@@ -149,6 +148,18 @@ LIBS += \
     -lssl
 }
 
+android{
+DEFINES += \
+    BACKEND_QMM \
+    BACKEND_NIL
+
+DEFINES += \
+    RENDER_OPENGL
+
+DEFINES += \
+    INTERFACE_QUICK2
+}
+
 contains(DEFINES, INTERFACE_WIDGET){
 QT += widgets
 
@@ -173,6 +184,8 @@ HEADERS += \
     src/UI/Widget/Type.h \
     src/UI/Widget/WidgetInterfacePrivate.h \
     src/UI/Widget/WidgetUtils.h
+
+message(enable widget interface)
 }
 
 contains(DEFINES, INTERFACE_QUICK2){
@@ -180,11 +193,16 @@ QT+= \
     qml \
     quick
 
+lupdate_only{
 SOURCES += \
+    src/UI/Quick2/Interface.qml
+}
 
 HEADERS += \
     src/UI/Quick2/Export.h \
     src/UI/Quick2/Quick2InterfacePrivate.h
+
+message(enable quick2 interface)
 }
 
 win32 : contains(QT, widgets) : !contains(QMAKE_TARGET.arch, x86_64){
@@ -205,6 +223,8 @@ HEADERS += \
 LIBS += \
     -lswscale \
     -lavutil
+
+message(enable raster render widget output)
 }
 
 contains(DEFINES, RENDER_OPENGL){
@@ -230,6 +250,10 @@ HEADERS += \
 SOURCES += \
     src/Render/OpenGL/WidgetPrivate.cpp \
     src/Render/OpenGL/WindowPrivate.cpp
+
+message(enable opengl render widget output)
+message(enable opengl render window output)
+message(enable opengl render detach output)
 }
 
 contains(QT, quick){
@@ -239,6 +263,8 @@ HEADERS += \
 SOURCES += \
     src/Render/OpenGL/Quick2Private.cpp
 }
+
+message(enable opengl render quick2 output)
 }
 
 contains(DEFINES, BACKEND_VLC){
@@ -251,6 +277,7 @@ HEADERS += \
 LIBS += \
     -lvlc \
     -lvlccore
+message(enable vplayer libvlc backend)
 }
 
 contains(DEFINES, BACKEND_QMM){
@@ -262,6 +289,8 @@ HEADERS += \
 
 QT += \
     multimedia
+
+message(enable qplayer libqtmultimedia backend)
 }
 
 contains(DEFINES, BACKEND_NIL){
@@ -270,4 +299,6 @@ SOURCES += \
 
 HEADERS += \
     src/Player/NPlayer.h
+
+message(enable nplayer dummy backend)
 }

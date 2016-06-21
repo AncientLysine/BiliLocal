@@ -35,5 +35,6 @@ public:
 
 private:
 	QPointer<QQuickWindow> window;
-	QOpenGLPaintDevice device;
+	QScopedPointer<QOpenGLPaintDevice> device;
+	bool uninitialized;
 };

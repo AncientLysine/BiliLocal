@@ -120,8 +120,18 @@ namespace Utils
 		Danmaku = 8
 	};
 
+	enum Path
+	{
+		Cache,
+		Config,
+		Locale,
+		Plugin,
+		Script
+	};
+
 	Site parseSite(QString url);
 	QString defaultFont(bool monospace = false);
+	QString localPath(Path path);
 	QString customUrl(Site site);
 	QString decodeTxt(const QByteArray &data);
 	QString decodeXml(QString string, bool fast = false);

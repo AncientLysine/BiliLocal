@@ -27,6 +27,7 @@
 #include "Common.h"
 #include "Config.h"
 #include "Local.h"
+#include "Utils.h"
 
 QReadWriteLock Config::lock;
 
@@ -39,7 +40,7 @@ QJsonObject Config::config;
 
 void Config::load()
 {
-	QFile conf("./Config.txt");
+	QFile conf(Utils::localPath(Utils::Config) + "Config.txt");
 	if (conf.open(QIODevice::ReadOnly | QIODevice::Text)){
 		config = QJsonDocument::fromJson(conf.readAll()).object();
 		conf.close();
@@ -49,7 +50,7 @@ void Config::load()
 void Config::save()
 {
 	emit lApp->findObject<Config>()->aboutToSave();
-	QFile conf("./Config.txt");
+	QFile conf(Utils::localPath(Utils::Config) + "Config.txt");
 	conf.open(QIODevice::WriteOnly | QIODevice::Text);
 	conf.write(QJsonDocument(config).toJson());
 	conf.close();

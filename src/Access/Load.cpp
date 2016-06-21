@@ -515,7 +515,7 @@ Load::Load(QObject *parent)
 		if (!u.host().isEmpty() && !u.path().isEmpty()){
 			return true;
 		}
-		if (QFileInfo(code).exists()){
+		if (u.isLocalFile() && QFileInfo(u.toLocalFile()).exists()){
 			return true;
 		}
 		code.clear();

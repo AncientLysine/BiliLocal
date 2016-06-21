@@ -15,4 +15,7 @@
         <file>THANKS</file>
         <file>DATA</file>
     </qresource>
+    <qresource prefix="/Script">
+        <file>Quick2/Interface.qml</file>
+    </qresource>
 </RCC>
