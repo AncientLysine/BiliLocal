@@ -158,6 +158,17 @@ DEFINES += \
 
 DEFINES += \
     INTERFACE_QUICK2
+
+DISTFILES += \
+    res/Android/AndroidManifest.xml \
+    res/Android/gradle/wrapper/gradle-wrapper.jar \
+    res/Android/gradlew \
+    res/Android/res/values/libs.xml \
+    res/Android/build.gradle \
+    res/Android/gradle/wrapper/gradle-wrapper.properties \
+    res/Android/gradlew.bat
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
 }
 
 contains(DEFINES, INTERFACE_WIDGET){
