@@ -139,10 +139,7 @@ public:
 		lock.unlock();
 	}
 
-	static Config *instance();
-
 private:
-	static Config *ins;
 	static QJsonObject config;
 	static QReadWriteLock lock;
 

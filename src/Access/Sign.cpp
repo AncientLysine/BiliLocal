@@ -29,18 +29,13 @@
 #include "AccessPrivate.h"
 #include "../Utils.h"
 
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 extern "C"
 {
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 }
-
-Sign *Sign::ins = nullptr;
-
-Sign *Sign::instance()
-{
-	return ins ? ins : new Sign(qApp);
-}
+#endif
 
 class SignPrivate : public AccessPrivate<Sign, Sign::Proc, Sign::Task>
 {
@@ -59,10 +54,10 @@ public:
 	}
 };
 
-Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
+Sign::Sign(QObject *parent)
+	: QObject(parent), d_ptr(new SignPrivate(this))
 {
 	Q_D(Sign);
-	ins = this;
 	setObjectName("Sign");
 
 	auto biCaptcha = [this](){
@@ -123,6 +118,7 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 		{
 			//RSA Encrypt
 			try{
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 				QJsonObject key = QJsonDocument::fromJson(reply->readAll()).object();
 				QByteArray pub = key["key"].toString().toUtf8();
 				BIO *bio = BIO_new_mem_buf(pub.data(), pub.length());
@@ -143,6 +139,9 @@ Sign::Sign(QObject *parent) : QObject(parent), d_ptr(new SignPrivate(this))
 				}
 				buf.resize(len);
 				task.password = buf.toBase64();
+#else
+                throw "not supported";
+#endif
 			}
 			catch (...)
 			{

@@ -51,36 +51,6 @@ Utils::Site Utils::parseSite(QString url)
 	return Unknown;
 }
 
-void Utils::setCenter(QWidget *widget)
-{
-	QRect rect = widget->geometry();
-	QWidget *parent = widget->parentWidget();
-	if (!parent){
-		rect.moveCenter(QApplication::desktop()->screenGeometry(widget).center());
-	}
-	else{
-		if (widget->isWindow()){
-			QPoint center = parent->geometry().center();
-			if ((parent->windowFlags()&Qt::CustomizeWindowHint)){
-				center.ry() += widget->style()->pixelMetric(QStyle::PM_TitleBarHeight) / 2;
-			}
-			rect.moveCenter(center);
-		}
-		else{
-			rect.moveCenter(parent->rect().center());
-		}
-	}
-	widget->setGeometry(rect);
-}
-
-void Utils::setGround(QWidget *widget, QColor color)
-{
-	widget->setAutoFillBackground(true);
-	QPalette palette = widget->palette();
-	palette.setColor(QPalette::Window, color);
-	widget->setPalette(palette);
-}
-
 namespace{
 	template<class T>
 	class SStack
@@ -294,6 +264,42 @@ QString Utils::defaultFont(bool monospace)
 		return QStringLiteral("华文黑体");
 #endif
 	}
+}
+
+QString Utils::localPath(Path path)
+{
+#ifdef Q_OS_WIN32
+	QString base = qApp->applicationDirPath() + '/';
+	switch (path){
+	case Cache:
+		return base + "cache/";
+	case Config:
+		return base;
+	case Locale:
+		return base + "locale/";
+	case Plugin:
+		return base + "plugins/";
+	case Script:
+		return base + "scripts/";
+	default:
+		return base;
+	}
+#else
+	switch (path){
+	case Cache:
+		return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + '/';
+	case Config:
+		return QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + '/';
+	case Locale:
+		return ":/Locale/";
+	case Plugin:
+		return ":/Plugin/";
+	case Script:
+		return ":/Script/";
+	default:
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + '/';
+	}
+#endif
 }
 
 QString Utils::customUrl(Site site)

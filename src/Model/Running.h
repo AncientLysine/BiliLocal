@@ -2,7 +2,7 @@
 *
 *   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Layout.h
+*   Filename:    Running.h
 *   Time:        2016/05/29
 *   Author:      Lysine
 *
@@ -37,15 +37,13 @@ class Running : public QObject
 {
 	Q_OBJECT
 public:
-	static Running *instance();
+	explicit Running(QObject *parent = nullptr);
 	virtual ~Running();
+	void setup();
 
 private:
-	static Running *ins;
-	RunningPrivate *const d_ptr;
+	RunningPrivate *d_ptr;
 	Q_DECLARE_PRIVATE(Running);
-
-	explicit Running(QObject *parent = 0);
 
 signals:
 	void unrecognizedComment(const Comment *);

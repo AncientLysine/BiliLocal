@@ -2,7 +2,6 @@ QT += \
     core \
     gui \
     network \
-    widgets \
     concurrent
 
 TARGET = BiliLocal
@@ -33,14 +32,7 @@ SOURCES += \
     src/Player/APlayer.cpp \
     src/Render/ARender.cpp \
     src/Render/ASprite.cpp \
-    src/UI/Editor.cpp \
-    src/UI/Info.cpp \
     src/UI/Interface.cpp \
-    src/UI/Jump.cpp \
-    src/UI/Menu.cpp \
-    src/UI/Prefer.cpp \
-    src/UI/Search.cpp \
-    src/UI/Type.cpp \
     src/Config.cpp \
     src/Local.cpp \
     src/Utils.cpp \
@@ -71,14 +63,9 @@ HEADERS += \
     src/Render/ARenderPrivate.h \
     src/Render/ASprite.h \
     src/Render/ElapsedTimer.h \
-    src/UI/Editor.h \
-    src/UI/Info.h \
+    src/Render/PFormat.h \
     src/UI/Interface.h \
-    src/UI/Jump.h \
-    src/UI/Menu.h \
-    src/UI/Prefer.h \
-    src/UI/Search.h \
-    src/UI/Type.h \
+    src/UI/InterfacePrivate.h \
     src/Config.h \
     src/Local.h \
     src/Utils.h \
@@ -97,7 +84,7 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-linux{
+linux : !android{
 DEFINES += \
     BACKEND_VLC \
     BACKEND_QMM \
@@ -106,6 +93,9 @@ DEFINES += \
 DEFINES += \
     RENDER_RASTER \
     RENDER_OPENGL
+
+DEFINES += \
+    INTERFACE_WIDGET
 
 LIBS += \
     -lcrypto \
@@ -123,17 +113,13 @@ DEFINES += \
 DEFINES += \
     RENDER_OPENGL
 
+DEFINES += \
+    INTERFACE_WIDGET
+
 INCLUDEPATH += \
     D:/App/Programming/include
 
-LIBS += \
-    -llibeay32 \
-    -lssleay32
-
 !contains(QMAKE_TARGET.arch, x86_64){
-DEFINES += \
-    RENDER_RASTER
-
 DEPENDPATH += \
     -LD:/App/Programming/lib
 }
@@ -141,6 +127,10 @@ else{
 DEPENDPATH += \
     -LD:/App/Programming/lib/amd64
 }
+
+LIBS += \
+    -llibeay32 \
+    -lssleay32
 }
 
 macx{
@@ -151,9 +141,143 @@ DEFINES += \
 DEFINES += \
     RENDER_OPENGL
 
+DEFINES += \
+    INTERFACE_WIDGET
+
 LIBS += \
     -lcrypto \
     -lssl
+}
+
+android{
+DEFINES += \
+    BACKEND_QMM \
+    BACKEND_NIL
+
+DEFINES += \
+    RENDER_OPENGL
+
+DEFINES += \
+    INTERFACE_QUICK2
+
+DISTFILES += \
+    res/Android/AndroidManifest.xml \
+    res/Android/gradle/wrapper/gradle-wrapper.jar \
+    res/Android/gradlew \
+    res/Android/res/values/libs.xml \
+    res/Android/build.gradle \
+    res/Android/gradle/wrapper/gradle-wrapper.properties \
+    res/Android/gradlew.bat
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
+}
+
+contains(DEFINES, INTERFACE_WIDGET){
+QT += widgets
+
+SOURCES += \
+    src/UI/Widget/Editor.cpp \
+    src/UI/Widget/Info.cpp \
+    src/UI/Widget/Jump.cpp \
+    src/UI/Widget/Menu.cpp \
+    src/UI/Widget/Prefer.cpp \
+    src/UI/Widget/Search.cpp \
+    src/UI/Widget/Type.cpp \
+    src/UI/Widget/WidgetInterfacePrivate.cpp \
+    src/UI/Widget/WidgetUtils.cpp
+
+HEADERS += \
+    src/UI/Widget/Editor.h \
+    src/UI/Widget/Info.h \
+    src/UI/Widget/Jump.h \
+    src/UI/Widget/Menu.h \
+    src/UI/Widget/Prefer.h \
+    src/UI/Widget/Search.h \
+    src/UI/Widget/Type.h \
+    src/UI/Widget/WidgetInterfacePrivate.h \
+    src/UI/Widget/WidgetUtils.h
+
+message(enable widget interface)
+}
+
+contains(DEFINES, INTERFACE_QUICK2){
+QT+= \
+    qml \
+    quick
+
+lupdate_only{
+SOURCES += \
+    src/UI/Quick2/Interface.qml
+}
+
+HEADERS += \
+    src/UI/Quick2/Export.h \
+    src/UI/Quick2/Quick2InterfacePrivate.h
+
+message(enable quick2 interface)
+}
+
+win32 : contains(QT, widgets) : !contains(QMAKE_TARGET.arch, x86_64){
+DEFINES += \
+    RENDER_RASTER
+}
+
+contains(DEFINES, RENDER_RASTER){
+SOURCES += \
+    src/Render/Raster/RasterRender.cpp \
+    src/Render/Raster/AsyncRasterSprite.cpp
+
+HEADERS += \
+    src/Render/Raster/RasterRender.h \
+    src/Render/Raster/RasterRenderPrivate.h \
+    src/Render/Raster/AsyncRasterSprite.h
+
+LIBS += \
+    -lswscale \
+    -lavutil
+
+message(enable raster render widget output)
+}
+
+contains(DEFINES, RENDER_OPENGL){
+SOURCES += \
+    src/Render/OpenGL/OpenGLRender.cpp \
+    src/Render/OpenGL/Atlas.cpp \
+    src/Render/OpenGL/SyncTextureSprite.cpp \
+    src/Render/OpenGL/DetachPrivate.cpp \
+    src/Render/OpenGL/OpaquePrivate.cpp
+
+HEADERS += \
+    src/Render/OpenGL/OpenGLRender.h \
+    src/Render/OpenGL/OpenGLRenderPrivate.h \
+    src/Render/OpenGL/Atlas.h \
+    src/Render/OpenGL/SyncTextureSprite.h \
+    src/Render/OpenGL/DetachPrivate.h \
+    src/Render/OpenGL/OpaquePrivate.h
+
+contains(QT, widgets){
+HEADERS += \
+    src/Render/OpenGL/WidgetPrivate.h \
+    src/Render/OpenGL/WindowPrivate.h
+
+SOURCES += \
+    src/Render/OpenGL/WidgetPrivate.cpp \
+    src/Render/OpenGL/WindowPrivate.cpp
+
+message(enable opengl render widget output)
+message(enable opengl render window output)
+message(enable opengl render detach output)
+}
+
+contains(QT, quick){
+HEADERS += \
+    src/Render/OpenGL/Quick2Private.h
+
+SOURCES += \
+    src/Render/OpenGL/Quick2Private.cpp
+}
+
+message(enable opengl render quick2 output)
 }
 
 contains(DEFINES, BACKEND_VLC){
@@ -166,6 +290,7 @@ HEADERS += \
 LIBS += \
     -lvlc \
     -lvlccore
+message(enable vplayer libvlc backend)
 }
 
 contains(DEFINES, BACKEND_QMM){
@@ -177,6 +302,8 @@ HEADERS += \
 
 QT += \
     multimedia
+
+message(enable qplayer libqtmultimedia backend)
 }
 
 contains(DEFINES, BACKEND_NIL){
@@ -185,39 +312,6 @@ SOURCES += \
 
 HEADERS += \
     src/Player/NPlayer.h
-}
 
-contains(DEFINES, RENDER_RASTER){
-SOURCES += \
-    src/Render/RasterRender/RasterRender.cpp \
-    src/Render/RasterRender/AsyncRasterSprite.cpp
-
-HEADERS += \
-    src/Render/RasterRender/RasterRender.h \
-    src/Render/RasterRender/RasterRenderPrivate.h \
-    src/Render/RasterRender/AsyncRasterSprite.h
-
-LIBS += \
-    -lswscale \
-    -lavutil
-}
-
-contains(DEFINES, RENDER_OPENGL){
-SOURCES += \
-    src/Render/OpenGLRender/OpenGLRender.cpp \
-    src/Render/OpenGLRender/Atlas.cpp \
-    src/Render/OpenGLRender/SyncTextureSprite.cpp \
-    src/Render/OpenGLRender/DetachPrivate.cpp \
-    src/Render/OpenGLRender/WidgetPrivate.cpp \
-    src/Render/OpenGLRender/WindowPrivate.cpp
-
-HEADERS += \
-    src/Render/OpenGLRender/OpenGLRender.h \
-    src/Render/OpenGLRender/OpenGLRenderPrivate.h \
-    src/Render/OpenGLRender/Atlas.h \
-    src/Render/OpenGLRender/SyncTextureSprite.h \
-    src/Render/OpenGLRender/DetachPrivate.h \
-    src/Render/OpenGLRender/OpaquePrivate.h \
-    src/Render/OpenGLRender/WidgetPrivate.h \
-    src/Render/OpenGLRender/WindowPrivate.h
+message(enable nplayer dummy backend)
 }

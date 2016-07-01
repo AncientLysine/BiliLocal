@@ -28,6 +28,7 @@
 #include "Plugin.h"
 #include "Config.h"
 #include "Local.h"
+#include "Utils.h"
 
 QList<Plugin> Plugin::plugins;
 
@@ -40,41 +41,44 @@ Plugin::Plugin(QString path)
 
 bool Plugin::loaded()
 {
-	return m_regist&&m_config&&m_string;
+	return m_regist && m_config && m_string;
 }
 
-void Plugin::regist(const QHash<QString, QObject *> &objects)
+void Plugin::regist(QObject *app)
 {
 	if (m_regist)
-		m_regist(objects);
+		m_regist(app);
 }
 
-void Plugin::config(QWidget *parent)
+void Plugin::config()
 {
 	if (m_config)
-		m_config(parent);
+		m_config();
 }
 
 QString Plugin::string(QString query)
 {
-	return m_string(query);
+	QString result;
+	m_string(&query, &result);
+	return result;
 }
 
-void Plugin::loadPlugins()
+void Plugin::load()
 {
-	QFileInfoList list = QDir("./plugins/bililocal/").entryInfoList();
+	QFileInfoList list = QDir(Utils::localPath(Utils::Plugin) + "bililocal/").entryInfoList();
 	for (const QFileInfo &info : list){
 		if (info.isFile() && QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());
-			if (lib.loaded()){
-				if (Config::getValue("/Plugin/" + lib.string("Name"), true)){
-					lib.regist(Local::objects);
+			if (lib.loaded()) {
+				try {
+					if (Config::getValue("/Plugin/" + lib.string("Name"), true)) {
+						lib.regist(lApp);
+						plugins.append(lib);
+					}
 				}
-				else{
-					lib.m_config = nullptr;
-					lib.m_regist = nullptr;
+				catch (...) {
+					qDebug() << QString("failed to regist %1").arg(info.fileName());
 				}
-				plugins.append(lib);
 			}
 		}
 	}

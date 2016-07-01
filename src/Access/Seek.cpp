@@ -29,13 +29,6 @@
 #include "AccessPrivate.h"
 #include "../Utils.h"
 
-Seek *Seek::ins = nullptr;
-
-Seek *Seek::instance()
-{
-	return ins ? ins : new Seek(qApp);
-}
-
 namespace
 {
 	QStandardItem *praseItem(QNetworkRequest requset)
@@ -111,21 +104,19 @@ namespace
 	}
 }
 
-Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
+Seek::Seek(QObject *parent)
+	: QObject(parent), d_ptr(new SeekPrivate(this))
 {
 	Q_D(Seek);
-	ins = this;
 	setObjectName("Seek");
 
 	QList<const char *> biOrder;
-#define tr
-	biOrder <<
-		tr("totalrank") <<
-		tr("click") <<
-		tr("pubdate") <<
-		tr("dm") <<
-		tr("stow");
-#undef tr
+	biOrder 
+		<< QT_TR_NOOP("totalrank")
+		<< QT_TR_NOOP("click")
+		<< QT_TR_NOOP("pubdate")
+		<< QT_TR_NOOP("dm")
+		<< QT_TR_NOOP("stow");
 
 	auto biProcess = [=](QNetworkReply *reply){
 		Q_D(Seek);
@@ -289,14 +280,12 @@ Seek::Seek(QObject *parent) : QObject(parent), d_ptr(new SeekPrivate(this))
 	d->pool.append({ "Bilibili", translate(biOrder), 0, biProcess });
 
 	QList<const char *> acOrder;
-#define tr
-	acOrder <<
-		tr("rankLevel") <<
-		tr("releaseDate") <<
-		tr("views") <<
-		tr("comments") <<
-		tr("stows");
-#undef tr
+	acOrder
+		<< QT_TR_NOOP("rankLevel")
+		<< QT_TR_NOOP("releaseDate")
+		<< QT_TR_NOOP("views") 
+		<< QT_TR_NOOP("comments")
+		<< QT_TR_NOOP("stows");
 
 	auto acProcess = [=](QNetworkReply *reply){
 		Q_D(Seek);

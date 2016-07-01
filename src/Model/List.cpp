@@ -34,13 +34,6 @@
 #include "../Player/APlayer.h"
 #include <algorithm>
 
-List *List::ins = nullptr;
-
-List *List::instance()
-{
-	return ins ? ins : new List(qApp);
-}
-
 namespace
 {
 	class IconEngine :public QIconEngine
@@ -103,16 +96,15 @@ namespace
 
 	void clearItemGroup(int row)
 	{
-		QStandardItem *i = List::instance()->item(row);
+		QStandardItem *i = lApp->findObject<List>()->item(row);
 		i->setIcon(QIcon());
 		i->setData(List::Records, List::CodeRole);
 	}
 }
 
-List::List(QObject *parent) :
-QStandardItemModel(parent)
+List::List(QObject *parent)
+	: QStandardItemModel(parent)
 {
-	ins = this;
 	setObjectName("List");
 	cur = nullptr;
 	time = 0;
@@ -131,7 +123,7 @@ QStandardItemModel(parent)
 			setRelated(indexes, lastC);
 		}
 	};
-	for (const QJsonValue &i : Config::getValue<QJsonArray>("/Playing/List")){
+	for (const QJsonValue &i : Config::getValue<QJsonArray>("/List")){
 		QStandardItem *item = new QStandardItem;
 		QJsonObject data = i.toObject();
 		QFileInfo info(data["File"].toString());
@@ -161,10 +153,10 @@ QStandardItemModel(parent)
 	}
 	conbine();
 
-	connect(APlayer::instance(), &APlayer::timeChanged, [this](qint64 _time){
+	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, [this](qint64 _time){
 		time = _time;
 	});
-	connect(APlayer::instance(), &APlayer::mediaChanged, [this](QString file){
+	connect(lApp->findObject<APlayer>(), &APlayer::mediaChanged, [this](QString file){
 		updateCurrent();
 		QStandardItem *old = cur;
 		cur = itemFromFile(file, true);
@@ -176,7 +168,7 @@ QStandardItemModel(parent)
 		bool success = false;
 		switch (cur->data(CodeRole).toInt()){
 		case Inherit:
-			Danmaku::instance()->delayAll(-time);
+			lApp->findObject<Danmaku>()->delayAll(-time);
 			success = true;
 			break;;
 		case Surmise:
@@ -191,19 +183,19 @@ QStandardItemModel(parent)
 					if (sharp != -1 && !QFile::exists(code)){
 						QString id = code.mid(0, sharp);
 						QString pt = code.mid(sharp + 1);
-						Load::instance()->loadDanmaku((id + "#%1").arg(pt.toInt() + i));
+						lApp->findObject<Load>()->loadDanmaku((id + "#%1").arg(pt.toInt() + i));
 						success = true;
 					}
 				}
 				break;
 			}
-			Danmaku::instance()->clear();
+			lApp->findObject<Danmaku>()->clear();
 			break;
 		case Records:
 		{
 			QFileInfo info(cur->data(FileRole).toString());
 			for (int i = 0; i < cur->rowCount(); ++i){
-				Load *load = Load::instance();
+				Load *load = lApp->findObject<Load>();
 				QStandardItem *d = cur->child(i);
 				QString danmaku = d->data(CodeRole).toString();
 				danmaku.replace("%{File}", info.completeBaseName()).replace("%{Path}", info.absolutePath());
@@ -213,12 +205,12 @@ QStandardItemModel(parent)
 				success = true;
 			}
 			if (old || success){
-				Danmaku::instance()->clear();
+				lApp->findObject<Danmaku>()->clear();
 			}
 			break;
 		}
 		}
-		if (!success&&Danmaku::instance()->getPool().isEmpty()){
+		if (!success&&lApp->findObject<Danmaku>()->getPool().isEmpty()){
 			QFileInfo info(cur->data(FileRole).toString());
 			QStringList accept = Utils::getSuffix(Utils::Danmaku);
 			for (const QFileInfo &iter : info.dir().entryInfoList(QDir::Files, QDir::Name)){
@@ -227,58 +219,23 @@ QStandardItemModel(parent)
 					info.completeBaseName() != iter.completeBaseName()){
 					continue;
 				}
-				Load::instance()->loadDanmaku(file);
+				lApp->findObject<Load>()->loadDanmaku(file);
 				break;
 			}
 		}
 	});
-	connect(APlayer::instance(), &APlayer::reach, this, [this](bool m){
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, [this](bool m){
 		if (!m&&!finished()){
 			QModelIndex i = indexFromItem(cur);
 			if (jumpToIndex(index(i.row() + 1, 0, i.parent()), false) &&
-				APlayer::instance()->getState() != APlayer::Play){
-				APlayer::instance()->play();
+				lApp->findObject<APlayer>()->getState() != APlayer::Play){
+				lApp->findObject<APlayer>()->play();
 				return;
 			}
 		}
 		updateCurrent();
 	});
-}
-
-List::~List()
-{
-	QJsonArray list;
-	updateCurrent();
-	for (int i = 0; i < rowCount(); ++i){
-		QStandardItem *item = this->item(i);
-		QJsonObject data;
-		data["File"] = item->data(FileRole).toString();
-		data["Time"] = item->data(TimeRole).toDouble();
-		data["Date"] = item->data(DateRole).toString();
-		switch (item->data(CodeRole).toInt()){
-		case Records:
-		{
-			QJsonArray danm;
-			for (int i = 0; i < item->rowCount(); ++i){
-				QStandardItem *c = item->child(i);
-				QJsonObject d;
-				d["Code"] = c->data(CodeRole).toString();
-				d["Time"] = c->data(TimeRole).toDouble();
-				danm.append(d);
-			}
-			data["Danm"] = danm;
-			break;
-		}
-		case Inherit:
-			data["Danm"] = "Inherit";
-			break;
-		case Surmise:
-			data["Danm"] = "Surmise";
-			break;
-		}
-		list.append(data);
-	}
-	Config::setValue("/Playing/List", list);
+	connect(lApp->findObject<Config>(), &Config::aboutToSave, this, &List::save);
 }
 
 QStringList List::mimeTypes() const
@@ -292,7 +249,8 @@ namespace
 	{
 		QList<QStandardItem *> items;
 		for (const QModelIndex&i : indexes){
-			items.append(List::instance()->itemFromIndex(i));
+			auto model = qobject_cast<const QStandardItemModel *>(i.model());
+			items.append(model->itemFromIndex(i));
 		}
 		std::sort(items.begin(), items.end(), [](QStandardItem *f, QStandardItem *s){return f->row() < s->row(); });
 		return items;
@@ -451,7 +409,7 @@ QStandardItem *List::itemFromFile(QString file, bool create)
 bool List::finished()
 {
 	QStandardItem *n = item(cur ? cur->row() + 1 : 0);
-	return !n || (n->data(CodeRole).toInt() == Records&&!Config::getValue("/Playing/Continue", true));
+	return !n || (n->data(CodeRole).toInt() == Records&&!Config::getValue("/Player/Continue", true));
 }
 
 void List::appendMedia(QString file)
@@ -470,7 +428,7 @@ void List::updateCurrent()
 		return;
 	}
 	QFileInfo info(cur->data(FileRole).toString());
-	for (const Record &r : Danmaku::instance()->getPool()){
+	for (const Record &r : lApp->findObject<Danmaku>()->getPool()){
 		QStandardItem *d = new QStandardItem;
 		QString danmaku = r.access;
 		danmaku.replace(info.completeBaseName(), "%{File}").replace(info.absolutePath(), "%{Path}");
@@ -573,7 +531,44 @@ bool List::jumpToIndex(const QModelIndex &index, bool manually)
 		return false;
 	}
 	else {
-		APlayer::instance()->setMedia(head->data(FileRole).toString(), manually);
+		lApp->findObject<APlayer>()->stop(manually);
+		lApp->findObject<APlayer>()->setMedia(head->data(FileRole).toString());
 		return true;
 	}
+}
+
+void List::save()
+{
+	QJsonArray list;
+	updateCurrent();
+	for (int i = 0; i < rowCount(); ++i) {
+		QStandardItem *item = this->item(i);
+		QJsonObject data;
+		data["File"] = item->data(FileRole).toString();
+		data["Time"] = item->data(TimeRole).toDouble();
+		data["Date"] = item->data(DateRole).toString();
+		switch (item->data(CodeRole).toInt()) {
+		case Records:
+		{
+			QJsonArray danm;
+			for (int i = 0; i < item->rowCount(); ++i) {
+				QStandardItem *c = item->child(i);
+				QJsonObject d;
+				d["Code"] = c->data(CodeRole).toString();
+				d["Time"] = c->data(TimeRole).toDouble();
+				danm.append(d);
+			}
+			data["Danm"] = danm;
+			break;
+		}
+		case Inherit:
+			data["Danm"] = "Inherit";
+			break;
+		case Surmise:
+			data["Danm"] = "Surmise";
+			break;
+		}
+		list.append(data);
+	}
+	Config::setValue("/List", list);
 }

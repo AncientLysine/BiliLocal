@@ -54,42 +54,45 @@ QStringList APlayer::getModules()
 	return modules;
 }
 
-APlayer *APlayer::ins = nullptr;
-
-APlayer *APlayer::instance()
+APlayer * APlayer::create(QObject *parent, QString name)
 {
-	if (ins){
-		return ins;
+	if (name.isEmpty()) {
+		QStringList l = getModules();
+		switch (l.size()) {
+		case 0:
+			break;
+		case 1:
+			name = l[0];
+			break;
+		default:
+			name = Config::getValue("/Player/Type", l[0]);
+			name = l.contains(name) ? name : l[0];
+			break;
+		}
 	}
-	QString d;
-	QStringList l = getModules();
-	switch (l.size()){
-	case 0:
-		break;
-	case 1:
-		d = l[0];
-		break;
-	default:
-		d = Config::getValue("/Performance/Decode", l[0]);
-		d = l.contains(d) ? d : l[0];
-		break;
-	}
+	
 #ifdef BACKEND_VLC
-	if (d == "VLC"){
-		return new VPlayer(qApp);
+	if (name == "VLC") {
+		return new VPlayer(parent);
 	}
 #endif
 #ifdef BACKEND_QMM
-	if (d == "QMM"){
-		return new QPlayer(qApp);
+	if (name == "QMM") {
+		return new QPlayer(parent);
 	}
 #endif
 #ifdef BACKEND_NIL
-	if (d == "NIL"){
-		return new NPlayer(qApp);
+	if (name == "NIL") {
+		return new NPlayer(parent);
 	}
 #endif
-	return 0;
+	return nullptr;
+}
+
+APlayer::APlayer(QObject *parent)
+	: QObject(parent)
+{
+	setObjectName("APlayer");
 }
 
 void APlayer::setRate(double)
@@ -108,6 +111,20 @@ qint64 APlayer::getDelay(int)
 
 void APlayer::setDelay(int, qint64)
 {
+}
+
+int APlayer::getTrack(int)
+{
+	return -1;
+}
+
+void APlayer::setTrack(int, int)
+{
+}
+
+QStringList APlayer::getTracks(int)
+{
+	return QStringList();
 }
 
 void APlayer::addSubtitle(QString)

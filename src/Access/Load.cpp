@@ -35,13 +35,6 @@
 #include "../Player/APlayer.h"
 #include <algorithm>
 
-Load *Load::ins = nullptr;
-
-Load *Load::instance()
-{
-	return ins ? ins : new Load(qApp);
-}
-
 class LoadPrivate : public AccessPrivate<Load, Load::Proc, Load::Task>
 {
 public:
@@ -70,10 +63,10 @@ namespace
 	}
 }
 
-Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
+Load::Load(QObject *parent)
+	: QObject(parent), d_ptr(new LoadPrivate(this))
 {
 	Q_D(Load);
-	ins = this;
 	setObjectName("Load");
 
 	auto avProcess = [this](QNetworkReply *reply){
@@ -505,7 +498,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 					c.time += load.delay;
 				}
 			}
-			Danmaku::instance()->append(&load);
+			lApp->findObject<Danmaku>()->append(&load);
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -522,7 +515,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 		if (!u.host().isEmpty() && !u.path().isEmpty()){
 			return true;
 		}
-		if (QFileInfo(code).exists()){
+		if (u.isLocalFile() && QFileInfo(u.toLocalFile()).exists()){
 			return true;
 		}
 		code.clear();
@@ -615,7 +608,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 									load.danmaku.append(iter);
 								}
 								load.source = task.code;
-								Danmaku::instance()->append(&load);
+								lApp->findObject<Danmaku>()->append(&load);
 								emit stateChanged(task.state = None);
 								dequeue();
 							}
@@ -676,7 +669,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 			Record load;
 			load.danmaku = Parse::parseComment(reply->readAll(), Utils::Bilibili);
 			load.source = task.code;
-			for (Record &iter : Danmaku::instance()->getPool()){
+			for (Record &iter : lApp->findObject<Danmaku>()->getPool()){
 				if (iter.source == load.source){
 					iter.full = false;
 					iter.danmaku.clear();
@@ -685,7 +678,7 @@ Load::Load(QObject *parent) : QObject(parent), d_ptr(new LoadPrivate(this))
 				}
 			}
 			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
-			Danmaku::instance()->append(&load);
+			lApp->findObject<Danmaku>()->append(&load);
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -726,8 +719,8 @@ Load::Task Load::codeToTask(QString code)
 	Task task;
 	task.processer = getProc(code);
 	task.code = code;
-	APlayer *aplayer = APlayer::instance();
-	task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Playing/Delay", false) ? aplayer->getTime() : 0;
+	APlayer *aplayer = lApp->findObject<APlayer>();
+	task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Player/Delay", false) ? aplayer->getTime() : 0;
 	return task;
 }
 
@@ -800,8 +793,8 @@ bool Load::canHist(const Record *record)
 void Load::loadDanmaku(QString code)
 {
 	const Task &task = codeToTask(code);
-	if (enqueue(task) && Config::getValue("/Playing/Clear", false)){
-		Danmaku::instance()->clear();
+	if (enqueue(task) && Config::getValue("/Player/Clear", false)){
+		lApp->findObject<Danmaku>()->clear();
 	}
 }
 
@@ -815,8 +808,8 @@ void Load::loadDanmaku(const QModelIndex &index)
 			task.processer = getProc(task.code);
 			task.request = QNetworkRequest(index.data(UrlRole).toUrl());
 			task.state = index.data(NxtRole).toInt();
-			APlayer *aplayer = APlayer::instance();
-			task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Playing/Delay", false) ? aplayer->getTime() : 0;
+			APlayer *aplayer = lApp->findObject<APlayer>();
+			task.delay = aplayer->getState() != APlayer::Stop&&Config::getValue("/Player/Delay", false) ? aplayer->getTime() : 0;
 			enqueue(task);
 		}
 	}
@@ -860,7 +853,7 @@ void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 			c.time += load.delay;
 		}
 	}
-	Danmaku::instance()->append(&load);
+	lApp->findObject<Danmaku>()->append(&load);
 }
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)

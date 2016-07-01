@@ -44,7 +44,7 @@ public:
 	virtual QModelIndex index(int row, int colum, const QModelIndex &parent = QModelIndex()) const override;
 	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
-	static Danmaku *instance();
+	explicit Danmaku(QObject *parent = nullptr);
 	virtual ~Danmaku();
 
 	QList<Record> &getPool();
@@ -53,11 +53,12 @@ public:
 	Comment *at(int index);
 
 private:
-	static Danmaku *ins;
 	DanmakuPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Danmaku);
 
-	explicit Danmaku(QObject *parent = 0);
+signals:
+	void modelAppend();
+	void modelInsert();
 
 public slots:
 	void clear();

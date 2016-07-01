@@ -7,9 +7,10 @@ class QPlayer :public APlayer
 {
 public:
 	explicit QPlayer(QObject *parent = 0);
-	QList<QAction *> getTracks(int type);
+	virtual ~QPlayer();
 
 private:
+	QThread *pt;
 	QMediaPlayer *mp;
 	int	    state;
 	bool    manuallyStopped;
@@ -24,7 +25,7 @@ public slots:
 	void    setTime(qint64 time);
 	qint64  getTime();
 
-	void    setMedia(QString file, bool manually = true);
+	void    setMedia(QString file);
 	QString getMedia();
 
 	qint64  getDuration();

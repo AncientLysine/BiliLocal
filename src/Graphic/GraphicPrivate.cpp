@@ -1,5 +1,7 @@
 ﻿#include "Common.h"
 #include "GraphicPrivate.h"
+#include "../Local.h"
+#include "../UI/Interface.h"
 
 QFont GraphicPrivate::getFont(int pixelSize, QString family)
 {
@@ -48,7 +50,9 @@ double GraphicPrivate::getScale(int mode, qint64 date, QSize size)
 		return 0;
 	}
 	if (mode <= 6 && (m & 0x2) == 0){
-		return Config::getValue("/Danmaku/Scale/Factor", 1.0);
+		auto scr = lApp->findObject<Interface>()->window()->screen();
+		auto dpi = scr ? scr->physicalDotsPerInch() : 96.0;
+		return Config::getValue("/Danmaku/Scale/Factor", dpi / 240.0 + 0.6);
 	}
 	QSizeF player = getPlayer(date);
 	return qMin(size.width() / player.width(), size.height() / player.height());

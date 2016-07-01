@@ -68,15 +68,12 @@ public:
 		Task() :sort(0), state(None), processer(nullptr){}
 	};
 
-	static Seek *instance();
-	~Seek();
+	explicit Seek(QObject *parent = nullptr);
+	virtual ~Seek();
 
 private:
-	static Seek *ins;
 	SeekPrivate *const d_ptr;
 	Q_DECLARE_PRIVATE(Seek);
-
-	explicit Seek(QObject *parent);
 
 signals:
 	void stateChanged(int code);
