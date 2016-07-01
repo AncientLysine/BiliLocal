@@ -4,6 +4,9 @@
 #include <QtCore>
 #include "ElapsedTimer.h"
 
+class ABuffer;
+class PFormat;
+
 class ARenderPrivate
 {
 public:
@@ -24,8 +27,7 @@ public:
 	void drawTime(QPainter *painter, QRect rect);
 	virtual void drawDanm(QPainter *painter, QRect rect);
 	virtual void drawData(QPainter *painter, QRect rect) = 0;
-	virtual QList<quint8 *> getBuffer() = 0;
-	virtual void releaseBuffer() = 0;
-	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0) = 0;
+	virtual void setFormat(PFormat *format) = 0;
+	virtual void setBuffer(ABuffer *buffer) = 0;
 
 };

@@ -63,6 +63,7 @@ HEADERS += \
     src/Render/ARenderPrivate.h \
     src/Render/ASprite.h \
     src/Render/ElapsedTimer.h \
+    src/Render/PFormat.h \
     src/UI/Interface.h \
     src/UI/InterfacePrivate.h \
     src/Config.h \
@@ -243,7 +244,8 @@ SOURCES += \
     src/Render/OpenGL/OpenGLRender.cpp \
     src/Render/OpenGL/Atlas.cpp \
     src/Render/OpenGL/SyncTextureSprite.cpp \
-    src/Render/OpenGL/DetachPrivate.cpp
+    src/Render/OpenGL/DetachPrivate.cpp \
+    src/Render/OpenGL/OpaquePrivate.cpp
 
 HEADERS += \
     src/Render/OpenGL/OpenGLRender.h \

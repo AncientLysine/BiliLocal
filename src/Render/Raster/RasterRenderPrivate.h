@@ -10,48 +10,25 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+class ABuffer;
+
 class RasterRenderPrivate :public ARenderPrivate
 {
 public:
-	class Buffer
-	{
-	public:
-		quint8 *data[4];
-		qint32 width[4];
-		qint32 lines[4];
-		AVPixelFormat format;
-		QSize size;
-
-		Buffer(AVPixelFormat format, QSize size, int alignment);
-		~Buffer();
-		bool isValid();
-	};
-
-	class Widget :public QWidget
-	{
-	public:
-		explicit Widget(RasterRenderPrivate *render);
-
-	private:
-		RasterRenderPrivate *const render;
-
-		virtual void paintEvent(QPaintEvent *e) override;
-	};
-
 	QTimer *power;
-	SwsContext *swsctx;
-	Buffer *srcFrame;
-	Buffer *dstFrame;
-	Widget *widget;
-	QImage frame;
+	ABuffer *data;
+	AVPixelFormat format;
+	QSize inner;
+	QList<QSize> plane;
 	QMutex dataLock;
+	SwsContext *swsctx;
+	QImage frame;
+	QWidget *widget;
 
 	RasterRenderPrivate();
-	AVPixelFormat getFormat(QString &chroma);
+	virtual ~RasterRenderPrivate();
 	virtual void drawData(QPainter *painter, QRect rect) override;
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
-	virtual QList<quint8 *> getBuffer() override;
-	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize) override;
-	virtual void releaseBuffer() override;
-	virtual ~RasterRenderPrivate();
+	virtual void setFormat(PFormat *format) override;
+	virtual void setBuffer(ABuffer *buffer) override;
 };

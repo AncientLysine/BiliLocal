@@ -4,88 +4,163 @@
 #include "../Local.h"
 #include "../Utils.h"
 #include "../Render/ARender.h"
-
-QMutex VPlayer::time;
+#include "../Render/ABuffer.h"
+#include "../Render/PFormat.h"
+#include <functional>
 
 namespace
 {
-	class Buffer
+	QMutex time;
+
+	class PixelBuffer : public ABuffer
 	{
 	public:
-		explicit Buffer(const QList<QSize> &planeSize)
+		typedef std::function<void(PixelBuffer *)> Reuser;
+
+		explicit PixelBuffer(int size, const QSharedPointer<Reuser> &reuse)
+			: data(size), reuse(reuse)
 		{
-			size = 0;
-			QList<int> planeLength;
-			for (const QSize &s : planeSize){
-				int length = s.width()*s.height();
-				planeLength.append(length);
-				size += length;
+		}
+
+		virtual void release() override
+		{
+			QSharedPointer<Reuser> f = reuse.toStrongRef();
+			if (f.isNull()) {
+				delete this;
 			}
-			quint8 *alloc = new quint8[size];
-			for (int length : planeLength){
-				data.append(alloc);
-				alloc += length;
+			else {
+				(*f)(this);
 			}
 		}
 
-		~Buffer()
+		virtual bool map() override
 		{
-			delete[]data[0];
+			return true;
 		}
 
-		void flush()
+		virtual uint mappedBytes() const override
 		{
-			memcpy(lApp->findObject<ARender>()->getBuffer()[0], data[0], size);
-			lApp->findObject<ARender>()->releaseBuffer();
+			return data.size();
 		}
 
-		QList<quint8 *> getBuffer()
+		uchar *bits()
 		{
-			return data;
+			return data.data();
+		}
+
+		virtual const uchar *bits() const override
+		{
+			return data.constData();
+		}
+
+		virtual void unmap() override
+		{
+		}
+
+		virtual HandleType handleType() const override
+		{
+			return NoHandle;
+		}
+
+		virtual QVariant handle() const override
+		{
+			return QVariant();
 		}
 
 	private:
-		QList<quint8 *> data;
-		int size;
+		QVector<uchar> data;
+		QWeakPointer<Reuser> reuse;
+	};
+
+	class PixelBufferMgr
+	{
+	public:
+		int length;
+		int planes;
+		int offset[4];
+
+		explicit PixelBufferMgr(const QList<QSize> &size)
+			: length(0)
+			, planes(0)
+		{
+			for (const QSize &iter : size) {
+				offset[planes++] = length;
+				length += iter.width() * iter.height();
+			}
+			auto f = std::bind(&PixelBufferMgr::reuse, this, std::placeholders::_1);
+			func = QSharedPointer<PixelBuffer::Reuser>::create(f);
+		}
+
+		~PixelBufferMgr()
+		{
+			qDeleteAll(data);
+		}
+
+		PixelBuffer *fetch()
+		{
+			QMutexLocker locker(&lock);
+			if (data.isEmpty()) {
+				return new PixelBuffer(length, func);
+			}
+			else {
+				return data.dequeue();
+			}
+		}
+
+		void reuse(PixelBuffer *buffer)
+		{
+			QMutexLocker locker(&lock);
+			data.enqueue(buffer);
+		}
+
+	private:
+		QMutex lock;
+		QQueue<PixelBuffer *> data;
+		QSharedPointer<PixelBuffer::Reuser> func;
 	};
 
 	unsigned fmt(void **opaque, char *chroma,
 		unsigned *width, unsigned *height,
-		unsigned *p, unsigned *l)
+		unsigned *pitches, unsigned *lines)
 	{
-		QString c(chroma);
-		QList<QSize> b;
-		lApp->findObject<ARender>()->setBuffer(c, QSize(*width, *height), 8, &b);
-		if (b.isEmpty()){
+		PFormat f;
+		f.chroma = chroma;
+		f.size = QSize(*width, *height);
+		f.alignment = 8;
+		lApp->findObject<ARender>()->setFormat(&f);
+		if (f.chroma == "NONE" || f.alloc.isEmpty()){
 			return 0;
 		}
-		memcpy(chroma, c.toUtf8(), 4);
-		for (int i = 0; i < b.size(); ++i){
-			const QSize &s = b[i];
-			p[i] = s.width(); l[i] = s.height();
+		memcpy(chroma, f.chroma.toUtf8(), 4);
+		*width = f.size.width(); *height = f.size.height();
+		for (int i = 0; i < f.alloc.size() && i < 4; ++i){
+			pitches[i] = f.alloc[i].width(); lines[i] = f.alloc[i].height();
 		}
-		*opaque = (void *)new Buffer(b);
-		return 1;
+		*opaque = new PixelBufferMgr(f.alloc);
+		return 2;
 	}
 
 	void *lck(void *opaque, void **planes)
 	{
-		int i = 0;
-		for (quint8 *p : ((Buffer *)opaque)->getBuffer()){
-			planes[i++] = (void *)p;
+		PixelBufferMgr *m = (PixelBufferMgr *)opaque;
+		auto buffer = m->fetch();
+		for (int i = 0; i < m->planes; ++i) {
+			planes[i] = buffer->bits() + m->offset[i];
 		}
-		return nullptr;
+		return buffer;
 	}
 
-	void dsp(void *opaque, void *)
+	void dsp(void *opaque, void *picture)
 	{
-		((Buffer *)opaque)->flush();
+		Q_UNUSED(opaque);
+		lApp->findObject<ARender>()->setBuffer((ABuffer *)picture);
 		emit lApp->findObject<APlayer>()->decode();
 	}
 
 	void clr(void *opaque)
 	{
-		delete (Buffer *)opaque;
+		PixelBufferMgr *m = (PixelBufferMgr *)opaque;
+		delete m;
 	}
 
 	void sta(const libvlc_event_t *, void *)
@@ -95,11 +170,11 @@ namespace
 
 	void mid(const libvlc_event_t *, void *)
 	{
-		if (VPlayer::time.tryLock()) {
+		if (::time.tryLock()) {
 			QMetaObject::invokeMethod(lApp->findObject<APlayer>(),
 				"timeChanged",
 				Q_ARG(qint64, lApp->findObject<APlayer>()->getTime()));
-			VPlayer::time.unlock();
+			::time.unlock();
 		}
 	}
 
@@ -303,11 +378,11 @@ void VPlayer::setTime(qint64 _time)
 			}
 		}
 		else{
-			time.lock();
+			::time.lock();
 			qApp->processEvents();
 			emit jumped(_time);
 			libvlc_media_player_set_time(mp, qBound<qint64>(0, _time, getDuration()));
-			time.unlock();
+			::time.unlock();
 		}
 	}
 }

@@ -2,6 +2,8 @@
 #include "RasterRender.h"
 #include "RasterRenderPrivate.h"
 #include "AsyncRasterSprite.h"
+#include "../ABuffer.h"
+#include "../PFormat.h"
 #include "../../Config.h"
 #include "../../Local.h"
 #include "../../Player/APlayer.h"
@@ -11,6 +13,38 @@ RasterRender::RasterRender(QObject *parent)
 	: ARender(parent)
 {
 	setObjectName("RRender");
+}
+
+namespace
+{
+	class Widget :public QWidget
+	{
+	public:
+		explicit Widget(RasterRenderPrivate *render)
+			: QWidget(lApp->findObject<Interface>()->widget())
+			, render(render)
+		{
+			setAttribute(Qt::WA_TransparentForMouseEvents);
+			lower();
+		}
+
+	private:
+		RasterRenderPrivate *const render;
+
+		virtual void paintEvent(QPaintEvent *) override
+		{
+			QPainter painter(this);
+			QRect rect(QPoint(0, 0), lApp->findObject<ARender>()->getActualSize());
+			painter.setRenderHints(QPainter::SmoothPixmapTransform);
+			if (lApp->findObject<APlayer>()->getState() == APlayer::Stop) {
+				render->drawStop(&painter, rect);
+			}
+			else {
+				render->drawPlay(&painter, rect);
+				render->timer.swap();
+			}
+		}
+	};
 }
 
 void RasterRender::setup()
@@ -34,7 +68,15 @@ void RasterRender::setup()
 			draw();
 		}
 	});
-	d->widget = new RasterRenderPrivate::Widget(d);
+	d->widget = new Widget(d);
+}
+
+RasterRenderPrivate::~RasterRenderPrivate()
+{
+	sws_freeContext(swsctx);
+	if (data) {
+		data->release();
+	}
 }
 
 ASprite *RasterRender::getSprite()
@@ -63,7 +105,7 @@ QSize RasterRender::getActualSize()
 QSize RasterRender::getBufferSize()
 {
 	Q_D(RasterRender);
-	return d->srcFrame->size;
+	return d->inner;
 }
 
 void RasterRender::draw(QRect rect)
@@ -72,176 +114,52 @@ void RasterRender::draw(QRect rect)
 	d->widget->update(rect.isValid() ? rect : QRect(QPoint(0, 0), getActualSize()));
 }
 
-RasterRenderPrivate::Buffer::Buffer(AVPixelFormat format, QSize size, int alignment)
-	: format(AV_PIX_FMT_NONE), size(size)
-{
-	int len = av_image_alloc(data, width, size.width(), size.height(), format, alignment);
-	if (len < 0 || data[0] == nullptr) {
-		return;
-	}
-	int i = 0;
-	for (; i < 3; ++i) {
-		quint8 *ptr = data[i + 1];
-		if (ptr == nullptr) {
-			break;
-		}
-		int num = ptr - data[i];
-		if (num == 0) {
-			continue;
-		}
-		lines[i] = num / width[i];
-		len -= num;
-	}
-	lines[i] = len / width[i];
-	++i;
-	for (; i < 4; ++i) {
-		lines[i] = 0;
-	}
-	this->format = format;
-}
-
-RasterRenderPrivate::Buffer::~Buffer()
-{
-	if (isValid()) {
-		av_freep(&data[0]);
-	}
-}
-
-bool RasterRenderPrivate::Buffer::isValid()
-{
-	return format != AV_PIX_FMT_NONE;
-}
-
-RasterRenderPrivate::Widget::Widget(RasterRenderPrivate *render)
-	: QWidget(lApp->findObject<Interface>()->widget())
-	, render(render)
-{
-	setAttribute(Qt::WA_TransparentForMouseEvents);
-	lower();
-}
-
-void RasterRenderPrivate::Widget::paintEvent(QPaintEvent *)
-{
-	QPainter painter(this);
-	QRect rect(QPoint(0, 0), lApp->findObject<ARender>()->getActualSize());
-	painter.setRenderHints(QPainter::SmoothPixmapTransform);
-	if (lApp->findObject<APlayer>()->getState() == APlayer::Stop){
-		render->drawStop(&painter, rect);
-	}
-	else{
-		render->drawPlay(&painter, rect);
-		render->timer.swap();
-	}
-}
-
 RasterRenderPrivate::RasterRenderPrivate()
 {
+	data = nullptr;
+	format = AV_PIX_FMT_NONE;
 	swsctx = nullptr;
-	srcFrame = nullptr;
-	dstFrame = nullptr;
-}
-
-AVPixelFormat RasterRenderPrivate::getFormat(QString &chroma)
-{
-	static QHash<QString, AVPixelFormat> f;
-	if (f.isEmpty()){
-		f.insert("RGB8", AV_PIX_FMT_RGB8);
-		f.insert("RV12", AV_PIX_FMT_RGB444);
-		f.insert("RV15", AV_PIX_FMT_RGB555);
-		f.insert("RV16", AV_PIX_FMT_RGB565);
-		f.insert("RV24", AV_PIX_FMT_BGR24);
-		f.insert("RV32", AV_PIX_FMT_RGB32);
-		f.insert("RGBA", AV_PIX_FMT_ABGR);
-		f.insert("ARGB", AV_PIX_FMT_BGRA);
-		f.insert("BGRA", AV_PIX_FMT_ARGB);
-		f.insert("I410", AV_PIX_FMT_YUV410P);
-		f.insert("I411", AV_PIX_FMT_YUV411P);
-		f.insert("I420", AV_PIX_FMT_YUV420P);
-		f.insert("IYUV", AV_PIX_FMT_YUV420P);
-		f.insert("I422", AV_PIX_FMT_YUV422P);
-		f.insert("I440", AV_PIX_FMT_YUV440P);
-		f.insert("I444", AV_PIX_FMT_YUV444P);
-		f.insert("J420", AV_PIX_FMT_YUVJ420P);
-		f.insert("J422", AV_PIX_FMT_YUVJ422P);
-		f.insert("J440", AV_PIX_FMT_YUVJ440P);
-		f.insert("J444", AV_PIX_FMT_YUVJ444P);
-		f.insert("I40A", AV_PIX_FMT_YUVA420P);
-		f.insert("I42A", AV_PIX_FMT_YUVA422P);
-		f.insert("YUVA", AV_PIX_FMT_YUVA444P);
-		f.insert("YA0L", AV_PIX_FMT_YUVA444P10LE);
-		f.insert("YA0B", AV_PIX_FMT_YUVA444P10BE);
-		f.insert("NV12", AV_PIX_FMT_NV12);
-		f.insert("NV21", AV_PIX_FMT_NV21);
-		f.insert("I09L", AV_PIX_FMT_YUV420P9LE);
-		f.insert("I09B", AV_PIX_FMT_YUV420P9BE);
-		f.insert("I29L", AV_PIX_FMT_YUV422P9LE);
-		f.insert("I29B", AV_PIX_FMT_YUV422P9BE);
-		f.insert("I49L", AV_PIX_FMT_YUV444P9LE);
-		f.insert("I49B", AV_PIX_FMT_YUV444P9BE);
-		f.insert("I0AL", AV_PIX_FMT_YUV420P10LE);
-		f.insert("I0AB", AV_PIX_FMT_YUV420P10BE);
-		f.insert("I2AL", AV_PIX_FMT_YUV422P10LE);
-		f.insert("I2AB", AV_PIX_FMT_YUV422P10BE);
-		f.insert("I4AL", AV_PIX_FMT_YUV444P10LE);
-		f.insert("I4AB", AV_PIX_FMT_YUV444P10BE);
-		f.insert("UYVY", AV_PIX_FMT_UYVY422);
-		f.insert("YUYV", AV_PIX_FMT_YUYV422);
-		f.insert("YUY2", AV_PIX_FMT_YUYV422);
-	}
-	chroma = chroma.toUpper();
-	if (f.contains(chroma)){
-	}
-	else if (chroma == "YV12"){
-		chroma = "I420";
-	}
-	else if (chroma == "NV16"){
-		chroma = "NV12";
-	}
-	else if (chroma == "NV61"){
-		chroma = "NV21";
-	}
-	else if (chroma == "VYUY" ||
-		chroma == "YVYU" ||
-		chroma == "V422" ||
-		chroma == "CYUV"){
-		chroma = "UYVY";
-	}
-	else if (chroma == "V210"){
-		chroma = "I0AL";
-	}
-	else{
-		chroma = "I420";
-	}
-	return f[chroma];
 }
 
 void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 {
-	if (!srcFrame->isValid()){
+	if (data == nullptr || format == AV_PIX_FMT_NONE) {
 		return;
 	}
-	QRect dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
-	QSize dstSize = dest.size()*painter->device()->devicePixelRatio();
-	if (!dstFrame || dstFrame->size != dstSize){
-		delete dstFrame;
-		dstFrame = new Buffer(AV_PIX_FMT_RGB32, dstSize, 4);
-		frame = QImage(*dstFrame->data, dstSize.width(), dstSize.height(), QImage::Format_RGB32);
+	const QRect &dstRect = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
+	const QSize &dstSize = dstRect.size() * painter->device()->devicePixelRatio();
+	if (dstSize != frame.size()) {
+		frame = QImage(dstSize, QImage::Format_RGB32);
 		dirty = true;
 	}
-	if (dirty){
+	if (dirty) {
+		const QSize &srcSize = inner;
 		swsctx = sws_getCachedContext(swsctx,
-			srcFrame->size.width(), srcFrame->size.height(), srcFrame->format,
-			dstFrame->size.width(), dstFrame->size.height(), dstFrame->format,
+			srcSize.width(), srcSize.height(), format,
+			dstSize.width(), dstSize.height(), AV_PIX_FMT_RGB32,
 			SWS_FAST_BILINEAR, NULL, NULL, NULL);
 		dataLock.lock();
+		data->map();
+		const uchar *b = data->bits();
+		const uchar *srcSlice[4] = { nullptr };
+		int srcWidth[4] = { 0 };
+		for (int i = 0; i < plane.size() && i < 4; ++i) {
+			int w = plane[i].width(), h = plane[i].height();
+			srcSlice[i] = b;
+			srcWidth[i] = w;
+			b += w * h;
+		}
+		uchar *dstSlice[1] = { frame.bits() };
+		int dstWidth[1] = { frame.bytesPerLine() };
 		sws_scale(swsctx,
-			srcFrame->data, srcFrame->width,
-			0, srcFrame->size.height(),
-			dstFrame->data, dstFrame->width);
+			srcSlice, srcWidth,
+			0, srcSize.height(),
+			dstSlice, dstWidth);
+		data->unmap();
 		dirty = false;
 		dataLock.unlock();
 	}
-	painter->drawImage(dest, frame);
+	painter->drawImage(dstRect, frame);
 }
 
 void RasterRenderPrivate::drawDanm(QPainter *painter, QRect rect)
@@ -251,46 +169,135 @@ void RasterRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 	painter->restore();
 }
 
-QList<quint8 *> RasterRenderPrivate::getBuffer()
+namespace
+{
+	AVPixelFormat getFormat(QString &chroma)
+	{
+		static QHash<QString, AVPixelFormat> f;
+		if (f.isEmpty()) {
+			f.insert("RV24", AV_PIX_FMT_BGR24);
+			f.insert("RV32", AV_PIX_FMT_RGB32);
+			f.insert("RGBA", AV_PIX_FMT_RGBA);
+			f.insert("BGRA", AV_PIX_FMT_BGRA);
+			f.insert("ARGB", AV_PIX_FMT_ARGB);
+			f.insert("I410", AV_PIX_FMT_YUV410P);
+			f.insert("I411", AV_PIX_FMT_YUV411P);
+			f.insert("I420", AV_PIX_FMT_YUV420P);
+			f.insert("IYUV", AV_PIX_FMT_YUV420P);
+			f.insert("I422", AV_PIX_FMT_YUV422P);
+			f.insert("I440", AV_PIX_FMT_YUV440P);
+			f.insert("I444", AV_PIX_FMT_YUV444P);
+			f.insert("J420", AV_PIX_FMT_YUVJ420P);
+			f.insert("J422", AV_PIX_FMT_YUVJ422P);
+			f.insert("J440", AV_PIX_FMT_YUVJ440P);
+			f.insert("J444", AV_PIX_FMT_YUVJ444P);
+			f.insert("I40A", AV_PIX_FMT_YUVA420P);
+			f.insert("I42A", AV_PIX_FMT_YUVA422P);
+			f.insert("YUVA", AV_PIX_FMT_YUVA444P);
+			f.insert("YA0L", AV_PIX_FMT_YUVA444P10LE);
+			f.insert("YA0B", AV_PIX_FMT_YUVA444P10BE);
+			f.insert("NV12", AV_PIX_FMT_NV12);
+			f.insert("NV21", AV_PIX_FMT_NV21);
+			f.insert("I09L", AV_PIX_FMT_YUV420P9LE);
+			f.insert("I09B", AV_PIX_FMT_YUV420P9BE);
+			f.insert("I29L", AV_PIX_FMT_YUV422P9LE);
+			f.insert("I29B", AV_PIX_FMT_YUV422P9BE);
+			f.insert("I49L", AV_PIX_FMT_YUV444P9LE);
+			f.insert("I49B", AV_PIX_FMT_YUV444P9BE);
+			f.insert("I0AL", AV_PIX_FMT_YUV420P10LE);
+			f.insert("I0AB", AV_PIX_FMT_YUV420P10BE);
+			f.insert("I2AL", AV_PIX_FMT_YUV422P10LE);
+			f.insert("I2AB", AV_PIX_FMT_YUV422P10BE);
+			f.insert("I4AL", AV_PIX_FMT_YUV444P10LE);
+			f.insert("I4AB", AV_PIX_FMT_YUV444P10BE);
+			f.insert("UYVY", AV_PIX_FMT_UYVY422);
+			f.insert("YUYV", AV_PIX_FMT_YUYV422);
+			f.insert("YUY2", AV_PIX_FMT_YUYV422);
+		}
+		chroma = chroma.toUpper();
+		if (f.contains(chroma)) {
+		}
+		else if (chroma == "YV12") {
+			chroma = "I420";
+		}
+		else if (chroma == "NV16") {
+			chroma = "NV12";
+		}
+		else if (chroma == "NV61") {
+			chroma = "NV21";
+		}
+		else if (chroma == "VYUY" || chroma == "YVYU" || chroma == "V422" || chroma == "CYUV") {
+			chroma = "UYVY";
+		}
+		else if (chroma == "V210") {
+			chroma = "I0AL";
+		}
+		else if (chroma == "RGB8" || chroma == "RV12" || chroma == "RV15" || chroma == "RV16") {
+			chroma = "RV32";
+		}
+		else {
+			chroma = "I420";
+		}
+		return f[chroma];
+	}
+}
+
+void RasterRenderPrivate::setFormat(PFormat *f)
 {
 	dataLock.lock();
-	QList<quint8 *> p;
-	for (int i = 0; i < 4; ++i){
-		if (srcFrame->width[i] == 0){
-			break;
-		}
-		p.append(srcFrame->data[i]);
+	if (data) {
+		data->release();
 	}
-	return p;
-}
-
-void RasterRenderPrivate::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize)
-{
-	delete srcFrame;
-	srcFrame = new Buffer(getFormat(chroma), size, alignment);
-	if (bufferSize){
-		bufferSize->clear();
-	}
-	for (int i = 0; i < 4; ++i){
-		int l = srcFrame->width[i];
-		if (l == 0){
-			break;
-		}
-		if (bufferSize){
-			bufferSize->append(QSize(srcFrame->width[i], srcFrame->lines[i]));
-		}
-	}
-}
-
-void RasterRenderPrivate::releaseBuffer()
-{
-	dirty = true;
+	data = nullptr;
 	dataLock.unlock();
+
+	inner = f->size;
+
+	format = getFormat(f->chroma);
+
+	plane.clear();
+	int i;
+	int w = f->size.width(), h = f->size.height();
+	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(format);
+	if (!desc) {
+		return;
+	}
+	int linesizes[4];
+	if (av_image_fill_linesizes(linesizes, format, w) < 0) {
+		return;
+	}
+	for (i = 0; i < 4; i++) {
+		linesizes[i] = FFALIGN(linesizes[i], f->alignment);
+	}
+	uchar *pointers[4];
+	int len = av_image_fill_pointers(pointers, format, h, NULL, linesizes);
+	if (len < 0) {
+		return;
+	}
+	for (i = 0; i < 3; ++i) {
+		uchar *end = pointers[i + 1];
+		if (end == nullptr) {
+			break;
+		}
+		int num = end - pointers[i];
+		if (num == 0) {
+			continue;
+		}
+		plane.append(QSize(linesizes[i], num / linesizes[i]));
+		len -= num;
+	}
+	{
+		plane.append(QSize(linesizes[i], len / linesizes[i]));
+	}
+	f->alloc = plane;
 }
 
-RasterRenderPrivate::~RasterRenderPrivate()
+void RasterRenderPrivate::setBuffer(ABuffer *buffer)
 {
-	sws_freeContext(swsctx);
-	delete srcFrame;
-	delete dstFrame;
+	QMutexLocker locker(&dataLock);
+	dirty = true;
+	if (data) {
+		data->release();
+	}
+	data = buffer;
 }

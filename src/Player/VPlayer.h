@@ -23,8 +23,6 @@ public:
 	explicit VPlayer(QObject *parent = 0);
 	virtual ~VPlayer();
 
-	static QMutex time;
-
 private:
 	struct Track
 	{

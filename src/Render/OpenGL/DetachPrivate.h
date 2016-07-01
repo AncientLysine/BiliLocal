@@ -1,6 +1,7 @@
 #pragma once
 
 #include "OpaquePrivate.h"
+#include "../PFormat.h"
 #include "../../Local.h"
 #include <QOpenGLWindow>
 
@@ -23,17 +24,12 @@ public:
 	{
 	}
 
-	virtual QList<quint8 *> getBuffer() override
+	virtual void setFormat(PFormat *format) override
 	{
-		return QList<quint8 *>();
+		format->chroma = "NONE";
 	}
 
-	virtual void setBuffer(QString &chroma, QSize, int, QList<QSize> *) override
-	{
-		chroma = "NONE";
-	}
-
-	virtual void releaseBuffer() override
+	virtual void setBuffer(ABuffer *) override
 	{
 	}
 

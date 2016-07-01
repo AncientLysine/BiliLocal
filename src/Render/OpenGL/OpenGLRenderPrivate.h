@@ -9,7 +9,22 @@ class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 public:
 	QRect view;
 
-	static const int programNum;
+	enum Format
+	{
+		I420,
+		YV12,
+		NV12,
+		NV21,
+		RGBA,
+		BGRA,
+		ARGB,
+		Danm,
+		Stro,
+		Proj,
+		Glow,
+		FormatMax
+	};
+
 	QScopedArrayPointer<QOpenGLShaderProgram> program;
 
 	QByteArray extensions;

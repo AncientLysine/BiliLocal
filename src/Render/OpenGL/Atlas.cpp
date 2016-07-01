@@ -58,13 +58,13 @@ void Atlas::insert(QList<QImage> &source, int effect, QList<Sprite> &result)
 			QOpenGLShaderProgram *p = nullptr;
 			switch (effect) {
 			case 0:
-				p = &render->program[6];
+				p = &render->program[OpenGLRenderPrivate::Stro];
 				break;
 			case 1:
-				p = &render->program[7];
+				p = &render->program[OpenGLRenderPrivate::Proj];
 				break;
 			case 2:
-				p = &render->program[8];
+				p = &render->program[OpenGLRenderPrivate::Glow];
 				break;
 			default:
 				return;

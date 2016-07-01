@@ -3,6 +3,8 @@
 #include "../Config.h"
 #include "../Local.h"
 #include "../Render/ARender.h"
+#include "../Render/ABuffer.h"
+#include "../Render/PFormat.h"
 
 namespace
 {
@@ -17,67 +19,113 @@ namespace
 			return "NV12";
 		case QVideoFrame::Format_NV21:
 			return "NV21";
-		case QVideoFrame::Format_BGR32:
+		case QVideoFrame::Format_RGB32:
 			return "BGRA";
+		case QVideoFrame::Format_BGR32:
+			return "ARGB";
 		default:
 			return QString();
 		}
 	}
 
-	class RenderAdapter :public QAbstractVideoSurface
+	class FrameBuffer : public ABuffer
 	{
 	public:
-		RenderAdapter(QObject *parent = 0) :
+		explicit FrameBuffer(const QVideoFrame &frame)
+			: frame(frame)
+		{
+		}
+
+		virtual bool map() override
+		{
+			return frame.map(QAbstractVideoBuffer::ReadOnly);
+		}
+
+		virtual uint mappedBytes() const override
+		{
+			return frame.mappedBytes();
+		}
+
+		virtual const uchar *bits() const override
+		{
+			return frame.bits();
+		}
+
+		virtual void unmap() override
+		{
+			frame.unmap();
+		}
+
+		virtual HandleType handleType() const override
+		{
+			switch (frame.handleType()) {
+			case QAbstractVideoBuffer::GLTextureHandle:
+				return GLTextureHandle;
+			default:
+				return NoHandle;
+			}
+		}
+
+		virtual QVariant handle() const override
+		{
+			return frame.handle();
+		}
+
+	private:
+		QVideoFrame frame;
+	};
+
+	class VideoSurface : public QAbstractVideoSurface
+	{
+	public:
+		VideoSurface(QObject *parent = 0) :
 			QAbstractVideoSurface(parent)
 		{
 		}
 
-		bool start(const QVideoSurfaceFormat &format)
+		bool start(const QVideoSurfaceFormat &format) override
 		{
 			QString chroma = getFormat(format.pixelFormat());
 			if (chroma.isEmpty()) {
 				return false;
 			}
-			QString buffer(chroma);
-			lApp->findObject<ARender>()->setBuffer(buffer, format.frameSize(), 1);
-			if (buffer != chroma) {
+			PFormat f;
+			f.chroma = chroma;
+			f.size = format.frameSize();
+			f.alignment = 1;
+			lApp->findObject<ARender>()->setFormat(&f);
+			if (f.chroma != chroma) {
 				return false;
 			}
+			setNativeResolution(f.size);
 			QSize pixel(format.pixelAspectRatio());
 			lApp->findObject<ARender>()->setPixelAspectRatio(pixel.width() / (double)pixel.height());
 			return QAbstractVideoSurface::start(format);
 		}
 
-		bool present(const QVideoFrame &frame)
+		bool present(const QVideoFrame &frame) override
 		{
-			QVideoFrame f(frame);
-			if (f.map(QAbstractVideoBuffer::ReadOnly)){
-				int len = f.mappedBytes();
-				const quint8 *dat = f.bits();
-				QList<quint8 *> buffer = lApp->findObject<ARender>()->getBuffer();
-				memcpy(buffer[0], dat, len);
-				lApp->findObject<ARender>()->releaseBuffer();
-				f.unmap();
-			}
-			else{
-				return false;
-			}
+			lApp->findObject<ARender>()->setBuffer(new FrameBuffer(frame));
 			emit lApp->findObject<APlayer>()->decode();
 			return true;
 		}
 
-		QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
+		QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const override
 		{
 			QList<QVideoFrame::PixelFormat> fmt;
 			switch (handleType) {
 			case QAbstractVideoBuffer::NoHandle:
-				fmt << QVideoFrame::Format_BGR32
+				fmt << QVideoFrame::Format_RGB32
+					<< QVideoFrame::Format_BGR32
 					<< QVideoFrame::Format_NV12
 					<< QVideoFrame::Format_NV21
 					<< QVideoFrame::Format_YV12
 					<< QVideoFrame::Format_YUV420P;
 				break;
 			case QAbstractVideoBuffer::GLTextureHandle:
+				fmt << QVideoFrame::Format_RGB32
+					<< QVideoFrame::Format_BGR32;
+				break;
 			default:
 				break;
 			}
@@ -85,15 +133,15 @@ namespace
 		}
 	};
 
-	class QPlayerThread :public QThread
+	class PlayerThread : public QThread
 	{
 	public:
-		explicit QPlayerThread(QObject *parent = 0) :
+		explicit PlayerThread(QObject *parent = 0) :
 			QThread(parent), mp(0)
 		{
 		}
 
-		~QPlayerThread()
+		~PlayerThread()
 		{
 			if (isRunning()){
 				quit();
@@ -122,7 +170,7 @@ namespace
 			m.lock();
 			mp = new QMediaPlayer;
 			mp->setNotifyInterval(300);
-			mp->setVideoOutput(new RenderAdapter(mp));
+			mp->setVideoOutput(new VideoSurface(mp));
 			m.unlock();
 			w.wakeAll();
 			exec();
@@ -141,7 +189,9 @@ QPlayer::QPlayer(QObject *parent)
 	manuallyStopped = false;
 	waitingForBegin = false;
 	skipTimeChanged = false;
-	mp = (new QPlayerThread(this))->getMediaPlayer();
+	auto thread = new PlayerThread(this);
+	pt = thread;
+	mp = thread->getMediaPlayer();
 	mp->setVolume(Config::getValue("/Player/Volume", 50));
 
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp, &QMediaPlayer::error, this, [this](int error){
@@ -197,6 +247,12 @@ QPlayer::QPlayer(QObject *parent)
 	});
 
 	connect(mp, &QMediaPlayer::playbackRateChanged, this, &QPlayer::rateChanged);
+}
+
+QPlayer::~QPlayer()
+{
+	pt->exit();
+	pt->wait();
 }
 
 void QPlayer::play()

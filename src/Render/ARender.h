@@ -30,7 +30,9 @@
 #include <QtGui>
 
 class ARenderPrivate;
+class ABuffer;
 class ASprite;
+class PFormat;
 
 class ARender :public QObject
 {
@@ -49,17 +51,15 @@ protected:
 	explicit ARender(QObject *parent);
 
 public slots:
-	virtual QList<quint8 *> getBuffer();
-	virtual void releaseBuffer();
-	virtual void setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize = 0);
-
 	void setBackground(QString path);
 	void setMusic(bool music);
-
 	void setDisplayTime(double t);
 
 	void setVideoAspectRatio(double ratio);
 	void setPixelAspectRatio(double ratio);
+
+	virtual void setFormat(PFormat *format);
+	virtual void setBuffer(ABuffer *buffer);
 
 	virtual ASprite *getSprite() = 0;
 	virtual QObject *getHandle() = 0;

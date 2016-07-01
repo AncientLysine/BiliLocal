@@ -7,8 +7,10 @@ class QPlayer :public APlayer
 {
 public:
 	explicit QPlayer(QObject *parent = 0);
+	virtual ~QPlayer();
 
 private:
+	QThread *pt;
 	QMediaPlayer *mp;
 	int	    state;
 	bool    manuallyStopped;

@@ -124,22 +124,16 @@ ARender::~ARender()
 	delete d_ptr;
 }
 
-QList<quint8 *> ARender::getBuffer()
+void ARender::setFormat(PFormat *format)
 {
 	Q_D(ARender);
-	return d->getBuffer();
+	d->setFormat(format);
 }
 
-void ARender::releaseBuffer()
+void ARender::setBuffer(ABuffer *buffer)
 {
 	Q_D(ARender);
-	d->releaseBuffer();
-}
-
-void ARender::setBuffer(QString &chroma, QSize size, int alignment, QList<QSize> *bufferSize)
-{
-	Q_D(ARender);
-	d->setBuffer(chroma, size, alignment, bufferSize);
+	d->setBuffer(buffer);
 }
 
 void ARender::setBackground(QString path)
