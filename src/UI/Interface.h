@@ -46,6 +46,8 @@ private:
 	InterfacePrivate *d_ptr;
 	Q_DECLARE_PRIVATE(Interface);
 
+signals:
+	void flagsChanged(Qt::WindowFlags flags);
 
 public slots:
 	void percent(double degree);

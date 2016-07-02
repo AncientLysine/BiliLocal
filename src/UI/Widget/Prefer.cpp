@@ -61,7 +61,8 @@ QHash<QString, QVariant> Prefer::getRestart()
 	QStringList path;
 	path <<
 		"/Render" <<
-		"/Player" <<
+		"/Player/Arguments" <<
+		"/Player/Type" <<
 		"/Interface/Font" <<
 		"/Interface/Frameless" <<
 		"/Interface/Single" <<
@@ -158,15 +159,15 @@ QDialog(parent)
 		auto list = new QVBoxLayout(widget[0]);
 		auto c = new QGridLayout;
 		load[0] = new QCheckBox(tr("clear when reloading"), widget[0]);
-		load[0]->setChecked(Config::getValue("/Player/Clear", false));
+		load[0]->setChecked(Config::getValue("/Load/Clear", false));
 		connect(load[0], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Player/Clear", state == Qt::Checked);
+			Config::setValue("/Load/Clear", state == Qt::Checked);
 		});
 		c->addWidget(load[0], 0, 0);
 		load[1] = new QCheckBox(tr("auto delay after loaded"), widget[0]);
-		load[1]->setChecked(Config::getValue("/Player/Delay", false));
+		load[1]->setChecked(Config::getValue("/Load/Delay", false));
 		connect(load[1], &QCheckBox::stateChanged, [](int state){
-			Config::setValue("/Player/Delay", state == Qt::Checked);
+			Config::setValue("/Load/Delay", state == Qt::Checked);
 		});
 		c->addWidget(load[1], 0, 1);
 		load[2] = new QCheckBox(tr("load local subtitles"), widget[0]);
