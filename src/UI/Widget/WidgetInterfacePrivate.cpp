@@ -442,7 +442,7 @@ WidgetInterfacePrivate::WidgetInterfacePrivate()
 
 void WidgetInterfacePrivate::setWindowFlags()
 {
-	QFlags<Qt::WindowType> flags = windowFlags();
+	Qt::WindowFlags flags = windowFlags();
 	if (Config::getValue("/Interface/Frameless", false)) {
 		flags = Qt::CustomizeWindowHint;
 	}
@@ -456,8 +456,7 @@ void WidgetInterfacePrivate::setWindowFlags()
 		QWidget::setWindowFlags(flags);
 	}
 	else {
-		//TODO
-		//emit windowFlagsChanged(flags);
+		emit lApp->findObject<Interface>()->flagsChanged(flags);
 	}
 }
 
