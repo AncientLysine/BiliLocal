@@ -123,8 +123,9 @@ namespace
 					<< QVideoFrame::Format_YUV420P;
 				break;
 			case QAbstractVideoBuffer::GLTextureHandle:
+				/*TODO: dsengine fails to render to texture
 				fmt << QVideoFrame::Format_RGB32
-					<< QVideoFrame::Format_BGR32;
+					<< QVideoFrame::Format_BGR32;*/
 				break;
 			default:
 				break;

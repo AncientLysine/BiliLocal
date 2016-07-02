@@ -146,7 +146,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 		break;
 	}
 	glViewport(rect.x(), rect.y(), rect.width(), rect.height());
-	QRect dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
+	QRectF dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
 	GLfloat h = 2.0f / rect.width(), v = 2.0f / rect.height();
 	GLfloat l = dest.left() * h - 1, r = dest.right() * h - 1, t = 1 - dest.top() * v, b = 1 - dest.bottom() * v;
 	vtx[0] = l; vtx[1] = t;
