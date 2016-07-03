@@ -17,8 +17,8 @@ public:
 	}
 
 	virtual bool map() = 0;
-	virtual uint mappedBytes() const = 0;
 	virtual const uchar *bits() const = 0;
+	virtual QList<QSize> size() const = 0;
 	virtual void unmap() = 0;
 
 	virtual HandleType handleType() const = 0;

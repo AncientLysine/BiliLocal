@@ -17,9 +17,15 @@ namespace
 	public:
 		typedef std::function<void(PixelBuffer *)> Reuser;
 
-		explicit PixelBuffer(int size, const QSharedPointer<Reuser> &reuse)
-			: data(size), reuse(reuse)
+		explicit PixelBuffer(const QList<QSize> &alloc, const QSharedPointer<Reuser> &reuse)
+			: alloc(alloc)
+			, reuse(reuse)
 		{
+			int length = 0;
+			for (const QSize &iter : alloc) {
+				length += iter.width() * iter.height();
+			}
+			data.resize(length);
 		}
 
 		virtual void release() override
@@ -38,11 +44,6 @@ namespace
 			return true;
 		}
 
-		virtual uint mappedBytes() const override
-		{
-			return data.size();
-		}
-
 		uchar *bits()
 		{
 			return data.data();
@@ -51,6 +52,11 @@ namespace
 		virtual const uchar *bits() const override
 		{
 			return data.constData();
+		}
+
+		virtual QList<QSize> size() const override
+		{
+			return alloc;
 		}
 
 		virtual void unmap() override
@@ -69,21 +75,22 @@ namespace
 
 	private:
 		QVector<uchar> data;
+		QList<QSize> alloc;
 		QWeakPointer<Reuser> reuse;
 	};
 
 	class PixelBufferMgr
 	{
 	public:
-		int length;
+		QList<QSize> alloc;
 		int planes;
 		int offset[4];
 
-		explicit PixelBufferMgr(const QList<QSize> &size)
-			: length(0)
-			, planes(0)
+		explicit PixelBufferMgr(const QList<QSize> &alloc)
+			: alloc(alloc), planes(0)
 		{
-			for (const QSize &iter : size) {
+			int length = 0;
+			for (const QSize &iter : alloc) {
 				offset[planes++] = length;
 				length += iter.width() * iter.height();
 			}
@@ -100,7 +107,7 @@ namespace
 		{
 			QMutexLocker locker(&lock);
 			if (data.isEmpty()) {
-				return new PixelBuffer(length, func);
+				return new PixelBuffer(alloc, func);
 			}
 			else {
 				return data.dequeue();
@@ -119,6 +126,12 @@ namespace
 		QSharedPointer<PixelBuffer::Reuser> func;
 	};
 
+	void align(int &size, int alignment)
+	{
+		--alignment;
+		size = (size + alignment) & (~alignment);
+	}
+
 	unsigned fmt(void **opaque, char *chroma,
 		unsigned *width, unsigned *height,
 		unsigned *pitches, unsigned *lines)
@@ -126,17 +139,18 @@ namespace
 		PFormat f;
 		f.chroma = chroma;
 		f.size = QSize(*width, *height);
-		f.alignment = 8;
 		lApp->findObject<ARender>()->setFormat(&f);
-		if (f.chroma == "NONE" || f.alloc.isEmpty()){
+		if (f.chroma == "NONE" || f.plane.isEmpty()){
 			return 0;
 		}
 		memcpy(chroma, f.chroma.toUtf8(), 4);
 		*width = f.size.width(); *height = f.size.height();
-		for (int i = 0; i < f.alloc.size() && i < 4; ++i){
-			pitches[i] = f.alloc[i].width(); lines[i] = f.alloc[i].height();
+		for (int i = 0; i < f.plane.size() && i < 4; ++i){
+			QSize &size = f.plane[i];
+			align(size.rwidth(), 16); align(size.rheight(), 16);
+			pitches[i] = size.width(); lines[i] = size.height();
 		}
-		*opaque = new PixelBufferMgr(f.alloc);
+		*opaque = new PixelBufferMgr(f.plane);
 		return 2;
 	}
 

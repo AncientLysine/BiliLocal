@@ -19,7 +19,6 @@ public:
 	ABuffer *data;
 	AVPixelFormat format;
 	QSize inner;
-	QList<QSize> plane;
 	QMutex dataLock;
 	SwsContext *swsctx;
 	QImage frame;

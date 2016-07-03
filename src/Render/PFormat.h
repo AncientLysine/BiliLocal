@@ -9,8 +9,7 @@ class PFormat
 public:
 	QString chroma;		// IN/OUT
 	QSize size;			// IN/OUT
-	int alignment;		// IN
-	QList<QSize> alloc;	// OUT
+	QList<QSize> plane;	// OUT
 };
 
 /*

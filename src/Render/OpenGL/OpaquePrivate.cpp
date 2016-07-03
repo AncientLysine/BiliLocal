@@ -11,7 +11,7 @@ OpenGLOpaqueRenderPrivate::~OpenGLOpaqueRenderPrivate()
 	}
 }
 
-void OpenGLOpaqueRenderPrivate::loadTexture(int index, const uchar *data, int channel, int width, int height)
+void OpenGLOpaqueRenderPrivate::loadFrame(int index, const uchar *data, int channel, int width, int height)
 {
 	int format;
 	switch (channel) {
@@ -30,13 +30,35 @@ void OpenGLOpaqueRenderPrivate::loadTexture(int index, const uchar *data, int ch
 	default:
 		return;
 	}
+	int align;
+	if (width % 8 == 0){
+		align = 8;
+	}
+	else if (width % 4 == 0){
+		align = 4;
+	}
+	else if (width % 2 == 0) {
+		align = 2;
+	}
+	else {
+		align = 1;
+	}
 	glBindTexture(GL_TEXTURE_2D, frame[index]);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, align);
 	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
+
+QVector2D OpenGLOpaqueRenderPrivate::validArea(int index)
+{
+	const QSize &p = plane[index];
+	const QSize &a = alloc[index];
+	float x = p.width() / (float)a.width(), y = p.height() / (float)a.height();
+	return QVector2D(x, y);
 }
 
 void OpenGLOpaqueRenderPrivate::paint(QPaintDevice * device)
@@ -76,34 +98,35 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 	case ABuffer::NoHandle:
 		if (dirty && data->map()) {
 			const uchar *bits = data->bits();
+			alloc = data->size();
 			int w, h;
 			switch (format) {
 			case I420:
 			case YV12:
-				w = plane[0].width(); h = plane[0].height();
-				loadTexture(0, bits, 1, w, h);
+				w = alloc[0].width(); h = alloc[0].height();
+				loadFrame(0, bits, 1, w, h);
 				bits += w * h;
-				w = plane[1].width(); h = plane[1].height();
-				loadTexture(1, bits, 1, w, h);
+				w = alloc[1].width(); h = alloc[1].height();
+				loadFrame(1, bits, 1, w, h);
 				bits += w * h;
-				w = plane[2].width(); h = plane[2].height();
-				loadTexture(2, bits, 1, w, h);
+				w = alloc[2].width(); h = alloc[2].height();
+				loadFrame(2, bits, 1, w, h);
 				break;
 			case NV12:
 			case NV21:
-				w = plane[0].width(); h = plane[0].height();
-				loadTexture(0, bits, 1, w, h);
+				w = alloc[0].width(); h = alloc[0].height();
+				loadFrame(0, bits, 1, w, h);
 				bits += w * h;
-				w = plane[1].width(); h = plane[1].height();
+				w = alloc[1].width(); h = alloc[1].height();
 				w /= 2;
-				loadTexture(1, bits, 2, w, h);
+				loadFrame(1, bits, 2, w, h);
 				break;
 			case RGBA:
 			case BGRA:
 			case ARGB:
-				w = plane[0].width(); h = plane[0].height();
+				w = alloc[0].width(); h = alloc[0].height();
 				w /= 4;
-				loadTexture(0, bits, 4, w, h);
+				loadFrame(0, bits, 4, w, h);
 				break;
 			default:
 				break;
@@ -123,6 +146,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 			glBindTexture(GL_TEXTURE_2D, frame[1]);
 		case RGBA:
 		case BGRA:
+		case ARGB:
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, frame[0]);
 			break;
@@ -130,6 +154,31 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 			break;
 		}
 		p = &program[format];
+		p->bind();
+		switch (format) {
+		case I420:
+			p->setUniformValue("u_ValidY", validArea(0));
+			p->setUniformValue("u_ValidU", validArea(1));
+			p->setUniformValue("u_ValidV", validArea(2));
+			break;
+		case YV12:
+			p->setUniformValue("u_ValidY", validArea(0));
+			p->setUniformValue("u_ValidV", validArea(1));
+			p->setUniformValue("u_ValidU", validArea(2));
+			break;
+		case NV12:
+		case NV21:
+			p->setUniformValue("u_ValidY", validArea(0));
+			p->setUniformValue("u_ValidC", validArea(1));
+			break;
+		case RGBA:
+		case BGRA:
+		case ARGB:
+			p->setUniformValue("u_ValidP", validArea(0));
+			break;
+		default:
+			break;
+		}
 		break;
 	case ABuffer::GLTextureHandle:
 		switch (format) {
@@ -138,14 +187,24 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 		case ARGB:
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, data->handle().toUInt());
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			break;
 		default:
 			break;
 		}
 		p = &program[RGBA];
-		break;
+		p->bind();
+		switch (format) {
+		case RGBA:
+		case BGRA:
+		case ARGB:
+			p->setUniformValue("u_ValidP", 1.0f, 1.0f);
+			break;
+		default:
+			break;
+		}
 	}
-	glViewport(rect.x(), rect.y(), rect.width(), rect.height());
 	QRectF dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
 	GLfloat h = 2.0f / rect.width(), v = 2.0f / rect.height();
 	GLfloat l = dest.left() * h - 1, r = dest.right() * h - 1, t = 1 - dest.top() * v, b = 1 - dest.bottom() * v;
@@ -153,23 +212,14 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 	vtx[2] = r; vtx[3] = t;
 	vtx[4] = l; vtx[5] = b;
 	vtx[6] = r; vtx[7] = b;
-	p->bind();
 	p->setAttributeArray(0, vtx, 2);
 	p->setAttributeArray(1, tex, 2);
 	p->enableAttributeArray(0);
 	p->enableAttributeArray(1);
+	glViewport(rect.x(), rect.y(), rect.width(), rect.height());
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	painter->endNativePainting();
-}
-
-namespace
-{
-	void align(int &size, int alignment)
-	{
-		--alignment;
-		size = (size + alignment) & (~alignment);
-	}
 }
 
 void OpenGLOpaqueRenderPrivate::setFormat(PFormat *f)
@@ -206,49 +256,32 @@ void OpenGLOpaqueRenderPrivate::setFormat(PFormat *f)
 
 	inner = f->size;
 
-	if (alignment >= 8) {
-		alignment = 8;
-	}
-	else if (alignment >= 4) {
-		alignment = 4;
-	}
-	else if (alignment >= 2) {
-		alignment = 2;
-	}
-	else {
-		alignment = 1;
-	}
-	this->alignment = alignment;
-
 	plane.clear();
-	QSize alloc = f->size;
+	QSize size = f->size;
 	switch (format) {
 	case I420:
 	case YV12:
-		plane.append(alloc);
-		alloc /= 2;
-		plane.append(alloc);
-		plane.append(alloc);
+		plane.append(size);
+		size.rwidth() /= 2; size.rheight() /= 2;
+		plane.append(size);
+		plane.append(size);
 		break;
 	case NV12:
 	case NV21:
-		plane.append(alloc);
-		alloc.rheight() /= 2;
-		plane.append(alloc);
+		plane.append(size);
+		size.rheight() /= 2;
+		plane.append(size);
 		break;
 	case RGBA:
 	case BGRA:
 	case ARGB:
-		alloc.rwidth() *= 4;
-		plane.append(alloc);
+		size.rwidth() *= 4;
+		plane.append(size);
 		break;
 	default:
 		return;
 	}
-	for (QSize &iter : plane) {
-		align(iter.rwidth(), alignment);
-	}
-	f->alloc = plane;
+	f->plane = plane;
 }
 
 void OpenGLOpaqueRenderPrivate::setBuffer(ABuffer *buffer)

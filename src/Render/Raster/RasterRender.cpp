@@ -141,10 +141,11 @@ void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 		dataLock.lock();
 		data->map();
 		const uchar *b = data->bits();
+		const QList<QSize> &alloc = data->size();
 		const uchar *srcSlice[4] = { nullptr };
 		int srcWidth[4] = { 0 };
-		for (int i = 0; i < plane.size() && i < 4; ++i) {
-			int w = plane[i].width(), h = plane[i].height();
+		for (int i = 0; i < alloc.size() && i < 4; ++i) {
+			int w = alloc[i].width(), h = alloc[i].height();
 			srcSlice[i] = b;
 			srcWidth[i] = w;
 			b += w * h;
@@ -255,7 +256,7 @@ void RasterRenderPrivate::setFormat(PFormat *f)
 
 	format = getFormat(f->chroma);
 
-	plane.clear();
+	f->plane.clear();
 	int i;
 	int w = f->size.width(), h = f->size.height();
 	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(format);
@@ -266,30 +267,27 @@ void RasterRenderPrivate::setFormat(PFormat *f)
 	if (av_image_fill_linesizes(linesizes, format, w) < 0) {
 		return;
 	}
-	for (i = 0; i < 4; i++) {
-		linesizes[i] = FFALIGN(linesizes[i], f->alignment);
-	}
 	uchar *pointers[4];
-	int len = av_image_fill_pointers(pointers, format, h, NULL, linesizes);
-	if (len < 0) {
+	int total = av_image_fill_pointers(pointers, format, h, NULL, linesizes);
+	if (total < 0) {
 		return;
 	}
 	for (i = 0; i < 3; ++i) {
-		uchar *end = pointers[i + 1];
-		if (end == nullptr) {
+		if (pointers[i + 1] == nullptr) {
 			break;
 		}
-		int num = end - pointers[i];
-		if (num == 0) {
+		int plane = pointers[i + 1] - pointers[i];
+		if (plane == 0) {
 			continue;
 		}
-		plane.append(QSize(linesizes[i], num / linesizes[i]));
-		len -= num;
+		int width = linesizes[i];
+		f->plane.append(QSize(width, plane / width));
+		total -= plane;
 	}
 	{
-		plane.append(QSize(linesizes[i], len / linesizes[i]));
+		int width = linesizes[i];
+		f->plane.append(QSize(width, total / width));
 	}
-	f->alloc = plane;
 }
 
 void RasterRenderPrivate::setBuffer(ABuffer *buffer)
