@@ -28,7 +28,7 @@
 #include "Common.h"
 #include "Menu.h"
 #include "Search.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"

@@ -177,25 +177,25 @@ QT += widgets
 
 SOURCES += \
     src/UI/Widget/Editor.cpp \
+    src/UI/Widget/Home.cpp \
     src/UI/Widget/Info.cpp \
     src/UI/Widget/Jump.cpp \
     src/UI/Widget/Menu.cpp \
     src/UI/Widget/Prefer.cpp \
     src/UI/Widget/Search.cpp \
     src/UI/Widget/Type.cpp \
-    src/UI/Widget/WidgetInterfacePrivate.cpp \
-    src/UI/Widget/WidgetUtils.cpp
+    src/UI/Widget/WidgetInterfacePrivate.cpp
 
 HEADERS += \
     src/UI/Widget/Editor.h \
+    src/UI/Widget/Home.h \
     src/UI/Widget/Info.h \
     src/UI/Widget/Jump.h \
     src/UI/Widget/Menu.h \
     src/UI/Widget/Prefer.h \
     src/UI/Widget/Search.h \
     src/UI/Widget/Type.h \
-    src/UI/Widget/WidgetInterfacePrivate.h \
-    src/UI/Widget/WidgetUtils.h
+    src/UI/Widget/WidgetInterfacePrivate.h
 
 message(enable widget interface)
 }

@@ -26,7 +26,7 @@
 
 #include "Common.h"
 #include "Prefer.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"

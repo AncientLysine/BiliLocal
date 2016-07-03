@@ -26,7 +26,7 @@
 
 #include "Common.h"
 #include "Editor.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../../Config.h"
 #include "../../Local.h"
 #include "../../Utils.h"

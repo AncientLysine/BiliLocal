@@ -70,15 +70,21 @@ void Plugin::load()
 		if (info.isFile() && QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());
 			if (lib.loaded()) {
+				bool success = false;
 				try {
 					if (Config::getValue("/Plugin/" + lib.string("Name"), true)) {
 						lib.regist(lApp);
-						plugins.append(lib);
+						success = true;
 					}
 				}
 				catch (...) {
-					qDebug() << QString("failed to regist %1").arg(info.fileName());
+					qDebug() << QString("Plugin: failed to regist %1").arg(info.fileName());
 				}
+				if (success == false) {
+					lib.m_regist = nullptr;
+					lib.m_config = nullptr;
+				}
+				plugins.append(lib);
 			}
 		}
 	}

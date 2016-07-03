@@ -29,7 +29,7 @@
 #include "Info.h"
 #include "Editor.h"
 #include "Prefer.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"
