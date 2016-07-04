@@ -66,6 +66,18 @@ void OpenGLRender::setup()
 	ARender::setup();
 }
 
+void OpenGLRender::setFormat(PFormat *format)
+{
+	Q_D(OpenGLRender);
+	d->setFormat(format);
+}
+
+void OpenGLRender::setBuffer(ABuffer *buffer)
+{
+	Q_D(OpenGLRender);
+	d->setBuffer(buffer);
+}
+
 ASprite *OpenGLRender::getSprite()
 {
 	Q_D(OpenGLRender);

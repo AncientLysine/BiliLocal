@@ -124,18 +124,6 @@ ARender::~ARender()
 	delete d_ptr;
 }
 
-void ARender::setFormat(PFormat *format)
-{
-	Q_D(ARender);
-	d->setFormat(format);
-}
-
-void ARender::setBuffer(ABuffer *buffer)
-{
-	Q_D(ARender);
-	d->setBuffer(buffer);
-}
-
 void ARender::setBackground(QString path)
 {
 	Q_D(ARender);

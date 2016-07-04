@@ -79,6 +79,18 @@ RasterRenderPrivate::~RasterRenderPrivate()
 	}
 }
 
+void RasterRender::setFormat(PFormat *format)
+{
+	Q_D(RasterRender);
+	d->setFormat(format);
+}
+
+void RasterRender::setBuffer(ABuffer *buffer)
+{
+	Q_D(RasterRender);
+	d->setBuffer(buffer);
+}
+
 ASprite *RasterRender::getSprite()
 {
 	return new AsyncRasterSprite();

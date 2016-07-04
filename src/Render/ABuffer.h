@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QList>
+#include <QSize>
 #include <QVariant>
 
 class ABuffer

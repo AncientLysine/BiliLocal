@@ -86,6 +86,8 @@ public:
 
 	virtual void initialize();
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
+	virtual void setFormat(PFormat *format) = 0;
+	virtual void setBuffer(ABuffer *buffer) = 0;
 	virtual void onSwapped();
 	virtual bool isVisible() = 0;
 	virtual QObject *getHandle() = 0;
