@@ -210,6 +210,9 @@ SOURCES += \
     src/UI/Quick2/Interface.qml
 }
 
+SOURCES += \
+    src/UI/Quick2/Quick2InterfacePrivate.cpp
+
 HEADERS += \
     src/UI/Quick2/Export.h \
     src/UI/Quick2/Quick2InterfacePrivate.h
@@ -255,6 +258,8 @@ HEADERS += \
     src/Render/OpenGL/DetachPrivate.h \
     src/Render/OpenGL/OpaquePrivate.h
 
+message(enable opengl render detach output)
+
 contains(QT, widgets){
 HEADERS += \
     src/Render/OpenGL/WidgetPrivate.h \
@@ -266,7 +271,6 @@ SOURCES += \
 
 message(enable opengl render widget output)
 message(enable opengl render window output)
-message(enable opengl render detach output)
 }
 
 contains(QT, quick){

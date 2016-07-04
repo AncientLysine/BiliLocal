@@ -220,6 +220,7 @@ void AtlasMgr::shuffle()
 	else if (render->extensions.contains("texture_rg")) {
 		render->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, upload, 0);
 		render->glViewport(0, 0, Atlas::MaxSize, Atlas::MaxSize);
+		render->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		render->glClear(GL_COLOR_BUFFER_BIT);
 	}
 	else{
