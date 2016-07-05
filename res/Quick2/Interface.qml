@@ -5,18 +5,10 @@ import QtQuick.Dialogs 1.2
 import BiliLocal 1.0
 
 Window {
-    id: mainWindow
     visible: true
     width: 960
     height: 540
     title: "BiliLocal"
-
-    Timer {
-        interval: 1
-        running: true
-        repeat: true
-        onTriggered: mainWindow.update();
-    }
 
     Menu {
         id: contextMenu

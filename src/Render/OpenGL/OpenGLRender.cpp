@@ -60,7 +60,7 @@ void OpenGLRender::setup()
 		d_ptr = new OpenGLQuick2RenderPrivate();
 	}
 #endif
-	else{
+	else {
 		return;
 	}
 
@@ -73,6 +73,12 @@ void OpenGLRender::setup()
 		&APlayer::timeChanged,
 		this,
 		[d]() { d->manager->squeeze(5000); });
+
+	connect(
+		lApp->findObject<APlayer>(),
+		SIGNAL(decode()),
+		this,
+		SLOT(draw()));
 
 	connect(
 		lApp->findObject<APlayer>(),

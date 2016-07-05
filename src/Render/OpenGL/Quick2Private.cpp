@@ -22,5 +22,5 @@ OpenGLQuick2RenderPrivate::OpenGLQuick2RenderPrivate()
 		}
 		paint(device.data());
 	});
-	QObject::connect(window, &QQuickWindow::frameSwapped, std::bind(&ElapsedTimer::swap, &timer));
+	QObject::connect(window, &QQuickWindow::frameSwapped, std::bind(&OpenGLRenderPrivate::onSwapped, this));
 }

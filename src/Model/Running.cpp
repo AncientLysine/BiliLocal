@@ -65,6 +65,7 @@ void Running::setup()
 
 	connect(lApp->findObject<APlayer>(), &APlayer::jumped, this, &Running::jumpTime);
 	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, this, &Running::moveTime);
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, &Running::clear);
 
 	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
 		Q_D(Running);
@@ -108,6 +109,8 @@ void Running::clear(bool soft)
 		}
 	}
 	d->lock.unlock();
+	d->time = 0;
+	d->curr = 0;
 	lApp->findObject<ARender>()->draw();
 }
 

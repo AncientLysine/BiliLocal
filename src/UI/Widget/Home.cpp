@@ -145,13 +145,10 @@ Home::Home(QWidget *parent)
 		}
 		rat->setEnabled(true);
 		spd->setEnabled(true);
-		arender->setDisplayTime(0);
 		setWindowFilePath(aplayer->getMedia());
 	});
 
 	connect(aplayer, &APlayer::reach, this, [this](bool m) {
-		running->clear();
-		running->jumpTime(0);
 		rat->setEnabled(false);
 		spd->setEnabled(false);
 		for (auto iter : sca->actions()) {
@@ -165,7 +162,6 @@ Home::Home(QWidget *parent)
 			restoreGeometry(geo);
 			geo.clear();
 		}
-		arender->setDisplayTime(0);
 		setWindowFilePath(QString());
 	});
 
