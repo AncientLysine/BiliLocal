@@ -164,10 +164,10 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 
 	result.clear();
 	for (;;) {
-		if (!atlases.isEmpty()) {
-			atlases.last()->insert(splited, info.effect, result);
+		if (atlases.isEmpty() == false) {
+			atlases.front()->insert(splited, info.effect, result);
 		}
-		if (!splited.isEmpty()) {
+		if (splited.isEmpty() == false) {
 			shuffle();
 		}
 		else {
@@ -183,25 +183,31 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 void AtlasMgr::shuffle()
 {
 	if (atlases.isEmpty()) {
-		atlases.append(new Atlas(render));
+		atlases.prepend(new Atlas(render));
 	}
 	else {
 		render->flushLoad();
 
-		if (atlases.front()->isEmpty()) {
-			atlases.append(atlases.takeFirst());
+		for (auto iter = atlases.begin() + 1; iter != atlases.end(); ++iter) {
+			if ((*iter)->isEmpty()) {
+				Atlas *at = *iter;
+				atlases.erase(iter);
+				atlases.prepend(at);
+				break;
+			}
 		}
-		else {
-			atlases.append(new Atlas(render));
+		if (atlases.front()->isEmpty() == false) {
+			atlases.prepend(new Atlas(render));
 		}
 	}
 
-	GLuint target = atlases.last()->getTexture();
+	GLuint target = atlases.front()->getTexture();
 	GLuint window = QOpenGLContext::currentContext()->defaultFramebufferObject();
 	render->glBindFramebuffer(GL_FRAMEBUFFER, buffer);
 	if (render->extensions.contains("clear_texture")) {
 		static uchar bits[4];
 		GLenum format = render->pixelFormat(1);
+
 		typedef void (QOPENGLF_APIENTRYP ClearTexImageFunc) (
 			GLuint texture,
 			int level,
@@ -243,9 +249,15 @@ void AtlasMgr::shuffle()
 	cached.clear();
 }
 
-void AtlasMgr::squeeze()
+void AtlasMgr::squeeze(int timeout)
 {
-	while (atlases.size() > 2 && atlases.front()->isEmpty()) {
-		delete atlases.takeFirst();
+	for (auto iter = atlases.begin(); iter != atlases.end() && atlases.size() > 2;) {
+		if ((*iter)->expired(timeout)) {
+			delete *iter;
+			iter = atlases.erase(iter);
+		}
+		else {
+			++iter;
+		}
 	}
 }

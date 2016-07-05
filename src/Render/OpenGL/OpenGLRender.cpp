@@ -63,7 +63,23 @@ void OpenGLRender::setup()
 	else{
 		return;
 	}
+
 	ARender::setup();
+
+	Q_D(OpenGLRender);
+
+	connect(
+		lApp->findObject<APlayer>(),
+		&APlayer::timeChanged,
+		this,
+		[d]() { d->manager->squeeze(5000); });
+
+	connect(
+		lApp->findObject<APlayer>(),
+		&APlayer::reach,
+		this,
+		[d]() { d->manager->squeeze(0); },
+		Qt::QueuedConnection);
 }
 
 void OpenGLRender::setFormat(PFormat *format)

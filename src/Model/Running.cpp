@@ -161,15 +161,13 @@ namespace
 	//Floor太慢了
 	inline int lower(double n)
 	{
-		Q_ASSERT(n >= 0);
-		return (int)n;
+		return (int)n - (n < (int)n);
 	}
 
 	//Ceil 太慢了
 	inline int upper(double n)
 	{
-		int i = (int)n;
-		return i + (n > i);
+		return (int)n + (n > (int)n);
 	}
 
 	class Process : public QRunnable
@@ -224,9 +222,10 @@ namespace
 					const QRectF &rect = against->currentRect();
 					const QRectF &from = meta.rect.at(0);
 					double stp = meta.rect.at(1).top() - from.top();
-					double len = from.height();
-					int sta = qMax(0, lower((stp > 0 ? (rect.top() - from.top()) : (rect.bottom() - from.bottom())) / stp));
-					int end = qMin(upper((rect.height() + len) / qAbs(stp) + sta), thick.size());
+					double off = stp > 0 ? (rect.top() - from.top()) : (rect.bottom() - from.bottom());
+					double len = rect.height() + from.height();
+					int sta = qMax(lower(off / stp), 0);
+					int end = qMin(upper(len / qAbs(stp) + sta), thick.size());
 					QRectF &iter = head->currentRect(), back = iter;
 					for (; sta < end; ++sta) {
 						iter = meta.rect.at(sta);

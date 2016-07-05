@@ -26,9 +26,14 @@ public:
 
 	inline void DecRef()
 	{
+		if (refNum == 0) {
+			return;
+		}
+
 		--refNum;
 
 		if (refNum == 0) {
+			expiry.start();
 			usages.clear();
 		}
 	}
@@ -36,6 +41,11 @@ public:
 	inline bool isEmpty() const
 	{
 		return refNum == 0;
+	}
+
+	inline bool expired(int timeout) const
+	{
+		return isEmpty() && expiry.hasExpired(timeout);
 	}
 
 	inline GLuint getTexture() const
@@ -49,6 +59,7 @@ private:
 	size_t refNum;
 	GLuint cached;
 	QVector<QSize> usages;
+	QElapsedTimer expiry;
 };
 
 class Sprite
@@ -113,7 +124,7 @@ public:
 	}
 
 	void shuffle();
-	void squeeze();
+	void squeeze(int timeout);
 
 private:
 	OpenGLRenderPrivate *render;

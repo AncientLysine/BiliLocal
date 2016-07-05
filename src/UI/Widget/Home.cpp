@@ -150,8 +150,8 @@ Home::Home(QWidget *parent)
 	});
 
 	connect(aplayer, &APlayer::reach, this, [this](bool m) {
-		running->jumpTime(0);
 		running->clear();
+		running->jumpTime(0);
 		rat->setEnabled(false);
 		spd->setEnabled(false);
 		for (auto iter : sca->actions()) {

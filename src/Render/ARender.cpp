@@ -114,7 +114,7 @@ void ARender::setup()
 	d->dirty = 0;
 	d->videoAspectRatio = 0;
 	d->pixelAspectRatio = 1;
-	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, [d](){
+	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, this, [d](){
 		d->timer.invalidate();
 	});
 }
