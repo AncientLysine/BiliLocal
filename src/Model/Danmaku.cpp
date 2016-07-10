@@ -191,12 +191,14 @@ Comment * Danmaku::at(int index)
 void Danmaku::clear()
 {
 	Q_D(Danmaku);
-	if (!d->pool.isEmpty()){
-		//clearCurrent();
-		d->pool.clear();
-		d->danm.clear();
-		parse(0x1 | 0x2);
+	if (d->pool.isEmpty()){
+		return;
 	}
+	decltype(d->pool) pool;
+	decltype(d->danm) danm;
+	d->pool.swap(pool);
+	d->danm.swap(danm);
+	parse(0x1 | 0x2);
 }
 
 namespace
@@ -223,51 +225,65 @@ namespace
 	}
 }
 
-void Danmaku::append(const Record *record)
+void Danmaku::append(Record &&record)
 {
 	Q_D(Danmaku);
-	Record *append = 0;
+	Record *append = nullptr;
 	for (Record &r : d->pool) {
-		if (r.source == record->source) {
+		if (r.source == record.source) {
 			append = &r;
 			break;
 		}
 	}
-	if (append == nullptr) {
-		d->pool.append(*record);
-		QSet<CommentPointer> s;
-		auto &l = d->pool.last().danmaku;
-		s.reserve(l.size());
-		auto e = std::remove_if(l.begin(), l.end(), [&s](const Comment &c) {
-			int n = s.size();
-			s.insert(&c);
-			return n == s.size();
-		});
-		l.erase(e, l.end());
-	}
-	else {
+	if (append) {
+		int a = record.danmaku.size();
+		if (a <= 0) {
+			return;
+		}
 		QSet<CommentPointer> s;
 		auto &l = append->danmaku;
-		int c = l.size() + record->danmaku.size();
+		int c = l.size() + a;
 		s.reserve(c);
 		l.reserve(c);
 		for (const Comment &c : l) {
 			s.insert(&c);
 		}
-		for (const Comment &i : record->danmaku) {
+		for (const Comment &i : record.danmaku) {
 			l.append(i);
 			Comment &c = l.last();
-			c.time += append->delay - record->delay;
+			c.time += append->delay - record.delay;
 			int n = s.size();
 			s.insert(&c);
-			if (n == s.size()) {
+			if (s.size() == n) {
 				l.removeLast();
 			}
 		}
-		if (record->full) {
-			append->full = true;
+		append->full = record.full || append->full;
+	}
+	else {
+		QSet<CommentPointer> s;
+		auto &l = record.danmaku;
+		s.reserve(l.size());
+		auto b = l.begin(), e = l.end();
+		for (; b != e; ++b) {
+			int n = s.size();
+			s.insert(&*b);
+			if (s.size() == n) {
+				break;
+			}
 		}
-		append->limit = record->limit == 0 ? 0 : qMax(append->limit, record->limit);
+		auto i = b == e ? e : std::next(b);
+		for (; i != e; ++i) {
+			int n = s.size();
+			*b = *i;
+			s.insert(&*b);
+			if (s.size() != n) {
+				++b;
+			}
+		}
+		l.erase(b, e);
+		d->pool.append(record);
+		record.danmaku.clear();
 	}
 	parse(0x1 | 0x2);
 	if (append) {
@@ -420,8 +436,9 @@ void Danmaku::parse(int flag)
 			}
 		}
 		// Regex Limit
+		Shield *shield = lApp->findObject<Shield>();
 		for (Comment *c : d->danm) {
-			c->blocked = c->blocked || lApp->findObject<Shield>()->isBlocked(*c);
+			c->blocked = c->blocked || shield->isBlocked(*c);
 		}
 		emit layoutChanged();
 	}
@@ -499,7 +516,7 @@ void Danmaku::saveToFile(QString file) const
 			o["m"] = c->string;
 			a.append(o);
 		}
-		f.write(QJsonDocument(a).toJson(QJsonDocument::Compact));
+		f.write(QJsonDocument(a).toJson());
 	}
 	f.close();
 }

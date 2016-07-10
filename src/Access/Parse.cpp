@@ -1,37 +1,112 @@
 #include "Common.h"
 #include "Parse.h"
+#include "../Local.h"
 #include <QtConcurrent>
-#include <functional>
+#include <cstdlib>
 
 namespace
 {
-	class FutureRecord : public Parse::ResultDelegate::Record
+	QTextCodec *codeForData(const QByteArray &data)
+	{
+		QTextCodec *code = QTextCodec::codecForUtfText(data, nullptr);
+		if (code) {
+			return code;
+		}
+		QByteArray name;
+		QByteArray head = data.left(512).toLower();
+		if (head.startsWith("<?xml")) {
+			int pos = head.indexOf("encoding=");
+			if (pos >= 0) {
+				pos += 9;
+				if (pos < head.size()) {
+					auto c = head.at(pos);
+					if ('\"' == c || '\'' == c) {
+						++pos;
+						name = head.mid(pos, head.indexOf(c, pos) - pos);
+					}
+				}
+			}
+		}
+		else {
+			int pos = head.indexOf("charset=", head.indexOf("meta "));
+			if (pos >= 0) {
+				pos += 8;
+				int end = pos;
+				while (++end < head.size()) {
+					auto c = head.at(end);
+					if (c == '\"' || c == '\'' || c == '>') {
+						name = head.mid(pos, end - pos);
+						break;
+					}
+				}
+			}
+		}
+		code = QTextCodec::codecForName(name);
+		if (code) {
+			return code;
+		}
+		return QTextCodec::codecForLocale();
+	}
+
+	QString decodeBytes(const QByteArray &data)
+	{
+		return codeForData(data)->toUnicode(data);
+	}
+
+	using namespace Parse;
+
+	typedef ResultDelegate::Finish Finish;
+	typedef ResultDelegate::Record Record;
+	typedef ResultDelegate::Result Result;
+
+	class FutureRecord : public Record
 	{
 	public:
-		QFuture<QVector<Comment>> data;
-
-		explicit FutureRecord(const QFuture<QVector<Comment>> &data) :
-			data(data)
+		explicit FutureRecord(const QFuture<Result> &data)
+			: data(data)
 		{
+			watcher.setFuture(data);
 		}
 
-		virtual QVector<Comment> get() override
+		virtual void onFinish(Finish cb) override
+		{
+			if (watcher.isFinished()) {
+				cb();
+				return;
+			}
+			auto connection = QSharedPointer<QMetaObject::Connection>::create();
+			*connection = QObject::connect(&watcher, &QFutureWatcher<Result>::finished, [=]() {
+				cb();
+				QObject::disconnect(*connection);
+			});
+		}
+
+		virtual Result get() override
 		{
 			return data.result();
 		}
+
+	private:
+		QFuture<Result> data;
+		QFutureWatcher<Result> watcher;
 	};
 
-	class VectorRecord : public Parse::ResultDelegate::Record
+	class VectorRecord : public Record
 	{
 	public:
-		QVector<Comment> data;
+		Result data;
 
-		explicit VectorRecord(const QVector<Comment> &data) :
-			data(data)
+		explicit VectorRecord(const Result &data)
+			: data(data)
 		{
 		}
 
-		virtual QVector<Comment> get() override
+		virtual void onFinish(Finish cb) override
+		{
+			cb();
+		}
+
+		virtual Result get() override
 		{
 			return data;
 		}
@@ -44,97 +119,135 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	case Utils::Bilibili:
 	case Utils::TuCao:
 	{
-		auto xml = QSharedPointer<QString>::create(Utils::decodeTxt(data));
-		QVector<QStringRef> items = xml->splitRef("<d p=");
-		if (items.isEmpty()) {
-			return ResultDelegate();
-		}
-		items.removeFirst();
-		auto future = QtConcurrent::mappedReduced<
-			QVector<Comment>,
-			QVector<QStringRef>,
-			std::function<Comment(const QStringRef &)>,
-			std::function<void(QVector<Comment> &, const Comment &)>
-		>(
-			items,
-			[xml](const QStringRef &item) {
-			const QVector<QStringRef> &args = item.mid(1, item.indexOf(item.at(0), 1) - 1).split(',');
-			Comment comment;
-			if (args.size() > 4) {
-				comment.time = args[0].toDouble() * 1000 + 0.5;
-				comment.date = args[4].toInt();
-				comment.mode = args[1].toInt();
-				comment.font = args[2].toInt();
-				comment.color = args[3].toInt();
-				comment.sender = args.size() <= 6 ? QString() : args[6].toString();
-				const QStringRef &last = args[args.size() <= 6 ? 4 : 6];
-				int sta = item.indexOf('>', last.position() + last.size() - item.position()) + 1;
-				int len = item.indexOf('<', sta) - sta;
-				comment.string = Utils::decodeXml(item.mid(sta, len), true);
+		auto future = QtConcurrent::run([data]() {
+			typedef QPair<const char *, const char *> RawChar;
+			QVector<RawChar> raws;
+			const char *dat = data.constData();
+			QByteArrayMatcher match("<d p=");
+			int sta = match.indexIn(data);
+			if (sta == -1) {
+				return QVector<Comment>();
 			}
-			return comment;
-		},
-			[](QVector<Comment> &list, const Comment &comment) {
-			if (!comment.isEmpty()) {
-				list.append(comment);
+			for (;;) {
+				auto sub = dat + sta;
+				sta = match.indexIn(data, sta + 5);
+				if (sta == -1) {
+					raws.append(qMakePair(sub, dat + data.size()));
+					break;
+				}
+				else {
+					raws.append(qMakePair(sub, dat + sta));
+				}
 			}
-		}
-		);
+			auto codec = codeForData(data);
+			auto map = [codec](const RawChar &raw) {
+				Comment comment;
+				//strtof/strtoi need char * ?!
+				char *arg = const_cast<char *>(raw.first) + 6;
+				int time = std::strtod(arg, &arg) * 1000 + 0.5;
+				if (*(arg++) != ',') return comment;
+				int mode = std::strtol(arg, &arg, 10);
+				if (*(arg++) != ',') return comment;
+				int font = std::strtol(arg, &arg, 10);
+				if (*(arg++) != ',') return comment;
+				int colo = std::strtol(arg, &arg, 10);
+				if (*(arg++) != ',') return comment;
+				int date = std::strtol(arg, &arg, 10);
+				comment.mode = mode;
+				comment.font = font;
+				comment.color = colo;
+				comment.time = time;
+				comment.date = date;
+				auto num = 4;
+				auto end = *(raw.first + 5);
+				auto lst = arg;
+				for (; arg < raw.second && *arg != end; ++arg) {
+					if (',' == *arg) {
+						if (7 == (++num)) {
+							comment.sender = QLatin1String(lst, arg - lst);
+						}
+						lst = arg + 1;
+					}
+				}
+				for (; arg < raw.second && *arg != '>'; ++arg);
+				lst = arg + 1;
+				for (; arg < raw.second && *arg != '<'; ++arg);
+				comment.string = Utils::decodeXml(codec->toUnicode(lst, arg - lst), true);
+				return comment;
+			};
+			auto reduce = [](QVector<Comment> &list, const Comment &comment) {
+				if (comment.isEmpty() == false) {
+					list.append(comment);
+				}
+			};
+			qThreadPool->reserveThread();
+			const auto &result = QtConcurrent::blockingMappedReduced<
+				QVector<Comment>,
+				QVector<RawChar>,
+				std::function<Comment(const RawChar &)>,
+				std::function<void(QVector<Comment> &, const Comment &)>>
+				(raws, map, reduce, QtConcurrent::OrderedReduce | QtConcurrent::SequentialReduce);
+			qThreadPool->releaseThread();
+			return result;
+		});
 		return ResultDelegate(new FutureRecord(future));
+
 	}
 	case Utils::AcFun:
 	{
-		QQueue <QJsonArray> queue;
-		queue.append(QJsonDocument::fromJson(data).array());
-		QVector<QJsonValue> items;
-		while (!queue.isEmpty()) {
-			const QJsonArray &head = queue.takeFirst();
-			items.reserve(items.size() + items.size());
-			for (const QJsonValue &item : head) {
-				if (item.isArray()) {
-					queue.append(item.toArray());
+		auto future = QtConcurrent::run([data]() {
+			QQueue <QJsonArray> wait;
+			wait.append(QJsonDocument::fromJson(data).array());
+			QVector<QJsonValue> raws;
+			while (!wait.isEmpty()) {
+				const QJsonArray &head = wait.takeFirst();
+				raws.reserve(raws.size() + raws.size());
+				for (const QJsonValue &item : head) {
+					if (item.isArray()) {
+						wait.append(item.toArray());
+					}
+					else {
+						raws.append(item);
+					}
 				}
-				else {
-					items.append(item);
+			}
+			auto map = [](const QJsonValue &item) {
+				QJsonObject o = item.toObject();
+				const QString &c = o["c"].toString();
+				const QString &m = o["m"].toString();
+				const QVector<QStringRef> &args = c.splitRef(',');
+				Comment comment;
+				if (args.size() > 5) {
+					comment.time = args[0].toDouble() * 1000 + 0.5;
+					comment.date = args[5].toInt();
+					comment.mode = args[2].toInt();
+					comment.font = args[3].toInt();
+					comment.color = args[1].toInt();
+					comment.sender = args[4].toString();
+					comment.string = m;
 				}
-			}
-		}
-		auto future = QtConcurrent::mappedReduced<
-			QVector<Comment>,
-			QVector<QJsonValue>,
-			std::function<Comment(const QJsonValue &)>,
-			std::function<void(QVector<Comment> &, const Comment &)>
-		>(
-			items,
-			[items](const QJsonValue &item) {
-			QJsonObject o = item.toObject();
-			const QString &c = o["c"].toString();
-			const QString &m = o["m"].toString();
-			const QVector<QStringRef> &args = c.splitRef(',');
-			Comment comment;
-			if (args.size() > 5) {
-				comment.time = args[0].toDouble() * 1000 + 0.5;
-				comment.date = args[5].toInt();
-				comment.mode = args[2].toInt();
-				comment.font = args[3].toInt();
-				comment.color = args[1].toInt();
-				comment.sender = args[4].toString();
-				comment.string = m;
-			}
-			return comment;
-		},
-			[](QVector<Comment> &list, const Comment &comment) {
-			if (!comment.isEmpty()) {
-				list.append(comment);
-			}
-		}
-		);
+				return comment;
+			};
+			auto reduce = [](QVector<Comment> &list, const Comment &comment) {
+				if (!comment.isEmpty()) {
+					list.append(comment);
+				}
+			};
+			qThreadPool->reserveThread();
+			const auto &result = QtConcurrent::blockingMappedReduced<
+				QVector<Comment>,
+				QVector<QJsonValue>,
+				std::function<Comment(const QJsonValue &)>,
+				std::function<void(QVector<Comment> &, const Comment &)>>
+				(raws, map, reduce, QtConcurrent::OrderedReduce | QtConcurrent::SequentialReduce);
+			qThreadPool->releaseThread();
+			return result;
+		});
 		return ResultDelegate(new FutureRecord(future));
 	}
 	case Utils::AcfunLocalizer:
 	{
-		QString xml = Utils::decodeTxt(data);
-		QVector<QStringRef> items = xml.splitRef("<l i=\"");
+		QVector<QStringRef> items = decodeBytes(data).splitRef("<l i=\"");
 		if (items.isEmpty()) {
 			return ResultDelegate();
 		}
@@ -162,7 +275,7 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	}
 	case Utils::Niconico:
 	{
-		QVector<QStringRef> items = Utils::decodeTxt(data).splitRef("<chat ");
+		QVector<QStringRef> items = decodeBytes(data).splitRef("<chat ");
 		if (items.isEmpty()) {
 			return ResultDelegate();
 		}
@@ -240,7 +353,7 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 	}
 	case Utils::ASS:
 	{
-		QString xml = Utils::decodeTxt(data);
+		QString xml = decodeBytes(data);
 		int pos = 0, len;
 		pos = xml.indexOf("PlayResY:") + 9;
 		len = xml.indexOf('\n', pos) + 1 - pos;

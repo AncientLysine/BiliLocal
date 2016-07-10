@@ -465,42 +465,51 @@ Load::Load(QObject *parent)
 		}
 		case File:
 		{
+			const QUrl &url = reply->url();
+
 			Record load;
-			QUrl url = reply->url();
-			QByteArray data(reply->readAll());
 			load.source = url.url();
 			load.access = url.isLocalFile() ? url.toLocalFile() : load.source;
 			load.string = QFileInfo(task.code).fileName();
-			load.delay = task.delay;
-			QString head = Utils::decodeTxt(data.left(512));
+
+			Parse::ResultDelegate result;
+			QByteArray data(reply->readAll());
+			QByteArray head = data.left(512);
 			if (head.startsWith("[Script Info]")){
-				load.danmaku = Parse::parseComment(data, Utils::ASS);
+				result = Parse::parseComment(data, Utils::ASS);
 			}
 			else if (!head.startsWith("<?xml")){
-				load.danmaku = Parse::parseComment(data, Utils::AcFun);
+				result = Parse::parseComment(data, Utils::AcFun);
 			}
 			else if (head.indexOf("<packet>") != -1){
-				load.danmaku = Parse::parseComment(data, Utils::Niconico);
+				result = Parse::parseComment(data, Utils::Niconico);
 			}
 			else if (head.indexOf("<i>") != -1){
-				load.danmaku = Parse::parseComment(data, Utils::Bilibili);
-				QString i = QRegularExpression("(?<=<chatid>)\\d+(?=</chatid>)").match(head).captured();
-				if (!i.isEmpty()){
-					load.source = "http://comment.%1/%2.xml";
-					load.source = load.source.arg(Utils::customUrl(Utils::Bilibili)).arg(i);
+				result = Parse::parseComment(data, Utils::Bilibili);
+				int sta = head.indexOf("<chatid>") + 8, end = head.indexOf("</chatid>", sta);
+				if (sta != -1 && end != -1){
+					QString &s = load.source;
+					s = "http://comment.%1/%2.xml";
+					s = s.arg(Utils::customUrl(Utils::Bilibili));
+					s = s.arg(QString(head.mid(sta, end - sta)));
 				}
 			}
 			else if (head.indexOf("<c>") != -1){
-				load.danmaku = Parse::parseComment(data, Utils::AcfunLocalizer);
+				result = Parse::parseComment(data, Utils::AcfunLocalizer);
 			}
-			if (load.delay != 0){
-				for (Comment &c : load.danmaku){
-					c.time += load.delay;
+			result.onFinish([=, &task]() mutable {
+				load.danmaku = result;
+				result.clear();
+				if (task.delay != 0) {
+					load.delay = task.delay;
+					for (Comment &iter : load.danmaku) {
+						iter.time += load.delay;
+					}
 				}
-			}
-			lApp->findObject<Danmaku>()->append(&load);
-			emit stateChanged(task.state = None);
-			dequeue();
+				lApp->findObject<Danmaku>()->append(std::move(load));
+				emit stateChanged(task.state = None);
+				dequeue();
+			});
 			break;
 		}
 		}
@@ -608,7 +617,7 @@ Load::Load(QObject *parent)
 									load.danmaku.append(iter);
 								}
 								load.source = task.code;
-								lApp->findObject<Danmaku>()->append(&load);
+								lApp->findObject<Danmaku>()->append(std::move(load));
 								emit stateChanged(task.state = None);
 								dequeue();
 							}
@@ -678,7 +687,7 @@ Load::Load(QObject *parent)
 				}
 			}
 			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
-			lApp->findObject<Danmaku>()->append(&load);
+			lApp->findObject<Danmaku>()->append(std::move(load));
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -853,7 +862,7 @@ void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 			c.time += load.delay;
 		}
 	}
-	lApp->findObject<Danmaku>()->append(&load);
+	lApp->findObject<Danmaku>()->append(std::move(load));
 }
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)

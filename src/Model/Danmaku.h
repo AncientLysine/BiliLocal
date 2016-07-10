@@ -51,6 +51,7 @@ public:
 	QList<Comment *>::iterator begin();
 	QList<Comment *>::iterator end();
 	Comment *at(int index);
+	void append(Record &&record);
 
 private:
 	DanmakuPrivate *const d_ptr;
@@ -62,7 +63,6 @@ signals:
 
 public slots:
 	void clear();
-	void append(const Record *record);
 	void append(QString source, const Comment *comment);
 	void parse(int flag = 0);
 	void delayAll(qint64 time);

@@ -133,7 +133,6 @@ namespace Utils
 	QString defaultFont(bool monospace = false);
 	QString localPath(Path path);
 	QString customUrl(Site site);
-	QString decodeTxt(const QByteArray &data);
 	QString decodeXml(QString string, bool fast = false);
 	QString decodeXml(QStringRef ref, bool fast = false);
 	QStringList getSuffix(int type, QString format = QString());

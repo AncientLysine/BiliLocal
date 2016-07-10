@@ -335,47 +335,6 @@ QString Utils::customUrl(Site site)
 	return QString();
 }
 
-QString Utils::decodeTxt(const QByteArray &data)
-{
-	QTextCodec *codec = QTextCodec::codecForUtfText(data, nullptr);
-	if (!codec) {
-		QByteArray name;
-		QByteArray head = data.left(512).toLower();
-		if (head.startsWith("<?xml")) {
-			int pos = head.indexOf("encoding=");
-			if (pos >= 0) {
-				pos += 9;
-				if (pos < head.size()) {
-					auto c = head.at(pos);
-					if ('\"' == c || '\'' == c) {
-						++pos;
-						name = head.mid(pos, head.indexOf(c, pos) - pos);
-					}
-				}
-			}
-		}
-		else {
-			int pos = head.indexOf("charset=", head.indexOf("meta "));
-			if (pos >= 0) {
-				pos += 8;
-				int end = pos;
-				while (++end < head.size()) {
-					auto c = head.at(end);
-					if (c == '\"' || c == '\'' || c == '>') {
-						name = head.mid(pos, end - pos);
-						break;
-					}
-				}
-			}
-		}
-		codec = QTextCodec::codecForName(name);
-	}
-	if (!codec) {
-		codec = QTextCodec::codecForLocale();
-	}
-	return codec->toUnicode(data);
-}
-
 QString Utils::decodeXml(QString string, bool fast)
 {
 	if (fast) {
@@ -413,12 +372,12 @@ namespace
 	template<char16_t... list>
 	inline bool equal(const char16_t *string, int length, int offset)
 	{
-		return offset + (int)sizeof...(list) < length && String<list...>::equalTo(string, offset);
+		return offset + (int)sizeof...(list) <= length && String<list...>::equalTo(string, offset);
 	}
 
 	int decodeHtmlEscape(const char16_t *data, int length, int i, char16_t &c)
 	{
-		if (i + 1 >= length) {
+		if (i >= length) {
 			return 0;
 		}
 
@@ -493,11 +452,14 @@ namespace
 
 	int decodeCharEscape(const char16_t *data, int length, int i, char16_t &c)
 	{
-		if (i + 1 >= length) {
+		if (i >= length) {
 			return 0;
 		}
 
 		switch (data[i]) {
+		case 'r':
+			c = '\r';
+			return 1;
 		case 'n':
 			c = '\n';
 			return 1;
@@ -510,6 +472,17 @@ namespace
 		}
 
 		return 0;
+	}
+
+	int decodeLineEscape(const char16_t *data, int length, int i, char16_t &c)
+	{
+		if (i + 1 >= length || c == '\n') {
+			return 0;
+		}
+		else {
+			c = '\n';
+			return data[i] == '\n' ? 1 : 0;
+		}
 	}
 }
 
@@ -530,10 +503,6 @@ QString Utils::decodeXml(QStringRef ref, bool fast)
 
 	for (int i = 0; i < length; ++i) {
 		char16_t c = data[i];
-		if (c < ' ' && c != '\n') {
-			continue;
-		}
-
 		bool plain = true;
 		switch (c) {
 		case '&':
@@ -551,6 +520,14 @@ QString Utils::decodeXml(QStringRef ref, bool fast)
 			i += p;
 			break;
 		}
+		case '\r':
+		case '\n':
+		{
+			int p = decodeLineEscape(data, length, i + 1, c);
+			plain = p == 0;
+			i += p;
+			break;
+		}
 		}
 		if (plain) {
 			++passed;
@@ -559,8 +536,8 @@ QString Utils::decodeXml(QStringRef ref, bool fast)
 			if (passed > 0) {
 				fixed.append((QChar *)head, passed);
 				passed = 0;
-				head = data + i + 1;
 			}
+			head = data + i + 1;
 			fixed.append(QChar(c));
 		}
 	}
