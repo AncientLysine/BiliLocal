@@ -65,7 +65,7 @@ QString Plugin::string(QString query)
 
 void Plugin::load()
 {
-	QFileInfoList list = QDir(Utils::localPath(Utils::Plugin) + "bililocal/").entryInfoList();
+	QFileInfoList list = QDir(Utils::localPath(Utils::Plugin)).entryInfoList();
 	for (const QFileInfo &info : list){
 		if (info.isFile() && QLibrary::isLibrary(info.fileName())){
 			Plugin lib(info.absoluteFilePath());

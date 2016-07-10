@@ -33,6 +33,7 @@ SOURCES += \
     src/Render/ARender.cpp \
     src/Render/ASprite.cpp \
     src/UI/Interface.cpp \
+    src/Bundle.cpp \
     src/Config.cpp \
     src/Local.cpp \
     src/Utils.cpp \
@@ -66,6 +67,7 @@ HEADERS += \
     src/Render/PFormat.h \
     src/UI/Interface.h \
     src/UI/InterfacePrivate.h \
+    src/Bundle.h \
     src/Config.h \
     src/Local.h \
     src/Utils.h \
@@ -168,6 +170,9 @@ DISTFILES += \
     res/Android/build.gradle \
     res/Android/gradle/wrapper/gradle-wrapper.properties \
     res/Android/gradlew.bat
+
+RESOURCES += \
+    src/UI/Quick2/BundleQuick2.qrc
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
 }

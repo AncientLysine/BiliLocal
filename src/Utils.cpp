@@ -291,11 +291,11 @@ QString Utils::localPath(Path path)
 	case Config:
 		return QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + '/';
 	case Locale:
-		return ":/Locale/";
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Locale/";
 	case Plugin:
-		return ":/Plugin/";
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Plugin/";
 	case Script:
-		return ":/Script/";
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Script/";
 	default:
 		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + '/';
 	}

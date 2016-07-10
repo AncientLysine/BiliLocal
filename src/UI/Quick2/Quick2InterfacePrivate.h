@@ -32,5 +32,6 @@ public:
 
 private:
 	QQmlApplicationEngine engine;
+	const QString path;
 	QPointer<QQuickWindow> home;
 };

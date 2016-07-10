@@ -4,7 +4,7 @@
 <context>
     <name>APlayer</name>
     <message>
-        <location filename="../src/Player/VPlayer.cpp" line="575"/>
+        <location filename="../src/Player/VPlayer.cpp" line="589"/>
         <source>Disable</source>
         <translation>关闭</translation>
     </message>
@@ -25,6 +25,49 @@
         <location filename="../src/Model/Danmaku.cpp" line="161"/>
         <source>Comment</source>
         <translation>评论</translation>
+    </message>
+</context>
+<context>
+    <name>Interface</name>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="16"/>
+        <source>Play</source>
+        <translation type="unfinished">播放</translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="21"/>
+        <source>Stop</source>
+        <translation type="unfinished">停止</translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="25"/>
+        <source>Open</source>
+        <translation type="unfinished">打开</translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="29"/>
+        <source>Load</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="33"/>
+        <source>Prefer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="38"/>
+        <source>Quit</source>
+        <translation type="unfinished">退出</translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="52"/>
+        <source>Open Media</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/UI/Quick2/Interface.qml" line="61"/>
+        <source>Load Danmaku</source>
+        <translation type="unfinished">载入弹幕</translation>
     </message>
 </context>
 <context>
@@ -187,264 +230,264 @@
 <context>
     <name>UI::Home</name>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="233"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="232"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="239"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="238"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="256"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="255"/>
         <source>Block All</source>
         <translation>关闭弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="248"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="247"/>
         <source>Config</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="284"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="283"/>
         <source>Post Danmaku</source>
         <translation>发送弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="320"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="319"/>
         <source>Delay</source>
         <translation>延迟弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="324"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="323"/>
         <source>Ahead</source>
         <translation>提前弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="305"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="304"/>
         <source>Forward</source>
         <translation>前进</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="452"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="451"/>
         <source>Loading</source>
         <translation>载入</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="195"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="194"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="206"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="205"/>
         <source>check your network connection</source>
         <translation>请检查网络连接</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="211"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="210"/>
         <source>access denied, try login</source>
         <translation>也许登陆可以解决问题</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="276"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="275"/>
         <source>Playlist</source>
         <translation>播放列表</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="311"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="310"/>
         <source>Backward</source>
         <translation>后退</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="338"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="337"/>
         <source>VolUp</source>
         <translation>提高音量</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="342"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="341"/>
         <source>VolDn</source>
         <translation>降低音量</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="349"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="348"/>
         <source>Last Media</source>
         <translation>上一个</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="353"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="352"/>
         <source>Next Media</source>
         <translation>下一个</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="360"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="359"/>
         <source>SpeedUp</source>
         <translation>加速播放</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="364"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="363"/>
         <source>SpeedDn</source>
         <translation>减速播放</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="371"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="370"/>
         <source>Reset</source>
         <translation>复位</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="400"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="399"/>
         <source>Init Size</source>
         <translation>初始大小</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="424"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="423"/>
         <source>Speed</source>
         <translation>速度</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="731"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="730"/>
         <source>Update</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="51"/>
-        <location filename="../src/UI/Widget/Home.cpp" line="807"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="54"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="806"/>
         <source>Sync</source>
         <translation>同步</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="56"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="59"/>
         <source>Delay: %1s</source>
         <translation>延迟: %1s</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="62"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="65"/>
         <source>%1s Faster</source>
         <translation>超前%1秒</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="65"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="68"/>
         <source>%1s Slower</source>
         <translation>滞后%1秒</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="754"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="753"/>
         <source>Copy</source>
         <translation>复制</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="769"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="768"/>
         <source>Video</source>
         <translation>视频</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="33"/>
-        <location filename="../src/UI/Widget/Home.cpp" line="801"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="36"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="800"/>
         <source>Track</source>
         <translation>轨道</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="777"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="776"/>
         <source>Audio</source>
         <translation>音频</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="784"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="783"/>
         <source>Subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="799"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="798"/>
         <source>Danmaku</source>
         <translation>弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="813"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="812"/>
         <source>Load</source>
         <translation>加载弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="814"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="813"/>
         <source>Post</source>
         <translation>发送弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="815"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="814"/>
         <source>Seek</source>
         <translation>搜索弹幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="788"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="787"/>
         <source>Load Subtitle</source>
         <translation>打开字幕</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="791"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="790"/>
         <source>Open File</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="793"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="792"/>
         <source>Subtitle files (%1);;All files (*.*)</source>
         <translation>字幕文件 (%1);;所有文件(*.*)</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="382"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="381"/>
         <source>Ratio</source>
         <translation>宽高比</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="384"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="383"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="398"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="397"/>
         <source>Scale</source>
         <translation>缩放</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="757"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="756"/>
         <source>Eliminate The Sender</source>
         <translation>屏蔽发送者</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="175"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="174"/>
         <source>A media resource couldn&apos;t be resolved.</source>
         <translation>媒体资源无法解析。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="178"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="177"/>
         <source>The format of a media resource isn&apos;t (fully) supported. Playback may still be possible, but without an audio or video component.</source>
         <translation>媒体资源的格式不能(完全)支持。但是仍然可以播放。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="183"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="182"/>
         <source>A network error occurred.</source>
         <translation>出现网络错误。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="186"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="185"/>
         <source>There are not the appropriate permissions to play a media resource.</source>
         <translation>没有播放媒体资源的适当权限。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="189"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="188"/>
         <source>A valid playback service was not found, playback cannot proceed.</source>
         <translation>没有找到有效的回放服务，无法进行播放。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="192"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="191"/>
         <source>An error occurred.</source>
         <translation>出现错误。</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="201"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="200"/>
         <source>Network error occurred, error code: %1</source>
         <translation>出现网络错误，错误代码：%1</translation>
     </message>
     <message>
-        <location filename="../src/UI/Widget/Home.cpp" line="216"/>
+        <location filename="../src/UI/Widget/Home.cpp" line="215"/>
         <source>Network Error</source>
         <translation>网络错误</translation>
     </message>
