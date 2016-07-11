@@ -47,11 +47,6 @@ public:
 		blocked = false;
 	}
 
-	inline bool operator <(const Comment &o) const
-	{
-		return time < o.time;
-	}
-
 	inline bool operator==(const Comment &o) const
 	{
 		return mode == o.mode && font == o.font && color == o.color && qFuzzyCompare((float)time, (float)o.time) && date == o.date && sender == o.sender && string == o.string;
@@ -133,7 +128,7 @@ namespace Utils
 	QString defaultFont(bool monospace = false);
 	QString localPath(Path path);
 	QString customUrl(Site site);
-	QString decodeXml(QString string, bool fast = false);
+	QString decodeXml(QString && xml, bool fast = false);
 	QString decodeXml(QStringRef ref, bool fast = false);
 	QStringList getSuffix(int type, QString format = QString());
 	double evaluate(QString expression);

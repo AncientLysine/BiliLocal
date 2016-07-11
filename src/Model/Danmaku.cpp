@@ -283,7 +283,8 @@ void Danmaku::append(Record &&record)
 		}
 		l.erase(b, e);
 		d->pool.append(record);
-		record.danmaku.clear();
+		QVector<Comment> t;
+		l.swap(t);
 	}
 	parse(0x1 | 0x2);
 	if (append) {
@@ -359,83 +360,14 @@ void Danmaku::parse(int flag)
 		//MUST BE SORTED
 		Q_ASSERT(std::is_sorted(d->danm.begin(), d->danm.end(), CommentComparer()));
 
-		// Date Limit
+		//History Limit
 		for (Record &r : d->pool) {
 			for (Comment &c : r.danmaku) {
 				c.blocked = r.limit != 0 && c.date > r.limit;
 			}
 		}
-		// Repeat Limit
-		int limit = Config::getValue("/Shield/Limit/Count", 5);
-		int range = Config::getValue("/Shield/Limit/Range", 10000);
-		if (limit != 0) {
-			QVector<QString> clean;
-			int size = d->danm.size();
-			clean.reserve(size);
-			for (const Comment *iter : d->danm) {
-				const auto &raw = iter->string;
-
-				int length = raw.length();
-				const QChar *data = raw.data();
-
-				QString clr;
-
-				int passed = 0;
-				const QChar *head = data;
-
-				for (int i = 0; i < length; ++i) {
-					const QChar &c = data[i];
-					if (c.isLetterOrNumber() || c.isMark() || c == '_') {
-						++passed;
-					}
-					else if (passed > 0) {
-						clr.reserve(length);
-						clr.append(head, passed);
-						passed = 0;
-						head = data + i + 1;
-					}
-				}
-				if (passed == length) {
-					clean.append(raw);
-				}
-				else {
-					if (passed > 0) {
-						clr.append(head, passed);
-					}
-					clean.append(clr);
-				}
-			}
-			QHash<QString, int> count;
-			int sta = 0, end = sta;
-			for (; end < size; ++end) {
-				Comment *e = d->danm[end];
-				while (d->danm[sta]->time + range < e->time) {
-					auto i = count.find(clean[sta]);
-					if (i.value() == 1) {
-						count.erase(i);
-					}
-					else if (i.value() > 1) {
-						--(i.value());
-					}
-					++sta;
-				}
-				int &num = count[clean[end]];
-				if (num >= 0 && ++num > limit && e->mode <= 6) {
-					num = -1;
-				}
-			}
-			for (; sta < size; ++sta) {
-				auto i = count.find(clean[sta]);
-				if (i.value() > 0) {
-					count.erase(i);
-				}
-			}
-			for (int i = 0; i < size; ++i) {
-				Comment *c = d->danm[i];
-				c->blocked = c->blocked || count.contains(clean[i]);
-			}
-		}
-		// Regex Limit
+		
+		//Regexp Shield
 		Shield *shield = lApp->findObject<Shield>();
 		for (Comment *c : d->danm) {
 			c->blocked = c->blocked || shield->isBlocked(*c);

@@ -326,7 +326,7 @@ void Running::moveTime(qint64 time)
 {
 	Q_D(Running);
 	d->time = time;
-	int limit = Config::getValue("/Shield/Density", 0);
+	int limit = Config::getValue("/Shield/Amount/Screen", 0);
 	QMap<qint64, QList<const Comment *>> buffer;
 	auto danm = lApp->findObject<Danmaku>();
 	for (; d->curr < danm->size() && danm->at(d->curr)->time < time; ++d->curr) {

@@ -10,7 +10,7 @@ namespace Parse
 	{
 	public:
 		typedef QVector<Comment> Result;
-		typedef std::function<void()> Finish;
+		typedef std::function<void(Result &&)> Finish;
 
 		class Record
 		{
@@ -38,13 +38,8 @@ namespace Parse
 				data->onFinish(cb);
 			}
 			else {
-				cb();
+				cb(Result());
 			}
-		}
-
-		void clear()
-		{
-			data.clear();
 		}
 
 		operator Result()

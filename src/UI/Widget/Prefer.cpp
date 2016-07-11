@@ -853,9 +853,9 @@ QDialog(parent)
 
 		same = new QSlider(Qt::Horizontal, widget[3]);
 		same->setRange(0, 40);
-		same->setValue(Config::getValue("/Shield/Limit/Count", 5));
+		same->setValue(Config::getValue("/Shield/Amount/Repeat", 5));
 		connect(same, &QSlider::valueChanged, [=](int value){
-			Config::setValue("/Shield/Limit/Count", value);
+			Config::setValue("/Shield/Amount/Repeat", value);
 			QPoint p;
 			p.setX(QCursor::pos().x());
 			p.setY(same->mapToGlobal(same->rect().center()).y());
@@ -869,9 +869,9 @@ QDialog(parent)
 		grid->addWidget(label[0], 3, 0, 1, 2);
 
 		limit = new QLineEdit(widget[3]);
-		limit->setText(QString::number(Config::getValue("/Shield/Density", 0)));
+		limit->setText(QString::number(Config::getValue("/Shield/Amount/Screen", 0)));
 		connect(limit, &QLineEdit::editingFinished, [=](){
-			Config::setValue("/Shield/Density", limit->text().toInt());
+			Config::setValue("/Shield/Amount/Screen", limit->text().toInt());
 		});
 		auto m = new QHBoxLayout;
 		m->addWidget(limit);

@@ -335,17 +335,6 @@ QString Utils::customUrl(Site site)
 	return QString();
 }
 
-QString Utils::decodeXml(QString string, bool fast)
-{
-	if (fast) {
-		return decodeXml(QStringRef(&string), true);
-	}
-
-	QTextDocument text;
-	text.setHtml(string);
-	return text.toPlainText();
-}
-
 namespace
 {
 	template<char16_t... list>
@@ -486,14 +475,53 @@ namespace
 	}
 }
 
+QString Utils::decodeXml(QString &&xml, bool fast)
+{
+	if (fast == false) {
+		QTextDocument text;
+		text.setHtml(xml);
+		return text.toPlainText();
+	}
+
+	int length = xml.length();
+	char16_t *data = (char16_t *)xml.data();
+
+	int t = 0;
+	for (int i = 0; i < length; ++i) {
+		char16_t &p = data[t];
+		char16_t &c = data[i];
+		int e = 0;
+		switch (c) {
+		case '&':
+			e = decodeHtmlEscape(data, length, i + 1, p);
+			break;
+		case '/':
+		case '\\':
+			e = decodeCharEscape(data, length, i + 1, p);
+			break;
+		case '\r':
+		case '\n':
+			e = decodeLineEscape(data, length, i + 1, p);
+			break;
+		}
+		i += e;
+		if (!e) {
+			p = c;
+		}
+		++t;
+	}
+	xml.truncate(t);
+	return xml;
+}
+
 QString Utils::decodeXml(QStringRef ref, bool fast)
 {
-	if (!fast) {
+	if (fast == false) {
 		return decodeXml(ref.toString(), false);
 	}
 
 	int length = ref.length();
-	const char16_t *data = (const char16_t *)ref.data();
+	const char16_t *data = (const char16_t *)ref.constData();
 
 	QString fixed;
 	fixed.reserve(length);
@@ -503,33 +531,22 @@ QString Utils::decodeXml(QStringRef ref, bool fast)
 
 	for (int i = 0; i < length; ++i) {
 		char16_t c = data[i];
-		bool plain = true;
+		int e = 0;
 		switch (c) {
 		case '&':
-		{
-			int p = decodeHtmlEscape(data, length, i + 1, c);
-			plain = p == 0;
-			i += p;
+			e = decodeHtmlEscape(data, length, i + 1, c);
 			break;
-		}
 		case '/':
 		case '\\':
-		{
-			int p = decodeCharEscape(data, length, i + 1, c);
-			plain = p == 0;
-			i += p;
+			e = decodeCharEscape(data, length, i + 1, c);
 			break;
-		}
 		case '\r':
 		case '\n':
-		{
-			int p = decodeLineEscape(data, length, i + 1, c);
-			plain = p == 0;
-			i += p;
+			e = decodeLineEscape(data, length, i + 1, c);
 			break;
 		}
-		}
-		if (plain) {
+		i += e;
+		if (!e) {
 			++passed;
 		}
 		else {

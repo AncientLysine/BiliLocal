@@ -497,9 +497,8 @@ Load::Load(QObject *parent)
 			else if (head.indexOf("<c>") != -1){
 				result = Parse::parseComment(data, Utils::AcfunLocalizer);
 			}
-			result.onFinish([=, &task]() mutable {
-				load.danmaku = result;
-				result.clear();
+			result.onFinish([this, load, &task](QVector<Comment> &&r) mutable {
+				load.danmaku.swap(r);
 				if (task.delay != 0) {
 					load.delay = task.delay;
 					for (Comment &iter : load.danmaku) {

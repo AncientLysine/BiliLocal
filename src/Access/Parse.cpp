@@ -65,20 +65,18 @@ namespace
 		explicit FutureRecord(const QFuture<Result> &data)
 			: data(data)
 		{
-			watcher.setFuture(data);
 		}
 
 		virtual void onFinish(Finish cb) override
 		{
-			if (watcher.isFinished()) {
-				cb();
-				return;
-			}
-			auto connection = QSharedPointer<QMetaObject::Connection>::create();
-			*connection = QObject::connect(&watcher, &QFutureWatcher<Result>::finished, [=]() {
-				cb();
-				QObject::disconnect(*connection);
+			typedef QFutureWatcher<Result> Watcher;
+			auto watcher = new Watcher(qApp);
+			QObject::connect(watcher, &Watcher::finished, [=]() {
+				Result r = watcher->future();
+				delete watcher;
+				cb(std::move(r));
 			});
+			watcher->setFuture(data);
 		}
 
 		virtual Result get() override
@@ -88,7 +86,6 @@ namespace
 
 	private:
 		QFuture<Result> data;
-		QFutureWatcher<Result> watcher;
 	};
 
 	class VectorRecord : public Record
@@ -103,7 +100,7 @@ namespace
 
 		virtual void onFinish(Finish cb) override
 		{
-			cb();
+			cb(Result(data));
 		}
 
 		virtual Result get() override
