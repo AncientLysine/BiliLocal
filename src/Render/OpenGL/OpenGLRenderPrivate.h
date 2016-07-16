@@ -2,7 +2,8 @@
 
 #include "../ARenderPrivate.h"
 #include "Atlas.h"
-#include <QOpenGLFunctions>
+#include <QtCore>
+#include <QtGui>
 
 class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 {
@@ -22,17 +23,21 @@ public:
 		Stro,
 		Proj,
 		Glow,
-		FormatMax
+		Max
 	};
-
-	QScopedArrayPointer<QOpenGLShaderProgram> program;
 
 	QByteArray extensions;
 
-	QOpenGLBuffer vtxBuffer;
-	QOpenGLBuffer idxBuffer;
+	struct OpenGLRenderResource
+	{
+		QOpenGLShaderProgram program[Max];
+		QOpenGLBuffer vtxBuffer;
+		QOpenGLBuffer idxBuffer;
+		AtlasMgr manager;
 
-	QScopedPointer<AtlasMgr> manager;
+		explicit OpenGLRenderResource(OpenGLRenderPrivate *r);
+	};
+	QScopedPointer<OpenGLRenderResource> resource;
 
 	GLenum pixelFormat(int channel, bool renderable = false) const;
 

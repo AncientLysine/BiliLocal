@@ -153,7 +153,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 		default:
 			break;
 		}
-		p = &program[format];
+		p = &resource->program[format];
 		p->bind();
 		switch (format) {
 		case I420:
@@ -193,7 +193,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 		default:
 			break;
 		}
-		p = &program[RGBA];
+		p = &resource->program[RGBA];
 		p->bind();
 		switch (format) {
 		case RGBA:

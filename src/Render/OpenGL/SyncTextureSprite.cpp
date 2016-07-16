@@ -16,7 +16,7 @@ void SyncTextureSprite::prepare()
 void SyncTextureSprite::draw(QPainter *)
 {
 	if (!size.isValid()) {
-		render->manager->insert({ text, font, effect }, sprites, size);
+		render->resource->manager.insert({ text, font, effect }, sprites, size);
 	}
 
 	if (sprites.isEmpty()) {
