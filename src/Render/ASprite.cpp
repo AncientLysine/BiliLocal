@@ -13,7 +13,7 @@ void ASprite::setAuto(const Comment & comment)
 	const QSize & size = lApp->findObject<ARender>()->getActualSize();
 	font = GraphicPrivate::getFont(comment.font * GraphicPrivate::getScale(comment.mode, comment.date, size));
 	frame = comment.isLocal();
-	text = comment.string;
+	text = Utils::decodeTxt(QString(comment.string));
 }
 
 void ASprite::setRect(QRectF rect)

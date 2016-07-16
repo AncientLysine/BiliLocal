@@ -337,142 +337,169 @@ QString Utils::customUrl(Site site)
 
 namespace
 {
-	template<char16_t... list>
-	struct String;
+	template<char16_t... str>
+	struct SString;
 
-	template<char16_t tail>
-	struct String<tail>
+	template<char16_t lst>
+	struct SString<lst>
 	{
-		inline static bool equalTo(const char16_t *string, int offset)
+		inline static bool equal(char16_t const *src)
 		{
-			return string[offset] == tail;
+			return lst == *src;
+		}
+
+		inline static bool equal(char16_t const *src, char16_t const *end)
+		{
+			return src < end && SString<lst>::equal(src);
 		}
 	};
 
-	template<char16_t head, char16_t... rest>
-	struct String<head, rest...>
+	template<char16_t top, char16_t... rst>
+	struct SString<top, rst...>
 	{
-		inline static bool equalTo(const char16_t *string, int offset)
+		inline static bool equal(char16_t const *src)
 		{
-			return string[offset] == head && String<rest...>::equalTo(string, offset + 1);
+			return top == *src && SString<rst...>::equal(src + 1);
+		}
+
+		inline static bool equal(char16_t const *src, char16_t const *end)
+		{
+			return src + (int)sizeof...(rst) - 1 < end && SString<top, rst...>::equal(src);
 		}
 	};
 
-	template<char16_t... list>
-	inline bool equal(const char16_t *string, int length, int offset)
+	void htmlEscape(char16_t * &dst, char16_t const * &src, char16_t const *end)
 	{
-		return offset + (int)sizeof...(list) <= length && String<list...>::equalTo(string, offset);
+		Q_ASSERT(src[0] == u'&');
+
+		if (src + 1 >= end) {
+			return;
+		}
+
+		switch (src[1]) {
+		case  u'a':
+			if (SString<'m', 'p', ';'>::equal(src + 2, end)) {
+				dst[0] = u'&';
+				dst += 1;
+				src += 5;
+			}
+			break;
+		case  u'g':
+			if (SString<'t', ';'>::equal(src + 2, end)) {
+				dst[0] = u'>';
+				dst += 1;
+				src += 4;
+			}
+			break;
+		case  u'l':
+			if (SString<'t', ';'>::equal(src + 2, end)) {
+				dst[0] = u'<';
+				dst += 1;
+				src += 4;
+			}
+			break;
+		case  u'n':
+			if (SString<'b', 's', 'p', ';'>::equal(src + 2, end)) {
+				dst[0] = u' ';
+				dst += 1;
+				src += 6;
+			}
+			break;
+		case  u'q':
+			if (SString<'u', 'o', 't', ';'>::equal(src + 2, end)) {
+				dst[0] = u'"';
+				dst += 1;
+				src += 6;
+			}
+			break;
+		default:
+			break;
+		}
 	}
 
-	int decodeHtmlEscape(const char16_t *data, int length, int i, char16_t &c)
+	void charEscape(char16_t * &dst, char16_t const * &src, char16_t const *end)
 	{
-		if (i >= length) {
-			return 0;
+		Q_ASSERT(src[0] == u'/' || src[0] == u'\\');
+
+		if (src + 1 >= end) {
+			return;
 		}
 
-		switch (data[i]) {
-		case 'n':
-			// &nbsp;
-			if (equal<'b', 's', 'p', ';'>(data, length, i + 1)) {
-				c = ' ';
-				return 5;
-			}
+		switch (src[1]) {
+		case u'r':
+			dst[0] = u'\r';
+			dst += 1;
+			src += 2;
 			break;
-		case 'l':
-			// &lt;
-			if (equal<'t', ';'>(data, length, i + 1)) {
-				c = '<';
-				return 3;
-			}
+		case u'n':
+			dst[0] = u'\n';
+			dst += 1;
+			src += 2;
 			break;
-		case 'g':
-			// &gt;
-			if (equal<'t', ';'>(data, length, i + 1)) {
-				c = '>';
-				return 3;
-			}
+		case u't':
+			dst[0] = u'\t';
+			dst += 1;
+			src += 2;
 			break;
-		case 'a':
-			// &amp;
-			if (equal<'m', 'p', ';'>(data, length, i + 1)) {
-				c = '&';
-				return 4;
-			}
+		case u'\"':
+			dst[0] = u'\"';
+			dst += 1;
+			src += 2;
 			break;
-		case 'q':
-			// &quot;
-			if (equal<'u', 'o', 't', ';'>(data, length, i + 1)) {
-				c = '\"';
-				return 5;
-			}
-			break;
-		case 'c':
-			// &copy;
-			if (equal<'o', 'p', 'y', ';'>(data, length, i + 1)) {
-				c = u'©';
-				return 5;
-			}
-			break;
-		case 'r':
-			// &reg;
-			if (equal<'e', 'g', ';'>(data, length, i + 1)) {
-				c = u'®';
-				return 4;
-			}
-			break;
-		case 't':
-			// &times;
-			if (equal<'i', 'm', 'e', 's', ';'>(data, length, i + 1)) {
-				c = u'×';
-				return 6;
-			}
-			break;
-		case 'd':
-			// &divide;
-			if (equal<'i', 'v', 'i', 'd', 'e', ';'>(data, length, i + 1)) {
-				c = u'÷';
-				return 7;
-			}
+		default:
 			break;
 		}
-
-		return 0;
 	}
 
-	int decodeCharEscape(const char16_t *data, int length, int i, char16_t &c)
+	void lineEscape(char16_t * &dst, char16_t const * &src, char16_t const *end)
 	{
-		if (i >= length) {
-			return 0;
+		Q_ASSERT(src[0] == u'\r');
+
+		if (src + 1 >= end) {
+			return;
 		}
 
-		switch (data[i]) {
-		case 'r':
-			c = '\r';
-			return 1;
-		case 'n':
-			c = '\n';
-			return 1;
-		case 't':
-			c = '\t';
-			return 1;
-		case '\"':
-			c = '\"';
-			return 1;
-		}
-
-		return 0;
-	}
-
-	int decodeLineEscape(const char16_t *data, int length, int i, char16_t &c)
-	{
-		if (i + 1 >= length || c == '\n') {
-			return 0;
-		}
-		else {
-			c = '\n';
-			return data[i] == '\n' ? 1 : 0;
+		switch (src[1]) {
+		case u'\n':
+			dst[0] = u'\n';
+			dst += 1;
+			src += 2;
+			break;
+		default:
+			break;
 		}
 	}
+}
+
+QString Utils::decodeTxt(QString &&txt)
+{
+	char16_t *dst = (char16_t *)txt.data();
+	const char16_t *end = dst + txt.length();
+	while (dst < end) {
+		if (u'/' == *dst || u'\\' == *dst) {
+			break;
+		}
+		++dst;
+	}
+	const char16_t *src = dst;
+	while (src < end) {
+		const char16_t *cur = src;
+		switch (*src) {
+		case u'/':
+		case u'\\':
+			charEscape(dst, src, end);
+			break;
+		default:
+			break;
+		}
+		if (cur == src) {
+			dst[0] = src[0];
+			++dst;
+			++src;
+		}
+	}
+	txt.resize(dst - (char16_t *)txt.data());
+	return std::move(txt);
 }
 
 QString Utils::decodeXml(QString &&xml, bool fast)
@@ -483,85 +510,35 @@ QString Utils::decodeXml(QString &&xml, bool fast)
 		return text.toPlainText();
 	}
 
-	int length = xml.length();
-	char16_t *data = (char16_t *)xml.data();
-
-	int t = 0;
-	for (int i = 0; i < length; ++i) {
-		char16_t &p = data[t];
-		char16_t &c = data[i];
-		int e = 0;
-		switch (c) {
-		case '&':
-			e = decodeHtmlEscape(data, length, i + 1, p);
-			break;
-		case '/':
-		case '\\':
-			e = decodeCharEscape(data, length, i + 1, p);
-			break;
-		case '\r':
-		case '\n':
-			e = decodeLineEscape(data, length, i + 1, p);
+	char16_t *dst = (char16_t *)xml.data();
+	const char16_t *end = dst + xml.length();
+	while (dst < end) {
+		if (u'&' == *dst || u'\r' == *dst) {
 			break;
 		}
-		i += e;
-		if (!e) {
-			p = c;
-		}
-		++t;
+		++dst;
 	}
-	xml.truncate(t);
-	return xml;
-}
-
-QString Utils::decodeXml(QStringRef ref, bool fast)
-{
-	if (fast == false) {
-		return decodeXml(ref.toString(), false);
-	}
-
-	int length = ref.length();
-	const char16_t *data = (const char16_t *)ref.constData();
-
-	QString fixed;
-	fixed.reserve(length);
-
-	int passed = 0;
-	const char16_t *head = data;
-
-	for (int i = 0; i < length; ++i) {
-		char16_t c = data[i];
-		int e = 0;
-		switch (c) {
-		case '&':
-			e = decodeHtmlEscape(data, length, i + 1, c);
+	const char16_t *src = dst;
+	while (src < end) {
+		const char16_t *cur = src;
+		switch (*src) {
+		case u'&':
+			htmlEscape(dst, src, end);
 			break;
-		case '/':
-		case '\\':
-			e = decodeCharEscape(data, length, i + 1, c);
+		case u'\r':
+			lineEscape(dst, src, end);
 			break;
-		case '\r':
-		case '\n':
-			e = decodeLineEscape(data, length, i + 1, c);
+		default:
 			break;
 		}
-		i += e;
-		if (!e) {
-			++passed;
-		}
-		else {
-			if (passed > 0) {
-				fixed.append((QChar *)head, passed);
-				passed = 0;
-			}
-			head = data + i + 1;
-			fixed.append(QChar(c));
+		if (cur == src) {
+			dst[0] = src[0];
+			++dst;
+			++src;
 		}
 	}
-	if (passed > 0) {
-		fixed.append((QChar *)head, passed);
-	}
-	return fixed;
+	xml.resize(dst - (char16_t *)xml.data());
+	return std::move(xml);
 }
 
 QStringList Utils::getSuffix(int type, QString format)

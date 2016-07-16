@@ -211,17 +211,16 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 			auto map = [](const QJsonValue &item) {
 				QJsonObject o = item.toObject();
 				const QString &c = o["c"].toString();
-				const QString &m = o["m"].toString();
 				const QVector<QStringRef> &args = c.splitRef(',');
 				Comment comment;
 				if (args.size() > 5) {
 					comment.time = args[0].toDouble() * 1000 + 0.5;
-					comment.date = args[5].toInt();
+					comment.color = args[1].toInt();
 					comment.mode = args[2].toInt();
 					comment.font = args[3].toInt();
-					comment.color = args[1].toInt();
 					comment.sender = args[4].toString();
-					comment.string = m;
+					comment.date = args[5].toInt();
+					comment.string = o["m"].toString();
 				}
 				return comment;
 			};
@@ -265,7 +264,7 @@ Parse::ResultDelegate Parse::parseComment(const QByteArray &data, Utils::Site si
 			comment.sender = args[4].toString();
 			int sta = item.indexOf("<![CDATA[") + 9;
 			int len = item.indexOf("]]>", sta) - sta;
-			comment.string = Utils::decodeXml(item.mid(sta, len), true);
+			comment.string = Utils::decodeXml(item.mid(sta, len).toString(), true);
 			list.append(comment);
 		}
 		return ResultDelegate(new VectorRecord(list));

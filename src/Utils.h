@@ -128,8 +128,8 @@ namespace Utils
 	QString defaultFont(bool monospace = false);
 	QString localPath(Path path);
 	QString customUrl(Site site);
-	QString decodeXml(QString && xml, bool fast = false);
-	QString decodeXml(QStringRef ref, bool fast = false);
+	QString decodeTxt(QString &&txt);
+	QString decodeXml(QString &&xml, bool fast = false);
 	QStringList getSuffix(int type, QString format = QString());
 	double evaluate(QString expression);
 }
