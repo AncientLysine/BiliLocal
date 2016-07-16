@@ -34,13 +34,64 @@
 #include "../Render/ARender.h"
 #include <algorithm>
 
+namespace
+{
+	class TextCounter : QHash<QString, int>
+	{
+	public:
+		using QHash<QString, int>::value;
+
+		void insert(const QString &txt)
+		{
+			++(*this)[txt];
+		}
+
+		void insert(const Comment *com)
+		{
+			insert(com->string);
+		}
+
+		void insert(const Graphic *gra)
+		{
+			const Comment *com = gra->getSource();
+			if (com) {
+				insert(com);
+			}
+		}
+
+		void remove(const QString &txt)
+		{
+			auto itr = find(txt);
+			int &num = itr.value();
+			if (--num <= 0) {
+				erase(itr);
+			}
+		}
+
+		void remove(const Comment *com)
+		{
+			remove(com->string);
+		}
+
+		void remove(const Graphic *gra)
+		{
+			const Comment *com = gra->getSource();
+			if (com) {
+				remove(com);
+			}
+		}
+
+	};
+}
+
 class RunningPrivate
 {
 public:
 	qint32 curr;
 	qint64 time;
-	QSet<const Comment *> wait;
 	QList<Graphic *> draw;
+	int wait;
+	TextCounter text;
 	mutable QReadWriteLock lock;
 };
 
@@ -80,7 +131,8 @@ void Running::setup()
 		d->lock.lockForWrite();
 		for (auto iter = d->draw.begin(); iter != d->draw.end();) {
 			const Comment *cur = (*iter)->getSource();
-			if (cur&&cur->blocked) {
+			if (cur && cur->blocked) {
+				d->text.remove(cur);
 				delete *iter;
 				iter = d->draw.erase(iter);
 			}
@@ -101,10 +153,11 @@ void Running::clear(bool soft)
 	d->lock.lockForWrite();
 	for (auto iter = d->draw.begin(); iter != d->draw.end();) {
 		Graphic *g = *iter;
-		if (soft&&g->stay()) {
+		if (soft && g->stay()) {
 			++iter;
 		}
 		else {
+			d->text.remove(g);
 			delete g;
 			iter = d->draw.erase(iter);
 		}
@@ -131,6 +184,7 @@ void Running::insert(Graphic *graphic, int index)
 			next = size;
 		}
 	}
+	d->text.insert(graphic);
 	d->draw.insert(next, graphic);
 	d->lock.unlock();
 }
@@ -205,8 +259,8 @@ namespace
 				//弹幕自行定位
 				priv->lock.lockForWrite();
 				for (Graphic *iter : wait) {
+					priv->wait--;
 					priv->draw.append(iter);
-					priv->wait.remove(iter->getSource());
 				}
 				priv->lock.unlock();
 				break;
@@ -259,8 +313,8 @@ namespace
 					iter->currentRect() = meta.rect[thin];
 					iter->setIndex();
 					iter->setEnabled(true);
+					priv->wait--;
 					priv->draw.append(iter);
-					priv->wait.remove(iter->getSource());
 					calculate(iter);
 				}
 				priv->lock.unlock();
@@ -292,7 +346,8 @@ namespace
 			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500) {
 				QWriteLocker locker(&priv->lock);
 				for (const Comment *iter : wait) {
-					priv->wait.remove(iter);
+					priv->wait--;
+					priv->text.remove(iter);
 				}
 				return;
 			}
@@ -338,26 +393,14 @@ void Running::moveTime(qint64 time)
 			continue;
 		}
 		QWriteLocker locker(&d->lock);
-		if (screen > 0) {
-			int wait = d->wait.size();
-			int draw = d->draw.size();
-			if (draw + wait >= screen) {
-				continue;
-			}
+		if (screen > 0 && d->wait + d->draw.size() >= screen) {
+			continue;
 		}
-		if (repeat > 0) {
-			int wait = std::count_if(d->wait.begin(), d->wait.end(), [c](const Comment *i) {
-				return i && i->string == c->string;
-			});
-			int draw = std::count_if(d->draw.begin(), d->draw.end(), [c](const Graphic *i) {
-				const Comment *s = i->getSource();
-				return s && s->string == c->string;
-			});
-			if (draw + wait >= repeat) {
-				continue;
-			}
+		if (repeat > 0 && d->text.value(c->string) >= repeat) {
+			continue;
 		}
-		d->wait.insert(c);
+		d->wait++;
+		d->text.insert(c);
 		locker.unlock();
 		splited[c->time].append(c);
 	}
@@ -406,6 +449,7 @@ void Running::draw(QPainter *painter, double move)
 			++iter;
 		}
 		else {
+			d->text.remove(g);
 			delete g;
 			iter = d->draw.erase(iter);
 		}
