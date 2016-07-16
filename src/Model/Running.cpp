@@ -32,14 +32,15 @@
 #include "../Graphic/Graphic.h"
 #include "../Player/APlayer.h"
 #include "../Render/ARender.h"
+#include <algorithm>
 
 class RunningPrivate
 {
 public:
 	qint32 curr;
 	qint64 time;
+	QSet<const Comment *> wait;
 	QList<Graphic *> draw;
-	QAtomicInt wait;
 	mutable QReadWriteLock lock;
 };
 
@@ -185,11 +186,6 @@ namespace
 		{
 		}
 
-		~Process()
-		{
-			priv->wait -= wait.size();
-		}
-
 		virtual void run() override
 		{
 			if (wait.isEmpty()) {
@@ -202,14 +198,15 @@ namespace
 			switch (meta.rect.size()) {
 			case 1:
 				//图元指定位置
-				for (auto graphic : wait) {
-					graphic->currentRect() = meta.rect[0];
+				for (Graphic *iter : wait) {
+					iter->currentRect() = meta.rect[0];
 				}
 			case 0:
 				//弹幕自行定位
 				priv->lock.lockForWrite();
-				for (auto graphic : wait) {
-					priv->draw.append(graphic);
+				for (Graphic *iter : wait) {
+					priv->draw.append(iter);
+					priv->wait.remove(iter->getSource());
 				}
 				priv->lock.unlock();
 				break;
@@ -220,8 +217,8 @@ namespace
 				std::fill(thick.begin(), thick.end(), 0);
 				//计算每个位置的拥挤程度
 				auto calculate = [&](Graphic *against) {
-					Graphic *head = wait.front();
-					Q_ASSERT(head->getMode() == meta.mode && against->getMode() == meta.mode);
+					Graphic *compare = wait.front() == against ? wait.last() : wait.front();
+					Q_ASSERT(compare->getMode() == meta.mode && against->getMode() == meta.mode);
 					const QRectF &rect = against->currentRect();
 					const QRectF &from = meta.rect.at(0);
 					double stp = meta.rect.at(1).top() - from.top();
@@ -229,10 +226,10 @@ namespace
 					double len = rect.height() + from.height();
 					int sta = qMax(lower(off / stp), 0);
 					int end = qMin(upper(len / qAbs(stp) + sta), thick.size());
-					QRectF &iter = head->currentRect(), back = iter;
+					QRectF &iter = compare->currentRect(), back = iter;
 					for (; sta < end; ++sta) {
 						iter = meta.rect.at(sta);
-						thick[sta] += head->intersects(against);
+						thick[sta] += compare->intersects(against);
 					}
 					iter = back;
 				};
@@ -257,12 +254,13 @@ namespace
 					else break;
 				}
 				//挑选最空闲的位置
-				for (auto iter : wait) {
+				for (Graphic *iter : wait) {
 					int thin = std::min_element(thick.begin(), thick.end()) - thick.begin();
 					iter->currentRect() = meta.rect[thin];
 					iter->setIndex();
 					iter->setEnabled(true);
 					priv->draw.append(iter);
+					priv->wait.remove(iter->getSource());
 					calculate(iter);
 				}
 				priv->lock.unlock();
@@ -292,6 +290,10 @@ namespace
 		{
 			//跳过500毫秒以上未处理的弹幕
 			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500) {
+				QWriteLocker locker(&priv->lock);
+				for (const Comment *iter : wait) {
+					priv->wait.remove(iter);
+				}
 				return;
 			}
 
@@ -299,14 +301,14 @@ namespace
 			QThread::currentThread()->setPriority(QThread::LowPriority);
 
 			QHash<CreateMeta, QList<Graphic *>> slot;
-			for (auto comment : wait) {
+			for (const Comment *iter : wait) {
 				try {
-					Graphic *graphic = Graphic::create(*comment);
+					Graphic *graphic = Graphic::create(*iter);
 					slot[CreateMeta(graphic)].append(graphic);
 				}
 				catch (Graphic::format_unrecognized) {
 					//自带弹幕系统未识别，通知插件处理
-					emit lApp->findObject<Running>()->unrecognizedComment(comment);
+					emit lApp->findObject<Running>()->unrecognizedComment(iter);
 				}
 				catch (Graphic::args_prasing_error) {}
 			}
@@ -326,17 +328,40 @@ void Running::moveTime(qint64 time)
 {
 	Q_D(Running);
 	d->time = time;
-	int limit = Config::getValue("/Shield/Amount/Screen", 0);
-	QMap<qint64, QList<const Comment *>> buffer;
+	int screen = Config::getValue("/Shield/Amount/Screen", 0);
+	int repeat = Config::getValue("/Shield/Amount/Repeat", 5);
+	QMap<qint64, QList<const Comment *>> splited;
 	auto danm = lApp->findObject<Danmaku>();
 	for (; d->curr < danm->size() && danm->at(d->curr)->time < time; ++d->curr) {
 		const Comment *c = danm->at(d->curr);
-		if (!c->blocked && (limit <= 0 || d->wait + d->draw.size() < limit)) {
-			++d->wait;
-			buffer[c->time].append(c);
+		if (c->blocked) {
+			continue;
 		}
+		QWriteLocker locker(&d->lock);
+		if (screen > 0) {
+			int wait = d->wait.size();
+			int draw = d->draw.size();
+			if (draw + wait >= screen) {
+				continue;
+			}
+		}
+		if (repeat > 0) {
+			int wait = std::count_if(d->wait.begin(), d->wait.end(), [c](const Comment *i) {
+				return i && i->string == c->string;
+			});
+			int draw = std::count_if(d->draw.begin(), d->draw.end(), [c](const Graphic *i) {
+				const Comment *s = i->getSource();
+				return s && s->string == c->string;
+			});
+			if (draw + wait >= repeat) {
+				continue;
+			}
+		}
+		d->wait.insert(c);
+		locker.unlock();
+		splited[c->time].append(c);
 	}
-	for (const auto &iter : buffer) {
+	for (const QList<const Comment *> &iter : splited) {
 		qThreadPool->start(new Prepare(d, iter), Prepare::Priority);
 	}
 }

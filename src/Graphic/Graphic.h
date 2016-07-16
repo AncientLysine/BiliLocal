@@ -60,12 +60,12 @@ public:
 	virtual QRectF &currentRect(){ return rect; }
 	virtual ~Graphic() = default;
 
-	inline int getMode()
+	inline int getMode() const
 	{
 		return source ? source->mode : 0;
 	}
 
-	inline bool isEnabled()
+	inline bool isEnabled() const
 	{
 		return enabled;
 	}
@@ -75,14 +75,14 @@ public:
 		this->enabled = enabled;
 	}
 
-	inline quint64 getIndex()
+	inline quint64 getIndex() const
 	{
 		return index;
 	}
 
 	void setIndex();
 
-	inline const Comment *getSource()
+	inline const Comment *getSource() const
 	{
 		return source;
 	}
