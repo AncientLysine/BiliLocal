@@ -1,5 +1,8 @@
 <RCC>
     <qresource prefix="/Bundle/Script/Quick2">
         <file>Interface.qml</file>
+        <file>Home.qml</file>
+        <file>Info.qml</file>
+        <file>Menu.qml</file>
     </qresource>
 </RCC>

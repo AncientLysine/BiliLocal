@@ -158,6 +158,7 @@ namespace
 
 int main(int argc, char *argv[])
 {
+	QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 	std::remove_pointer<decltype(qApp)>::type a(argc, argv);
 	Bundle::push();
 	Config::load();

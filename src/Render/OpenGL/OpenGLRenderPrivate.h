@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ARenderPrivate.h"
-#include "Atlas.h"
+#include "OpenGLAtlas.h"
 #include <QtCore>
 #include <QtGui>
 
@@ -33,13 +33,15 @@ public:
 		QOpenGLShaderProgram program[Max];
 		QOpenGLBuffer vtxBuffer;
 		QOpenGLBuffer idxBuffer;
-		AtlasMgr manager;
+		OpenGLAtlasMgr manager;
 
 		explicit OpenGLRenderResource(OpenGLRenderPrivate *r);
 	};
 	QScopedPointer<OpenGLRenderResource> resource;
 
 	GLenum pixelFormat(int channel, bool renderable = false) const;
+	static QRectF scaleRect(QRectF rect, double factor);
+	static QRectF scaleRect(QRectF rect, QPainter *painter);
 
 	struct LoadCall
 	{

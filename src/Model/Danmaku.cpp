@@ -59,7 +59,7 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 	Q_D(const Danmaku);
 	if (index.isValid()){
 		const Comment &comment = *d->danm[index.row()];
-		switch (role){
+		switch (role) {
 		case Qt::DisplayRole:
 			if (index.column() == 0){
 				if (comment.blocked){
@@ -89,7 +89,7 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 					}
 				}
 				else{
-					return comment.string.left(50).remove('\n');
+					return comment.string;
 				}
 			}
 		case Qt::ForegroundRole:
@@ -120,8 +120,24 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 			default:
 				break;
 			}
-		case Qt::UserRole:
-			return (quintptr)&comment;
+		case ModeRole:
+			return comment.mode;
+		case FontRole:
+			return comment.font;
+		case ColorRole:
+			return QColor(comment.color);
+		case TimeRole:
+			return comment.time;
+		case DateRole:
+			return comment.date;
+		case SenderRole:
+			return comment.sender;
+		case StringRole:
+			return comment.string;
+		case BlockRole:
+			return comment.blocked;
+		default:
+			break;
 		}
 	}
 	return QVariant();
@@ -162,6 +178,21 @@ QVariant Danmaku::headerData(int section, Qt::Orientation orientation, int role)
 		}
 	}
 	return QVariant();
+}
+
+QHash<int, QByteArray> Danmaku::roleNames() const
+{
+	static QHash<int, QByteArray> names = {
+		{ ModeRole, "mode" },
+		{ FontRole, "font" },
+		{ ColorRole, "color" },
+		{ TimeRole, "time" },
+		{ DateRole, "date" },
+		{ SenderRole, "sender" },
+		{ StringRole, "string" },
+		{ BlockRole, "block" }
+	};
+	return names;
 }
 
 QList<Record> &Danmaku::getPool()

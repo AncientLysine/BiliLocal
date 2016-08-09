@@ -92,6 +92,9 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 	}
 	painter->beginNativePainting();
 
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	QOpenGLShaderProgram *p = nullptr;
 	QMutexLocker locker(&dataLock);
 	switch(data->handleType()){
@@ -205,6 +208,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 			break;
 		}
 	}
+
 	QRectF dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
 	GLfloat h = 2.0f / rect.width(), v = 2.0f / rect.height();
 	GLfloat l = dest.left() * h - 1, r = dest.right() * h - 1, t = 1 - dest.top() * v, b = 1 - dest.bottom() * v;
@@ -216,6 +220,7 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 	p->setAttributeArray(1, tex, 2);
 	p->enableAttributeArray(0);
 	p->enableAttributeArray(1);
+	rect = scaleRect(rect, painter).toRect();
 	glViewport(rect.x(), rect.y(), rect.width(), rect.height());
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

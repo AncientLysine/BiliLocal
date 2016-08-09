@@ -135,6 +135,7 @@ RasterRenderPrivate::RasterRenderPrivate()
 
 void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 {
+	painter->fillRect(rect, Qt::black);
 	if (data == nullptr || format == AV_PIX_FMT_NONE) {
 		return;
 	}

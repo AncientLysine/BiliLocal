@@ -203,8 +203,8 @@ QRect ARenderPrivate::fitRect(QSize size, QRect rect)
 
 void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 {
-	painter->fillRect(rect, Qt::black);
 	if (music){
+		painter->fillRect(rect, Qt::black);
 		painter->drawImage(rect.center() - QRect(QPoint(0, 0), sound.size()).center(), sound);
 	}
 	else{

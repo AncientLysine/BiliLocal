@@ -36,8 +36,8 @@ SOURCES += \
     src/Bundle.cpp \
     src/Config.cpp \
     src/Local.cpp \
-    src/Utils.cpp \
-    src/Plugin.cpp
+    src/Plugin.cpp \
+    src/Utils.cpp
 
 HEADERS += \
     src/Access/AccessPrivate.h \
@@ -70,8 +70,8 @@ HEADERS += \
     src/Bundle.h \
     src/Config.h \
     src/Local.h \
-    src/Utils.h \
-    src/Plugin.h
+    src/Plugin.h \
+    src/Utils.h
 
 INCLUDEPATH += \
     src
@@ -85,6 +85,10 @@ RESOURCES += \
 TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
+
+debug{
+DEFINES += GRAPHIC_DEBUG
+}
 
 linux : !android{
 DEFINES += \
@@ -212,7 +216,10 @@ QT+= \
 
 lupdate_only{
 SOURCES += \
-    src/UI/Quick2/Interface.qml
+    src/UI/Quick2/Home.qml \
+    src/UI/Quick2/Info.qml \
+    src/UI/Quick2/Interface.qml \
+    src/UI/Quick2/Menu.qml
 }
 
 SOURCES += \
@@ -250,15 +257,14 @@ message(enable raster render widget output)
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
     src/Render/OpenGL/OpenGLRender.cpp \
-    src/Render/OpenGL/Atlas.cpp \
+    src/Render/OpenGL/OpenGLAtlas.cpp \
     src/Render/OpenGL/SyncTextureSprite.cpp \
     src/Render/OpenGL/DetachPrivate.cpp \
     src/Render/OpenGL/OpaquePrivate.cpp
-
 HEADERS += \
     src/Render/OpenGL/OpenGLRender.h \
     src/Render/OpenGL/OpenGLRenderPrivate.h \
-    src/Render/OpenGL/Atlas.h \
+    src/Render/OpenGL/OpenGLAtlas.h \
     src/Render/OpenGL/SyncTextureSprite.h \
     src/Render/OpenGL/DetachPrivate.h \
     src/Render/OpenGL/OpaquePrivate.h

@@ -453,7 +453,7 @@ OpenGLRenderPrivate::OpenGLRenderResource::OpenGLRenderResource(OpenGLRenderPriv
 			p.bindAttributeLocation("a_TexCoord", 1);
 			p.bind();
 			p.setUniformValue("u_SamplerA", 0);
-			double size = 1.0 / Atlas::MaxSize;
+			double size = 1.0 / OpenGLAtlas::MaxSize;
 			p.setUniformValue("u_vPixelSize", QVector2D(size, size));
 			break;
 		}
@@ -507,6 +507,16 @@ GLenum OpenGLRenderPrivate::pixelFormat(int channel, bool renderable) const
 	}
 }
 
+QRectF OpenGLRenderPrivate::scaleRect(QRectF rect, double factor)
+{
+	return QRectF(rect.topLeft() * factor, rect.size() * factor);
+}
+
+QRectF OpenGLRenderPrivate::scaleRect(QRectF rect, QPainter *painter)
+{
+	return scaleRect(rect, painter->device()->devicePixelRatioF());
+}
+
 void OpenGLRenderPrivate::appendLoadCall(QRectF draw, QOpenGLShaderProgram *program, QRect data, const GLubyte *bits)
 {
 	GLuint source = resource->manager.getUpload();
@@ -541,7 +551,7 @@ void OpenGLRenderPrivate::appendLoadCall(QRectF draw, QOpenGLShaderProgram *prog
 	GLfloat vtx[8];
 	GLfloat tex[8];
 	{
-		const GLfloat s = 1.0 / Atlas::MaxSize;
+		const GLfloat s = 1.0 / OpenGLAtlas::MaxSize;
 		GLfloat l = s * draw.left();
 		GLfloat r = s * draw.right();
 		GLfloat t = s * draw.top();
@@ -594,7 +604,7 @@ void OpenGLRenderPrivate::appendDrawCall(QRectF draw, QRectF data, GLuint textur
 	}
 	GLfloat tex[8];
 	{
-		GLfloat s = 1.0 / Atlas::MaxSize;
+		GLfloat s = 1.0 / OpenGLAtlas::MaxSize;
 		GLfloat l = s * data.left();
 		GLfloat r = s * data.right();
 		GLfloat t = s * data.top();
@@ -643,7 +653,7 @@ void OpenGLRenderPrivate::flushLoad()
 {
 	glEnable(GL_BLEND);
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	glViewport(0, 0, Atlas::MaxSize, Atlas::MaxSize);
+	glViewport(0, 0, OpenGLAtlas::MaxSize, OpenGLAtlas::MaxSize);
 
 	const LoadAttr *vtxData = nullptr;
 	const GLushort *idxData = nullptr;
@@ -784,7 +794,7 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 {
 	painter->beginNativePainting();
 
-	view = rect;
+	view = scaleRect(rect, painter).toRect();
 	ARenderPrivate::drawDanm(painter, rect);
 	flushLoad();
 	flushDraw();

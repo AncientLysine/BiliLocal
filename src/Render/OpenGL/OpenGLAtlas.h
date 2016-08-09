@@ -3,21 +3,21 @@
 #include <QtCore>
 #include <QtGui>
 
-class Sprite;
+class OpenGLSprite;
 class OpenGLRenderPrivate;
 
-class Atlas
+class OpenGLAtlas
 {
 public:
 	static const int MaxSize;
 	static const int Padding;
 	static const int Spacing;
 
-	explicit Atlas(OpenGLRenderPrivate *render);
+	explicit OpenGLAtlas(OpenGLRenderPrivate *render);
 
-	~Atlas();
+	~OpenGLAtlas();
 
-	void insert(QList<QImage> &source, int effect, QList<Sprite> &result);
+	void insert(QList<QImage> &source, int effect, QList<OpenGLSprite> &result);
 
 	inline void AddRef()
 	{
@@ -62,24 +62,24 @@ private:
 	QElapsedTimer expiry;
 };
 
-class Sprite
+class OpenGLSprite
 {
 public:
 	QRectF rect;
 
-	explicit Sprite(Atlas *parent)
+	explicit OpenGLSprite(OpenGLAtlas *parent)
 		: parent(parent)
 	{
 		parent->AddRef();
 	}
 
-	Sprite(const Sprite &other)
+	OpenGLSprite(const OpenGLSprite &other)
 		: rect(other.rect), parent(other.parent)
 	{
 		parent->AddRef();
 	}
 
-	~Sprite()
+	~OpenGLSprite()
 	{
 		parent->DecRef();
 	}
@@ -90,10 +90,10 @@ public:
 	}
 
 private:
-	Atlas *parent;
+	OpenGLAtlas *parent;
 };
 
-class AtlasMgr
+class OpenGLAtlasMgr
 {
 public:
 	struct CreateInfo
@@ -103,12 +103,12 @@ public:
 		int effect;
 	};
 
-	explicit AtlasMgr(OpenGLRenderPrivate *render);
-	~AtlasMgr();
+	explicit OpenGLAtlasMgr(OpenGLRenderPrivate *render);
+	~OpenGLAtlasMgr();
 
-	void insert(CreateInfo info, QList<Sprite> &result, QSize &size);
+	void insert(CreateInfo info, QList<OpenGLSprite> &result, QSize &size);
 
-	inline const QList<Atlas *> &getAtlases()
+	inline const QList<OpenGLAtlas *> &getAtlases()
 	{
 		return atlases;
 	}
@@ -129,8 +129,8 @@ public:
 private:
 	OpenGLRenderPrivate *render;
 
-	QList<Atlas *> atlases;
+	QList<OpenGLAtlas *> atlases;
 	GLuint upload;
 	GLuint buffer;
-	QHash<CreateInfo, QPair<QList<Sprite>, QSize>> cached;
+	QHash<CreateInfo, QPair<QList<OpenGLSprite>, QSize>> cached;
 };

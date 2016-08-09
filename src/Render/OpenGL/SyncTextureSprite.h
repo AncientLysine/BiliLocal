@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ASprite.h"
-#include "Atlas.h"
+#include "OpenGLAtlas.h"
 
 class OpenGLRenderPrivate;
 
@@ -14,7 +14,7 @@ public:
 	virtual QSize getSize() override;
 
 private:
-	QList<Sprite> sprites;
+	QList<OpenGLSprite> sprites;
 	QSize size;
 	OpenGLRenderPrivate *const render;
 };

@@ -243,6 +243,9 @@ double Utils::evaluate(QString exp)
 QString Utils::defaultFont(bool monospace)
 {
 	if (monospace){
+#ifdef Q_OS_ANDROID
+		return QStringLiteral("Roboto");
+#endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿等宽正黑");
 #endif
@@ -254,6 +257,9 @@ QString Utils::defaultFont(bool monospace)
 #endif
 	}
 	else{
+#ifdef Q_OS_ANDROID
+		return QStringLiteral("Roboto");
+#endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿正黑");
 #endif

@@ -16,10 +16,8 @@ void ASprite::setAuto(const Comment & comment)
 	text = Utils::decodeTxt(QString(comment.string));
 }
 
-void ASprite::setRect(QRectF rect)
+void ASprite::setPosition(QPointF position)
 {
-	const QSize &size = getSize();
 	transform.reset();
-	transform.scale(rect.width() / size.width(), rect.height() / size.height());
-	transform.translate(rect.x(), rect.y());
+	transform.translate(position.x(), position.y());
 }

@@ -143,7 +143,7 @@ QWidget(parent)
 	header->setDefaultSectionSize(22.5*logicalDpiY() / 72);
 	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, &Info::resizeHeader);
 	connect(danmV, &QTableView::doubleClicked, [this](QModelIndex index){
-		lApp->findObject<APlayer>()->setTime(((Comment *)(index.data(Qt::UserRole).value<quintptr>()))->time);
+		lApp->findObject<APlayer>()->setTime(index.data(Danmaku::TimeRole).value<qint64>());
 	});
 
 	QAction *saveA = new QAction(tr("Save Danmaku to File"), this);
@@ -205,36 +205,48 @@ QWidget(parent)
 
 	connect(danmV, &QTableView::customContextMenuRequested, [=](QPoint p){
 		QMenu menu(this);
-		QList<const Comment *>selected;
-		for (const QModelIndex &index : danmV->selectionModel()->selectedRows()){
-			selected.append((Comment *)index.data(Qt::UserRole).value<quintptr>());
-		}
+		auto selected = danmV->selectionModel()->selectedRows();
 		if (!selected.isEmpty()){
-			connect(menu.addAction(tr("Copy Danmaku")), &QAction::triggered, [&](){
+			connect(menu.addAction(tr("Copy Danmaku")), &QAction::triggered, [=](){
 				QStringList list;
-				for (const Comment *c : selected){
-					list.append(c->string);
+				for (const QModelIndex &iter : selected) {
+					QString string = iter.data(Danmaku::StringRole).toString();
+					list.append(string);
 				}
 				qApp->clipboard()->setText(list.join('\n'));
 			});
-			connect(menu.addAction(tr("Eliminate The Sender")), &QAction::triggered, [&](){
-				for (const Comment *c : selected){
-					if (!c->sender.isEmpty()){
-						lApp->findObject<Shield>()->insert("u=" + c->sender);
-					}
+			
+			QStringList ruleList;
+			for (const QModelIndex &iter : selected) {
+				QString sender = iter.data(Danmaku::SenderRole).toString();
+				if (sender.isEmpty()) {
+					continue;
 				}
-				lApp->findObject<Danmaku>()->parse(0x2);
-			});
-			for (const Comment *c : selected){
-				if (lApp->findObject<Shield>()->contains("u=" + c->sender)){
-					connect(menu.addAction(tr("Recover The Sender")), &QAction::triggered, [&](){
-						for (const Comment *c : selected){
-							lApp->findObject<Shield>()->remove("u=" + c->sender);
-						}
-						lApp->findObject<Danmaku>()->parse(0x2);
-					});
+				ruleList.append("u=" + sender);
+			}
+			auto shield = lApp->findObject<Shield>();
+			if (!ruleList.isEmpty()){
+				connect(menu.addAction(tr("Eliminate The Sender")), &QAction::triggered, [=]() {
+					for (const QString &iter : ruleList) {
+						shield->insert(iter);
+					}
+					lApp->findObject<Danmaku>()->parse(0x2);
+				});
+			}
+			bool inList = false;
+			for (const QString &iter : ruleList) {
+				if (shield->contains(iter)) {
+					inList = true;
 					break;
 				}
+			}
+			if (inList) {
+				connect(menu.addAction(tr("Recover The Sender")), &QAction::triggered, [=]() {
+					for (const QString &iter : ruleList) {
+						shield->remove(iter);
+					}
+					lApp->findObject<Danmaku>()->parse(0x2);
+				});
 			}
 			menu.addSeparator();
 		}

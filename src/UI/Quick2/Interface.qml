@@ -1,50 +1,16 @@
-import QtQuick 2.5
-import QtQuick.Window 2.2
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.0
 import QtQuick.Dialogs 1.2
 import BiliLocal 1.0
 
-Window {
-    visible: true
+ApplicationWindow {
+    title: "BiliLocal"
     width: 960
     height: 540
-    title: "BiliLocal"
+    visible: true
 
-    Menu {
-        id: contextMenu
-        MenuItem {
-            text: qsTr("Play")
-            onTriggered: LocalApp.Player.play();
-            shortcut: LocalApp.Config.getVariant("/Shortcut/Play", "Space")
-        }
-        MenuItem {
-            text: qsTr("Stop")
-            onTriggered: LocalApp.Player.stop(true);
-        }
-        MenuItem {
-            text: qsTr("Open")
-            onTriggered: openDialog.open();
-        }
-        MenuItem {
-            text: qsTr("Load")
-            onTriggered: loadDialog.open();
-        }
-        MenuItem {
-            text: qsTr("Prefer")
-            onTriggered: Qt.quit();
-            shortcut: LocalApp.Config.getVariant("/Shortcut/Conf", "Ctrl+I")
-        }
-        MenuItem {
-            text: qsTr("Quit")
-            onTriggered: Qt.quit();
-            shortcut: LocalApp.Config.getVariant("/Shortcut/Quit", "Ctrl+Q")
-        }
-    }
-
-    MouseArea {
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        anchors.fill: parent
-        onClicked: contextMenu.popup();
+    Home {
+        id: homeItem
     }
 
     FileDialog {
@@ -52,6 +18,7 @@ Window {
         title: qsTr("Open Media")
         onAccepted: {
             var u = openDialog.fileUrls[0];
+            u = u ? u : "/sdcard/Movies/[DMG][Valkyrie Drive -Mermaid-][04][720P][GB].mp4";
             LocalApp.Player.setMedia(u);
         }
     }
@@ -62,6 +29,15 @@ Window {
         onAccepted: {
             var u = loadDialog.fileUrls[0];
             LocalApp.Load.loadDanmaku(u);
+        }
+    }
+
+    Connections {
+        target: Qt.application
+        onStateChanged: {
+            if (LocalApp.Player.state === APlayer.Play) {
+                LocalApp.Player.play();
+            }
         }
     }
 }
