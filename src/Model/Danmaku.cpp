@@ -229,7 +229,7 @@ void Danmaku::clear()
 	decltype(d->danm) danm;
 	d->pool.swap(pool);
 	d->danm.swap(danm);
-	parse(0x1 | 0x2);
+	parse(Model | Block);
 }
 
 namespace
@@ -275,10 +275,11 @@ void Danmaku::append(Record &&record)
 		auto &l = append->danmaku;
 		int c = l.size() + a;
 		s.reserve(c);
-		l.reserve(c);
 		for (const Comment &c : l) {
 			s.insert(&c);
 		}
+		beginResetModel();
+		l.reserve(c);
 		for (const Comment &i : record.danmaku) {
 			l.append(i);
 			Comment &c = l.last();
@@ -313,11 +314,13 @@ void Danmaku::append(Record &&record)
 			}
 		}
 		l.erase(b, e);
+		beginResetModel();
 		d->pool.append(record);
 		QVector<Comment> t;
 		l.swap(t);
 	}
-	parse(0x1 | 0x2);
+	parse(Danmaku::ModelParse | Danmaku::BlockParse);
+	endResetModel();
 	if (append) {
 		emit modelInsert();
 	}
@@ -354,20 +357,37 @@ void Danmaku::append(QString source, const Comment *comment)
 		d->pool.append(r);
 		append = &d->pool.last();
 	}
+	//TODO: Comment * may become dangling!!!
 	append->danmaku.append(*comment);
 	Comment *c = &append->danmaku.last();
 	c->time += append->delay;
 	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
 	append->limit = append->limit == 0 ? 0 : qMax(append->limit, c->date);
-	parse(0x2);
+	parse(BlockParse);
 	emit modelInsert();
+}
+
+void Danmaku::remove(QString source)
+{
+	Q_D(Danmaku);
+	beginResetModel();
+	for (auto iter = d->pool.begin(); iter != d->pool.end(); ++iter) {
+		if (iter->source == source) {
+			d->pool.erase(iter);
+			break;
+		}
+	}
+	parse(Danmaku::ModelParse);
+	endResetModel();
 }
 
 void Danmaku::parse(int flag)
 {
 	Q_D(Danmaku);
-	if ((flag & 0x1) > 0){
+	if (flag & ModelReset) {
 		beginResetModel();
+	}
+	if (flag & ModelParse){
 		d->danm.clear();
 		for (Record &record : d->pool){
 			d->danm.reserve(d->danm.size() + record.danmaku.size());
@@ -385,9 +405,8 @@ void Danmaku::parse(int flag)
 				break;
 			}
 		}
-		endResetModel();
 	}
-	if ((flag & 0x2) > 0) {
+	if ((BlockParse & 0x2) > 0) {
 		//MUST BE SORTED
 		Q_ASSERT(std::is_sorted(d->danm.begin(), d->danm.end(), CommentComparer()));
 
@@ -403,6 +422,12 @@ void Danmaku::parse(int flag)
 		for (Comment *c : d->danm) {
 			c->blocked = c->blocked || shield->isBlocked(*c);
 		}
+	}
+	if (flag & ModelReset) {
+		endResetModel();
+		return;
+	}
+	if (flag & DataChange) {
 		emit layoutChanged();
 	}
 }

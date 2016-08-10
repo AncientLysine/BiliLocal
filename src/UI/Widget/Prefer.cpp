@@ -1245,7 +1245,7 @@ QDialog(parent)
 					shields.append("u=" + sender);
 				}
 				lApp->findObject<Shield>()->setAllShields(shields);
-				d->parse(0x2);
+				d->parse(Danmaku::Block);
 			}
 			if (restart != getRestart() && ((p->getState() == APlayer::Stop && d->rowCount() == 0) || QMessageBox::warning(
 				this,

@@ -230,7 +230,7 @@ QWidget(parent)
 					for (const QString &iter : ruleList) {
 						shield->insert(iter);
 					}
-					lApp->findObject<Danmaku>()->parse(0x2);
+					lApp->findObject<Danmaku>()->parse(Danmaku::Block);
 				});
 			}
 			bool inList = false;
@@ -245,7 +245,7 @@ QWidget(parent)
 					for (const QString &iter : ruleList) {
 						shield->remove(iter);
 					}
-					lApp->findObject<Danmaku>()->parse(0x2);
+					lApp->findObject<Danmaku>()->parse(Danmaku::Block);
 				});
 			}
 			menu.addSeparator();

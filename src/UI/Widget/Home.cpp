@@ -266,7 +266,7 @@ Home::Home(QWidget *parent)
 		else {
 			lApp->findObject<Shield>()->remove(wholeShield);
 		}
-		danmaku->parse(0x2);
+		danmaku->parse(Danmaku::Block);
 	});
 	connect(lApp->findObject<Shield>(), &Shield::shieldChanged, [=]() {
 		toggA->setChecked(lApp->findObject<Shield>()->contains(wholeShield));
@@ -757,7 +757,7 @@ void Home::showContextMenu(QPoint p)
 				QString sender = cur->sender;
 				if (!sender.isEmpty()) {
 					lApp->findObject<Shield>()->insert("u=" + sender);
-					danmaku->parse(0x2);
+					danmaku->parse(Danmaku::Block);
 				}
 			});
 			top.addSeparator();

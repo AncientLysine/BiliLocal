@@ -677,15 +677,8 @@ Load::Load(QObject *parent)
 			Record load;
 			load.danmaku = Parse::parseComment(reply->readAll(), Utils::Bilibili);
 			load.source = task.code;
-			for (Record &iter : lApp->findObject<Danmaku>()->getPool()){
-				if (iter.source == load.source){
-					iter.full = false;
-					iter.danmaku.clear();
-					iter.limit = 1;
-					break;
-				}
-			}
 			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
+			lApp->findObject<Danmaku>()->remove(load.source);
 			lApp->findObject<Danmaku>()->append(std::move(load));
 			emit stateChanged(task.state = None);
 			dequeue();

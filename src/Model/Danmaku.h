@@ -48,6 +48,19 @@ public:
 		StringRole,
 		BlockRole
 	};
+	Q_ENUM(Role);
+
+	enum Flag
+	{
+		None = 0,
+		ModelParse = 1 << 0,
+		BlockParse = 1 << 1,
+		ModelReset = 1 << 2,
+		DataChange = 1 << 3,
+		Model = ModelParse | ModelReset,
+		Block = BlockParse | DataChange
+	};
+	Q_ENUM(Flag);
 
 	virtual QVariant data(const QModelIndex &index, int role) const override;
 	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -77,7 +90,8 @@ signals:
 public slots:
 	void clear();
 	void append(QString source, const Comment *comment);
-	void parse(int flag = 0);
+	void remove(QString source);
+	void parse(int flag = None);
 	void delayAll(qint64 time);
 	void saveToFile(QString file) const;
 	qint64 getDuration() const;

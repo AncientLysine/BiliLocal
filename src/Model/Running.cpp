@@ -117,13 +117,10 @@ void Running::setup()
 
 	connect(lApp->findObject<APlayer>(), &APlayer::jumped, this, &Running::jumpTime);
 	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, this, &Running::moveTime);
-	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, &Running::clear);
-
-	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
-		Q_D(Running);
-		jumpTime(d->time);
-		lApp->findObject<ARender>()->draw();
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, [this]() {
+		clear();
 	});
+
 	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, [this]() {
 		Q_D(Running);
 		qThreadPool->clear();
@@ -141,6 +138,16 @@ void Running::setup()
 			}
 		}
 		d->lock.unlock();
+		lApp->findObject<ARender>()->draw();
+	});
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelAboutToBeReset, this, [this]() {
+		Q_D(Running);
+		d->curr = 0;
+		clear();
+	});
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
+		Q_D(Running);
+		jumpTime(d->time);
 		lApp->findObject<ARender>()->draw();
 	});
 }
