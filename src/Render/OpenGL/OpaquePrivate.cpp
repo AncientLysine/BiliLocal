@@ -87,9 +87,6 @@ void OpenGLOpaqueRenderPrivate::initialize()
 
 void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 {
-	if (inner.isEmpty()) {
-		return;
-	}
 	painter->beginNativePainting();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
