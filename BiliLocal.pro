@@ -86,7 +86,7 @@ TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
 
-debug{
+CONFIG(debug, debug|release){
 DEFINES += GRAPHIC_DEBUG
 }
 
@@ -109,7 +109,7 @@ LIBS += \
 }
 
 win32{
-RC_ICONS = BiliLocal.ico
+RC_ICONS = res\icon.ico
 
 DEFINES += \
     BACKEND_VLC \
