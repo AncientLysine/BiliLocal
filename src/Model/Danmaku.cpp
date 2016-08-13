@@ -59,7 +59,7 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 	Q_D(const Danmaku);
 	if (index.isValid()){
 		const Comment &comment = *d->danm[index.row()];
-		switch (role){
+		switch (role) {
 		case Qt::DisplayRole:
 			if (index.column() == 0){
 				if (comment.blocked){
@@ -89,7 +89,7 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 					}
 				}
 				else{
-					return comment.string.left(50).remove('\n');
+					return comment.string;
 				}
 			}
 		case Qt::ForegroundRole:
@@ -120,8 +120,24 @@ QVariant Danmaku::data(const QModelIndex &index, int role) const
 			default:
 				break;
 			}
-		case Qt::UserRole:
-			return (quintptr)&comment;
+		case ModeRole:
+			return comment.mode;
+		case FontRole:
+			return comment.font;
+		case ColorRole:
+			return QColor(comment.color);
+		case TimeRole:
+			return comment.time;
+		case DateRole:
+			return comment.date;
+		case SenderRole:
+			return comment.sender;
+		case StringRole:
+			return comment.string;
+		case BlockRole:
+			return comment.blocked;
+		default:
+			break;
 		}
 	}
 	return QVariant();
@@ -164,6 +180,21 @@ QVariant Danmaku::headerData(int section, Qt::Orientation orientation, int role)
 	return QVariant();
 }
 
+QHash<int, QByteArray> Danmaku::roleNames() const
+{
+	static QHash<int, QByteArray> names = {
+		{ ModeRole, "mode" },
+		{ FontRole, "font" },
+		{ ColorRole, "color" },
+		{ TimeRole, "time" },
+		{ DateRole, "date" },
+		{ SenderRole, "sender" },
+		{ StringRole, "string" },
+		{ BlockRole, "block" }
+	};
+	return names;
+}
+
 QList<Record> &Danmaku::getPool()
 {
 	Q_D(Danmaku);
@@ -191,12 +222,14 @@ Comment * Danmaku::at(int index)
 void Danmaku::clear()
 {
 	Q_D(Danmaku);
-	if (!d->pool.isEmpty()){
-		//clearCurrent();
-		d->pool.clear();
-		d->danm.clear();
-		parse(0x1 | 0x2);
+	if (d->pool.isEmpty()){
+		return;
 	}
+	decltype(d->pool) pool;
+	decltype(d->danm) danm;
+	d->pool.swap(pool);
+	d->danm.swap(danm);
+	parse(Model | Block);
 }
 
 namespace
@@ -223,53 +256,71 @@ namespace
 	}
 }
 
-void Danmaku::append(const Record *record)
+void Danmaku::append(Record &&record)
 {
 	Q_D(Danmaku);
-	Record *append = 0;
+	Record *append = nullptr;
 	for (Record &r : d->pool) {
-		if (r.source == record->source) {
+		if (r.source == record.source) {
 			append = &r;
 			break;
 		}
 	}
-	if (append == nullptr) {
-		d->pool.append(*record);
-		QSet<CommentPointer> s;
-		auto &l = d->pool.last().danmaku;
-		s.reserve(l.size());
-		auto e = std::remove_if(l.begin(), l.end(), [&s](const Comment &c) {
-			int n = s.size();
-			s.insert(&c);
-			return n == s.size();
-		});
-		l.erase(e, l.end());
-	}
-	else {
+	if (append) {
+		int a = record.danmaku.size();
+		if (a <= 0) {
+			return;
+		}
 		QSet<CommentPointer> s;
 		auto &l = append->danmaku;
-		int c = l.size() + record->danmaku.size();
+		int c = l.size() + a;
 		s.reserve(c);
-		l.reserve(c);
 		for (const Comment &c : l) {
 			s.insert(&c);
 		}
-		for (const Comment &i : record->danmaku) {
+		beginResetModel();
+		l.reserve(c);
+		for (const Comment &i : record.danmaku) {
 			l.append(i);
 			Comment &c = l.last();
-			c.time += append->delay - record->delay;
+			c.time += append->delay - record.delay;
 			int n = s.size();
 			s.insert(&c);
-			if (n == s.size()) {
+			if (s.size() == n) {
 				l.removeLast();
 			}
 		}
-		if (record->full) {
-			append->full = true;
-		}
-		append->limit = record->limit == 0 ? 0 : qMax(append->limit, record->limit);
+		append->full = record.full || append->full;
 	}
-	parse(0x1 | 0x2);
+	else {
+		QSet<CommentPointer> s;
+		auto &l = record.danmaku;
+		s.reserve(l.size());
+		auto b = l.begin(), e = l.end();
+		for (; b != e; ++b) {
+			int n = s.size();
+			s.insert(&*b);
+			if (s.size() == n) {
+				break;
+			}
+		}
+		auto i = b == e ? e : std::next(b);
+		for (; i != e; ++i) {
+			int n = s.size();
+			*b = *i;
+			s.insert(&*b);
+			if (s.size() != n) {
+				++b;
+			}
+		}
+		l.erase(b, e);
+		beginResetModel();
+		d->pool.append(record);
+		QVector<Comment> t;
+		l.swap(t);
+	}
+	parse(Danmaku::ModelParse | Danmaku::BlockParse);
+	endResetModel();
 	if (append) {
 		emit modelInsert();
 	}
@@ -306,20 +357,37 @@ void Danmaku::append(QString source, const Comment *comment)
 		d->pool.append(r);
 		append = &d->pool.last();
 	}
+	//TODO: Comment * may become dangling!!!
 	append->danmaku.append(*comment);
 	Comment *c = &append->danmaku.last();
 	c->time += append->delay;
 	d->danm.insert(std::upper_bound(d->danm.begin(), d->danm.end(), c, CommentComparer()), c);
 	append->limit = append->limit == 0 ? 0 : qMax(append->limit, c->date);
-	parse(0x2);
+	parse(BlockParse);
 	emit modelInsert();
+}
+
+void Danmaku::remove(QString source)
+{
+	Q_D(Danmaku);
+	beginResetModel();
+	for (auto iter = d->pool.begin(); iter != d->pool.end(); ++iter) {
+		if (iter->source == source) {
+			d->pool.erase(iter);
+			break;
+		}
+	}
+	parse(Danmaku::ModelParse);
+	endResetModel();
 }
 
 void Danmaku::parse(int flag)
 {
 	Q_D(Danmaku);
-	if ((flag & 0x1) > 0){
+	if (flag & ModelReset) {
 		beginResetModel();
+	}
+	if (flag & ModelParse){
 		d->danm.clear();
 		for (Record &record : d->pool){
 			d->danm.reserve(d->danm.size() + record.danmaku.size());
@@ -337,92 +405,29 @@ void Danmaku::parse(int flag)
 				break;
 			}
 		}
-		endResetModel();
 	}
-	if ((flag & 0x2) > 0) {
+	if ((BlockParse & 0x2) > 0) {
 		//MUST BE SORTED
 		Q_ASSERT(std::is_sorted(d->danm.begin(), d->danm.end(), CommentComparer()));
 
-		// Date Limit
+		//History Limit
 		for (Record &r : d->pool) {
 			for (Comment &c : r.danmaku) {
 				c.blocked = r.limit != 0 && c.date > r.limit;
 			}
 		}
-		// Repeat Limit
-		int limit = Config::getValue("/Shield/Limit/Count", 5);
-		int range = Config::getValue("/Shield/Limit/Range", 10000);
-		if (limit != 0) {
-			QVector<QString> clean;
-			int size = d->danm.size();
-			clean.reserve(size);
-			for (const Comment *iter : d->danm) {
-				const auto &raw = iter->string;
-
-				int length = raw.length();
-				const QChar *data = raw.data();
-
-				QString clr;
-
-				int passed = 0;
-				const QChar *head = data;
-
-				for (int i = 0; i < length; ++i) {
-					const QChar &c = data[i];
-					if (c.isLetterOrNumber() || c.isMark() || c == '_') {
-						++passed;
-					}
-					else if (passed > 0) {
-						clr.reserve(length);
-						clr.append(head, passed);
-						passed = 0;
-						head = data + i + 1;
-					}
-				}
-				if (passed == length) {
-					clean.append(raw);
-				}
-				else {
-					if (passed > 0) {
-						clr.append(head, passed);
-					}
-					clean.append(clr);
-				}
-			}
-			QHash<QString, int> count;
-			int sta = 0, end = sta;
-			for (; end < size; ++end) {
-				Comment *e = d->danm[end];
-				while (d->danm[sta]->time + range < e->time) {
-					auto i = count.find(clean[sta]);
-					if (i.value() == 1) {
-						count.erase(i);
-					}
-					else if (i.value() > 1) {
-						--(i.value());
-					}
-					++sta;
-				}
-				int &num = count[clean[end]];
-				if (num >= 0 && ++num > limit && e->mode <= 6) {
-					num = -1;
-				}
-			}
-			for (; sta < size; ++sta) {
-				auto i = count.find(clean[sta]);
-				if (i.value() > 0) {
-					count.erase(i);
-				}
-			}
-			for (int i = 0; i < size; ++i) {
-				Comment *c = d->danm[i];
-				c->blocked = c->blocked || count.contains(clean[i]);
-			}
-		}
-		// Regex Limit
+		
+		//Regexp Shield
+		Shield *shield = lApp->findObject<Shield>();
 		for (Comment *c : d->danm) {
-			c->blocked = c->blocked || lApp->findObject<Shield>()->isBlocked(*c);
+			c->blocked = c->blocked || shield->isBlocked(*c);
 		}
+	}
+	if (flag & ModelReset) {
+		endResetModel();
+		return;
+	}
+	if (flag & DataChange) {
 		emit layoutChanged();
 	}
 }
@@ -499,7 +504,7 @@ void Danmaku::saveToFile(QString file) const
 			o["m"] = c->string;
 			a.append(o);
 		}
-		f.write(QJsonDocument(a).toJson(QJsonDocument::Compact));
+		f.write(QJsonDocument(a).toJson());
 	}
 	f.close();
 }

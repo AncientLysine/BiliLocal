@@ -33,10 +33,11 @@ SOURCES += \
     src/Render/ARender.cpp \
     src/Render/ASprite.cpp \
     src/UI/Interface.cpp \
+    src/Bundle.cpp \
     src/Config.cpp \
     src/Local.cpp \
-    src/Utils.cpp \
-    src/Plugin.cpp
+    src/Plugin.cpp \
+    src/Utils.cpp
 
 HEADERS += \
     src/Access/AccessPrivate.h \
@@ -66,10 +67,11 @@ HEADERS += \
     src/Render/PFormat.h \
     src/UI/Interface.h \
     src/UI/InterfacePrivate.h \
+    src/Bundle.h \
     src/Config.h \
     src/Local.h \
-    src/Utils.h \
-    src/Plugin.h
+    src/Plugin.h \
+    src/Utils.h
 
 INCLUDEPATH += \
     src
@@ -83,6 +85,10 @@ RESOURCES += \
 TRANSLATIONS += \
     res/zh_CN.ts \
     res/zh_TW.ts
+
+CONFIG(debug, debug|release){
+DEFINES += GRAPHIC_DEBUG
+}
 
 linux : !android{
 DEFINES += \
@@ -103,7 +109,7 @@ LIBS += \
 }
 
 win32{
-RC_ICONS = BiliLocal.ico
+RC_ICONS = res\icon.ico
 
 DEFINES += \
     BACKEND_VLC \
@@ -169,6 +175,9 @@ DISTFILES += \
     res/Android/gradle/wrapper/gradle-wrapper.properties \
     res/Android/gradlew.bat
 
+RESOURCES += \
+    src/UI/Quick2/BundleQuick2.qrc
+
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
 }
 
@@ -177,25 +186,25 @@ QT += widgets
 
 SOURCES += \
     src/UI/Widget/Editor.cpp \
+    src/UI/Widget/Home.cpp \
     src/UI/Widget/Info.cpp \
     src/UI/Widget/Jump.cpp \
     src/UI/Widget/Menu.cpp \
     src/UI/Widget/Prefer.cpp \
     src/UI/Widget/Search.cpp \
     src/UI/Widget/Type.cpp \
-    src/UI/Widget/WidgetInterfacePrivate.cpp \
-    src/UI/Widget/WidgetUtils.cpp
+    src/UI/Widget/WidgetInterfacePrivate.cpp
 
 HEADERS += \
     src/UI/Widget/Editor.h \
+    src/UI/Widget/Home.h \
     src/UI/Widget/Info.h \
     src/UI/Widget/Jump.h \
     src/UI/Widget/Menu.h \
     src/UI/Widget/Prefer.h \
     src/UI/Widget/Search.h \
     src/UI/Widget/Type.h \
-    src/UI/Widget/WidgetInterfacePrivate.h \
-    src/UI/Widget/WidgetUtils.h
+    src/UI/Widget/WidgetInterfacePrivate.h
 
 message(enable widget interface)
 }
@@ -207,8 +216,14 @@ QT+= \
 
 lupdate_only{
 SOURCES += \
-    src/UI/Quick2/Interface.qml
+    src/UI/Quick2/Home.qml \
+    src/UI/Quick2/Info.qml \
+    src/UI/Quick2/Interface.qml \
+    src/UI/Quick2/Menu.qml
 }
+
+SOURCES += \
+    src/UI/Quick2/Quick2InterfacePrivate.cpp
 
 HEADERS += \
     src/UI/Quick2/Export.h \
@@ -242,18 +257,19 @@ message(enable raster render widget output)
 contains(DEFINES, RENDER_OPENGL){
 SOURCES += \
     src/Render/OpenGL/OpenGLRender.cpp \
-    src/Render/OpenGL/Atlas.cpp \
+    src/Render/OpenGL/OpenGLAtlas.cpp \
     src/Render/OpenGL/SyncTextureSprite.cpp \
     src/Render/OpenGL/DetachPrivate.cpp \
     src/Render/OpenGL/OpaquePrivate.cpp
-
 HEADERS += \
     src/Render/OpenGL/OpenGLRender.h \
     src/Render/OpenGL/OpenGLRenderPrivate.h \
-    src/Render/OpenGL/Atlas.h \
+    src/Render/OpenGL/OpenGLAtlas.h \
     src/Render/OpenGL/SyncTextureSprite.h \
     src/Render/OpenGL/DetachPrivate.h \
     src/Render/OpenGL/OpaquePrivate.h
+
+message(enable opengl render detach output)
 
 contains(QT, widgets){
 HEADERS += \
@@ -266,7 +282,6 @@ SOURCES += \
 
 message(enable opengl render widget output)
 message(enable opengl render window output)
-message(enable opengl render detach output)
 }
 
 contains(QT, quick){

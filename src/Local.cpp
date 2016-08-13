@@ -26,6 +26,7 @@
 
 #include "Common.h"
 #include "Local.h"
+#include "Bundle.h"
 #include "Config.h"
 #include "Plugin.h"
 #include "Utils.h"
@@ -157,7 +158,9 @@ namespace
 
 int main(int argc, char *argv[])
 {
+	QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 	std::remove_pointer<decltype(qApp)>::type a(argc, argv);
+	Bundle::push();
 	Config::load();
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 	int single = Config::getValue("/Interface/Single", 1);

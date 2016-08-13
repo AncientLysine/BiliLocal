@@ -2,17 +2,22 @@
 
 #include <QtCore>
 #include "../Utils.h"
+#include <functional>
 
 namespace Parse
 {
 	class ResultDelegate
 	{
 	public:
+		typedef QVector<Comment> Result;
+		typedef std::function<void(Result &&)> Finish;
+
 		class Record
 		{
 		public:
 			virtual ~Record() = default;
-			virtual QVector<Comment> get() = 0;
+			virtual void onFinish(Finish) = 0;
+			virtual Result get() = 0;
 		};
 
 		QSharedPointer<Record> data;
@@ -27,9 +32,19 @@ namespace Parse
 		{
 		}
 
-		operator QVector<Comment>()
+		void onFinish(Finish cb)
 		{
-			return data == nullptr ? QVector<Comment>() : data->get();
+			if (data) {
+				data->onFinish(cb);
+			}
+			else {
+				cb(Result());
+			}
+		}
+
+		operator Result()
+		{
+			return data == nullptr ? Result() : data->get();
 		}
 	};
 

@@ -27,7 +27,7 @@
 
 #include "Common.h"
 #include "Search.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../../Local.h"
 #include "../../Access/Seek.h"
 #include "../../Utils.h"

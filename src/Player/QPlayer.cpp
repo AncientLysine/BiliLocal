@@ -41,14 +41,31 @@ namespace
 			return frame.map(QAbstractVideoBuffer::ReadOnly);
 		}
 
-		virtual uint mappedBytes() const override
-		{
-			return frame.mappedBytes();
-		}
-
 		virtual const uchar *bits() const override
 		{
 			return frame.bits();
+		}
+
+		virtual QList<QSize> size() const override
+		{
+			QList<QSize> alloc;
+			int i;
+			int total = frame.mappedBytes();
+			int count = frame.planeCount() - 1;
+			for (i = 0; i < count; ++i) {
+				int plane = frame.bits(i + 1) - frame.bits(i);
+				if (plane == 0) {
+					continue;
+				}
+				int width = frame.bytesPerLine(i);
+				alloc.append(QSize(width, plane / width));
+				total -= plane;
+			}
+			{
+				int width = frame.bytesPerLine(i);
+				alloc.append(QSize(width, total / width));
+			}
+			return alloc;
 		}
 
 		virtual void unmap() override
@@ -92,7 +109,6 @@ namespace
 			PFormat f;
 			f.chroma = chroma;
 			f.size = format.frameSize();
-			f.alignment = 1;
 			lApp->findObject<ARender>()->setFormat(&f);
 			if (f.chroma != chroma) {
 				return false;

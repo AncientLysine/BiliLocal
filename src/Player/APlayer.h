@@ -42,7 +42,7 @@ public:
 		Pause,
 		Loop
 	};
-	Q_ENUM(State)
+	Q_ENUM(State);
 
 	enum Error
 	{
@@ -53,10 +53,16 @@ public:
 		AccessDeniedError,
 		ServiceMissingError
 	};
-	Q_ENUM(Error)
+	Q_ENUM(Error);
 
 	static QStringList getModules();
 	static APlayer *create(QObject *parent = nullptr, QString name = QString());
+
+	Q_PROPERTY(int state READ getState NOTIFY stateChanged);
+	Q_PROPERTY(qint64 time READ getTime WRITE setTime NOTIFY timeChanged);
+	Q_PROPERTY(QString media READ getMedia WRITE setMedia NOTIFY mediaChanged);
+	Q_PROPERTY(int volume READ getVolume WRITE setVolume NOTIFY volumeChanged);
+	Q_PROPERTY(double rate READ getRate WRITE setRate NOTIFY rateChanged);
 
 protected:
 	explicit APlayer(QObject *parent);

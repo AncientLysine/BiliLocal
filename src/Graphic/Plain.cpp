@@ -22,7 +22,7 @@ Plain::~Plain()
 void Plain::draw(QPainter *painter)
 {
 	if (enabled){
-		sprite->setRect(rect);
+		sprite->setPosition(rect.topLeft());
 		sprite->draw(painter);
 	}
 }

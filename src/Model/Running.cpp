@@ -32,6 +32,57 @@
 #include "../Graphic/Graphic.h"
 #include "../Player/APlayer.h"
 #include "../Render/ARender.h"
+#include <algorithm>
+
+namespace
+{
+	class TextCounter : QHash<QString, int>
+	{
+	public:
+		using QHash<QString, int>::value;
+
+		void insert(const QString &txt)
+		{
+			++(*this)[txt];
+		}
+
+		void insert(const Comment *com)
+		{
+			insert(com->string);
+		}
+
+		void insert(const Graphic *gra)
+		{
+			const Comment *com = gra->getSource();
+			if (com) {
+				insert(com);
+			}
+		}
+
+		void remove(const QString &txt)
+		{
+			auto itr = find(txt);
+			int &num = itr.value();
+			if (--num <= 0) {
+				erase(itr);
+			}
+		}
+
+		void remove(const Comment *com)
+		{
+			remove(com->string);
+		}
+
+		void remove(const Graphic *gra)
+		{
+			const Comment *com = gra->getSource();
+			if (com) {
+				remove(com);
+			}
+		}
+
+	};
+}
 
 class RunningPrivate
 {
@@ -39,7 +90,8 @@ public:
 	qint32 curr;
 	qint64 time;
 	QList<Graphic *> draw;
-	QAtomicInt wait;
+	int wait;
+	TextCounter text;
 	mutable QReadWriteLock lock;
 };
 
@@ -65,12 +117,10 @@ void Running::setup()
 
 	connect(lApp->findObject<APlayer>(), &APlayer::jumped, this, &Running::jumpTime);
 	connect(lApp->findObject<APlayer>(), &APlayer::timeChanged, this, &Running::moveTime);
-
-	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
-		Q_D(Running);
-		jumpTime(d->time);
-		lApp->findObject<ARender>()->draw();
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, [this]() {
+		clear();
 	});
+
 	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, [this]() {
 		Q_D(Running);
 		qThreadPool->clear();
@@ -78,7 +128,8 @@ void Running::setup()
 		d->lock.lockForWrite();
 		for (auto iter = d->draw.begin(); iter != d->draw.end();) {
 			const Comment *cur = (*iter)->getSource();
-			if (cur&&cur->blocked) {
+			if (cur && cur->blocked) {
+				d->text.remove(cur);
 				delete *iter;
 				iter = d->draw.erase(iter);
 			}
@@ -87,6 +138,16 @@ void Running::setup()
 			}
 		}
 		d->lock.unlock();
+		lApp->findObject<ARender>()->draw();
+	});
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelAboutToBeReset, this, [this]() {
+		Q_D(Running);
+		d->curr = 0;
+		clear();
+	});
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset, this, [this]() {
+		Q_D(Running);
+		jumpTime(d->time);
 		lApp->findObject<ARender>()->draw();
 	});
 }
@@ -99,15 +160,18 @@ void Running::clear(bool soft)
 	d->lock.lockForWrite();
 	for (auto iter = d->draw.begin(); iter != d->draw.end();) {
 		Graphic *g = *iter;
-		if (soft&&g->stay()) {
+		if (soft && g->stay()) {
 			++iter;
 		}
 		else {
+			d->text.remove(g);
 			delete g;
 			iter = d->draw.erase(iter);
 		}
 	}
 	d->lock.unlock();
+	d->time = 0;
+	d->curr = 0;
 	lApp->findObject<ARender>()->draw();
 }
 
@@ -127,6 +191,7 @@ void Running::insert(Graphic *graphic, int index)
 			next = size;
 		}
 	}
+	d->text.insert(graphic);
 	d->draw.insert(next, graphic);
 	d->lock.unlock();
 }
@@ -161,15 +226,13 @@ namespace
 	//Floor太慢了
 	inline int lower(double n)
 	{
-		Q_ASSERT(n >= 0);
-		return (int)n;
+		return (int)n - (n < (int)n);
 	}
 
 	//Ceil 太慢了
 	inline int upper(double n)
 	{
-		int i = (int)n;
-		return i + (n > i);
+		return (int)n + (n > (int)n);
 	}
 
 	class Process : public QRunnable
@@ -184,11 +247,6 @@ namespace
 		{
 		}
 
-		~Process()
-		{
-			priv->wait -= wait.size();
-		}
-
 		virtual void run() override
 		{
 			if (wait.isEmpty()) {
@@ -201,14 +259,15 @@ namespace
 			switch (meta.rect.size()) {
 			case 1:
 				//图元指定位置
-				for (auto graphic : wait) {
-					graphic->currentRect() = meta.rect[0];
+				for (Graphic *iter : wait) {
+					iter->currentRect() = meta.rect[0];
 				}
 			case 0:
 				//弹幕自行定位
 				priv->lock.lockForWrite();
-				for (auto graphic : wait) {
-					priv->draw.append(graphic);
+				for (Graphic *iter : wait) {
+					priv->wait--;
+					priv->draw.append(iter);
 				}
 				priv->lock.unlock();
 				break;
@@ -219,18 +278,19 @@ namespace
 				std::fill(thick.begin(), thick.end(), 0);
 				//计算每个位置的拥挤程度
 				auto calculate = [&](Graphic *against) {
-					Graphic *head = wait.front();
-					Q_ASSERT(head->getMode() == meta.mode && against->getMode() == meta.mode);
+					Graphic *compare = wait.front() == against ? wait.last() : wait.front();
+					Q_ASSERT(compare->getMode() == meta.mode && against->getMode() == meta.mode);
 					const QRectF &rect = against->currentRect();
 					const QRectF &from = meta.rect.at(0);
 					double stp = meta.rect.at(1).top() - from.top();
-					double len = from.height();
-					int sta = qMax(0, lower((stp > 0 ? (rect.top() - from.top()) : (rect.bottom() - from.bottom())) / stp));
-					int end = qMin(upper((rect.height() + len) / qAbs(stp) + sta), thick.size());
-					QRectF &iter = head->currentRect(), back = iter;
+					double off = stp > 0 ? (rect.top() - from.top()) : (rect.bottom() - from.bottom());
+					double len = rect.height() + from.height();
+					int sta = qMax(lower(off / stp), 0);
+					int end = qMin(upper(len / qAbs(stp) + sta), thick.size());
+					QRectF &iter = compare->currentRect(), back = iter;
 					for (; sta < end; ++sta) {
 						iter = meta.rect.at(sta);
-						thick[sta] += head->intersects(against);
+						thick[sta] += compare->intersects(against);
 					}
 					iter = back;
 				};
@@ -255,11 +315,12 @@ namespace
 					else break;
 				}
 				//挑选最空闲的位置
-				for (auto iter : wait) {
+				for (Graphic *iter : wait) {
 					int thin = std::min_element(thick.begin(), thick.end()) - thick.begin();
 					iter->currentRect() = meta.rect[thin];
 					iter->setIndex();
 					iter->setEnabled(true);
+					priv->wait--;
 					priv->draw.append(iter);
 					calculate(iter);
 				}
@@ -290,6 +351,11 @@ namespace
 		{
 			//跳过500毫秒以上未处理的弹幕
 			if (wait.isEmpty() || createTime < QDateTime::currentMSecsSinceEpoch() - 500) {
+				QWriteLocker locker(&priv->lock);
+				for (const Comment *iter : wait) {
+					priv->wait--;
+					priv->text.remove(iter);
+				}
 				return;
 			}
 
@@ -297,14 +363,14 @@ namespace
 			QThread::currentThread()->setPriority(QThread::LowPriority);
 
 			QHash<CreateMeta, QList<Graphic *>> slot;
-			for (auto comment : wait) {
+			for (const Comment *iter : wait) {
 				try {
-					Graphic *graphic = Graphic::create(*comment);
+					Graphic *graphic = Graphic::create(*iter);
 					slot[CreateMeta(graphic)].append(graphic);
 				}
 				catch (Graphic::format_unrecognized) {
 					//自带弹幕系统未识别，通知插件处理
-					emit lApp->findObject<Running>()->unrecognizedComment(comment);
+					emit lApp->findObject<Running>()->unrecognizedComment(iter);
 				}
 				catch (Graphic::args_prasing_error) {}
 			}
@@ -324,17 +390,28 @@ void Running::moveTime(qint64 time)
 {
 	Q_D(Running);
 	d->time = time;
-	int limit = Config::getValue("/Shield/Density", 0);
-	QMap<qint64, QList<const Comment *>> buffer;
+	int screen = Config::getValue("/Shield/Amount/Screen", 0);
+	int repeat = Config::getValue("/Shield/Amount/Repeat", 5);
+	QMap<qint64, QList<const Comment *>> splited;
 	auto danm = lApp->findObject<Danmaku>();
 	for (; d->curr < danm->size() && danm->at(d->curr)->time < time; ++d->curr) {
 		const Comment *c = danm->at(d->curr);
-		if (!c->blocked && (limit <= 0 || d->wait + d->draw.size() < limit)) {
-			++d->wait;
-			buffer[c->time].append(c);
+		if (c->blocked) {
+			continue;
 		}
+		QWriteLocker locker(&d->lock);
+		if (screen > 0 && d->wait + d->draw.size() >= screen) {
+			continue;
+		}
+		if (repeat > 0 && d->text.value(c->string) >= repeat) {
+			continue;
+		}
+		d->wait++;
+		d->text.insert(c);
+		locker.unlock();
+		splited[c->time].append(c);
 	}
-	for (const auto &iter : buffer) {
+	for (const QList<const Comment *> &iter : splited) {
 		qThreadPool->start(new Prepare(d, iter), Prepare::Priority);
 	}
 }
@@ -379,6 +456,7 @@ void Running::draw(QPainter *painter, double move)
 			++iter;
 		}
 		else {
+			d->text.remove(g);
 			delete g;
 			iter = d->draw.erase(iter);
 		}

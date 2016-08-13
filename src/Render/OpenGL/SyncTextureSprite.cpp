@@ -16,7 +16,9 @@ void SyncTextureSprite::prepare()
 void SyncTextureSprite::draw(QPainter *)
 {
 	if (!size.isValid()) {
-		render->manager->insert({ text, font, effect }, sprites, size);
+		QFont f = font;
+		f.setPixelSize(f.pixelSize() * qApp->devicePixelRatio());
+		render->resource->manager.insert({ text, f, effect }, sprites, size);
 	}
 
 	if (sprites.isEmpty()) {
@@ -25,9 +27,11 @@ void SyncTextureSprite::draw(QPainter *)
 
 	for(int y = 0; y < size.height(); ++y){
 		for (int x = 0; x < size.width(); ++x) {
-			Sprite &s = sprites[y * size.width() + x];
-			QRectF draw(QPointF(x, y) * Atlas::MaxSize, s.rect.size());
+			OpenGLSprite &s = sprites[y * size.width() + x];
+			QRectF draw(QPointF(x, y) * OpenGLAtlas::MaxSize, s.rect.size());
+			draw = render->scaleRect(draw, 1 / qApp->devicePixelRatio());
 			draw = transform.mapRect(draw);
+			draw = render->scaleRect(draw, 1 * qApp->devicePixelRatio());
 			render->appendDrawCall(draw, s.rect, s.getTexture(), color);
 		}
 	}
@@ -46,10 +50,17 @@ QSize SyncTextureSprite::getSize()
 		for (int y = 0; y < sh; ++y) {
 			h += sprites[y * sw].rect.height();
 		}
-		return QSize(w, h);
+		QSize s(w, h);
+		s /= qApp->devicePixelRatio();
+		return s;
 	}
 	else {
-		const int pad = Atlas::Padding;
-		return GraphicPrivate::getSize(text, font) + QSize(pad, pad) * 2;
+		QFont f = font;
+		f.setPixelSize(f.pixelSize() * qApp->devicePixelRatio());
+		const int pad = OpenGLAtlas::Padding;
+		QSize s = GraphicPrivate::getSize(text, f);
+		s += QSize(pad, pad) * 2;
+		s /= qApp->devicePixelRatio();
+		return s;
 	}
 }

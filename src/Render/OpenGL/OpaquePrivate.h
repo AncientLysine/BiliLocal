@@ -12,7 +12,7 @@ public:
 	Format format;
 	QSize inner;
 	QList<QSize> plane;
-	int alignment;
+	QList<QSize> alloc;
 	QMutex dataLock;
 	GLfloat vtx[8];
 	GLfloat tex[8];
@@ -20,7 +20,8 @@ public:
 
 	virtual ~OpenGLOpaqueRenderPrivate();
 
-	void loadTexture(int index, const uchar *data, int channel, int width, int height);
+	void loadFrame(int index, const uchar *data, int channel, int width, int height);
+	QVector2D validArea(int index);
 	void paint(QPaintDevice *device);
 
 	virtual void initialize() override;

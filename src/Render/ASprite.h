@@ -50,12 +50,12 @@ public:
 		this->text = text;
 	}
 
-	void setRect(QRectF rect);
-
 	void setTransform(QTransform transform)
 	{
 		this->transform = transform;
 	}
+
+	void setPosition(QPointF position);
 
 protected:
 	QColor color;

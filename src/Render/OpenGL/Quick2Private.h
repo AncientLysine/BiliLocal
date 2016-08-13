@@ -31,6 +31,7 @@ public:
 
 	virtual void draw(QRect) override
 	{
+		window->update();
 	}
 
 private:

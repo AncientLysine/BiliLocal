@@ -13,13 +13,11 @@ void ASprite::setAuto(const Comment & comment)
 	const QSize & size = lApp->findObject<ARender>()->getActualSize();
 	font = GraphicPrivate::getFont(comment.font * GraphicPrivate::getScale(comment.mode, comment.date, size));
 	frame = comment.isLocal();
-	text = comment.string;
+	text = Utils::decodeTxt(QString(comment.string));
 }
 
-void ASprite::setRect(QRectF rect)
+void ASprite::setPosition(QPointF position)
 {
-	const QSize &size = getSize();
 	transform.reset();
-	transform.scale(rect.width() / size.width(), rect.height() / size.height());
-	transform.translate(rect.x(), rect.y());
+	transform.translate(position.x(), position.y());
 }

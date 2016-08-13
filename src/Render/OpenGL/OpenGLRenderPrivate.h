@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../ARenderPrivate.h"
-#include "Atlas.h"
-#include <QOpenGLFunctions>
+#include "OpenGLAtlas.h"
+#include <QtCore>
+#include <QtGui>
 
 class OpenGLRenderPrivate :public ARenderPrivate, public QOpenGLFunctions
 {
@@ -22,19 +23,25 @@ public:
 		Stro,
 		Proj,
 		Glow,
-		FormatMax
+		Max
 	};
-
-	QScopedArrayPointer<QOpenGLShaderProgram> program;
 
 	QByteArray extensions;
 
-	QOpenGLBuffer vtxBuffer;
-	QOpenGLBuffer idxBuffer;
+	struct OpenGLRenderResource
+	{
+		QOpenGLShaderProgram program[Max];
+		QOpenGLBuffer vtxBuffer;
+		QOpenGLBuffer idxBuffer;
+		OpenGLAtlasMgr manager;
 
-	QScopedPointer<AtlasMgr> manager;
+		explicit OpenGLRenderResource(OpenGLRenderPrivate *r);
+	};
+	QScopedPointer<OpenGLRenderResource> resource;
 
 	GLenum pixelFormat(int channel, bool renderable = false) const;
+	static QRectF scaleRect(QRectF rect, double factor);
+	static QRectF scaleRect(QRectF rect, QPainter *painter);
 
 	struct LoadCall
 	{
@@ -86,6 +93,8 @@ public:
 
 	virtual void initialize();
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
+	virtual void setFormat(PFormat *format) = 0;
+	virtual void setBuffer(ABuffer *buffer) = 0;
 	virtual void onSwapped();
 	virtual bool isVisible() = 0;
 	virtual QObject *getHandle() = 0;

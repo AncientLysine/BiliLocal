@@ -15,6 +15,8 @@ private:
 	Q_DECLARE_PRIVATE(RasterRender);
 
 public slots:
+	virtual void setFormat(PFormat *format) override;
+	virtual void setBuffer(ABuffer *buffer) override;
 	virtual ASprite *getSprite() override;
 	virtual QObject *getHandle() override;
 	virtual void resize(QSize size) override;

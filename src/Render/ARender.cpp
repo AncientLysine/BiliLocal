@@ -114,7 +114,10 @@ void ARender::setup()
 	d->dirty = 0;
 	d->videoAspectRatio = 0;
 	d->pixelAspectRatio = 1;
-	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, [d](){
+	auto reset = [this]() { setDisplayTime(0); };
+	connect(lApp->findObject<APlayer>(), &APlayer::begin, this, reset);
+	connect(lApp->findObject<APlayer>(), &APlayer::reach, this, reset);
+	connect(lApp->findObject<APlayer>(), &APlayer::stateChanged, this, [d](){
 		d->timer.invalidate();
 	});
 }
@@ -122,18 +125,6 @@ void ARender::setup()
 ARender::~ARender()
 {
 	delete d_ptr;
-}
-
-void ARender::setFormat(PFormat *format)
-{
-	Q_D(ARender);
-	d->setFormat(format);
-}
-
-void ARender::setBuffer(ABuffer *buffer)
-{
-	Q_D(ARender);
-	d->setBuffer(buffer);
 }
 
 void ARender::setBackground(QString path)
@@ -212,8 +203,8 @@ QRect ARenderPrivate::fitRect(QSize size, QRect rect)
 
 void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 {
-	painter->fillRect(rect, Qt::black);
 	if (music){
+		painter->fillRect(rect, Qt::black);
 		painter->drawImage(rect.center() - QRect(QPoint(0, 0), sound.size()).center(), sound);
 	}
 	else{

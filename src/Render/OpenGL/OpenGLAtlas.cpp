@@ -1,13 +1,13 @@
 #include "Common.h"
-#include "Atlas.h"
+#include "OpenGLAtlas.h"
 #include "OpenGLRenderPrivate.h"
 #include "../../Graphic/GraphicPrivate.h"
 
-const int Atlas::MaxSize = 2048;
-const int Atlas::Padding = 2;
-const int Atlas::Spacing = 0;
+const int OpenGLAtlas::MaxSize = 2048;
+const int OpenGLAtlas::Padding = 2;
+const int OpenGLAtlas::Spacing = 0;
 
-Atlas::Atlas(OpenGLRenderPrivate *render)
+OpenGLAtlas::OpenGLAtlas(OpenGLRenderPrivate *render)
 	: render(render)
 	, refNum(0)
 	, cached(0)
@@ -30,12 +30,12 @@ Atlas::Atlas(OpenGLRenderPrivate *render)
 	render->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-Atlas::~Atlas()
+OpenGLAtlas::~OpenGLAtlas()
 {
 	render->glDeleteTextures(1, &cached);
 }
 
-void Atlas::insert(QList<QImage> &source, int effect, QList<Sprite> &result)
+void OpenGLAtlas::insert(QList<QImage> &source, int effect, QList<OpenGLSprite> &result)
 {
 	for (auto iter = source.begin(); iter != source.end();) {
 		bool fitted = false;
@@ -58,23 +58,23 @@ void Atlas::insert(QList<QImage> &source, int effect, QList<Sprite> &result)
 			QOpenGLShaderProgram *p = nullptr;
 			switch (effect) {
 			case 0:
-				p = &render->program[OpenGLRenderPrivate::Stro];
+				p = &render->resource->program[OpenGLRenderPrivate::Stro];
 				break;
 			case 1:
-				p = &render->program[OpenGLRenderPrivate::Proj];
+				p = &render->resource->program[OpenGLRenderPrivate::Proj];
 				break;
 			case 2:
-				p = &render->program[OpenGLRenderPrivate::Glow];
+				p = &render->resource->program[OpenGLRenderPrivate::Glow];
 				break;
 			default:
 				return;
 			}
-			const int spc = Atlas::Spacing;
+			const int spc = OpenGLAtlas::Spacing;
 			QRectF draw(data.adjusted(spc, spc, -spc, -spc));
 
 			render->appendLoadCall(draw, p, data, iter->constBits());
 
-			Sprite sprite(this);
+			OpenGLSprite sprite(this);
 			sprite.rect = draw;
 			result.append(sprite);
 			iter = source.erase(iter);
@@ -85,7 +85,7 @@ void Atlas::insert(QList<QImage> &source, int effect, QList<Sprite> &result)
 	}
 }
 
-AtlasMgr::AtlasMgr(OpenGLRenderPrivate *render)
+OpenGLAtlasMgr::OpenGLAtlasMgr(OpenGLRenderPrivate *render)
 	: render(render)
 {
 	render->glGenTextures(1, &upload);
@@ -99,8 +99,8 @@ AtlasMgr::AtlasMgr(OpenGLRenderPrivate *render)
 		GL_TEXTURE_2D,
 		0,
 		format,
-		Atlas::MaxSize,
-		Atlas::MaxSize,
+		OpenGLAtlas::MaxSize,
+		OpenGLAtlas::MaxSize,
 		0,
 		format,
 		GL_UNSIGNED_BYTE,
@@ -108,13 +108,13 @@ AtlasMgr::AtlasMgr(OpenGLRenderPrivate *render)
 	render->glGenFramebuffers(1, &buffer);
 }
 
-AtlasMgr::~AtlasMgr()
+OpenGLAtlasMgr::~OpenGLAtlasMgr()
 {
 	render->glDeleteFramebuffers(1, &buffer);
 	render->glDeleteTextures(1, &upload);
 }
 
-uint qHash(const AtlasMgr::CreateInfo &i, uint seed = 0)
+uint qHash(const OpenGLAtlasMgr::CreateInfo &i, uint seed = 0)
 {
 	uint h = ::qHash(i.effect, seed);
 	h = (h << 1) ^ ::qHash(i.text, seed);
@@ -122,12 +122,12 @@ uint qHash(const AtlasMgr::CreateInfo &i, uint seed = 0)
 	return h;
 }
 
-bool operator ==(const AtlasMgr::CreateInfo &f, const AtlasMgr::CreateInfo &s)
+bool operator ==(const OpenGLAtlasMgr::CreateInfo &f, const OpenGLAtlasMgr::CreateInfo &s)
 {
 	return f.text == s.text && f.font == s.font && f.effect == s.effect;
 }
 
-void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
+void OpenGLAtlasMgr::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize &size)
 {
 	auto itr = cached.find(info);
 	if (cached.end() != itr) {
@@ -135,7 +135,7 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 		return;
 	}
 
-	const int exp = Atlas::Padding + Atlas::Spacing;
+	const int exp = OpenGLAtlas::Padding + OpenGLAtlas::Spacing;
 	QImage source(GraphicPrivate::getSize(info.text, info.font) + QSize(exp, exp) * 2, QImage::Format_Alpha8);
 	source.fill(Qt::transparent);
 	QPainter painter(&source);
@@ -147,11 +147,11 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 	QList<QImage> splited;
 	size = QSize(0, 0);
 	int sw = source.width(), sh = source.height();
-	for (int y = 0; y < sh; y += Atlas::MaxSize) {
+	for (int y = 0; y < sh; y += OpenGLAtlas::MaxSize) {
 		++size.rheight();
-		for (int x = 0; x < sw; x += Atlas::MaxSize) {
-			int w = std::min<int>(sw - x, Atlas::MaxSize);
-			int h = std::min<int>(sh - y, Atlas::MaxSize);
+		for (int x = 0; x < sw; x += OpenGLAtlas::MaxSize) {
+			int w = std::min<int>(sw - x, OpenGLAtlas::MaxSize);
+			int h = std::min<int>(sh - y, OpenGLAtlas::MaxSize);
 			if (w == sw && h == sh) {
 				splited.append(source);
 			}
@@ -164,10 +164,10 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 
 	result.clear();
 	for (;;) {
-		if (!atlases.isEmpty()) {
-			atlases.last()->insert(splited, info.effect, result);
+		if (atlases.isEmpty() == false) {
+			atlases.front()->insert(splited, info.effect, result);
 		}
-		if (!splited.isEmpty()) {
+		if (splited.isEmpty() == false) {
 			shuffle();
 		}
 		else {
@@ -180,28 +180,34 @@ void AtlasMgr::insert(CreateInfo info, QList<Sprite> &result, QSize &size)
 	}
 }
 
-void AtlasMgr::shuffle()
+void OpenGLAtlasMgr::shuffle()
 {
 	if (atlases.isEmpty()) {
-		atlases.append(new Atlas(render));
+		atlases.prepend(new OpenGLAtlas(render));
 	}
 	else {
 		render->flushLoad();
 
-		if (atlases.front()->isEmpty()) {
-			atlases.append(atlases.takeFirst());
+		for (auto iter = atlases.begin() + 1; iter != atlases.end(); ++iter) {
+			if ((*iter)->isEmpty()) {
+				OpenGLAtlas *at = *iter;
+				atlases.erase(iter);
+				atlases.prepend(at);
+				break;
+			}
 		}
-		else {
-			atlases.append(new Atlas(render));
+		if (atlases.front()->isEmpty() == false) {
+			atlases.prepend(new OpenGLAtlas(render));
 		}
 	}
 
-	GLuint target = atlases.last()->getTexture();
+	GLuint target = atlases.front()->getTexture();
 	GLuint window = QOpenGLContext::currentContext()->defaultFramebufferObject();
 	render->glBindFramebuffer(GL_FRAMEBUFFER, buffer);
 	if (render->extensions.contains("clear_texture")) {
 		static uchar bits[4];
 		GLenum format = render->pixelFormat(1);
+
 		typedef void (QOPENGLF_APIENTRYP ClearTexImageFunc) (
 			GLuint texture,
 			int level,
@@ -219,19 +225,20 @@ void AtlasMgr::shuffle()
 	}
 	else if (render->extensions.contains("texture_rg")) {
 		render->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, upload, 0);
-		render->glViewport(0, 0, Atlas::MaxSize, Atlas::MaxSize);
+		render->glViewport(0, 0, OpenGLAtlas::MaxSize, OpenGLAtlas::MaxSize);
+		render->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		render->glClear(GL_COLOR_BUFFER_BIT);
 	}
 	else{
-		static uchar bits[Atlas::MaxSize * Atlas::MaxSize];
+		static uchar bits[OpenGLAtlas::MaxSize * OpenGLAtlas::MaxSize];
 		GLenum format = render->pixelFormat(1);
 		render->glBindTexture(GL_TEXTURE_2D, upload);
 		render->glTexImage2D(
 			GL_TEXTURE_2D,
 			0,
 			format,
-			Atlas::MaxSize,
-			Atlas::MaxSize,
+			OpenGLAtlas::MaxSize,
+			OpenGLAtlas::MaxSize,
 			0,
 			format,
 			GL_UNSIGNED_BYTE,
@@ -242,9 +249,15 @@ void AtlasMgr::shuffle()
 	cached.clear();
 }
 
-void AtlasMgr::squeeze()
+void OpenGLAtlasMgr::squeeze(int timeout)
 {
-	while (atlases.size() > 2 && atlases.front()->isEmpty()) {
-		delete atlases.takeFirst();
+	for (auto iter = atlases.begin(); iter != atlases.end() && atlases.size() > 2;) {
+		if ((*iter)->expired(timeout)) {
+			delete *iter;
+			iter = atlases.erase(iter);
+		}
+		else {
+			++iter;
+		}
 	}
 }

@@ -37,12 +37,38 @@ class Danmaku : public QAbstractItemModel
 {
 	Q_OBJECT
 public:
+	enum Role
+	{
+		ModeRole = Qt::UserRole,
+		FontRole,
+		ColorRole,
+		TimeRole,
+		DateRole,
+		SenderRole,
+		StringRole,
+		BlockRole
+	};
+	Q_ENUM(Role);
+
+	enum Flag
+	{
+		None = 0,
+		ModelParse = 1 << 0,
+		BlockParse = 1 << 1,
+		ModelReset = 1 << 2,
+		DataChange = 1 << 3,
+		Model = ModelParse | ModelReset,
+		Block = BlockParse | DataChange
+	};
+	Q_ENUM(Flag);
+
 	virtual QVariant data(const QModelIndex &index, int role) const override;
 	virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 	virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 	virtual QModelIndex parent(const QModelIndex &) const override;
 	virtual QModelIndex index(int row, int colum, const QModelIndex &parent = QModelIndex()) const override;
 	virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+	virtual QHash<int, QByteArray> roleNames() const override;
 
 	explicit Danmaku(QObject *parent = nullptr);
 	virtual ~Danmaku();
@@ -51,6 +77,7 @@ public:
 	QList<Comment *>::iterator begin();
 	QList<Comment *>::iterator end();
 	Comment *at(int index);
+	void append(Record &&record);
 
 private:
 	DanmakuPrivate *const d_ptr;
@@ -62,9 +89,9 @@ signals:
 
 public slots:
 	void clear();
-	void append(const Record *record);
 	void append(QString source, const Comment *comment);
-	void parse(int flag = 0);
+	void remove(QString source);
+	void parse(int flag = None);
 	void delayAll(qint64 time);
 	void saveToFile(QString file) const;
 	qint64 getDuration() const;

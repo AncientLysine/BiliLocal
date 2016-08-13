@@ -26,7 +26,7 @@
 
 #include "Common.h"
 #include "Editor.h"
-#include "WidgetUtils.h"
+#include "WidgetInterfacePrivate.h"
 #include "../../Config.h"
 #include "../../Local.h"
 #include "../../Utils.h"
@@ -250,8 +250,11 @@ namespace{
 			int x = 100 * logicalDpiX() / 96, y = 100 * logicalDpiY() / 96;
 			resize(parent->width(), y);
 			m_record = nullptr;
-			m_wheel = 0;
 			m_magnet << 0 << 0 << 0;
+			m_wheel = 0;
+			m_timer = new QTimer(this);
+			m_timer->setSingleShot(true);
+			m_shift = 0;
 			m_label = new QLabel(this);
 			m_label->setGeometry(0, 0, x - 2, y*0.8 - 2);
 			m_label->setFixedWidth(m_label->width());
@@ -312,6 +315,8 @@ namespace{
 		QPoint m_point;
 		QList<int> m_magnet;
 		int m_wheel;
+		QTimer *m_timer;
+		int m_shift;
 
 		void paintEvent(QPaintEvent *e)
 		{
@@ -336,11 +341,11 @@ namespace{
 				m = v > m ? v : m;
 			}
 			if (m != 0){
-				int o = w*m_record->delay / m_duration;
-				if (!m_point.isNull()){
-					o += mapFromGlobal(QCursor::pos()).x() - m_point.x();
+				int o = w * m_record->delay / m_duration;
+				if (m_shift != 0){
+					o += m_shift;
 					for (qint64 p : m_magnet){
-						p = p*w / m_duration;
+						p = p * w / m_duration;
 						if (qAbs(o - p) < 5){
 							o = p;
 							break;
@@ -366,41 +371,54 @@ namespace{
 
 		void wheelEvent(QWheelEvent *e)
 		{
+			constexpr double speed = 1000 / 120.0;
 			m_wheel += e->angleDelta().y();
-			if (qAbs(m_wheel) >= 120){
-				qint64 d = (m_record->delay / 1000) * 1000;
-				d += m_wheel > 0 ? -1000 : 1000;
+			int w = width() - 100 * logicalDpiX() / 96;
+			m_shift = w * m_wheel * speed / m_duration;
+			update();
+			m_timer->disconnect();
+			m_timer->start(1000);
+			connect(m_timer, &QTimer::timeout, this, [=]() {
+				qint64 d = m_record->delay;
+				d /= 1000;
+				d *= 1000;
+				d += m_wheel * speed;
 				d -= m_record->delay;
-				delayRecord(d);
+				if (d != 0) {
+					delayRecord(d);
+				}
 				m_wheel = 0;
-			}
+				m_shift = 0;
+			});
 			e->accept();
 		}
 
 		void mouseMoveEvent(QMouseEvent *e)
 		{
-			if (!m_point.isNull()){
-				update();
+			if (m_point.isNull()){
+				m_point = e->pos();
 			}
 			else{
-				m_point = e->pos();
+				m_shift = e->x() - m_point.x();
+				update();
 			}
 		}
 
 		void mouseReleaseEvent(QMouseEvent *e)
 		{
-			if (!m_point.isNull()){
+			if (m_point.isNull() == false){
 				int w = width() - 100 * logicalDpiX() / 96;
-				qint64 d = (e->x() - m_point.x())*m_duration / w;
-				for (qint64 p : m_magnet){
-					if (qAbs(d + m_record->delay - p) < m_duration / (w / 5) + 1){
-						d = p - m_record->delay;
+				qint64 d = (e->x() - m_point.x()) * m_duration / w;
+				for (qint64 it : m_magnet){
+					if (qAbs(d + m_record->delay - it) < m_duration / (w / 5) + 1){
+						d = it - m_record->delay;
 						break;
 					}
 				}
 				delayRecord(d);
 			}
 			m_point = QPoint();
+			m_shift = 0;
 		}
 
 		void delayRecord(qint64 delay)
@@ -409,7 +427,7 @@ namespace{
 			for (Comment &c : m_record->danmaku){
 				c.time += delay;
 			}
-			QMetaObject::invokeMethod(lApp->findObject<Danmaku>(), "parse", Qt::QueuedConnection, Q_ARG(int, 0x1 | 0x2));
+			lApp->findObject<Danmaku>()->parse(Danmaku::Model);
 		}
 	};
 
@@ -467,7 +485,6 @@ namespace{
 				}
 				QMenu menu(this);
 				Load *load = lApp->findObject<Load>();
-				auto &p = lApp->findObject<Danmaku>()->getPool();
 				auto &r = c->getRecord();
 				QAction *fullA = menu.addAction(Editor::tr("Full"));
 				fullA->setEnabled(load->canFull(&r));
@@ -515,19 +532,13 @@ namespace{
 							load->loadHistory(&r, selected);
 						}
 						else{
-							lApp->findObject<Danmaku>()->parse(0x2);
+							lApp->findObject<Danmaku>()->parse(Danmaku::Block);
 							widget->update();
 						}
 					}
 				});
-				connect(menu.addAction(Editor::tr("Delete")), &QAction::triggered, [&p, &r](){
-					for (auto i = p.begin(); i != p.end(); ++i){
-						if (&r == &(*i)){
-							p.erase(i);
-							lApp->findObject<Danmaku>()->parse(0x1 | 0x2);
-							break;
-						}
-					}
+				connect(menu.addAction(Editor::tr("Delete")), &QAction::triggered, [&r](){
+					lApp->findObject<Danmaku>()->remove(r.source);
 				});
 				menu.exec(mapToGlobal(point));
 			});

@@ -19,7 +19,6 @@ public:
 	ABuffer *data;
 	AVPixelFormat format;
 	QSize inner;
-	QList<QSize> plane;
 	QMutex dataLock;
 	SwsContext *swsctx;
 	QImage frame;
@@ -29,6 +28,6 @@ public:
 	virtual ~RasterRenderPrivate();
 	virtual void drawData(QPainter *painter, QRect rect) override;
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
-	virtual void setFormat(PFormat *format) override;
-	virtual void setBuffer(ABuffer *buffer) override;
+	void setFormat(PFormat *format);
+	void setBuffer(ABuffer *buffer);
 };
