@@ -15,12 +15,11 @@ public:
 		delete window;
 	}
 
-	virtual bool isVisible() override
+	virtual void drawData(QPainter *, QRect) override
 	{
-		return window->isVisible();
 	}
 
-	virtual void drawData(QPainter *, QRect) override
+	virtual void clear(QPainter *, QColor) override
 	{
 	}
 
@@ -31,6 +30,11 @@ public:
 
 	virtual void setBuffer(ABuffer *) override
 	{
+	}
+
+	virtual bool isVisible() override
+	{
+		return window->isVisible();
 	}
 
 	virtual QObject *getHandle() override

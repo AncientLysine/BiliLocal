@@ -3,13 +3,18 @@
 #include "APlayer.h"
 #include <QtMultimedia>
 
-class QPlayer :public APlayer
+class QPlayer : public APlayer
 {
 public:
-	explicit QPlayer(QObject *parent = 0);
+	explicit QPlayer(QObject *parent = nullptr);
 	virtual ~QPlayer();
 
 private:
+	enum State
+	{
+		Loop = InternalState
+	};
+
 	QThread *pt;
 	QMediaPlayer *mp;
 	int	    state;
@@ -18,21 +23,21 @@ private:
 	bool    skipTimeChanged;
 
 public slots:
-	void    play();
-	void    stop(bool manually = true);
-	int 	getState(){ return state; }
+	void    play() override;
+	void    stop(bool manually = true) override;
+	int     getState() override { return state; }
 
-	void    setTime(qint64 time);
-	qint64  getTime();
+	void    setTime(qint64 time) override;
+	qint64  getTime() override;
 
-	void    setMedia(QString file);
-	QString getMedia();
+	void    setMedia(QString file) override;
+	QString getMedia() override;
 
-	qint64  getDuration();
+	qint64  getDuration() override;
 
-	void    setVolume(int volume);
-	int     getVolume();
+	void    setVolume(int volume) override;
+	int     getVolume() override;
 
-	void    setRate(double rate);
-	double  getRate();
+	void    setRate(double rate) override;
+	double  getRate() override;
 };

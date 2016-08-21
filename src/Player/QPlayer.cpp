@@ -77,7 +77,7 @@ namespace
 		{
 			switch (frame.handleType()) {
 			case QAbstractVideoBuffer::GLTextureHandle:
-				return GLTextureHandle;
+				return GLTexture2DHandle;
 			default:
 				return NoHandle;
 			}
@@ -186,7 +186,7 @@ namespace
 		{
 			m.lock();
 			mp = new QMediaPlayer;
-			mp->setNotifyInterval(300);
+			mp->setNotifyInterval(100);
 			mp->setVideoOutput(new VideoSurface(mp));
 			m.unlock();
 			w.wakeAll();
@@ -212,7 +212,7 @@ QPlayer::QPlayer(QObject *parent)
 	mp->setVolume(Config::getValue("/Player/Volume", 50));
 
 	connect<void(QMediaPlayer::*)(QMediaPlayer::Error)>(mp, &QMediaPlayer::error, this, [this](int error){
-		if ((State)mp->state() == Play){
+		if ((int)mp->state() == Play){
 			manuallyStopped = true;
 		}
 		emit errorOccurred(error);
@@ -222,7 +222,7 @@ QPlayer::QPlayer(QObject *parent)
 
 	connect(mp, &QMediaPlayer::stateChanged, this, [this](int _state){
 		if (_state == Stop){
-			if (!manuallyStopped&&Config::getValue("/Player/Loop", false)){
+			if (getLoop() && !manuallyStopped){
 				stateChanged(state = Loop);
 				play();
 				emit jumped(0);
@@ -235,7 +235,7 @@ QPlayer::QPlayer(QObject *parent)
 		}
 		else{
 			manuallyStopped = false;
-			if (_state == Play&&state == Stop){
+			if (_state == Play && state == Stop){
 				waitingForBegin = true;
 			}
 			else{

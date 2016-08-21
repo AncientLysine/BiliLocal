@@ -70,6 +70,7 @@ Local::Local(QObject *parent)
 	lIns(List);
 #define lSet(ModuleType) static_cast<ModuleType *>(this->objects[#ModuleType])->setup()
 	lSet(Interface);
+	lSet(APlayer);
 	lSet(ARender);
 	lSet(Running);
 #undef lIns

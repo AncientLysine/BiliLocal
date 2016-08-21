@@ -508,9 +508,9 @@ QWidget(parent)
 	loopT = new QLabel(this);
 	loopT->setText(tr("Loop Playback"));
 	loopC = new QCheckBox(this);
-	loopC->setChecked(Config::getValue("/Player/Loop", false));
+	loopC->setChecked(lApp->findObject<APlayer>()->getLoop());
 	connect(loopC, &QCheckBox::stateChanged, [this](int state){
-		Config::setValue("/Player/Loop", state == Qt::Checked);
+		lApp->findObject<APlayer>()->setLoop(state == Qt::Checked);
 	});
 
 	animation = new QPropertyAnimation(this, "pos", this);

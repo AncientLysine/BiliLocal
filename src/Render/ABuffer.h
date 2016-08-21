@@ -10,7 +10,8 @@ public:
 	enum HandleType
 	{
 		NoHandle,
-		GLTextureHandle
+		GLTexture2DHandle,
+		GLTextureExHandle
 	};
 
 	virtual void release()
@@ -25,6 +26,12 @@ public:
 
 	virtual HandleType handleType() const = 0;
 	virtual QVariant handle() const = 0;
+
+	virtual QVariant argument(QByteArray name) const
+	{
+		Q_UNUSED(name);
+		return QVariant();
+	}
 
 protected:
 	virtual ~ABuffer() = default;

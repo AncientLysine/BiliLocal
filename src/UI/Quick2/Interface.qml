@@ -18,7 +18,7 @@ ApplicationWindow {
         title: qsTr("Open Media")
         onAccepted: {
             var u = openDialog.fileUrls[0];
-            u = u ? u : "/sdcard/Movies/[DMG][Valkyrie Drive -Mermaid-][04][720P][GB].mp4";
+            u = u ? u : "/sdcard/Movies/Sicily.mp4";
             LocalApp.Player.setMedia(u);
         }
     }

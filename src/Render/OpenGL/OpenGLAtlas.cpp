@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "OpenGLAtlas.h"
 #include "OpenGLRenderPrivate.h"
+#include "../../Sample.h"
 #include "../../Graphic/GraphicPrivate.h"
 
 const int OpenGLAtlas::MaxSize = 2048;
@@ -37,6 +38,8 @@ OpenGLAtlas::~OpenGLAtlas()
 
 void OpenGLAtlas::insert(QList<QImage> &source, int effect, QList<OpenGLSprite> &result)
 {
+	Sample s("OpenGLAtlas::insert");
+
 	for (auto iter = source.begin(); iter != source.end();) {
 		bool fitted = false;
 		auto offset = QPoint(0, 0);
@@ -85,7 +88,7 @@ void OpenGLAtlas::insert(QList<QImage> &source, int effect, QList<OpenGLSprite> 
 	}
 }
 
-OpenGLAtlasMgr::OpenGLAtlasMgr(OpenGLRenderPrivate *render)
+OpenGLPacker::OpenGLPacker(OpenGLRenderPrivate *render)
 	: render(render)
 {
 	render->glGenTextures(1, &upload);
@@ -108,13 +111,13 @@ OpenGLAtlasMgr::OpenGLAtlasMgr(OpenGLRenderPrivate *render)
 	render->glGenFramebuffers(1, &buffer);
 }
 
-OpenGLAtlasMgr::~OpenGLAtlasMgr()
+OpenGLPacker::~OpenGLPacker()
 {
 	render->glDeleteFramebuffers(1, &buffer);
 	render->glDeleteTextures(1, &upload);
 }
 
-uint qHash(const OpenGLAtlasMgr::CreateInfo &i, uint seed = 0)
+uint qHash(const OpenGLPacker::CreateInfo &i, uint seed = 0)
 {
 	uint h = ::qHash(i.effect, seed);
 	h = (h << 1) ^ ::qHash(i.text, seed);
@@ -122,12 +125,12 @@ uint qHash(const OpenGLAtlasMgr::CreateInfo &i, uint seed = 0)
 	return h;
 }
 
-bool operator ==(const OpenGLAtlasMgr::CreateInfo &f, const OpenGLAtlasMgr::CreateInfo &s)
+bool operator ==(const OpenGLPacker::CreateInfo &f, const OpenGLPacker::CreateInfo &s)
 {
 	return f.text == s.text && f.font == s.font && f.effect == s.effect;
 }
 
-void OpenGLAtlasMgr::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize &size)
+void OpenGLPacker::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize &size)
 {
 	auto itr = cached.find(info);
 	if (cached.end() != itr) {
@@ -135,6 +138,7 @@ void OpenGLAtlasMgr::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize 
 		return;
 	}
 
+	Sample s("OpenGLAtlas::paint");
 	const int exp = OpenGLAtlas::Padding + OpenGLAtlas::Spacing;
 	QImage source(GraphicPrivate::getSize(info.text, info.font) + QSize(exp, exp) * 2, QImage::Format_Alpha8);
 	source.fill(Qt::transparent);
@@ -143,6 +147,7 @@ void OpenGLAtlasMgr::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize 
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
 	painter.drawText(source.rect().adjusted(exp, exp, -exp, -exp), info.text);
 	painter.end();
+	s.close();
 
 	QList<QImage> splited;
 	size = QSize(0, 0);
@@ -180,7 +185,7 @@ void OpenGLAtlasMgr::insert(CreateInfo info, QList<OpenGLSprite> &result, QSize 
 	}
 }
 
-void OpenGLAtlasMgr::shuffle()
+void OpenGLPacker::shuffle()
 {
 	if (atlases.isEmpty()) {
 		atlases.prepend(new OpenGLAtlas(render));
@@ -249,7 +254,7 @@ void OpenGLAtlasMgr::shuffle()
 	cached.clear();
 }
 
-void OpenGLAtlasMgr::squeeze(int timeout)
+void OpenGLPacker::squeeze(int timeout)
 {
 	for (auto iter = atlases.begin(); iter != atlases.end() && atlases.size() > 2;) {
 		if ((*iter)->expired(timeout)) {

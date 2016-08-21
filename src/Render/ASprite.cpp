@@ -3,6 +3,7 @@
 #include "ARender.h"
 #include "../Graphic/GraphicPrivate.h"
 #include "../Local.h"
+#include "../Sample.h"
 #include "../Utils.h"
 
 void ASprite::setAuto(const Comment & comment)
@@ -18,6 +19,8 @@ void ASprite::setAuto(const Comment & comment)
 
 void ASprite::setPosition(QPointF position)
 {
+	Sample s("ASprite::setPosition");
+
 	transform.reset();
 	transform.translate(position.x(), position.y());
 }

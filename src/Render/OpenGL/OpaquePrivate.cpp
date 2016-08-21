@@ -2,6 +2,7 @@
 #include "OpaquePrivate.h"
 #include "../ABuffer.h"
 #include "../PFormat.h"
+#include "../../Sample.h"
 
 OpenGLOpaqueRenderPrivate::~OpenGLOpaqueRenderPrivate()
 {
@@ -87,10 +88,9 @@ void OpenGLOpaqueRenderPrivate::initialize()
 
 void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 {
-	painter->beginNativePainting();
+	Sample s("OpaqueRender::drawData");
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	painter->beginNativePainting();
 
 	QOpenGLShaderProgram *p = nullptr;
 	QMutexLocker locker(&dataLock);
@@ -180,11 +180,12 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 			break;
 		}
 		break;
-	case ABuffer::GLTextureHandle:
+	case ABuffer::GLTexture2DHandle:
 		switch (format) {
 		case RGBA:
 		case BGRA:
 		case ARGB:
+		case GL2D:
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, data->handle().toUInt());
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -193,17 +194,38 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 		default:
 			break;
 		}
-		p = &resource->program[RGBA];
+		p = &resource->program[GL2D];
+		p->bind();
+		break;
+#ifdef GL_TEXTURE_EXTERNAL_OES
+	case ABuffer::GLTextureExHandle:
+		switch (format) {
+		case RGBA:
+		case BGRA:
+		case ARGB:
+		case GLEX:
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_EXTERNAL_OES, data->handle().toUInt());
+			glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			break;
+		default:
+			break;
+		}
+		p = &resource->program[GLEX];
 		p->bind();
 		switch (format) {
 		case RGBA:
 		case BGRA:
 		case ARGB:
-			p->setUniformValue("u_ValidP", 1.0f, 1.0f);
+		case GLEX:
+			p->setUniformValue("u_TexMatrix", data->argument("Transform").value<QMatrix4x4>());
 			break;
 		default:
 			break;
 		}
+		break;
+#endif
 	}
 
 	QRectF dest = fitRect(lApp->findObject<ARender>()->getPreferSize(), rect);
@@ -224,6 +246,16 @@ void OpenGLOpaqueRenderPrivate::drawData(QPainter * painter, QRect rect)
 	painter->endNativePainting();
 }
 
+void OpenGLOpaqueRenderPrivate::clear(QPainter *painter, QColor color)
+{
+	painter->beginNativePainting();
+
+	glClearColor(color.redF(), color.greenF(), color.blueF(), color.alphaF());
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	painter->endNativePainting();
+}
+
 void OpenGLOpaqueRenderPrivate::setFormat(PFormat *f)
 {
 	dataLock.lock();
@@ -232,8 +264,16 @@ void OpenGLOpaqueRenderPrivate::setFormat(PFormat *f)
 	}
 	data = nullptr;
 	dataLock.unlock();
-
-	if (f->chroma == "YV12") {
+	
+	if (f->chroma == "GL2D") {
+		format = GL2D;
+	}
+#ifdef GL_TEXTURE_EXTERNAL_OES
+	else if (f->chroma == "GLEX") {
+		format = GLEX;
+	}
+#endif
+	else if (f->chroma == "YV12") {
 		format = YV12;
 	}
 	else if (f->chroma == "NV12") {

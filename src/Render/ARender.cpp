@@ -52,12 +52,6 @@ QStringList ARender::getModules()
 	return modules;
 }
 
-ARender::ARender(QObject *parent)
-	: QObject(parent), d_ptr(nullptr)
-{
-	setObjectName("ARender");
-}
-
 ARender *ARender::create(QObject *parent, QString name)
 {
 	if (name.isEmpty()) {
@@ -85,6 +79,12 @@ ARender *ARender::create(QObject *parent, QString name)
 	}
 #endif
 	return nullptr;
+}
+
+ARender::ARender(QObject *parent)
+	: QObject(parent), d_ptr(nullptr)
+{
+	setObjectName("ARender");
 }
 
 void ARender::setup()
@@ -203,8 +203,8 @@ QRect ARenderPrivate::fitRect(QSize size, QRect rect)
 
 void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 {
+	clear(painter, Qt::black);
 	if (music){
-		painter->fillRect(rect, Qt::black);
 		painter->drawImage(rect.center() - QRect(QPoint(0, 0), sound.size()).center(), sound);
 	}
 	else{
@@ -237,7 +237,7 @@ void ARenderPrivate::drawPlay(QPainter *painter, QRect rect)
 void ARenderPrivate::drawStop(QPainter *painter, QRect rect)
 {
 	if (background.isNull()){
-		painter->fillRect(rect, qApp->palette().color(QPalette::Window));
+		clear(painter, qApp->palette().color(QPalette::Window));
 	}
 	else{
 		QRect dest = rect;

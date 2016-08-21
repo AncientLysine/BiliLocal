@@ -31,7 +31,7 @@
 
 class APlayerPrivate;
 
-class APlayer :public QObject
+class APlayer : public QObject
 {
 	Q_OBJECT
 public:
@@ -40,7 +40,7 @@ public:
 		Stop,
 		Play,
 		Pause,
-		Loop
+		InternalState
 	};
 	Q_ENUM(State);
 
@@ -57,6 +57,8 @@ public:
 
 	static QStringList getModules();
 	static APlayer *create(QObject *parent = nullptr, QString name = QString());
+
+	virtual void setup();
 
 	Q_PROPERTY(int state READ getState NOTIFY stateChanged);
 	Q_PROPERTY(qint64 time READ getTime WRITE setTime NOTIFY timeChanged);
@@ -97,11 +99,14 @@ public slots:
 	virtual void    setVolume(int volume) = 0;
 	virtual int     getVolume() = 0;
 
+	virtual void    setLoop(bool loop);
+	virtual bool    getLoop();
+
 	virtual void    setRate(double rate);
 	virtual double  getRate();
 
-	virtual qint64  getDelay(int type);
 	virtual void    setDelay(int type, qint64 delay);
+	virtual qint64  getDelay(int type);
 
 	virtual int     getTrack(int type);
 	virtual void    setTrack(int type, int index);
@@ -109,5 +114,5 @@ public slots:
 
 	virtual void    addSubtitle(QString file);
 
-	virtual void    event(int type);
+	virtual void    event(int type, QVariant args = QVariant());
 };

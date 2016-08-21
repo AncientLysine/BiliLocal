@@ -26,6 +26,7 @@ public:
 
 	virtual void initialize() override;
 	virtual void drawData(QPainter *painter, QRect rect) override;
+	virtual void clear(QPainter *painter, QColor color) override;
 	virtual void setFormat(PFormat *format) override;
 	virtual void setBuffer(ABuffer *buffer) override;
 	virtual QSize getBufferSize() override;

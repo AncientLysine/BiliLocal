@@ -37,6 +37,7 @@ SOURCES += \
     src/Config.cpp \
     src/Local.cpp \
     src/Plugin.cpp \
+    src/Sample.cpp \
     src/Utils.cpp
 
 HEADERS += \
@@ -60,6 +61,7 @@ HEADERS += \
     src/Model/List.h \
     src/Model/Shield.h \
     src/Player/APlayer.h \
+    src/Render/ABuffer.h \
     src/Render/ARender.h \
     src/Render/ARenderPrivate.h \
     src/Render/ASprite.h \
@@ -71,6 +73,7 @@ HEADERS += \
     src/Config.h \
     src/Local.h \
     src/Plugin.h \
+    src/Sample.h \
     src/Utils.h
 
 INCLUDEPATH += \
@@ -157,7 +160,7 @@ LIBS += \
 
 android{
 DEFINES += \
-    BACKEND_QMM \
+    BACKEND_JNI \
     BACKEND_NIL
 
 DEFINES += \
@@ -261,6 +264,7 @@ SOURCES += \
     src/Render/OpenGL/SyncTextureSprite.cpp \
     src/Render/OpenGL/DetachPrivate.cpp \
     src/Render/OpenGL/OpaquePrivate.cpp
+
 HEADERS += \
     src/Render/OpenGL/OpenGLRender.h \
     src/Render/OpenGL/OpenGLRenderPrivate.h \
@@ -309,16 +313,34 @@ message(enable vplayer libvlc backend)
 }
 
 contains(DEFINES, BACKEND_QMM){
+QT += \
+    multimedia
+
 SOURCES += \
     src/Player/QPlayer.cpp
 
 HEADERS += \
     src/Player/QPlayer.h
 
-QT += \
-    multimedia
-
 message(enable qplayer libqtmultimedia backend)
+}
+
+contains(DEFINES, BACKEND_JNI){
+QT += \
+    androidextras
+
+SOURCES += \
+    src/Player/JPlayer.cpp
+
+HEADERS += \
+    src/Player/JPlayer.h
+
+OTHER_FILES += \
+    res/Android/src/tv/danmaku/local/Holder.java \
+    res/Android/src/tv/danmaku/local/Player.java \
+    res/Android/src/tv/danmaku/local/Output.java
+
+message(enable jplayer android jni backend)
 }
 
 contains(DEFINES, BACKEND_NIL){

@@ -142,6 +142,7 @@ QWidget(parent)
 	header = danmV->verticalHeader();
 	header->setDefaultSectionSize(22.5*logicalDpiY() / 72);
 	connect(lApp->findObject<Danmaku>(), &Danmaku::layoutChanged, this, &Info::resizeHeader);
+	connect(lApp->findObject<Danmaku>(), &Danmaku::modelReset,    this, &Info::resizeHeader);
 	connect(danmV, &QTableView::doubleClicked, [this](QModelIndex index){
 		lApp->findObject<APlayer>()->setTime(index.data(Danmaku::TimeRole).value<qint64>());
 	});

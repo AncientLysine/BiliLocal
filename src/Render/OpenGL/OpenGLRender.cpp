@@ -11,6 +11,7 @@
 #endif
 #include "DetachPrivate.h"
 #include "../../Config.h"
+#include "../../Sample.h"
 #include "../../Player/APlayer.h"
 #include "../../UI/Interface.h"
 
@@ -141,16 +142,16 @@ namespace
 	const char *vShaderData =
 		"attribute mediump vec4 a_VtxCoord;\n"
 		"attribute mediump vec2 a_TexCoord;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"void main(void)\n"
 		"{\n"
 		"    gl_Position = a_VtxCoord;\n"
-		"    v_vTexCoord = a_TexCoord;\n"
+		"    v_TexCoord = a_TexCoord;\n"
 		"}\n";
 
 	const char *fShaderI420 =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerY;\n"
 		"uniform sampler2D u_SamplerU;\n"
 		"uniform sampler2D u_SamplerV;\n"
@@ -160,9 +161,9 @@ namespace
 		"void main(void)\n"
 		"{\n"
 		"    vec4 yuv;\n"
-		"    yuv.r = texture2D(u_SamplerY, v_vTexCoord * u_ValidY).r;\n"
-		"    yuv.g = texture2D(u_SamplerU, v_vTexCoord * u_ValidU).r;\n"
-		"    yuv.b = texture2D(u_SamplerV, v_vTexCoord * u_ValidV).r;\n"
+		"    yuv.r = texture2D(u_SamplerY, v_TexCoord * u_ValidY).r;\n"
+		"    yuv.g = texture2D(u_SamplerU, v_TexCoord * u_ValidU).r;\n"
+		"    yuv.b = texture2D(u_SamplerV, v_TexCoord * u_ValidV).r;\n"
 		"    yuv.a = 1.0;\n"
 		"    gl_FragColor = mat4(\n"
 		"         1.164,  1.164,  1.164, 0, \n"
@@ -173,7 +174,7 @@ namespace
 
 	const char *fShaderNV12 =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerY;\n"
 		"uniform sampler2D u_SamplerC;\n"
 		"uniform mediump vec2 u_ValidY;\n"
@@ -181,8 +182,8 @@ namespace
 		"void main(void)\n"
 		"{\n"
 		"    vec4 yuv;\n"
-		"    yuv.r  = texture2D(u_SamplerY, v_vTexCoord * u_ValidY).r; \n"
-		"    yuv.gb = texture2D(u_SamplerC, v_vTexCoord * u_ValidC).ra;\n"
+		"    yuv.r  = texture2D(u_SamplerY, v_TexCoord * u_ValidY).r; \n"
+		"    yuv.gb = texture2D(u_SamplerC, v_TexCoord * u_ValidC).ra;\n"
 		"    yuv.a  = 1.0;\n"
 		"    gl_FragColor = mat4(\n"
 		"         1.164,  1.164,  1.164, 0, \n"
@@ -193,7 +194,7 @@ namespace
 
 	const char *fShaderNV21 =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerY;\n"
 		"uniform sampler2D u_SamplerC;\n"
 		"uniform mediump vec2 u_ValidY;\n"
@@ -201,8 +202,8 @@ namespace
 		"void main(void)\n"
 		"{\n"
 		"    vec4 yuv;\n"
-		"    yuv.r  = texture2D(u_SamplerY, v_vTexCoord * u_ValidY).r; \n"
-		"    yuv.gb = texture2D(u_SamplerC, v_vTexCoord * u_ValidC).ar;\n"
+		"    yuv.r  = texture2D(u_SamplerY, v_TexCoord * u_ValidY).r; \n"
+		"    yuv.gb = texture2D(u_SamplerC, v_TexCoord * u_ValidC).ar;\n"
 		"    yuv.a  = 1.0;\n"
 		"    gl_FragColor = mat4(\n"
 		"         1.164,  1.164,  1.164, 0, \n"
@@ -213,47 +214,79 @@ namespace
 
 	const char *fShaderRGBA =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerP;\n"
 		"uniform mediump vec2 u_ValidP;\n"
 		"void main(void)\n"
 		"{\n"
-		"    gl_FragColor.rgba = texture2D(u_SamplerP, v_vTexCoord * u_ValidP).rgba;\n"
+		"    gl_FragColor.rgba = texture2D(u_SamplerP, v_TexCoord * u_ValidP).rgba;\n"
 		"}\n";
 
 	const char *fShaderBGRA =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerP;\n"
 		"uniform mediump vec2 u_ValidP;\n"
 		"void main(void)\n"
 		"{\n"
-		"    gl_FragColor.bgra = texture2D(u_SamplerP, v_vTexCoord * u_ValidP).rgba;\n"
+		"    gl_FragColor.bgra = texture2D(u_SamplerP, v_TexCoord * u_ValidP).rgba;\n"
 		"}\n";
 
 	const char *fShaderARGB =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerP;\n"
 		"uniform mediump vec2 u_ValidP;\n"
 		"void main(void)\n"
 		"{\n"
-		"    gl_FragColor.argb = texture2D(u_SamplerP, v_vTexCoord * u_ValidP).rgba;\n"
+		"    gl_FragColor.argb = texture2D(u_SamplerP, v_TexCoord * u_ValidP).rgba;\n"
 		"}\n";
+
+	const char *fShaderGL2D =
+		"precision lowp float;\n"
+		"varying mediump vec2 v_TexCoord;\n"
+		"uniform sampler2D u_SamplerP;\n"
+		"void main(void)\n"
+		"{\n"
+		"    gl_FragColor = texture2D(u_SamplerP, v_TexCoord);\n"
+		"}\n";
+
+#ifdef GL_TEXTURE_EXTERNAL_OES
+	const char *vShaderGLEX =
+		"attribute mediump vec4 a_VtxCoord;\n"
+		"attribute mediump vec2 a_TexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
+		"uniform mediump mat4 u_TexMatrix;\n"
+		"void main(void)\n"
+		"{\n"
+		"    gl_Position = a_VtxCoord;\n"
+		"    v_TexCoord = (u_TexMatrix * vec4(a_TexCoord, 0.0, 1.0)).xy;\n"
+		"}\n";
+
+	const char *fShaderGLEX = 
+		"#extension GL_OES_EGL_image_external : require \n"
+		"precision lowp float;\n"
+		"varying mediump vec2 v_TexCoord;\n"
+		"uniform samplerExternalOES u_SamplerP;\n"
+		"void main(void)\n"
+		"{\n"
+		"    gl_FragColor = texture2D(u_SamplerP, v_TexCoord);\n"
+		"}\n";
+#endif
 
 	const char *vShaderDanm =
 		"precision lowp float;\n"
 		"attribute mediump vec4 a_VtxCoord;\n"
 		"attribute mediump vec2 a_TexCoord;\n"
 		"attribute vec4 a_ForeColor;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"varying vec3 v_ForeColor;\n"
 		"varying vec3 v_BackColor;\n"
 		"varying float v_Alpha;\n"
 		"void main(void)\n"
 		"{\n"
 		"    gl_Position = a_VtxCoord;\n"
-		"    v_vTexCoord = a_TexCoord;\n"
+		"    v_TexCoord = a_TexCoord;\n"
 		"    v_ForeColor = a_ForeColor.rgb;\n"
 		"    if (0.12 > dot(v_ForeColor, vec3(0.34375, 0.5, 0.15625))) {\n"
 		"        v_BackColor = vec3(1.0, 1.0, 1.0);\n"
@@ -265,7 +298,7 @@ namespace
 
 	const char *fShaderDanm =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"varying vec3 v_ForeColor;\n"
 		"varying vec3 v_BackColor;\n"
 		"varying float v_Alpha;\n"
@@ -276,7 +309,7 @@ namespace
 		"    vec4 b;\n"
 		"    f.rgb = v_ForeColor;\n"
 		"    b.rgb = v_BackColor;\n"
-		"    vec2 d = texture2D(u_SamplerD, v_vTexCoord).rg;\n"
+		"    vec2 d = texture2D(u_SamplerD, v_TexCoord).rg;\n"
 		"    f.a = d.r;\n"
 		"    b.a = d.g;\n"
 		"    float a = mix(b.a, 1.0, f.a);\n"
@@ -288,26 +321,26 @@ namespace
 		"precision lowp float;\n"
 		"attribute mediump vec4 a_VtxCoord;\n"
 		"attribute mediump vec2 a_TexCoord;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"void main(void)\n"
 		"{\n"
 		"    gl_Position = a_VtxCoord;\n"
-		"    v_vTexCoord = a_TexCoord;\n"
+		"    v_TexCoord = a_TexCoord;\n"
 		"}\n";
 
 	const char *fShaderStro =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerA;\n"
 		"uniform mediump vec2 u_vPixelSize;\n"
 		"void main(void)\n"
 		"{\n"
 		"    float a;\n"
-		"    a = max(a, texture2D(u_SamplerA, vec2(v_vTexCoord.x, v_vTexCoord.y + u_vPixelSize.y)).r);\n"
-		"    a = max(a, texture2D(u_SamplerA, vec2(v_vTexCoord.x, v_vTexCoord.y - u_vPixelSize.y)).r);\n"
-		"    a = max(a, texture2D(u_SamplerA, vec2(v_vTexCoord.x + u_vPixelSize.x, v_vTexCoord.y)).r);\n"
-		"    a = max(a, texture2D(u_SamplerA, vec2(v_vTexCoord.x - u_vPixelSize.x, v_vTexCoord.y)).r);\n"
-		"    gl_FragColor.r = texture2D(u_SamplerA, v_vTexCoord).r;\n"
+		"    a = max(a, texture2D(u_SamplerA, vec2(v_TexCoord.x, v_TexCoord.y + u_vPixelSize.y)).r);\n"
+		"    a = max(a, texture2D(u_SamplerA, vec2(v_TexCoord.x, v_TexCoord.y - u_vPixelSize.y)).r);\n"
+		"    a = max(a, texture2D(u_SamplerA, vec2(v_TexCoord.x + u_vPixelSize.x, v_TexCoord.y)).r);\n"
+		"    a = max(a, texture2D(u_SamplerA, vec2(v_TexCoord.x - u_vPixelSize.x, v_TexCoord.y)).r);\n"
+		"    gl_FragColor.r = texture2D(u_SamplerA, v_TexCoord).r;\n"
 		"    gl_FragColor.g = a;\n"
 		"    gl_FragColor.b = 0.0;\n"
 		"    gl_FragColor.a = 1.0;\n"
@@ -315,14 +348,14 @@ namespace
 
 	const char *fShaderProj =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerA;\n"
 		"uniform mediump vec2 u_vPixelSize;\n"
 		"void main(void)\n"
 		"{\n"
 		"    float a;\n"
-		"    a = texture2D(u_SamplerA, v_vTexCoord - u_vPixelSize).r;\n"
-		"    gl_FragColor.r = texture2D(u_SamplerA, v_vTexCoord).r;\n"
+		"    a = texture2D(u_SamplerA, v_TexCoord - u_vPixelSize).r;\n"
+		"    gl_FragColor.r = texture2D(u_SamplerA, v_TexCoord).r;\n"
 		"    gl_FragColor.g = a;\n"
 		"    gl_FragColor.b = 0.0;\n"
 		"    gl_FragColor.a = 1.0;\n"
@@ -330,7 +363,7 @@ namespace
 
 	const char *fShaderGlow =
 		"precision lowp float;\n"
-		"varying mediump vec2 v_vTexCoord;\n"
+		"varying mediump vec2 v_TexCoord;\n"
 		"uniform sampler2D u_SamplerA;\n"
 		"uniform mediump vec2 u_vPixelSize;\n"
 		"void main(void)\n"
@@ -341,11 +374,11 @@ namespace
 		"        for (float j = -3.0; j <= 3.0; j += 1.0) {\n"
 		"            float l = 9.5 - abs(i) - abs(j);\n"
 		"            s += l;\n"
-		"            a += texture2D(u_SamplerA, v_vTexCoord + u_vPixelSize * vec2(i, j)).r * l;\n"
+		"            a += texture2D(u_SamplerA, v_TexCoord + u_vPixelSize * vec2(i, j)).r * l;\n"
 		"        }\n"
 		"    }\n"
 		"    a /= s;\n"
-		"    gl_FragColor.r = texture2D(u_SamplerA, v_vTexCoord).r;\n"
+		"    gl_FragColor.r = texture2D(u_SamplerA, v_TexCoord).r;\n"
 		"    gl_FragColor.g = a;\n"
 		"    gl_FragColor.b = 0.0;\n"
 		"    gl_FragColor.a = 1.0;\n"
@@ -386,6 +419,16 @@ OpenGLRenderPrivate::OpenGLRenderResource::OpenGLRenderResource(OpenGLRenderPriv
 			vShaderCode = vShaderData;
 			fShaderCode = fShaderARGB;
 			break;
+		case GL2D:
+			vShaderCode = vShaderData;
+			fShaderCode = fShaderGL2D;
+			break;
+#ifdef GL_TEXTURE_EXTERNAL_OES
+		case GLEX:
+			vShaderCode = vShaderGLEX;
+			fShaderCode = fShaderGLEX;
+			break;
+#endif
 		case Danm:
 			vShaderCode = vShaderDanm;
 			fShaderCode = fShaderDanm;
@@ -434,6 +477,10 @@ OpenGLRenderPrivate::OpenGLRenderResource::OpenGLRenderResource(OpenGLRenderPriv
 		case RGBA:
 		case BGRA:
 		case ARGB:
+		case GL2D:
+#ifdef GL_TEXTURE_EXTERNAL_OES
+		case GLEX:
+#endif
 			p.bindAttributeLocation("a_VtxCoord", 0);
 			p.bindAttributeLocation("a_TexCoord", 1);
 			p.bind();
@@ -651,6 +698,8 @@ namespace
 
 void OpenGLRenderPrivate::flushLoad()
 {
+	Sample s("OpenGLRender::flushLoad");
+
 	glEnable(GL_BLEND);
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	glViewport(0, 0, OpenGLAtlas::MaxSize, OpenGLAtlas::MaxSize);
@@ -716,6 +765,8 @@ void OpenGLRenderPrivate::flushLoad()
 
 void OpenGLRenderPrivate::flushDraw()
 {
+	Sample s("OpenGLRender::flushDraw");
+
 	glEnable(GL_BLEND);
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	glViewport(view.x(), view.y(), view.width(), view.height());
@@ -792,6 +843,8 @@ void OpenGLRenderPrivate::initialize()
 
 void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 {
+	Sample s("OpenGLRender::drawDanm");
+
 	painter->beginNativePainting();
 
 	view = scaleRect(rect, painter).toRect();
@@ -806,7 +859,7 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 		auto &p = resource->program[Danm];
 		p.bind();
 		GLfloat h = 2.0 / rect.width(), v = 2.0 / rect.height();
-		GLfloat s = qMin(256.0f, rect.width() / (GLfloat)atlases.size());
+		GLfloat s = qMin<GLfloat>(256 / qApp->devicePixelRatio(), rect.width() / atlases.size());
 		GLfloat hs = s * h, vs = s * v;
 		GLfloat vtx[8] = {
 			-1 + hs * i, -1 + vs,
@@ -832,6 +885,8 @@ void OpenGLRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 
 void OpenGLRenderPrivate::onSwapped()
 {
+	Sample::print();
+
 	if (isVisible() && lApp->findObject<APlayer>()->getState() == APlayer::Play){
 		if (timer.swap()){
 			lApp->findObject<ARender>()->draw();
