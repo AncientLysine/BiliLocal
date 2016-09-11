@@ -240,7 +240,7 @@ namespace{
 
 		void fixCode(QString text)
 		{
-			lApp->findObject<Load>()->fixCode(text);
+			text = lApp->findObject<Load>()->fixCode(text);
 			setCode(text);
 		}
 

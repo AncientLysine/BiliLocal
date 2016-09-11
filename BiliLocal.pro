@@ -83,7 +83,7 @@ PRECOMPILED_HEADER = \
     src/Common.h
 
 RESOURCES += \
-    res/Res.qrc
+    res/Resource.qrc
 
 TRANSLATIONS += \
     res/zh_CN.ts \
@@ -171,15 +171,13 @@ DEFINES += \
 
 DISTFILES += \
     res/Android/AndroidManifest.xml \
-    res/Android/gradle/wrapper/gradle-wrapper.jar \
-    res/Android/gradlew \
-    res/Android/res/values/libs.xml \
     res/Android/build.gradle \
+    res/Android/gradlew \
+    res/Android/gradlew.bat \
+    res/Android/gradle/wrapper/gradle-wrapper.jar \
     res/Android/gradle/wrapper/gradle-wrapper.properties \
-    res/Android/gradlew.bat
-
-RESOURCES += \
-    src/UI/Quick2/BundleQuick2.qrc
+    res/Android/res/values/libs.xml \
+    res/Android/ant.properties
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
 }
@@ -231,6 +229,10 @@ SOURCES += \
 HEADERS += \
     src/UI/Quick2/Export.h \
     src/UI/Quick2/Quick2InterfacePrivate.h
+
+RESOURCES += \
+    src/UI/Quick2/BundleScriptQuick2.qrc \
+    res/BundleLocale.qrc
 
 message(enable quick2 interface)
 }

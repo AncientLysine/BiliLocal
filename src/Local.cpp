@@ -120,16 +120,16 @@ namespace
 {
 	void setDefaultFont()
 	{
-		QString def = Utils::defaultFont();
-		QFontInfo i(qApp->font());
-		if (!QFontDatabase().families().contains(def)){
-			def = i.family();
-		}
-		double p = i.pointSizeF();
-		QFont f;
-		f.setFamily(Config::getValue("/Interface/Font/Family", def));
-		f.setPointSizeF(Config::getValue("/Interface/Font/Size", p));
-		qApp->setFont(f);
+		QFont font = QGuiApplication::font();
+		QFontInfo i(font);
+		auto f = Utils::defaultFont();
+		auto s = i.pointSizeF();
+		f = QFontDatabase().families().contains(f) ? f : i.family();
+		f = Config::getValue("/Interface/Font/Family", f);
+		s = Config::getValue("/Interface/Font/Size", s);
+		font.setFamily(f);
+		font.setPointSizeF(s);
+		QGuiApplication::setFont(font);
 	}
 
 	void loadTranslator()
@@ -148,7 +148,7 @@ namespace
 			}
 			QTranslator *trans = new QTranslator(qApp);
 			if (trans->load(info.absoluteFilePath())){
-				qApp->installTranslator(trans);
+				QCoreApplication::installTranslator(trans);
 			}
 			else{
 				delete trans;

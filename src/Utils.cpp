@@ -244,7 +244,7 @@ QString Utils::defaultFont(bool monospace)
 {
 	if (monospace){
 #ifdef Q_OS_ANDROID
-		return QStringLiteral("Roboto");
+		return QStringLiteral("Noto Sans SC");
 #endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿等宽正黑");
@@ -258,7 +258,7 @@ QString Utils::defaultFont(bool monospace)
 	}
 	else{
 #ifdef Q_OS_ANDROID
-		return QStringLiteral("Roboto");
+		return QStringLiteral("Noto Sans SC");
 #endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿正黑");

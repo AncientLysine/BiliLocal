@@ -63,7 +63,7 @@ JPlayer::JPlayer(QObject *parent)
 	, mp("tv/danmaku/local/Player")
 	, st("tv/danmaku/local/Output")
 	, tn(QSharedPointer<GLuint>::create(0))
-	, state(Stop)
+	, state(Idel)
 {
 	QAndroidJniEnvironment env;
 	jclass pc = env->GetObjectClass(mp.object());
@@ -188,8 +188,10 @@ JPlayer::~JPlayer()
 
 void JPlayer::play()
 {
+	int before = state;
 	switch(state) {
 	case Initialized:
+	case Stopped:
 		mp.callMethod<void>("prepareAsync");
 		state = Preparing;
 		break;
@@ -203,16 +205,34 @@ void JPlayer::play()
 		mp.callMethod<void>("start");
 		state = Started;
 		break;
+	default:
+		return;
 	}
 	emit stateChanged(getState());
+	if (before == Prepared && state == Started) {
+		emit begin();
+	}
 }
 
 void JPlayer::stop(bool manually)
 {
-	mp.callMethod<void>("stop");
-	state = Stopped;
+	int before = state;
+	switch(state) {
+	case Prepared:
+	case Started:
+	case Paused:
+	//no need to stop when completed
+	//case Complete:
+		mp.callMethod<void>("stop");
+		state = Stopped;
+		break;
+	default:
+		return;
+	}
 	emit stateChanged(getState());
-	emit reach(manually);
+	if (before != Prepared && state == Stopped) {
+		emit reach(manually);
+	}
 }
 
 int JPlayer::getState()

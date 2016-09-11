@@ -47,6 +47,7 @@ public:
 		Code = 379,
 		File = 384,
 	};
+	Q_ENUM(State);
 
 	enum Role
 	{
@@ -90,7 +91,7 @@ public slots:
 	void addProc(const Load::Proc *proc);
 	const Load::Proc *getProc(QString code);
 
-	void fixCode(QString &);
+	QString fixCode(QString);
 	bool canLoad(QString);
 	bool canFull(const Record *);
 	bool canHist(const Record *);
@@ -109,4 +110,5 @@ public slots:
 	void dequeue();
 	bool enqueue(const Load::Task &);
 	Load::Task *getHead();
+	QVariantMap getInfo();
 };

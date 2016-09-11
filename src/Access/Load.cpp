@@ -185,7 +185,7 @@ Load::Load(QObject *parent)
 				const QString &i = iter.previous();
 				r.setPattern("(?<=href=\")[^\"]+");
 				QString c = r.match(i).captured();
-				fixCode(c);
+				c = fixCode(c);
 				r.setPattern("(?<=<span>).+(?=</span>)");
 				QString t = Utils::decodeXml(r.match(i).captured());
 
@@ -743,24 +743,24 @@ const Load::Proc *Load::getProc(QString code)
 	return d->getProc(code);
 }
 
-void Load::fixCode(QString &code)
+QString Load::fixCode(QString code)
 {
 	Q_D(Load);
-	QString fixed;
+	QString f;
 	const Proc *p = nullptr;
-	for (const Proc &i : d->pool){
+	for (const Proc &i : d->pool) {
 		QString t(code);
-		if (i.regular(t)){
-			if (!p || i.priority > p->priority){
-				fixed = t;
+		if (i.regular(t)) {
+			if (p == nullptr || i.priority > p->priority) {
+				f = t;
 				p = &i;
 			}
 		}
-		else if (!p&&t.length() > fixed.length()){
-			fixed = t;
+		else if (p == nullptr && t.length() > f.length()) {
+			f = t;
 		}
 	}
-	code = fixed;
+	return f;
 }
 
 bool Load::canLoad(QString code)
@@ -899,4 +899,17 @@ Load::Task *Load::getHead()
 {
 	Q_D(Load);
 	return d->getHead();
+}
+
+QVariantMap Load::getInfo()
+{
+	QVariantMap info;
+	const Task *task = getHead();
+	if (task) {
+		info["Code"] = task->code;
+		info["Url"] = task->request.url();
+		info["State"] = task->state;
+		info["Delay"] = task->delay;
+	}
+	return info;
 }

@@ -8,16 +8,18 @@ Item {
 
     UI.Menu{
         id: menuDrawer
-        width: Math.min(parent.width, Math.max(parent.width, parent.height) / 2)
+        width: 240
     }
 
     UI.Info{
         id: infoDrawer
-        width: menuDrawer.width
+        width: 240
     }
 
     Menu {
         id: contextMenu
+        modal : true
+        dim : false
         x: mouseArea.mouseX
         y: mouseArea.mouseY
 
@@ -38,12 +40,18 @@ Item {
 
         MenuItem {
             text: qsTr("Load")
-            onTriggered: loadDialog.open()
+            onTriggered: {
+                if (LocalApp.Config.getVariant("/Danmaku/Local", false)) {
+                    loadDialog.open();
+                }
+                else {
+                    menuDrawer.open();
+                }
+            }
         }
 
         MenuItem {
             text: qsTr("Prefer")
-            onTriggered: Qt.quit()
         }
 
         MenuItem {
