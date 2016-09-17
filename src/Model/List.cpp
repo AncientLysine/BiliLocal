@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    List.cpp
 *   Time:        2014/11/19
@@ -28,10 +28,11 @@
 #include "List.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
 #include "../Access/Load.h"
+#include "../Define/Record.h"
 #include "../Model/Danmaku.h"
 #include "../Player/APlayer.h"
+#include "../Utility/Text.h"
 #include <algorithm>
 
 namespace

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Sign.cpp
 *   Time:        2015/11/14
@@ -27,7 +27,7 @@
 #include "Common.h"
 #include "Sign.h"
 #include "AccessPrivate.h"
-#include "../Utils.h"
+#include "../Utility/Text.h"
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
 extern "C"

@@ -2,7 +2,7 @@
 #include "OpaquePrivate.h"
 #include "../ABuffer.h"
 #include "../PFormat.h"
-#include "../../Sample.h"
+#include "../../Utility/Sample.h"
 
 OpenGLOpaqueRenderPrivate::~OpenGLOpaqueRenderPrivate()
 {

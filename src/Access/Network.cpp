@@ -1,15 +1,15 @@
 #include "Common.h"
-#include "NetworkConfiguration.h"
+#include "Network.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
+#include "../Utility/Path.h"
 #include <functional>
 
-NetworkConfiguration *NetworkConfiguration::ins = nullptr;
+Network *Network::ins = nullptr;
 
-NetworkConfiguration *NetworkConfiguration::instance()
+Network *Network::instance()
 {
-	return ins ? ins : new NetworkConfiguration(qApp);
+	return ins ? ins : new Network(qApp);
 }
 
 namespace
@@ -102,7 +102,7 @@ namespace
 	};
 }
 
-class NetworkConfigurationPrivate
+class NetworkPrivate
 {
 public:
 	DCache d;
@@ -110,10 +110,10 @@ public:
 	APorxy p;
 };
 
-NetworkConfiguration::NetworkConfiguration(QObject *parent) :
-QObject(parent), d_ptr(new NetworkConfigurationPrivate)
+Network::Network(QObject *parent) :
+QObject(parent), d_ptr(new NetworkPrivate)
 {
-	Q_D(NetworkConfiguration);
+	Q_D(Network);
 	ins = this;
 	d->d.load();
 	d->c.load();
@@ -124,22 +124,27 @@ QObject(parent), d_ptr(new NetworkConfigurationPrivate)
 	});
 }
 
-qint64 NetworkConfiguration::cacheSize()
+Network::~Network()
 {
-	Q_D(NetworkConfiguration);
+	delete d_ptr;
+}
+
+qint64 Network::cacheSize()
+{
+	Q_D(Network);
 	return d->d.cacheSize();
 }
 
-void NetworkConfiguration::clear()
+void Network::clear()
 {
-	Q_D(NetworkConfiguration);
+	Q_D(Network);
 	d->d.clear();
 	d->c.clear();
 }
 
-void NetworkConfiguration::setManager(QNetworkAccessManager *manager)
+void Network::setManager(QNetworkAccessManager *manager)
 {
-	Q_D(NetworkConfiguration);
+	Q_D(Network);
 	manager->setCache(&d->d);
 	d->d.setParent(nullptr);
 	manager->setCookieJar(&d->c);

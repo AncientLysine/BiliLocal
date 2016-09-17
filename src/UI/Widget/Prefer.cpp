@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Prefer.cpp
 *   Time:        2015/05/13
@@ -26,18 +26,18 @@
 
 #include "Common.h"
 #include "Prefer.h"
-#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"
 #include "../../Plugin.h"
-#include "../../Utils.h"
-#include "../../Access/NetworkConfiguration.h"
+#include "../../Access/Network.h"
 #include "../../Access/Sign.h"
 #include "../../Model/Danmaku.h"
 #include "../../Model/Shield.h"
 #include "../../Player/APlayer.h"
 #include "../../Render/ARender.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 
 using namespace UI;
 
@@ -152,7 +152,7 @@ QDialog(parent)
 	});
 	outer->addWidget(tab);
 	manager = new QNetworkAccessManager(this);
-	NetworkConfiguration::instance()->setManager(manager);
+	Network::instance()->setManager(manager);
 	//Playing
 	{
 		widget[0] = new QWidget(this);
@@ -1009,7 +1009,7 @@ QDialog(parent)
 		text = new QLabel(widget[4]);
 		auto measure = [=](){
 			QString s = tr("current size is %.2fMB");
-			s.sprintf(s.toUtf8(), NetworkConfiguration::instance()->cacheSize() / (1024.0 * 1024));
+			s.sprintf(s.toUtf8(), Network::instance()->cacheSize() / (1024.0 * 1024));
 			text->setText(s);
 		};
 		measure();
@@ -1018,7 +1018,7 @@ QDialog(parent)
 		clear = new QPushButton(tr("clear"), widget[4]);
 		clear->setFocusPolicy(Qt::NoFocus);
 		connect(clear, &QPushButton::clicked, [=](){
-			NetworkConfiguration::instance()->clear();
+			Network::instance()->clear();
 			measure();
 		});
 		c->addWidget(clear, 1);

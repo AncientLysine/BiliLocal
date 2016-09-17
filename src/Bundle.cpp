@@ -1,6 +1,6 @@
 #include "Common.h"
 #include "Bundle.h"
-#include "Utils.h"
+#include "Utility/Path.h"
 #include <QtCore>
 
 namespace

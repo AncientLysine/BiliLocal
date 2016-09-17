@@ -1,8 +1,8 @@
 #include "Common.h"
 #include "Quick2Private.h"
 #include "../../Local.h"
-#include "../../Sample.h"
 #include "../../UI/Interface.h"
+#include "../../Utility/Sample.h"
 #include <functional>
 
 OpenGLQuick2RenderPrivate::OpenGLQuick2RenderPrivate()

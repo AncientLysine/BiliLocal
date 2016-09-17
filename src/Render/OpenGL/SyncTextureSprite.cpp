@@ -2,8 +2,8 @@
 #include "SyncTextureSprite.h"
 #include "OpenGLRenderPrivate.h"
 #include "../ARender.h"
-#include "../../Sample.h"
 #include "../../Graphic/GraphicPrivate.h"
+#include "../../Utility/Sample.h"
 
 SyncTextureSprite::SyncTextureSprite(OpenGLRenderPrivate *render)
 	: render(render)

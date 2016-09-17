@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Local.cpp
 *   Time:        2013/03/18
@@ -29,7 +29,6 @@
 #include "Bundle.h"
 #include "Config.h"
 #include "Plugin.h"
-#include "Utils.h"
 #include "Access/Load.h"
 #include "Access/Post.h"
 #include "Access/Seek.h"
@@ -41,6 +40,8 @@
 #include "Player/APlayer.h"
 #include "Render/ARender.h"
 #include "UI/Interface.h"
+#include "Utility/Path.h"
+#include "Utility/Text.h"
 #include <type_traits>
 
 Local *Local::ins = nullptr;

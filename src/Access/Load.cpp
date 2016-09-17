@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Load.cpp
 *   Time:        2014/04/22
@@ -30,9 +30,11 @@
 #include "Parse.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
+#include "../Define/Comment.h"
+#include "../Define/Record.h"
 #include "../Model/Danmaku.h"
 #include "../Player/APlayer.h"
+#include "../Utility/Text.h"
 #include <algorithm>
 
 class LoadPrivate : public AccessPrivate<Load, Load::Proc, Load::Task>
@@ -472,7 +474,7 @@ Load::Load(QObject *parent)
 			load.access = url.isLocalFile() ? url.toLocalFile() : load.source;
 			load.string = QFileInfo(task.code).fileName();
 
-			Parse::ResultDelegate result;
+			FutureResult<QVector<Comment>> result;
 			QByteArray data(reply->readAll());
 			QByteArray head = data.left(512);
 			if (head.startsWith("[Script Info]")){
@@ -597,47 +599,56 @@ Load::Load(QObject *parent)
 					}
 				}
 
-				auto pool = QSharedPointer<QVector<Parse::ResultDelegate>>::create();
-				pool->append(Parse::parseComment(data, Utils::Bilibili));
+				int length = d->remain.size() + 1;
+				QVector<FutureResult<QVector<Comment>>> future;
+				future.reserve(length);
+				future.append(Parse::parseComment(data, Utils::Bilibili));
+				for (auto iter : d->remain) {
+					auto reply = makeFuture(iter, &QNetworkReply::finished);
+					auto prase = reply.onFinish([](QNetworkReply *reply) {
+						return Parse::parseComment(reply->readAll(), Utils::Bilibili);
+					});
+					future.append(prase);
+				}
 
-				double total = d->remain.size() + 2;
-				for (QNetworkReply *iter : d->remain) {
-					connect(iter, &QNetworkReply::finished, [=, &task]() {
-						QByteArray data = iter->readAll();
-						pool->append(Parse::parseComment(data, Utils::Bilibili));
-						switch (iter->error()) {
-						case QNetworkReply::NoError:
-							emit progressChanged((total - d->remain.size()) / total);
-						case QNetworkReply::OperationCanceledError:
-							if (d->remain.isEmpty() && !pool->empty()) {
-								Record load;
-								load.full = true;
-								for (auto &iter : *pool) {
-									load.danmaku.append(iter);
-								}
-								load.source = task.code;
-								lApp->findObject<Danmaku>()->append(std::move(load));
-								emit stateChanged(task.state = None);
-								dequeue();
+				auto vector = QSharedPointer<QVector<QVector<Comment>>>::create(length);
+				auto number = QSharedPointer<QAtomicInt>::create(length);
+				for (int i = 0; i < length; ++i) {
+					future[i].onFinish([=, &task](QVector<Comment> &&list) {
+						(*vector)[i].swap(list);
+						if (number->deref() == false) {
+							emit progressChanged(1.0);
+							Record load;
+							load.full = true;
+							for (auto iter : *vector) {
+								load.danmaku.append(iter);
 							}
-						default:
-							break;
+							load.source = task.code;
+							lApp->findObject<Danmaku>()->append(std::move(load));
+							emit stateChanged(task.state = None);
+							dequeue();
+						}
+						else {
+							emit progressChanged((double)(length - *number) / (length + 1));
 						}
 					});
 				}
 
-				emit progressChanged(2 / total);
+				emit progressChanged(2.0 / (length + 1));
 				emit stateChanged(task.state = File);
 				break;
 			}
 			else {
-				emit progressChanged(1);
+				emit progressChanged(1.0);
 				dumpDanmaku(data, Utils::Bilibili, true);
 				emit stateChanged(task.state = None);
 				dequeue();
 				break;
 			}
 		}
+		case File:
+			//slot connected in Code state
+			break;
 		}
 	};
 
@@ -675,11 +686,13 @@ Load::Load(QObject *parent)
 		case File:
 		{
 			Record load;
-			load.danmaku = Parse::parseComment(reply->readAll(), Utils::Bilibili);
 			load.source = task.code;
 			load.limit = task.request.attribute(QNetworkRequest::User).toInt();
-			lApp->findObject<Danmaku>()->remove(load.source);
-			lApp->findObject<Danmaku>()->append(std::move(load));
+			Parse::parseComment(reply->readAll(), Utils::Bilibili).onFinish([load](QVector<Comment> &&list) mutable {
+				load.danmaku.swap(list);
+				lApp->findObject<Danmaku>()->remove(load.source);
+				lApp->findObject<Danmaku>()->append(std::move(load));
+			});
 			emit stateChanged(task.state = None);
 			dequeue();
 			break;
@@ -859,8 +872,9 @@ void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 {
-	QVector<Comment> list = Parse::parseComment(data, (Utils::Site)site);
-	dumpDanmaku(&list, full);
+	Parse::parseComment(data, (Utils::Site)site).onFinish([=](QVector<Comment> &&list) {
+		dumpDanmaku(&list, full);
+	});
 }
 
 void Load::forward()

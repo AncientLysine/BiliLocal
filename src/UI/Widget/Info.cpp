@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Info.cpp
 *   Time:        2013/04/05
@@ -29,16 +29,18 @@
 #include "Info.h"
 #include "Editor.h"
 #include "Prefer.h"
-#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"
-#include "../../Utils.h"
 #include "../../Access/Load.h"
+#include "../../Define/Comment.h"
+#include "../../Define/Record.h"
 #include "../../Player/APlayer.h"
 #include "../../Model/Danmaku.h"
 #include "../../Model/List.h"
 #include "../../Model/Shield.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 
 using namespace UI;
 

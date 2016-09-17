@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Danmaku.cpp
 *   Time:        2013/03/18
@@ -28,9 +28,10 @@
 #include "Danmaku.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
 #include "../Access/Load.h"
+#include "../Define/Record.h"
 #include "../Model/Shield.h"
+#include "../Utility/Text.h"
 #include <algorithm>
 
 class DanmakuPrivate

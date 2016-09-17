@@ -1,7 +1,7 @@
 #pragma once
 
 #include "APlayer.h"
-#include "Utils.h"
+#include "../Utility/Text.h"
 #include <functional>
 
 extern "C"

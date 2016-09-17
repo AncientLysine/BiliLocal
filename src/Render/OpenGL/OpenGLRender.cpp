@@ -11,9 +11,9 @@
 #endif
 #include "DetachPrivate.h"
 #include "../../Config.h"
-#include "../../Sample.h"
 #include "../../Player/APlayer.h"
 #include "../../UI/Interface.h"
+#include "../../Utility/Sample.h"
 
 OpenGLRender::OpenGLRender(QObject *parent) :
 	ARender(parent)

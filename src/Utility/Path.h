@@ -2,10 +2,9 @@
 *
 *   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Info.h
-*   Time:        2013/04/05
+*   Filename:    Path.h
+*   Time:        2016/05/10
 *   Author:      Lysine
-*   Contributor: Chaserhkj
 *
 *   Lysine is a student majoring in Software Engineering
 *   from the School of Software, SUN YAT-SEN UNIVERSITY.
@@ -27,55 +26,18 @@
 
 #pragma once
 
-#include <QtCore>
-#include <QtWidgets>
+#include <QString>
 
-namespace UI
+namespace Utils
 {
-	class Info :public QWidget
+	enum Path
 	{
-		Q_OBJECT
-	public:
-		explicit Info(QWidget *parent = 0);
-
-		bool isShown()
-		{
-			return isPoped;
-		}
-
-		bool preferStay()
-		{
-			return isStay;
-		}
-
-	private:
-		bool isStay;
-		bool isPoped;
-		bool updating;
-		qint64 duration;
-
-		QLabel *duraT;
-		QLabel *timeT;
-		QLabel *volmT;
-		QLabel *plfmT;
-		QSlider *timeS;
-		QSlider *volmS;
-		QLineEdit *plfmL;
-		QTableView *danmV;
-		QPushButton *playB;
-		QPushButton *stopB;
-		QAction *playA;
-		QAction *stopA;
-		QIcon playI, stopI, pausI;
-		QPropertyAnimation *animation;
-		void resizeEvent(QResizeEvent *e);
-		void setTime(qint64 _time);
-		void setDuration(qint64 _duration);
-
-	public slots:
-		void pop();
-		void push(bool force = false);
-		void terminate();
-		void resizeHeader();
+		Cache,
+		Config,
+		Locale,
+		Plugin,
+		Script
 	};
+
+	QString localPath(Path path);
 }

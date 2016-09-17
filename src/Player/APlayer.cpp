@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    VPlayer.cpp
 *   Time:        2013/03/18
@@ -27,7 +27,7 @@
 #include "Common.h"
 #include "APlayer.h"
 #include "../Config.h"
-#include "../Utils.h"
+#include "../Define/Comment.h"
 
 #ifdef BACKEND_VLC
 #include "VPlayer.h"

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Config.cpp
 *   Time:        2013/06/17
@@ -27,7 +27,7 @@
 #include "Common.h"
 #include "Config.h"
 #include "Local.h"
-#include "Utils.h"
+#include "Utility/Path.h"
 
 QReadWriteLock Config::lock;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NetworkConfiguration.h"
+#include "Network.h"
 #include <QtCore>
 #include <QtNetwork>
 #include <algorithm>
@@ -39,7 +39,7 @@ public:
 				q->forward();
 			}
 		});
-		NetworkConfiguration::instance()->setManager(&manager);
+		Network::instance()->setManager(&manager);
 	}
 
 	virtual ~AccessPrivate() = default;

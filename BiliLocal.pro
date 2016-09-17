@@ -12,7 +12,7 @@ CONFIG += c++11
 
 SOURCES += \
     src/Access/Load.cpp \
-    src/Access/NetworkConfiguration.cpp \
+    src/Access/Network.cpp \
     src/Access/Parse.cpp \
     src/Access/Post.cpp \
     src/Access/Seek.cpp \
@@ -33,17 +33,19 @@ SOURCES += \
     src/Render/ARender.cpp \
     src/Render/ASprite.cpp \
     src/UI/Interface.cpp \
+    src/Utility/Eval.cpp \
+    src/Utility/Path.cpp \
+    src/Utility/Sample.cpp \
+    src/Utility/Text.cpp \
     src/Bundle.cpp \
     src/Config.cpp \
     src/Local.cpp \
-    src/Plugin.cpp \
-    src/Sample.cpp \
-    src/Utils.cpp
+    src/Plugin.cpp
 
 HEADERS += \
     src/Access/AccessPrivate.h \
     src/Access/Load.h \
-    src/Access/NetworkConfiguration.h \
+    src/Access/Network.h \
     src/Access/Parse.h \
     src/Access/Post.h \
     src/Access/Seek.h \
@@ -67,14 +69,19 @@ HEADERS += \
     src/Render/ASprite.h \
     src/Render/ElapsedTimer.h \
     src/Render/PFormat.h \
+    src/Define/Comment.h \
+    src/Define/Record.h \
     src/UI/Interface.h \
     src/UI/InterfacePrivate.h \
+    src/Utility/Async.h \
+    src/Utility/Eval.h \
+    src/Utility/Path.h \
+    src/Utility/Sample.h \
+    src/Utility/Text.h \
     src/Bundle.h \
     src/Config.h \
     src/Local.h \
-    src/Plugin.h \
-    src/Sample.h \
-    src/Utils.h
+    src/Plugin.h
 
 INCLUDEPATH += \
     src
@@ -280,11 +287,13 @@ message(enable opengl render detach output)
 contains(QT, widgets){
 HEADERS += \
     src/Render/OpenGL/WidgetPrivate.h \
-    src/Render/OpenGL/WindowPrivate.h
+    src/Render/OpenGL/WindowPrivate.h \
+    src/Utility/Widget.h
 
 SOURCES += \
     src/Render/OpenGL/WidgetPrivate.cpp \
-    src/Render/OpenGL/WindowPrivate.cpp
+    src/Render/OpenGL/WindowPrivate.cpp \
+    src/Utility/Widget.cpp
 
 message(enable opengl render widget output)
 message(enable opengl render window output)

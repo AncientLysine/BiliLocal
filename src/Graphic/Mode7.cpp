@@ -5,6 +5,7 @@
 #include "../Local.h"
 #include "../Render/ARender.h"
 #include "../Render/ASprite.h"
+#include "../Utility/Text.h"
 
 using namespace GraphicPrivate;
 

@@ -1,52 +1,11 @@
 #pragma once
 
-#include <QtCore>
-#include "../Utils.h"
-#include <functional>
+#include <QByteArray>
+#include "../Define/Comment.h"
+#include "../Utility/Async.h"
+#include "../Utility/Text.h"
 
 namespace Parse
 {
-	class ResultDelegate
-	{
-	public:
-		typedef QVector<Comment> Result;
-		typedef std::function<void(Result &&)> Finish;
-
-		class Record
-		{
-		public:
-			virtual ~Record() = default;
-			virtual void onFinish(Finish) = 0;
-			virtual Result get() = 0;
-		};
-
-		QSharedPointer<Record> data;
-
-		ResultDelegate() :
-			data(nullptr)
-		{
-		}
-
-		explicit ResultDelegate(Record *data) :
-			data(data)
-		{
-		}
-
-		void onFinish(Finish cb)
-		{
-			if (data) {
-				data->onFinish(cb);
-			}
-			else {
-				cb(Result());
-			}
-		}
-
-		operator Result()
-		{
-			return data == nullptr ? Result() : data->get();
-		}
-	};
-
-	ResultDelegate parseComment(const QByteArray &data, Utils::Site site);
+	FutureResult<QVector<Comment>> parseComment(const QByteArray &data, Utils::Site site);
 }

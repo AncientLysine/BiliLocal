@@ -1,8 +1,8 @@
 #include "Common.h"
 #include "OpenGLAtlas.h"
 #include "OpenGLRenderPrivate.h"
-#include "../../Sample.h"
 #include "../../Graphic/GraphicPrivate.h"
+#include "../../Utility/Sample.h"
 
 const int OpenGLAtlas::MaxSize = 2048;
 const int OpenGLAtlas::Padding = 2;

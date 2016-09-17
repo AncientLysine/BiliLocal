@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Post.cpp
 *   Time:        2013/05/23
@@ -28,7 +28,9 @@
 #include "Common.h"
 #include "Post.h"
 #include "AccessPrivate.h"
+#include "../Define/Record.h"
 #include "../Model/Danmaku.h"
+#include "../Utility/Text.h"
 
 class PostPrivate : public AccessPrivate<Post ,Post::Proc, Post::Task>
 {

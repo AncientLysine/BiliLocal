@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Menu.cpp
 *   Time:        2013/04/05
@@ -28,16 +28,18 @@
 #include "Common.h"
 #include "Menu.h"
 #include "Search.h"
-#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"
-#include "../../Utils.h"
 #include "../../Access/Load.h"
+#include "../../Define/Record.h"
 #include "../../Model/Danmaku.h"
 #include "../../Model/List.h"
 #include "../../Player/APlayer.h"
 #include "../../Render/ARender.h"
+#include "../../Utility/Eval.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 #include <numeric>
 
 using namespace UI;

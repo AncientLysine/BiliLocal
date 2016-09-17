@@ -3,6 +3,7 @@
 #include "../InterfacePrivate.h"
 #include <QtCore>
 #include <QtQml>
+#include <QtQuick>
 
 class Quick2InterfacePrivate : public InterfacePrivate
 {

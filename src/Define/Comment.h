@@ -1,8 +1,8 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Utils.h
+*   Filename:    Comment.h
 *   Time:        2013/05/10
 *   Author:      Lysine
 *
@@ -26,8 +26,8 @@
 
 #pragma once
 
-#include <QtCore>
-#include <QtGui>
+#include <QString>
+#include <QHash>
 
 class Comment
 {
@@ -72,64 +72,4 @@ inline uint qHash(const Comment &c, uint seed = 0)
 	h = (h << 1) ^ qHash(c.sender, seed);
 	h = (h << 1) ^ qHash(c.string, seed);
 	return h;
-}
-
-class Record
-{
-public:
-	bool full;
-	qint64 delay;
-	qint64 limit;
-	QString source;
-	QString string;
-	QString access;
-	QVector<Comment> danmaku;
-
-	Record()
-	{
-		full = false;
-		delay = limit = 0;
-	}
-};
-
-namespace Utils
-{
-	enum Site
-	{
-		Unknown,
-		Bilibili,
-		AcFun,
-		Tudou,
-		Letv,
-		AcfunLocalizer,
-		Niconico,
-		TuCao,
-		ASS
-	};
-
-	enum Type
-	{
-		Video = 1,
-		Audio = 2,
-		Subtitle = 4,
-		Danmaku = 8
-	};
-
-	enum Path
-	{
-		Cache,
-		Config,
-		Locale,
-		Plugin,
-		Script
-	};
-
-	Site parseSite(QString url);
-	QString defaultFont(bool monospace = false);
-	QString localPath(Path path);
-	QString customUrl(Site site);
-	QString decodeTxt(QString &&txt);
-	QString decodeXml(QString &&xml, bool fast = false);
-	QStringList getSuffix(int type, QString format = QString());
-	double evaluate(QString expression);
 }

@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "Quick2InterfacePrivate.h"
 #include "Export.h"
+#include "../../Utility/Path.h"
 
 using namespace UI;
 

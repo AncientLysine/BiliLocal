@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Type.cpp
 *   Time:        2015/04/26
@@ -29,6 +29,7 @@
 #include "../Interface.h"
 #include "../../Local.h"
 #include "../../Access/Post.h"
+#include "../../Define/Record.h"
 #include "../../Model/Danmaku.h"
 #include "../../Player/APlayer.h"
 
