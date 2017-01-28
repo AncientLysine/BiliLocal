@@ -5,7 +5,7 @@
 class Sample
 {
 public:
-#ifdef GRAPHIC_DEBUG
+#ifdef PROFILE
 	explicit Sample(QString name);
 	~Sample();
 	void start();

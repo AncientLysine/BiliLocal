@@ -232,10 +232,10 @@ FutureResult<QVector<Comment>> Parse::parseComment(const QByteArray &data, Utils
 				Comment comment;
 				QString key, val;
 				/* 0 wait for key
-			 * 1 wait for left quot
-			 * 2 wait for value
-			 * 3 wait for comment
-			 * 4 finsihed */
+				 * 1 wait for left quot
+				 * 2 wait for value
+				 * 3 wait for comment
+				 * 4 finsihed */
 				int state = 0;
 				QMap<QString, QString> args;
 				for (const QChar &c : item) {

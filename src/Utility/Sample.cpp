@@ -1,7 +1,7 @@
 #include "Common.h"
 #include "Sample.h"
 
-#ifdef GRAPHIC_DEBUG
+#ifdef PROFILE
 Sample::Data::Data()
 	: root(nullptr)
 	, last(nullptr)

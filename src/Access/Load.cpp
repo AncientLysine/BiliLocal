@@ -578,12 +578,12 @@ Load::Load(QObject *parent)
 			if (count.size() >= 2) {
 				int max = QRegularExpression("(?<=\\<max_count\\>).+(?=\\</max_count\\>)").match(data).captured().toInt();
 				int now = 0;
-
-				auto getHistory = [d, &count, &task](int date) {
+				QString code = task.code;
+				auto getHistory = [=, &count](int date) {
 					QString url("http://comment.%1/dmroll,%2,%3");
 					url = url.arg(Utils::customUrl(Utils::Bilibili));
 					url = url.arg(date);
-					url = url.arg(QFileInfo(task.code).baseName());
+					url = url.arg(QFileInfo(code).baseName());
 					return d->manager.get(QNetworkRequest(url));
 				};
 
@@ -606,7 +606,12 @@ Load::Load(QObject *parent)
 				for (auto iter : d->remain) {
 					auto reply = makeFuture(iter, &QNetworkReply::finished);
 					auto prase = reply.onFinish([](QNetworkReply *reply) {
-						return Parse::parseComment(reply->readAll(), Utils::Bilibili);
+						if (reply->error() == QNetworkReply::NoError) {
+							return Parse::parseComment(reply->readAll(), Utils::Bilibili);
+						}
+						else {
+							return makeFuture(QFuture<QVector<Comment>>());
+						}
 					});
 					future.append(prase);
 				}
@@ -614,7 +619,7 @@ Load::Load(QObject *parent)
 				auto vector = QSharedPointer<QVector<QVector<Comment>>>::create(length);
 				auto number = QSharedPointer<QAtomicInt>::create(length);
 				for (int i = 0; i < length; ++i) {
-					future[i].onFinish([=, &task](QVector<Comment> &&list) {
+					future[i].onFinish([=](QVector<Comment> &&list) {
 						(*vector)[i].swap(list);
 						if (number->deref() == false) {
 							emit progressChanged(1.0);
@@ -623,10 +628,14 @@ Load::Load(QObject *parent)
 							for (auto iter : *vector) {
 								load.danmaku.append(iter);
 							}
-							load.source = task.code;
+							load.source = code;
 							lApp->findObject<Danmaku>()->append(std::move(load));
-							emit stateChanged(task.state = None);
-							dequeue();
+							//task may be canceled
+							Task *head = getHead();
+							if (head && head->code == code) {
+								emit stateChanged(head->state = None);
+								dequeue();
+							}
 						}
 						else {
 							emit progressChanged((double)(length - *number) / (length + 1));
@@ -851,29 +860,40 @@ void Load::loadHistory(const Record *record, QDate date)
 	enqueue(task);
 }
 
+namespace
+{
+	void dumpRecord(QVector<Comment> &&data, const Load::Task &task, bool full)
+	{
+		Record load;
+		load.full = full;
+		load.source = task.request.url().url();
+		load.string = task.code;
+		load.access = task.code;
+		load.delay = task.delay;
+		load.danmaku.swap(data);
+		if (load.delay != 0) {
+			for (Comment &c : load.danmaku) {
+				c.time += load.delay;
+			}
+		}
+		lApp->findObject<Danmaku>()->append(std::move(load));
+	}
+}
+
 void Load::dumpDanmaku(const QVector<Comment> *data, bool full)
 {
 	Q_D(Load);
-	Task &task = d->queue.head();
-	Record load;
-	load.full = full;
-	load.source = task.request.url().url();
-	load.string = task.code;
-	load.access = task.code;
-	load.delay = task.delay;
-	load.danmaku = *data;
-	if (load.delay != 0){
-		for (Comment &c : load.danmaku){
-			c.time += load.delay;
-		}
+	if (data) {
+		dumpRecord(QVector<Comment>(*data), d->queue.head(), full);
 	}
-	lApp->findObject<Danmaku>()->append(std::move(load));
 }
 
 void Load::dumpDanmaku(const QByteArray &data, int site, bool full)
 {
+	Q_D(Load);
+	Task task = d->queue.head();
 	Parse::parseComment(data, (Utils::Site)site).onFinish([=](QVector<Comment> &&list) {
-		dumpDanmaku(&list, full);
+		dumpRecord(std::move(list), task, full);
 	});
 }
 

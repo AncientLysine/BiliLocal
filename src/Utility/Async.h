@@ -35,182 +35,208 @@
 #include <functional>
 #include <type_traits>
 
-template<typename F>
-typename std::result_of<F()>::type makeFuture(F func)
+template<typename Callback>
+typename std::result_of<Callback()>::type makeFuture(Callback func)
 {
-    return func();
+	return func();
 }
 
 namespace
 {
-    template<typename F, typename T>
-    struct ResultOf
-    {
-        typedef typename std::result_of<F(T)>::type Type;
-    };
+	template<typename Callback, typename T>
+	struct ResultOf
+	{
+		typedef typename std::result_of<Callback(T)>::type Type;
+	};
 
-    template<typename F>
-    struct ResultOf<F, void>
-    {
-        typedef typename std::result_of<F( )>::type Type;
-    };
+	template<typename Callback>
+	struct ResultOf<Callback, void>
+	{
+		typedef typename std::result_of<Callback()>::type Type;
+	};
 }
 
-template<typename O, typename S>
+template<typename Sender, typename Finish>
 class SignalResult
 {
-    typedef QSharedPointer<QVector<std::function<void(O, S)>>> V;
+	typedef QSharedPointer<QVector<std::function<void(Sender, Finish)>>> Regist;
 
 public:
-    SignalResult()
-        : sender(nullptr)
-        , signal(nullptr)
-        , ca(V::create())
-    {
-    }
+	SignalResult()
+		: sender(nullptr)
+		, finish(nullptr)
+		, resist(Regist::create())
+	{
+	}
 
-    SignalResult(O sender, S signal)
-        : sender(sender)
-        , signal(signal)
-        , ca(V::create())
-    {
-    }
+	SignalResult(Sender sender, Finish signal)
+		: sender(sender)
+		, finish(signal)
+		, resist(Regist::create())
+	{
+	}
 
-    void setResult(const SignalResult<O, S> &result)
-    {
-        Q_ASSERT(sender == nullptr && signal == nullptr);
-        sender = result.sender;
-        signal = result.signal;
-        for(auto iter : *ca) {
-            iter(sender, signal);
-        }
-        ca->clear();
-    }
+	void setResult(const SignalResult<Sender, Finish> &result)
+	{
+		Q_ASSERT(sender == nullptr && finish == nullptr);
+		sender = result.sender;
+		finish = result.finish;
+		if (sender && finish) {
+			for (auto iter : *resist) {
+				iter(sender, finish);
+			}
+			resist->clear();
+		}
+	}
 
-    template<typename F>
-    typename ResultOf<F, O>::Type onFinish(F cb)
-    {
-        return OnFinishImpl<F, typename ResultOf<F, O>::Type>::Do(sender, signal, ca, cb);
-    }
+	template<typename Callback>
+	typename ResultOf<Callback, Sender>::Type onFinish(Callback cb)
+	{
+		return OnFinishImpl<Callback, typename ResultOf<Callback, Sender>::Type>::Do(sender, finish, resist, cb);
+	}
 
 private:
-    O sender;
-    S signal;
-    V ca;
+	Sender sender;
+	Finish finish;
+	Regist resist;
 
-    template<typename F, typename R>
-    struct OnFinishImpl
-    {
-        static R Do(O o, S s, V ca, F cb)
-        {
-            R r;
-            auto reg = [cb, r](O o, S s){
-                QObject::connect(o, s, [cb, o, r]() {
-                    R(r).setResult(cb(o));
-                });
-            };
-            if (o && s) {
-                reg(o, s);
-            }
-            else{
-                ca->append(reg);
-            }
-            return r;
-        }
-    };
+	template<typename Callback, typename Result>
+	struct OnFinishImpl
+	{
+		static Result Do(Sender s, Finish f, Regist v, Callback cb)
+		{
+			Result result;
+			auto func = [cb, result](Sender s, Finish f) mutable {
+				QObject::connect(s, f, [cb, s, result]() mutable {
+					result.setResult(cb(s));
+				});
+			};
+			if (s && f) {
+				func(s, f);
+			}
+			else {
+				v->append(func);
+			}
+			return result;
+		}
+	};
 
-    template<typename F>
-    struct OnFinishImpl<F, void>
-    {
-        static void Do(O o, S s, V ca, F cb)
-        {
-            auto reg = [cb](O o, S s){
-                QObject::connect(o, s, [cb, o]() {
-                    cb(o);
-                });
-            };
-            if (o && s) {
-                reg(o, s);
-            }
-            else{
-                ca->append(reg);
-            }
-        }
-    };
+	template<typename Callback>
+	struct OnFinishImpl<Callback, void>
+	{
+		static void Do(Sender s, Finish f, Regist v, Callback cb)
+		{
+			auto func = [cb](Sender s, Finish f) {
+				QObject::connect(s, f, [cb, s]() {
+					cb(s);
+				});
+			};
+			if (s && f) {
+				func(s, f);
+			}
+			else {
+				v->append(func);
+			}
+		}
+	};
 };
 
-template<typename O, typename S>
-SignalResult<O, S> makeFuture(O sender, S signal)
+template<typename Sender, typename Finish>
+SignalResult<Sender, Finish> makeFuture(Sender sender, Finish signal)
 {
-    return SignalResult<O, S>(sender, signal);
+	return SignalResult<Sender, Finish>(sender, signal);
 }
 
 template<typename T>
 class FutureResult
 {
-    typedef QSharedPointer<QFutureWatcher<T>> W;
+	typedef QSharedPointer<QFuture<T>> Future;
+	typedef QSharedPointer<QFutureWatcher<T>> Listen;
 
 public:
-    FutureResult()
-        : wa(W::create())
-    {
-    }
-
-    explicit FutureResult(const QFuture<T> &future)
-        : wa(W::create())
+	FutureResult()
+		: listen(Listen::create())
 	{
-		//calling onFinish after setFuture is likely to produce race
-		auto watcher = wa;
-		QTimer::singleShot(0, [watcher, future]() mutable {
-			watcher->setFuture(future);
-		});
-    }
+	}
 
-    void setResult(const FutureResult<T> &result)
-    {
-        wa->setFuture(result.wa->future());
-    }
+	explicit FutureResult(const QFuture<T> &future)
+		: future(Future::create(future))
+	{
+	}
 
-    template<typename F>
-    typename ResultOf<F, T>::Type onFinish(F cb)
-    {
-        return OnFinishImpl<F, typename ResultOf<F, T>::Type>::Do(wa, cb);
-    }
+	void setResult(const FutureResult<T> &result)
+	{
+		Q_ASSERT(future.isNull());
+		future = result.future;
+		if (future && listen) {
+			listen->setFuture(*future);
+			listen.clear();
+		}
+	}
+
+	template<typename Callback>
+	typename ResultOf<Callback, T>::Type onFinish(Callback cb)
+	{
+		return OnFinishImpl<Callback, typename ResultOf<Callback, T>::Type>::Do(future, listen, cb);
+	}
 
 private:
-    W wa;
+	Future future;
+	Listen listen;
 
-    template<typename F, typename R>
-    struct OnFinishImpl
-    {
-        static R Do(W wa, F cb)
-        {
-            R r;
-            QObject::connect(wa.data(), &QFutureWatcher<T>::finished, [=]() mutable {
-                auto t = wa->future().result();
-                wa.clear();
-                r.setResult(cb(std::move(t)));
-            });
-            return r;
-        }
-    };
+	template<typename Callback, typename Result>
+	struct OnFinishImpl
+	{
+		static Result Do(Future f, Listen l, Callback cb)
+		{
+			Result result;
+			if (f) {
+				l.reset(new QFutureWatcher<T>());
+				QObject::connect(l.data(), &QFutureWatcher<T>::finished, [l, cb, result]() mutable {
+					T t = l->isCanceled() ? T() : l->result();
+					l.clear();
+					result.setResult(cb(std::move(t)));
+				});
+				l->setFuture(*f);
+			}
+			else {
+				QObject::connect(l.data(), &QFutureWatcher<T>::finished, [l, cb, result]() mutable {
+					T t = l->isCanceled() ? T() : l->result();
+					l.clear();
+					result.setResult(cb(std::move(t)));
+				});
+			}
+			return result;
+		}
+	};
 
-    template<typename F>
-    struct OnFinishImpl<F, void>
-    {
-        static void Do(W wa, F cb)
-        {
-            QObject::connect(wa.data(), &QFutureWatcher<T>::finished, [=]() mutable {
-                auto t = wa->future().result();
-                wa.clear();
-                cb(std::move(t));
-            });
-        }
-    };
+	template<typename Callback>
+	struct OnFinishImpl<Callback, void>
+	{
+		static void Do(Future f, Listen l, Callback cb)
+		{
+			if (f) {
+				l.reset(new QFutureWatcher<T>());
+				QObject::connect(l.data(), &QFutureWatcher<T>::finished, [l, cb]() mutable {
+					T t = l->isCanceled() ? T() : l->result();
+					l.clear();
+					cb(std::move(t));
+				});
+				l->setFuture(*f);
+			}
+			else {
+				QObject::connect(l.data(), &QFutureWatcher<T>::finished, [l, cb]() mutable {
+					T t = l->isCanceled() ? T() : l->result();
+					l.clear();
+					cb(std::move(t));
+				});
+			}
+		}
+	};
 };
 
 template<typename T>
 FutureResult<T> makeFuture(const QFuture<T> &future)
 {
-    return FutureResult<T>(future);
+	return FutureResult<T>(future);
 }
