@@ -2,6 +2,7 @@
 #include "Quick2Private.h"
 #include "../../Local.h"
 #include "../../UI/Interface.h"
+#include "../../Utility/Sample.h"
 #include <functional>
 
 OpenGLQuick2RenderPrivate::OpenGLQuick2RenderPrivate()
@@ -10,6 +11,8 @@ OpenGLQuick2RenderPrivate::OpenGLQuick2RenderPrivate()
 	window = qobject_cast<QQuickWindow *>(lApp->findObject<Interface>()->window());
 	window->setClearBeforeRendering(false);
 	QObject::connect(window, &QQuickWindow::beforeRendering, [=] {
+		Sample s("Quick2Render::paint");
+
 		if (uninitialized){
 			initialize();
 			device.reset(new QOpenGLPaintDevice());

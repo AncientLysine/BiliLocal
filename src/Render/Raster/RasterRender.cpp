@@ -135,7 +135,6 @@ RasterRenderPrivate::RasterRenderPrivate()
 
 void RasterRenderPrivate::drawData(QPainter *painter, QRect rect)
 {
-	painter->fillRect(rect, Qt::black);
 	if (data == nullptr || format == AV_PIX_FMT_NONE) {
 		return;
 	}
@@ -181,6 +180,11 @@ void RasterRenderPrivate::drawDanm(QPainter *painter, QRect rect)
 	painter->save();
 	ARenderPrivate::drawDanm(painter, rect);
 	painter->restore();
+}
+
+void RasterRenderPrivate::clear(QPainter *painter, QColor color)
+{
+	painter->fillRect(painter->window(), color);
 }
 
 namespace

@@ -12,7 +12,7 @@ CONFIG += c++11
 
 SOURCES += \
     src/Access/Load.cpp \
-    src/Access/NetworkConfiguration.cpp \
+    src/Access/Network.cpp \
     src/Access/Parse.cpp \
     src/Access/Post.cpp \
     src/Access/Seek.cpp \
@@ -33,16 +33,19 @@ SOURCES += \
     src/Render/ARender.cpp \
     src/Render/ASprite.cpp \
     src/UI/Interface.cpp \
+    src/Utility/Eval.cpp \
+    src/Utility/Path.cpp \
+    src/Utility/Sample.cpp \
+    src/Utility/Text.cpp \
     src/Bundle.cpp \
     src/Config.cpp \
     src/Local.cpp \
-    src/Plugin.cpp \
-    src/Utils.cpp
+    src/Plugin.cpp
 
 HEADERS += \
     src/Access/AccessPrivate.h \
     src/Access/Load.h \
-    src/Access/NetworkConfiguration.h \
+    src/Access/Network.h \
     src/Access/Parse.h \
     src/Access/Post.h \
     src/Access/Seek.h \
@@ -60,18 +63,25 @@ HEADERS += \
     src/Model/List.h \
     src/Model/Shield.h \
     src/Player/APlayer.h \
+    src/Render/ABuffer.h \
     src/Render/ARender.h \
     src/Render/ARenderPrivate.h \
     src/Render/ASprite.h \
     src/Render/ElapsedTimer.h \
     src/Render/PFormat.h \
+    src/Define/Comment.h \
+    src/Define/Record.h \
     src/UI/Interface.h \
     src/UI/InterfacePrivate.h \
+    src/Utility/Async.h \
+    src/Utility/Eval.h \
+    src/Utility/Path.h \
+    src/Utility/Sample.h \
+    src/Utility/Text.h \
     src/Bundle.h \
     src/Config.h \
     src/Local.h \
-    src/Plugin.h \
-    src/Utils.h
+    src/Plugin.h
 
 INCLUDEPATH += \
     src
@@ -80,7 +90,7 @@ PRECOMPILED_HEADER = \
     src/Common.h
 
 RESOURCES += \
-    res/Res.qrc
+    res/Resource.qrc
 
 TRANSLATIONS += \
     res/zh_CN.ts \
@@ -157,7 +167,7 @@ LIBS += \
 
 android{
 DEFINES += \
-    BACKEND_QMM \
+    BACKEND_JNI \
     BACKEND_NIL
 
 DEFINES += \
@@ -168,15 +178,13 @@ DEFINES += \
 
 DISTFILES += \
     res/Android/AndroidManifest.xml \
-    res/Android/gradle/wrapper/gradle-wrapper.jar \
-    res/Android/gradlew \
-    res/Android/res/values/libs.xml \
     res/Android/build.gradle \
+    res/Android/gradlew \
+    res/Android/gradlew.bat \
+    res/Android/gradle/wrapper/gradle-wrapper.jar \
     res/Android/gradle/wrapper/gradle-wrapper.properties \
-    res/Android/gradlew.bat
-
-RESOURCES += \
-    src/UI/Quick2/BundleQuick2.qrc
+    res/Android/res/values/libs.xml \
+    res/Android/ant.properties
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/res/Android
 }
@@ -229,6 +237,10 @@ HEADERS += \
     src/UI/Quick2/Export.h \
     src/UI/Quick2/Quick2InterfacePrivate.h
 
+RESOURCES += \
+    src/UI/Quick2/BundleScriptQuick2.qrc \
+    res/BundleLocale.qrc
+
 message(enable quick2 interface)
 }
 
@@ -261,6 +273,7 @@ SOURCES += \
     src/Render/OpenGL/SyncTextureSprite.cpp \
     src/Render/OpenGL/DetachPrivate.cpp \
     src/Render/OpenGL/OpaquePrivate.cpp
+
 HEADERS += \
     src/Render/OpenGL/OpenGLRender.h \
     src/Render/OpenGL/OpenGLRenderPrivate.h \
@@ -274,11 +287,13 @@ message(enable opengl render detach output)
 contains(QT, widgets){
 HEADERS += \
     src/Render/OpenGL/WidgetPrivate.h \
-    src/Render/OpenGL/WindowPrivate.h
+    src/Render/OpenGL/WindowPrivate.h \
+    src/Utility/Widget.h
 
 SOURCES += \
     src/Render/OpenGL/WidgetPrivate.cpp \
-    src/Render/OpenGL/WindowPrivate.cpp
+    src/Render/OpenGL/WindowPrivate.cpp \
+    src/Utility/Widget.cpp
 
 message(enable opengl render widget output)
 message(enable opengl render window output)
@@ -309,16 +324,34 @@ message(enable vplayer libvlc backend)
 }
 
 contains(DEFINES, BACKEND_QMM){
+QT += \
+    multimedia
+
 SOURCES += \
     src/Player/QPlayer.cpp
 
 HEADERS += \
     src/Player/QPlayer.h
 
-QT += \
-    multimedia
-
 message(enable qplayer libqtmultimedia backend)
+}
+
+contains(DEFINES, BACKEND_JNI){
+QT += \
+    androidextras
+
+SOURCES += \
+    src/Player/JPlayer.cpp
+
+HEADERS += \
+    src/Player/JPlayer.h
+
+OTHER_FILES += \
+    res/Android/src/tv/danmaku/local/Holder.java \
+    res/Android/src/tv/danmaku/local/Player.java \
+    res/Android/src/tv/danmaku/local/Output.java
+
+message(enable jplayer android jni backend)
 }
 
 contains(DEFINES, BACKEND_NIL){

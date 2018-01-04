@@ -2,6 +2,7 @@
 #include "Plain.h"
 #include "GraphicPrivate.h"
 #include "../Local.h"
+#include "../Utility/Eval.h"
 
 using namespace GraphicPrivate;
 

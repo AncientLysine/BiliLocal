@@ -1,5 +1,8 @@
 ﻿#include "Common.h"
 #include "Home.h"
+#include "../../Define/Record.h"
+#include "../../Utility/Eval.h"
+#include "../../Utility/Text.h"
 #include <QtGui>
 #include <QtNetwork>
 #include <functional>

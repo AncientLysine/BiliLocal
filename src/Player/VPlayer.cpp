@@ -2,7 +2,6 @@
 #include "VPlayer.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
 #include "../Render/ARender.h"
 #include "../Render/ABuffer.h"
 #include "../Render/PFormat.h"
@@ -79,14 +78,14 @@ namespace
 		QWeakPointer<Reuser> reuse;
 	};
 
-	class PixelBufferMgr
+	class BufferPool
 	{
 	public:
 		QList<QSize> alloc;
 		int planes;
 		int offset[4];
 
-		explicit PixelBufferMgr(const QList<QSize> &alloc)
+		explicit BufferPool(const QList<QSize> &alloc)
 			: alloc(alloc), planes(0)
 		{
 			int length = 0;
@@ -94,11 +93,11 @@ namespace
 				offset[planes++] = length;
 				length += iter.width() * iter.height();
 			}
-			auto f = std::bind(&PixelBufferMgr::reuse, this, std::placeholders::_1);
+			auto f = std::bind(&BufferPool::reuse, this, std::placeholders::_1);
 			func = QSharedPointer<PixelBuffer::Reuser>::create(f);
 		}
 
-		~PixelBufferMgr()
+		~BufferPool()
 		{
 			qDeleteAll(data);
 		}
@@ -150,13 +149,13 @@ namespace
 			align(size.rwidth(), 16); align(size.rheight(), 16);
 			pitches[i] = size.width(); lines[i] = size.height();
 		}
-		*opaque = new PixelBufferMgr(f.plane);
+		*opaque = new BufferPool(f.plane);
 		return 2;
 	}
 
 	void *lck(void *opaque, void **planes)
 	{
-		PixelBufferMgr *m = (PixelBufferMgr *)opaque;
+		BufferPool *m = (BufferPool *)opaque;
 		auto buffer = m->fetch();
 		for (int i = 0; i < m->planes; ++i) {
 			planes[i] = buffer->bits() + m->offset[i];
@@ -173,7 +172,7 @@ namespace
 
 	void clr(void *opaque)
 	{
-		PixelBufferMgr *m = (PixelBufferMgr *)opaque;
+		BufferPool *m = (BufferPool *)opaque;
 		delete m;
 	}
 
@@ -280,14 +279,16 @@ void VPlayer::wait()
 
 void VPlayer::free()
 {
-	if (state == Play&&Config::getValue("/Player/Loop", false)){
-		libvlc_media_player_stop(mp);
-		emit stateChanged(state = Loop);
-		libvlc_media_player_play(mp);
-		emit jumped(0);
-	}
-	else{
-		stop(false);
+	if (mp){
+		if (getLoop() && state == Play){
+			libvlc_media_player_stop(mp);
+			emit stateChanged(state = Loop);
+			libvlc_media_player_play(mp);
+			emit jumped(0);
+		}
+		else{
+			stop(false);
+		}
 	}
 }
 
@@ -373,7 +374,7 @@ void VPlayer::play()
 
 void VPlayer::stop(bool manually)
 {
-	if (mp&&state != Stop){
+	if (mp && state != Stop){
 		libvlc_media_player_stop(mp);
 		emit stateChanged(state = Stop);
 		emit reach(manually);
@@ -382,20 +383,16 @@ void VPlayer::stop(bool manually)
 
 void VPlayer::setTime(qint64 _time)
 {
-	if (mp&&state != Stop){
+	if (mp && state != Stop){
 		if (getDuration() == _time){
-			if (Config::getValue("/Player/Loop", false)){
-				setTime(0);
-			}
-			else{
-				stop();
-			}
+			getLoop() ? stop() : setTime(0);
 		}
 		else{
 			::time.lock();
 			qApp->processEvents();
 			emit jumped(_time);
-			libvlc_media_player_set_time(mp, qBound<qint64>(0, _time, getDuration()));
+			_time = qBound<qint64>(0, _time, getDuration());
+			libvlc_media_player_set_time(mp, _time);
 			::time.unlock();
 		}
 	}
@@ -601,7 +598,7 @@ void VPlayer::addSubtitle(QString file)
 	}
 }
 
-void VPlayer::event(int type)
+void VPlayer::event(int type, QVariant args)
 {
 	switch (type){
 	case Init:
@@ -614,7 +611,7 @@ void VPlayer::event(int type)
 		free();
 		break;
 	case Fail:
-		emit errorOccurred(UnknownError);
+		emit errorOccurred(args.toInt());
 		break;
 	}
 }

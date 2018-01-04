@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Graphic.h
 *   Time:        2013/10/19
@@ -26,9 +26,9 @@
 
 #pragma once
 
+#include "../Define/Comment.h"
 #include <QtGui>
 #include <QtCore>
-#include "../Utils.h"
 #include <exception>
 
 class Graphic

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Post.h
 *   Time:        2013/05/23
@@ -27,11 +27,12 @@
 
 #pragma once
 
-#include "../Utils.h"
+#include "../Define/Comment.h"
 #include <QtCore>
 #include <QtNetwork>
 #include <functional>
 
+class Record;
 class PostPrivate;
 
 class Post : public QObject

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Seek.cpp
 *   Time:        2015/06/30
@@ -27,7 +27,7 @@
 #include "Common.h"
 #include "Seek.h"
 #include "AccessPrivate.h"
-#include "../Utils.h"
+#include "../Utility/Text.h"
 
 namespace
 {

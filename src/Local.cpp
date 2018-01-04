@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Local.cpp
 *   Time:        2013/03/18
@@ -29,7 +29,6 @@
 #include "Bundle.h"
 #include "Config.h"
 #include "Plugin.h"
-#include "Utils.h"
 #include "Access/Load.h"
 #include "Access/Post.h"
 #include "Access/Seek.h"
@@ -41,6 +40,8 @@
 #include "Player/APlayer.h"
 #include "Render/ARender.h"
 #include "UI/Interface.h"
+#include "Utility/Path.h"
+#include "Utility/Text.h"
 #include <type_traits>
 
 Local *Local::ins = nullptr;
@@ -70,6 +71,7 @@ Local::Local(QObject *parent)
 	lIns(List);
 #define lSet(ModuleType) static_cast<ModuleType *>(this->objects[#ModuleType])->setup()
 	lSet(Interface);
+	lSet(APlayer);
 	lSet(ARender);
 	lSet(Running);
 #undef lIns
@@ -119,16 +121,16 @@ namespace
 {
 	void setDefaultFont()
 	{
-		QString def = Utils::defaultFont();
-		QFontInfo i(qApp->font());
-		if (!QFontDatabase().families().contains(def)){
-			def = i.family();
-		}
-		double p = i.pointSizeF();
-		QFont f;
-		f.setFamily(Config::getValue("/Interface/Font/Family", def));
-		f.setPointSizeF(Config::getValue("/Interface/Font/Size", p));
-		qApp->setFont(f);
+		QFont font = QGuiApplication::font();
+		QFontInfo i(font);
+		auto f = Utils::defaultFont();
+		auto s = i.pointSizeF();
+		f = QFontDatabase().families().contains(f) ? f : i.family();
+		f = Config::getValue("/Interface/Font/Family", f);
+		s = Config::getValue("/Interface/Font/Size", s);
+		font.setFamily(f);
+		font.setPointSizeF(s);
+		QGuiApplication::setFont(font);
 	}
 
 	void loadTranslator()
@@ -147,7 +149,7 @@ namespace
 			}
 			QTranslator *trans = new QTranslator(qApp);
 			if (trans->load(info.absoluteFilePath())){
-				qApp->installTranslator(trans);
+				QCoreApplication::installTranslator(trans);
 			}
 			else{
 				delete trans;

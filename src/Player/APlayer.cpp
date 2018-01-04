@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    VPlayer.cpp
 *   Time:        2013/03/18
@@ -27,13 +27,16 @@
 #include "Common.h"
 #include "APlayer.h"
 #include "../Config.h"
-#include "../Utils.h"
+#include "../Define/Comment.h"
 
 #ifdef BACKEND_VLC
 #include "VPlayer.h"
 #endif
 #ifdef BACKEND_QMM
 #include "QPlayer.h"
+#endif
+#ifdef BACKEND_JNI
+#include "JPlayer.h"
 #endif
 #ifdef BACKEND_NIL
 #include "NPlayer.h"
@@ -47,6 +50,9 @@ QStringList APlayer::getModules()
 #endif
 #ifdef BACKEND_QMM
 	modules << "QMM";
+#endif
+#ifdef BACKEND_JNI
+	modules << "JNI";
 #endif
 #ifdef BACKEND_NIL
 	modules << "NIL";
@@ -81,6 +87,11 @@ APlayer * APlayer::create(QObject *parent, QString name)
 		return new QPlayer(parent);
 	}
 #endif
+#ifdef BACKEND_JNI
+	if (name == "JNI") {
+		return new JPlayer(parent);
+	}
+#endif
 #ifdef BACKEND_NIL
 	if (name == "NIL") {
 		return new NPlayer(parent);
@@ -93,6 +104,20 @@ APlayer::APlayer(QObject *parent)
 	: QObject(parent)
 {
 	setObjectName("APlayer");
+}
+
+void APlayer::setup()
+{
+}
+
+void APlayer::setLoop(bool loop)
+{
+	Config::setValue("/Player/Loop", loop);
+}
+
+bool APlayer::getLoop()
+{
+	return Config::getValue("/Player/Loop", false);
 }
 
 void APlayer::setRate(double)
@@ -131,6 +156,6 @@ void APlayer::addSubtitle(QString)
 {
 }
 
-void APlayer::event(int)
+void APlayer::event(int, QVariant)
 {
 }

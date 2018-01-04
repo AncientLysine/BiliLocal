@@ -28,6 +28,7 @@ public:
 	virtual ~RasterRenderPrivate();
 	virtual void drawData(QPainter *painter, QRect rect) override;
 	virtual void drawDanm(QPainter *painter, QRect rect) override;
+	virtual void clear(QPainter *painter, QColor color) override;
 	void setFormat(PFormat *format);
 	void setBuffer(ABuffer *buffer);
 };

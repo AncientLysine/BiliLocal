@@ -3,6 +3,7 @@
 #include "OpenGLRenderPrivate.h"
 #include "../ARender.h"
 #include "../../Graphic/GraphicPrivate.h"
+#include "../../Utility/Sample.h"
 
 SyncTextureSprite::SyncTextureSprite(OpenGLRenderPrivate *render)
 	: render(render)
@@ -15,6 +16,8 @@ void SyncTextureSprite::prepare()
 
 void SyncTextureSprite::draw(QPainter *)
 {
+	Sample s("SyncTextureSprite::draw");
+
 	if (!size.isValid()) {
 		QFont f = font;
 		f.setPixelSize(f.pixelSize() * qApp->devicePixelRatio());

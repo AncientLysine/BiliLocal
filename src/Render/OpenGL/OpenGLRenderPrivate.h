@@ -19,6 +19,10 @@ public:
 		RGBA,
 		BGRA,
 		ARGB,
+		GL2D,
+#ifdef GL_TEXTURE_EXTERNAL_OES
+		GLEX,
+#endif
 		Danm,
 		Stro,
 		Proj,
@@ -33,7 +37,7 @@ public:
 		QOpenGLShaderProgram program[Max];
 		QOpenGLBuffer vtxBuffer;
 		QOpenGLBuffer idxBuffer;
-		OpenGLAtlasMgr manager;
+		OpenGLPacker manager;
 
 		explicit OpenGLRenderResource(OpenGLRenderPrivate *r);
 	};

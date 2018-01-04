@@ -14,16 +14,25 @@ Drawer {
         anchors.margins: parent.width / 32
 
         TextInput {
+            id: openText
             Layout.row: 0
             Layout.column: 0
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
-            text: LocalApp.Player.media
+        }
+
+        Connections {
+            target: LocalApp.Player
+            onMediaChanged : {
+                openText.text = media.split(/[/\\]/).pop();
+                openText.cursorPosition = 0;
+            }
         }
 
         Button {
             Layout.row: 0
             Layout.column: 1
+            Layout.preferredWidth: 70
             text : qsTr("Open")
             onClicked: openDialog.open()
         }
@@ -36,9 +45,30 @@ Drawer {
             Layout.alignment: Qt.AlignHCenter
         }
 
+        Connections {
+            target: LocalApp.Load
+            onStateChanged : {
+                var info = LocalApp.Load.getInfo();
+                switch(state) {
+                case Load.Page:
+                    loadText.text = info.Code;
+                    loadText.cursorPosition = 0;
+                    break;
+                case Load.File:
+                    var local = info.Url.toString().indexOf("file://") >= 0;
+                    localDanmakuSwitch.checked = local;
+                    loadText.text = local ? info.Code.split(/[/\\]/).pop() : info.Code;
+                    loadText.cursorPosition = 0;
+                    break;
+                case Load.Part:
+                    break;
+                }
+            }
+        }
         Button {
             Layout.row: 1
             Layout.column: 1
+            Layout.preferredWidth: 70
             text : localDanmakuSwitch.checked ? qsTr("Open") : qsTr("Load")
             onClicked: {
                 if (localDanmakuSwitch.checked) {
@@ -60,6 +90,7 @@ Drawer {
         Button {
             Layout.row: 2
             Layout.column: 1
+            Layout.preferredWidth: 70
             text : qsTr("Seek")
         }
 

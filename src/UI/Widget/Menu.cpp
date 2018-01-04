@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Menu.cpp
 *   Time:        2013/04/05
@@ -28,16 +28,18 @@
 #include "Common.h"
 #include "Menu.h"
 #include "Search.h"
-#include "WidgetInterfacePrivate.h"
 #include "../Interface.h"
 #include "../../Config.h"
 #include "../../Local.h"
-#include "../../Utils.h"
 #include "../../Access/Load.h"
+#include "../../Define/Record.h"
 #include "../../Model/Danmaku.h"
 #include "../../Model/List.h"
 #include "../../Player/APlayer.h"
 #include "../../Render/ARender.h"
+#include "../../Utility/Eval.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 #include <numeric>
 
 using namespace UI;
@@ -240,7 +242,7 @@ namespace{
 
 		void fixCode(QString text)
 		{
-			lApp->findObject<Load>()->fixCode(text);
+			text = lApp->findObject<Load>()->fixCode(text);
 			setCode(text);
 		}
 
@@ -508,9 +510,9 @@ QWidget(parent)
 	loopT = new QLabel(this);
 	loopT->setText(tr("Loop Playback"));
 	loopC = new QCheckBox(this);
-	loopC->setChecked(Config::getValue("/Player/Loop", false));
+	loopC->setChecked(lApp->findObject<APlayer>()->getLoop());
 	connect(loopC, &QCheckBox::stateChanged, [this](int state){
-		Config::setValue("/Player/Loop", state == Qt::Checked);
+		lApp->findObject<APlayer>()->setLoop(state == Qt::Checked);
 	});
 
 	animation = new QPropertyAnimation(this, "pos", this);

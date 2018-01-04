@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Danmaku.cpp
 *   Time:        2013/03/18
@@ -28,9 +28,10 @@
 #include "Danmaku.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
 #include "../Access/Load.h"
+#include "../Define/Record.h"
 #include "../Model/Shield.h"
+#include "../Utility/Text.h"
 #include <algorithm>
 
 class DanmakuPrivate
@@ -275,11 +276,11 @@ void Danmaku::append(Record &&record)
 		auto &l = append->danmaku;
 		int c = l.size() + a;
 		s.reserve(c);
-		for (const Comment &c : l) {
-			s.insert(&c);
-		}
 		beginResetModel();
 		l.reserve(c);
+		for (const Comment &i : l) {
+			s.insert(&i);
+		}
 		for (const Comment &i : record.danmaku) {
 			l.append(i);
 			Comment &c = l.last();

@@ -27,5 +27,5 @@ public:
 	void drawTime(QPainter *painter, QRect rect);
 	virtual void drawDanm(QPainter *painter, QRect rect);
 	virtual void drawData(QPainter *painter, QRect rect) = 0;
-
+	virtual void clear(QPainter *painter, QColor color) = 0;
 };

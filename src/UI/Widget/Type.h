@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Type.h
 *   Time:        2015/04/26
@@ -28,7 +28,7 @@
 
 #include <QtCore>
 #include <QtWidgets>
-#include "../../Utils.h"
+#include "../../Define/Comment.h"
 
 namespace UI
 {

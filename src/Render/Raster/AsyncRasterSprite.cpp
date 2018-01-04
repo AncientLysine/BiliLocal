@@ -1,7 +1,6 @@
 #include "Common.h"
 #include "AsyncRasterSprite.h"
 #include "../../Graphic/GraphicPrivate.h"
-#include "../../Utils.h"
 
 void qt_blurImage(QPainter *p, QImage &blurImage, qreal radius,
 	bool quality, bool alphaOnly, int transposed);

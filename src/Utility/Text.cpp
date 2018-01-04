@@ -1,8 +1,8 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
-*   Filename:    Utils.cpp
+*   Filename:    Text.cpp
 *   Time:        2013/05/10
 *   Author:      Lysine
 *
@@ -25,8 +25,9 @@
 =========================================================================*/
 
 #include "Common.h"
-#include "Utils.h"
-#include "Config.h"
+#include "Text.h"
+#include "../Config.h"
+#include <QTextDocument>
 #include <algorithm>
 #include <exception>
 
@@ -87,164 +88,11 @@ namespace{
 	};
 }
 
-double Utils::evaluate(QString exp)
-{
-	auto priority = [](QChar o){
-		switch (o.unicode())
-		{
-		case '(':
-			return 1;
-		case '+':
-		case '-':
-			return 2;
-		case '*':
-		case '/':
-			return 3;
-		case '+' + 128:
-		case '-' + 128:
-			return 4;
-		case ':':
-		case ':' + 128:
-			return 5;
-		default:
-			return 0;
-		}
-	};
-	exp.remove(' ');
-	QString pst;
-	SStack<QChar> opt;
-	int i = 0;
-	opt.push('#');
-	while (i < exp.length()){
-		if (exp[i].isDigit() || exp[i] == '.'){
-			pst.append(exp[i]);
-		}
-		else{
-			auto tra = [&](){
-				pst.append(' ');
-				while (priority(exp[i]) <= priority(opt.top())){
-					pst.append(opt.pop());
-				}
-				opt.push(exp[i]);
-			};
-			int colon = 0;
-			switch (exp[i].unicode()){
-			case '(':
-				opt.push(exp[i]);
-				break;
-			case ')':
-				while (opt.top() != '('){
-					pst.append(opt.pop());
-				}
-				opt.pop();
-				break;
-			case '+':
-			case '-':
-			{
-				if ((i == 0 || (!exp[i - 1].isDigit() && exp[i - 1] != ')')) && (i + 1) < exp.length() && (exp[i + 1].isDigit() || exp[i + 1] == '(')){
-					exp[i].unicode() += 128;
-				}
-				tra();
-				break;
-			}
-			case ':':
-				switch (colon++){
-				case 2:
-					exp[i].unicode() += 128;
-				case 1:
-				case 0:
-					break;
-				default:
-					throw std::runtime_error("colon overflow");
-				}
-				tra();
-				break;
-			case '*':
-			case '/':
-				tra();
-				break;
-			default:
-				throw std::runtime_error("token unrecognized");
-			}
-		}
-		++i;
-	}
-	while (!opt.isEmpty()){
-		pst.append(opt.pop());
-	}
-	SStack<double> num;
-	i = 0;
-	while (pst[i] != '#'){
-		if (pst[i].isDigit() || pst[i] == '.'){
-			double n = 0;
-			while (pst[i].isDigit()){
-				n = n * 10 + pst[i++].toLatin1() - '0';
-			}
-			if (pst[i] == '.'){
-				++i;
-				double d = 1;
-				while (pst[i].isDigit()){
-					n += (d /= 10)*(pst[i++].toLatin1() - '0');
-				}
-			}
-			num.push(n);
-		}
-		else{
-			switch (pst[i].unicode()){
-			case '+' + 128:
-				num.push(+num.pop());
-				break;
-			case '-' + 128:
-				num.push(-num.pop());
-				break;
-			case '+':
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l + r);
-				break;
-			}
-			case '-':
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l - r);
-				break;
-			}
-			case '*':
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l*r);
-				break;
-			}
-			case '/':
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l / r);
-				break;
-			}
-			case ':':
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l * 60 + r);
-				break;
-			}
-			case ':' + 128:
-			{
-				double r = num.pop(), l = num.pop();
-				num.push(l * 24 + r);
-				break;
-			}
-			}
-			i++;
-		}
-	}
-	return num.top();
-}
-
 QString Utils::defaultFont(bool monospace)
 {
 	if (monospace){
 #ifdef Q_OS_ANDROID
-		return QStringLiteral("Roboto");
+		return QStringLiteral("Noto Sans SC");
 #endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿等宽正黑");
@@ -258,7 +106,7 @@ QString Utils::defaultFont(bool monospace)
 	}
 	else{
 #ifdef Q_OS_ANDROID
-		return QStringLiteral("Roboto");
+		return QStringLiteral("Noto Sans SC");
 #endif
 #ifdef Q_OS_LINUX
 		return QStringLiteral("文泉驿正黑");
@@ -270,42 +118,6 @@ QString Utils::defaultFont(bool monospace)
 		return QStringLiteral("华文黑体");
 #endif
 	}
-}
-
-QString Utils::localPath(Path path)
-{
-#ifdef Q_OS_WIN32
-	QString base = qApp->applicationDirPath() + '/';
-	switch (path){
-	case Cache:
-		return base + "cache/";
-	case Config:
-		return base;
-	case Locale:
-		return base + "locale/";
-	case Plugin:
-		return base + "plugins/";
-	case Script:
-		return base + "scripts/";
-	default:
-		return base;
-	}
-#else
-	switch (path){
-	case Cache:
-		return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + '/';
-	case Config:
-		return QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + '/';
-	case Locale:
-		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Locale/";
-	case Plugin:
-		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Plugin/";
-	case Script:
-		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/Script/";
-	default:
-		return QStandardPaths::writableLocation(QStandardPaths::DataLocation) + '/';
-	}
-#endif
 }
 
 QString Utils::customUrl(Site site)

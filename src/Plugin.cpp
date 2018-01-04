@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Plugin.cpp
 *   Time:        2013/04/23
@@ -28,7 +28,7 @@
 #include "Plugin.h"
 #include "Config.h"
 #include "Local.h"
-#include "Utils.h"
+#include "Utility/Path.h"
 
 QList<Plugin> Plugin::plugins;
 

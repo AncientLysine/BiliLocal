@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Editor.cpp
 *   Time:        2013/06/30
@@ -26,15 +26,18 @@
 
 #include "Common.h"
 #include "Editor.h"
-#include "WidgetInterfacePrivate.h"
 #include "../../Config.h"
 #include "../../Local.h"
-#include "../../Utils.h"
 #include "../../Access/Load.h"
-#include "../../Access/NetworkConfiguration.h"
+#include "../../Access/Network.h"
+#include "../../Define/Comment.h"
+#include "../../Define/Record.h"
 #include "../../Model/Danmaku.h"
 #include "../../Model/List.h"
 #include "../../Player/APlayer.h"
+#include "../../Utility/Eval.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 
 using namespace UI;
 
@@ -458,7 +461,7 @@ namespace{
 		{
 			setMinimumWidth(100 * logicalDpiX() / 96);
 			manager = new QNetworkAccessManager(this);
-			NetworkConfiguration::instance()->setManager(manager);
+			Network::instance()->setManager(manager);
 
 			scroll = new MScroll(this);
 			scroll->setSingleStep(20);

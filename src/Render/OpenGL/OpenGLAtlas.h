@@ -93,7 +93,7 @@ private:
 	OpenGLAtlas *parent;
 };
 
-class OpenGLAtlasMgr
+class OpenGLPacker
 {
 public:
 	struct CreateInfo
@@ -103,8 +103,8 @@ public:
 		int effect;
 	};
 
-	explicit OpenGLAtlasMgr(OpenGLRenderPrivate *render);
-	~OpenGLAtlasMgr();
+	explicit OpenGLPacker(OpenGLRenderPrivate *render);
+	~OpenGLPacker();
 
 	void insert(CreateInfo info, QList<OpenGLSprite> &result, QSize &size);
 

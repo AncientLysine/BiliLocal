@@ -1,6 +1,6 @@
 ﻿/*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Search.cpp
 *   Time:        2013/04/18
@@ -27,10 +27,10 @@
 
 #include "Common.h"
 #include "Search.h"
-#include "WidgetInterfacePrivate.h"
 #include "../../Local.h"
 #include "../../Access/Seek.h"
-#include "../../Utils.h"
+#include "../../Utility/Text.h"
+#include "../../Utility/Widget.h"
 
 using namespace UI;
 

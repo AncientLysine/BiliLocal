@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Config.cpp
 *   Time:        2013/06/17
@@ -27,7 +27,7 @@
 #include "Common.h"
 #include "Config.h"
 #include "Local.h"
-#include "Utils.h"
+#include "Utility/Path.h"
 
 QReadWriteLock Config::lock;
 
@@ -41,7 +41,7 @@ QJsonObject Config::config;
 void Config::load()
 {
 	QFile conf(Utils::localPath(Utils::Config) + "Config.txt");
-	if (conf.open(QIODevice::ReadOnly | QIODevice::Text)){
+	if (conf.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		config = QJsonDocument::fromJson(conf.readAll()).object();
 		conf.close();
 	}
@@ -51,9 +51,11 @@ void Config::save()
 {
 	emit lApp->findObject<Config>()->aboutToSave();
 	QFile conf(Utils::localPath(Utils::Config) + "Config.txt");
-	conf.open(QIODevice::WriteOnly | QIODevice::Text);
-	conf.write(QJsonDocument(config).toJson());
-	conf.close();
+	QFileInfo(conf).dir().mkpath("./");
+	if (conf.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		conf.write(QJsonDocument(config).toJson());
+		conf.close();
+	}
 }
 
 void     Config::setVariant(QString key, QVariant val)

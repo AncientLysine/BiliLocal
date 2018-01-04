@@ -3,12 +3,6 @@
 #include "../InterfacePrivate.h"
 #include <QString>
 
-namespace Utils
-{
-	void setCenter(QWidget *widget);
-	void setGround(QWidget *widget, QColor color);
-}
-
 class QWidget;
 class QWindow;
 

@@ -1,6 +1,6 @@
 /*=======================================================================
 *
-*   Copyright (C) 2013-2015 Lysine.
+*   Copyright (C) 2013-2016 Lysine.
 *
 *   Filename:    Shield.cpp
 *   Time:        2013/05/20
@@ -28,7 +28,7 @@
 #include "Shield.h"
 #include "../Config.h"
 #include "../Local.h"
-#include "../Utils.h"
+#include "../Define/Comment.h"
 #include <algorithm>
 
 class ShieldPrivate
